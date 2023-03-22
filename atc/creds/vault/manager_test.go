@@ -43,7 +43,7 @@ var _ = Describe("VaultManager", func() {
 			_, err := flags.ParseArgs(&manager, []string{})
 			Expect(err).To(BeNil())
 			Expect(manager.SharedPath).To(Equal(""))
-			Expect(manager.PathPrefix).To(Equal("/concourse"))
+			Expect(manager.PathPrefix).To(Equal([]string{"/concourse"}))
 			Expect(manager.LookupTemplates).To(Equal([]string{
 				"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 				"/{{.Team}}/{{.Secret}}",
@@ -138,7 +138,7 @@ var _ = Describe("VaultManager", func() {
 			config = map[string]interface{}{
 				"url":                fakeVault.URL,
 				"disable_srv_lookup": true,
-				"path_prefix":        "/path-prefix",
+				"path_prefix":        []string{"/path-prefix"},
 				"lookup_templates": []string{
 					"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 					"/thing/{{.Team}}/{{.Secret}}",
@@ -185,7 +185,7 @@ var _ = Describe("VaultManager", func() {
 
 			Expect(manager.URL).To(Equal(fakeVault.URL))
 			Expect(manager.ClientConfig.DisableSRVLookup).To(Equal(true))
-			Expect(manager.PathPrefix).To(Equal("/path-prefix"))
+			Expect(manager.PathPrefix).To(Equal([]string{"/path-prefix"}))
 			Expect(manager.LookupTemplates).To(Equal([]string{
 				"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 				"/thing/{{.Team}}/{{.Secret}}",
@@ -219,7 +219,7 @@ var _ = Describe("VaultManager", func() {
 				Expect(configErr).ToNot(HaveOccurred())
 
 				Expect(manager.ClientConfig.DisableSRVLookup).To(Equal(false))
-				Expect(manager.PathPrefix).To(Equal("/concourse"))
+				Expect(manager.PathPrefix).To(Equal([]string{"/concourse"}))
 				Expect(manager.Auth.RetryMax).To(Equal(5 * time.Minute))
 				Expect(manager.Auth.RetryInitial).To(Equal(time.Second))
 				Expect(manager.LookupTemplates).To(Equal([]string{

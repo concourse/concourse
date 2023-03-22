@@ -84,7 +84,7 @@ var _ = Describe("Vault", func() {
 
 		v = &vault.Vault{
 			SecretReader:    msr,
-			Prefix:          "/concourse",
+			Prefix:          []string{"/concourse"},
 			LookupTemplates: []*creds.SecretTemplate{p, t},
 			SharedPath:      "shared",
 			LoggedIn:        loggedInCh,
@@ -220,7 +220,7 @@ var _ = Describe("Vault", func() {
 
 					v = &vault.Vault{
 						SecretReader:    sr,
-						Prefix:          "/concourse",
+						Prefix:          []string{"/concourse"},
 						LookupTemplates: []*creds.SecretTemplate{a, b, c},
 					}
 
@@ -256,7 +256,7 @@ var _ = Describe("Vault", func() {
 
 					v = &vault.Vault{
 						SecretReader:    msr,
-						Prefix:          "/concourse",
+						Prefix:          []string{"/concourse"},
 						LookupTemplates: []*creds.SecretTemplate{p, t},
 					}
 
@@ -356,7 +356,7 @@ var _ = Describe("Vault KV2", func() {
 
 		v = &vault.Vault{
 			SecretReader:    vaultApi,
-			Prefix:          "/concourse",
+			Prefix:          []string{"/concourse"},
 			LookupTemplates: []*creds.SecretTemplate{p, t},
 			SharedPath:      "shared",
 		}
@@ -629,7 +629,7 @@ var _ = Describe("Vault KV1", func() {
 
 		v = &vault.Vault{
 			SecretReader:    vaultApi,
-			Prefix:          "/concourse",
+			Prefix:          []string{"/concourse"},
 			LookupTemplates: []*creds.SecretTemplate{p, t},
 			SharedPath:      "shared",
 		}

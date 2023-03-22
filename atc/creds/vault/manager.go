@@ -17,7 +17,7 @@ import (
 type VaultManager struct {
 	URL string `mapstructure:"url" long:"url" description:"Vault server address used to access secrets."`
 
-	PathPrefix      string        `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	PathPrefix      []string      `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"One or more paths (comma-delimited) under which to namespace credential lookup."`
 	LookupTemplates []string      `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
 	SharedPath      string        `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
 	Namespace       string        `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
@@ -98,7 +98,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 
 func (manager *VaultManager) Config(config map[string]interface{}) error {
 	// apply defaults
-	manager.PathPrefix = "/concourse"
+	manager.PathPrefix = []string{"/concourse"}
 	manager.Auth.RetryMax = 5 * time.Minute
 	manager.Auth.RetryInitial = time.Second
 	manager.LoginTimeout = 60 * time.Second
@@ -141,14 +141,16 @@ func (manager VaultManager) Validate() error {
 		return fmt.Errorf("invalid URL: %s", err)
 	}
 
-	if manager.PathPrefix == "" {
+	if len(manager.PathPrefix) == 0 || contains(manager.PathPrefix, "") {
 		return fmt.Errorf("path prefix must be a non-empty string")
 	}
 
-	for i, tmpl := range manager.LookupTemplates {
-		name := fmt.Sprintf("lookup-template-%d", i)
-		if _, err := creds.BuildSecretTemplate(name, manager.PathPrefix+tmpl); err != nil {
-			return err
+	for _, prefix := range manager.PathPrefix {
+		for i, tmpl := range manager.LookupTemplates {
+			name := fmt.Sprintf("lookup-template-%d", i)
+			if _, err := creds.BuildSecretTemplate(name, prefix+tmpl); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -182,13 +184,15 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 	if manager.SecretFactory == nil {
 
 		templates := []*creds.SecretTemplate{}
-		for i, tmpl := range manager.LookupTemplates {
-			name := fmt.Sprintf("lookup-template-%d", i)
-			scopedTemplate := path.Join(manager.PathPrefix, tmpl)
-			if template, err := creds.BuildSecretTemplate(name, scopedTemplate); err != nil {
-				return nil, err
-			} else {
-				templates = append(templates, template)
+		for _, prefix := range manager.PathPrefix {
+			for i, tmpl := range manager.LookupTemplates {
+				name := fmt.Sprintf("lookup-template-%d", i)
+				scopedTemplate := path.Join(prefix, tmpl)
+				if template, err := creds.BuildSecretTemplate(name, scopedTemplate); err != nil {
+					return nil, err
+				} else {
+					templates = append(templates, template)
+				}
 			}
 		}
 
@@ -215,4 +219,13 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 
 func (manager VaultManager) Close(logger lager.Logger) {
 	manager.ReAuther.Close()
+}
+
+func contains(lst []string, e string) bool {
+	for _, v := range lst {
+		if e == v {
+			return true
+		}
+	}
+	return false
 }
