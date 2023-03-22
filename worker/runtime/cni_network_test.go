@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"net"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -375,13 +373,9 @@ func (s *CNINetworkSuite) TestDropContainerTraffic() {
 	)
 	s.NoError(err)
 
-	handle := os.TempDir()
-	content := []byte("10.8.0.1" + " " + handle + "\n")
+	s.store.ContainerIpLookupReturns("10.8.0.1", nil)
 
-	err = os.WriteFile(filepath.Join(handle, "/hosts"), content, 0644)
-	s.NoError(err)
-
-	err = network.DropContainerTraffic(handle)
+	err = network.DropContainerTraffic("some-handle")
 	s.NoError(err)
 
 	s.Equal(s.iptables.AppendRuleCallCount(), 1)
@@ -399,13 +393,9 @@ func (s *CNINetworkSuite) TestResumeContainerTraffic() {
 	)
 	s.NoError(err)
 
-	handle := os.TempDir()
-	content := []byte("10.8.0.1" + " " + handle + "\n")
+	s.store.ContainerIpLookupReturns("10.8.0.1", nil)
 
-	err = os.WriteFile(filepath.Join(handle, "/hosts"), content, 0644)
-	s.NoError(err)
-
-	err = network.ResumeContainerTraffic(handle)
+	err = network.ResumeContainerTraffic("some-handle")
 	s.NoError(err)
 
 	s.Equal(s.iptables.DeleteRuleCallCount(), 1)

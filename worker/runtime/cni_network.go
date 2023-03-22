@@ -10,7 +10,6 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/go-cni"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/txn2/txeh"
 )
 
 //counterfeiter:generate github.com/containerd/go-cni.CNI
@@ -363,7 +362,7 @@ func (n cniNetwork) restrictHostAccess() error {
 }
 
 func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
-	containerIp, err := n.getContainerIp(containerHandle)
+	containerIp, err := n.store.ContainerIpLookup(containerHandle)
 	if err != nil {
 		return fmt.Errorf("error getting container IP: %w", err)
 	}
@@ -376,26 +375,8 @@ func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
 	return nil
 }
 
-func (n cniNetwork) getContainerIp(containerHandle string) (string, error) {
-	hc := txeh.HostsConfig{ReadFilePath: filepath.Join(containerHandle, "/hosts")}
-	hosts, err := txeh.NewHosts(&hc)
-	if err != nil {
-		return "", fmt.Errorf("error reading hosts file: %w", err)
-	}
-
-	found, ip, _ := hosts.HostAddressLookup(containerHandle)
-	if !found {
-		return "", fmt.Errorf("ip not found for container handle: %s", containerHandle)
-	}
-	if err != nil {
-		return "", fmt.Errorf("error finding container ip: %w", err)
-	}
-
-	return ip, err
-}
-
 func (n cniNetwork) ResumeContainerTraffic(containerHandle string) error {
-	containerIp, err := n.getContainerIp(containerHandle)
+	containerIp, err := n.store.ContainerIpLookup(containerHandle)
 	if err != nil {
 		return fmt.Errorf("error getting container IP: %w", err)
 	}
