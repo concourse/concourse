@@ -59,6 +59,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
 		Name:              step.Name,
 		Privileged:        step.Privileged,
+		Hermetic:          step.Hermetic,
 		Limits:            step.Limits,
 		Config:            step.Config,
 		ConfigPath:        step.ConfigPath,
