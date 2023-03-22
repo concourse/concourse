@@ -393,14 +393,14 @@ func (b *GardenBackend) Destroy(handle string) error {
 		return fmt.Errorf("gracefully killing task: %w", err)
 	}
 
-	err = b.network.Remove(ctx, task, handle)
-	if err != nil {
-		return fmt.Errorf("network remove: %w", err)
-	}
-
 	err = b.network.ResumeContainerTraffic(handle)
 	if err != nil {
 		return fmt.Errorf("resume container traffic: %w", err)
+	}
+
+	err = b.network.Remove(ctx, task, handle)
+	if err != nil {
+		return fmt.Errorf("network remove: %w", err)
 	}
 
 	_, err = task.Delete(ctx, containerd.WithProcessKill)
