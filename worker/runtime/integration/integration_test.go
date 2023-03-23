@@ -210,6 +210,7 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
+		NetOut:     []garden.NetOutRule{{Log: true}},
 	})
 	s.NoError(err)
 
@@ -235,8 +236,48 @@ func (s *IntegrationSuite) TestContainerNetworkEgress() {
 	exitCode, err := proc.Wait()
 	s.NoError(err)
 
-	s.Equal(exitCode, 0)
+	s.Equal(0, exitCode)
 	s.Equal("200 OK\n", buf.String())
+}
+
+// TestHermeticContainerNetworkEgress aims at verifying that a process that we run in a
+// container that we create through our gardenBackend is not able to make requests to
+// external services when hermitc (that NetOut in container spec is empty) is true.
+func (s *IntegrationSuite) TestHermeticContainerNetworkEgress() {
+	handle := uuid()
+
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+		NetOut:     []garden.NetOutRule{},
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.gardenBackend.Destroy(handle))
+	}()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{
+				"-http-get=http://example.com",
+			},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 1, "Process in container should not be able to connect to external network")
+	s.Contains(buf.String(), "failed performing http getGet \"http://example.com\": context deadline exceeded")
 }
 
 // TestContainerNetworkEgressWithRestrictedNetworks verifies that a process that we run in a
@@ -276,6 +317,7 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
+		NetOut:     []garden.NetOutRule{{Log: true}},
 	})
 	s.NoError(err)
 
@@ -314,6 +356,7 @@ func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
+		NetOut:     []garden.NetOutRule{{Log: true}},
 	})
 	s.NoError(err)
 
@@ -368,7 +411,7 @@ func (s *IntegrationSuite) TestContainerBlocksHostAccess() {
 
 	exitCode, err = proc.Wait()
 	s.NoError(err)
-	s.Equal(exitCode, 0, "Process in container should also be able to reach the internet")
+	s.Equal(0, exitCode, "Process in container should also be able to reach the internet")
 }
 
 func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
@@ -405,11 +448,7 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
-		NetOut: []garden.NetOutRule{
-			{
-				Log: true,
-			},
-		},
+		NetOut:     []garden.NetOutRule{{Log: true}},
 	})
 	s.NoError(err)
 
@@ -446,7 +485,7 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 
 	exitCode, err := proc.Wait()
 	s.NoError(err)
-	s.Equal(exitCode, 0, "Process in container should be able to reach the host network")
+	s.Equal(0, exitCode, "Process in container should be able to reach the host network")
 }
 
 func (s *IntegrationSuite) TestContainerNetworkHosts() {
