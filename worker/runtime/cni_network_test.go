@@ -378,12 +378,18 @@ func (s *CNINetworkSuite) TestDropContainerTraffic() {
 	err = network.DropContainerTraffic("some-handle")
 	s.NoError(err)
 
-	s.Equal(s.iptables.InsertRuleCallCount(), 1)
+	s.Equal(s.iptables.InsertRuleCallCount(), 2)
 	table, chain, pos, rulespec := s.iptables.InsertRuleArgsForCall(0)
-	s.Equal(table, "filter")
-	s.Equal(chain, "INPUT")
-	s.Equal(pos, 1)
-	s.Equal(rulespec, []string{"-s", "10.8.0.1", "-j", "DROP"})
+	s.Equal("filter", table)
+	s.Equal("INPUT", chain)
+	s.Equal(1, pos)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
+
+	table, chain, pos, rulespec = s.iptables.InsertRuleArgsForCall(1)
+	s.Equal("filter", table)
+	s.Equal("FORWARD", chain)
+	s.Equal(1, pos)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
 }
 
 func (s *CNINetworkSuite) TestResumeContainerTraffic() {
@@ -399,9 +405,14 @@ func (s *CNINetworkSuite) TestResumeContainerTraffic() {
 	err = network.ResumeContainerTraffic("some-handle")
 	s.NoError(err)
 
-	s.Equal(s.iptables.DeleteRuleCallCount(), 1)
+	s.Equal(s.iptables.DeleteRuleCallCount(), 2)
 	table, chain, rulespec := s.iptables.DeleteRuleArgsForCall(0)
-	s.Equal(table, "filter")
-	s.Equal(chain, "INPUT")
-	s.Equal(rulespec, []string{"-I", "-s", "10.8.0.1", "-j", "DROP"})
+	s.Equal("filter", table)
+	s.Equal("INPUT", chain)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
+
+	table, chain, rulespec = s.iptables.DeleteRuleArgsForCall(1)
+	s.Equal("filter", table)
+	s.Equal("FORWARD", chain)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
 }

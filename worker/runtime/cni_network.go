@@ -369,7 +369,12 @@ func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
 
 	err = n.ipt.InsertRule(filterTable, "INPUT", 1, "-s", containerIp, "-j", "DROP")
 	if err != nil {
-		return fmt.Errorf("error appending iptables rule to drop container traffic: %w", err)
+		return fmt.Errorf("error inserting iptables rule to INPUT: %w", err)
+	}
+
+	err = n.ipt.InsertRule(filterTable, "FORWARD", 1, "-s", containerIp, "-j", "DROP")
+	if err != nil {
+		return fmt.Errorf("error inserting iptables rule to FORWARD: %w", err)
 	}
 
 	return nil
@@ -383,7 +388,12 @@ func (n cniNetwork) ResumeContainerTraffic(containerHandle string) error {
 
 	err = n.ipt.DeleteRule(filterTable, "INPUT", "-s", containerIp, "-j", "DROP")
 	if err != nil {
-		return fmt.Errorf("error deleting iptables rule to resume container traffic: %w", err)
+		return fmt.Errorf("error deleting iptables rule in INPUT: %w", err)
+	}
+
+	err = n.ipt.DeleteRule(filterTable, "FORWARD", "-s", containerIp, "-j", "DROP")
+	if err != nil {
+		return fmt.Errorf("error deleting iptables rule in FORWARD: %w", err)
 	}
 
 	return nil
