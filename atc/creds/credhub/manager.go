@@ -16,7 +16,8 @@ import (
 type CredHubManager struct {
 	URL string `long:"url" description:"CredHub server address used to access secrets."`
 
-	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	PathPrefix   string   `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	PathPrefixes []string `long:"path-prefixes" description:"Multiple paths under which to namespace credential lookup."`
 
 	TLS    TLS
 	UAA    UAA
@@ -44,6 +45,7 @@ func (manager *CredHubManager) MarshalJSON() ([]byte, error) {
 	response := map[string]interface{}{
 		"url":           manager.URL,
 		"path_prefix":   manager.PathPrefix,
+		"path_prefixes": manager.PathPrefixes,
 		"ca_certs":      manager.TLS.CACerts,
 		"uaa_client_id": manager.UAA.ClientId,
 		"health":        health,
@@ -149,7 +151,7 @@ func (manager CredHubManager) Health() (*creds.HealthResponse, error) {
 }
 
 func (manager CredHubManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
-	return NewCredHubFactory(logger, manager.Client, manager.PathPrefix), nil
+	return NewCredHubFactory(logger, manager.Client, manager.PathPrefix, manager.PathPrefixes), nil
 }
 
 type LazyCredhub struct {

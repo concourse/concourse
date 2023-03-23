@@ -18,6 +18,7 @@ type VaultManager struct {
 	URL string `mapstructure:"url" long:"url" description:"Vault server address used to access secrets."`
 
 	PathPrefix      string        `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	PathPrefixes    []string      `mapstructure:"path_prefixes" long:"path-prefixes" description:"Multiple paths under which to namespace credential lookup."`
 	LookupTemplates []string      `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
 	SharedPath      string        `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
 	Namespace       string        `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
@@ -83,6 +84,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&map[string]interface{}{
 		"url":                manager.URL,
 		"path_prefix":        manager.PathPrefix,
+		"path_prefixes":      manager.PathPrefixes,
 		"lookup_templates":   manager.LookupTemplates,
 		"shared_path":        manager.SharedPath,
 		"namespace":          manager.Namespace,
@@ -99,6 +101,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 func (manager *VaultManager) Config(config map[string]interface{}) error {
 	// apply defaults
 	manager.PathPrefix = "/concourse"
+	manager.PathPrefixes = []string{}
 	manager.Auth.RetryMax = 5 * time.Minute
 	manager.Auth.RetryInitial = time.Second
 	manager.LoginTimeout = 60 * time.Second
@@ -141,14 +144,20 @@ func (manager VaultManager) Validate() error {
 		return fmt.Errorf("invalid URL: %s", err)
 	}
 
-	if manager.PathPrefix == "" {
+	if manager.PathPrefix == "" && len(manager.PathPrefixes) == 0 {
 		return fmt.Errorf("path prefix must be a non-empty string")
 	}
 
-	for i, tmpl := range manager.LookupTemplates {
-		name := fmt.Sprintf("lookup-template-%d", i)
-		if _, err := creds.BuildSecretTemplate(name, manager.PathPrefix+tmpl); err != nil {
-			return err
+	if manager.PathPrefix != "" && len(manager.PathPrefixes) > 0 {
+		return fmt.Errorf("only path prefix or path prefixes may be set, but not both")
+	}
+
+	for _, prefix := range getPrefixes(manager.PathPrefixes, manager.PathPrefix) {
+		for i, tmpl := range manager.LookupTemplates {
+			name := fmt.Sprintf("lookup-template-%d", i)
+			if _, err := creds.BuildSecretTemplate(name, prefix+tmpl); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -182,13 +191,15 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 	if manager.SecretFactory == nil {
 
 		templates := []*creds.SecretTemplate{}
-		for i, tmpl := range manager.LookupTemplates {
-			name := fmt.Sprintf("lookup-template-%d", i)
-			scopedTemplate := path.Join(manager.PathPrefix, tmpl)
-			if template, err := creds.BuildSecretTemplate(name, scopedTemplate); err != nil {
-				return nil, err
-			} else {
-				templates = append(templates, template)
+		for _, prefix := range getPrefixes(manager.PathPrefixes, manager.PathPrefix) {
+			for i, tmpl := range manager.LookupTemplates {
+				name := fmt.Sprintf("lookup-template-%d", i)
+				scopedTemplate := path.Join(prefix, tmpl)
+				if template, err := creds.BuildSecretTemplate(name, scopedTemplate); err != nil {
+					return nil, err
+				} else {
+					templates = append(templates, template)
+				}
 			}
 		}
 
@@ -205,6 +216,7 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 			manager.LoginTimeout,
 			manager.ReAuther.LoggedIn(),
 			manager.PathPrefix,
+			manager.PathPrefixes,
 			templates,
 			manager.SharedPath,
 		)
@@ -215,4 +227,11 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 
 func (manager VaultManager) Close(logger lager.Logger) {
 	manager.ReAuther.Close()
+}
+
+func getPrefixes(prefixes []string, prefix string) []string {
+	if prefix != "" {
+		prefixes = append(prefixes, prefix)
+	}
+	return prefixes
 }

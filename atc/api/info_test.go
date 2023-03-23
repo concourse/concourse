@@ -265,6 +265,7 @@ var _ = Describe("Pipelines API", func() {
           "vault": {
             "url": "` + credServer.URL() + `",
             "path_prefix": "testpath",
+			"path_prefixes": null,
             "lookup_templates": ["/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"],
 			"shared_path": "",
 			"namespace": "testnamespace",
@@ -344,6 +345,7 @@ var _ = Describe("Pipelines API", func() {
 							"method": "/health"
 						},
 						"path_prefix": "some-prefix",
+						"path_prefixes": null,
 						"uaa_client_id": "client-id"
 						}
 					}`))
@@ -362,18 +364,20 @@ var _ = Describe("Pipelines API", func() {
 							} `json:"response"`
 							Method string `json:"method"`
 						} `json:"health"`
-						PathPrefix  string `json:"path_prefix"`
-						UAAClientId string `json:"uaa_client_id"`
+						PathPrefix   string   `json:"path_prefix"`
+						PathPrefixes []string `json:"path_prefixes"`
+						UAAClientId  string   `json:"uaa_client_id"`
 					} `json:"credhub"`
 				}
 
 				BeforeEach(func() {
 					credhubManager := &credhub.CredHubManager{
-						URL:        "http://wrong.inexistent.tld",
-						PathPrefix: "some-prefix",
-						TLS:        tls,
-						UAA:        uaa,
-						Client:     &credhub.LazyCredhub{},
+						URL:          "http://wrong.inexistent.tld",
+						PathPrefix:   "some-prefix",
+						PathPrefixes: []string{},
+						TLS:          tls,
+						UAA:          uaa,
+						Client:       &credhub.LazyCredhub{},
 					}
 
 					credsManagers["credhub"] = credhubManager
