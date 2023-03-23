@@ -16,7 +16,7 @@ import (
 type CredHubManager struct {
 	URL string `long:"url" description:"CredHub server address used to access secrets."`
 
-	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	PathPrefix []string `long:"path-prefix" default:"/concourse" description:"One or more paths (comma-delimited) under which to namespace credential lookup."`
 
 	TLS    TLS
 	UAA    UAA

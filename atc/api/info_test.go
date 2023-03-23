@@ -323,7 +323,7 @@ var _ = Describe("Pipelines API", func() {
 
 					credhubManager := &credhub.CredHubManager{
 						URL:        credServer.URL(),
-						PathPrefix: "some-prefix",
+						PathPrefix: []string{"some-prefix"},
 						TLS:        tls,
 						UAA:        uaa,
 						Client:     &credhub.LazyCredhub{},
@@ -370,7 +370,7 @@ var _ = Describe("Pipelines API", func() {
 				BeforeEach(func() {
 					credhubManager := &credhub.CredHubManager{
 						URL:        "http://wrong.inexistent.tld",
-						PathPrefix: "some-prefix",
+						PathPrefix: []string{"some-prefix"},
 						TLS:        tls,
 						UAA:        uaa,
 						Client:     &credhub.LazyCredhub{},
