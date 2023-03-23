@@ -264,7 +264,7 @@ var _ = Describe("Pipelines API", func() {
 					Expect(body).To(MatchJSON(`{
           "vault": {
             "url": "` + credServer.URL() + `",
-            "path_prefix": "[testpath]",
+            "path_prefix": ["testpath"],
             "lookup_templates": ["/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"],
 			"shared_path": "",
 			"namespace": "testnamespace",
