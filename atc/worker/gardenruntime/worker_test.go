@@ -1287,7 +1287,7 @@ var _ = Describe("Garden Worker", func() {
 		})
 	})
 
-	FTest("hermetic container spec produces empty NetOut", func() {
+	Test("hermetic container spec produces empty NetOut", func() {
 		scenario := Setup(
 			workertest.WithWorkers(
 				grt.NewWorker("worker"),
@@ -1314,7 +1314,7 @@ var _ = Describe("Garden Worker", func() {
 		})
 	})
 
-	FTest("no hermetic container spec produces NetOut with all ip range", func() {
+	Test("no hermetic container spec produces NetOut with all ip range", func() {
 		scenario := Setup(
 			workertest.WithWorkers(
 				grt.NewWorker("worker"),

@@ -1119,6 +1119,29 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a task plan sets hermetic", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name:     "some-resource",
+							Hermetic: true,
+							Config: &atc.TaskConfig{
+								Params: atc.TaskEnv{
+									"param1": "value1",
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns a warning", func() {
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("specifies `hermetic:` only works against worker containerd runtime"))
+				})
+			})
+
 			Context("when a put plan has refers to a resource that does exist", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
