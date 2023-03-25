@@ -43,6 +43,7 @@ type suiteConfig struct {
 	ATCGuestUsername string `json:"atc_guest_username"`
 	ATCGuestPassword string `json:"atc_guest_password"`
 	DownloadCLI      bool   `json:"download_cli"`
+	Runtime          string `json:"runtime"`
 }
 
 var (
@@ -102,6 +103,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	atcGuestPassword := os.Getenv("ATC_GUEST_PASSWORD")
 	if atcGuestPassword != "" {
 		config.ATCGuestPassword = atcGuestPassword
+	}
+
+	workerRuntime := os.Getenv("RUNTIME")
+	if workerRuntime != "" {
+		config.Runtime = workerRuntime
 	}
 
 	payload, err := json.Marshal(config)
