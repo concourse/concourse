@@ -319,7 +319,7 @@ func (vs *VolumeServer) ListVolumes(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (vs *VolumeServer) GetVolume(w http.ResponseWriter, req *http.Request) {
+func (vs *VolumeServer) getVolume(w http.ResponseWriter, req *http.Request, withSize bool) {
 	w.Header().Set("Content-Type", "application/json")
 
 	handle := rata.Param(req, "handle")
@@ -333,7 +333,7 @@ func (vs *VolumeServer) GetVolume(w http.ResponseWriter, req *http.Request) {
 
 	ctx := lagerctx.NewContext(req.Context(), hLog)
 
-	vol, found, err := vs.volumeRepo.GetVolume(ctx, handle, false)
+	vol, found, err := vs.volumeRepo.GetVolume(ctx, handle, withSize)
 	if err != nil {
 		hLog.Error("failed-to-get-volume", err)
 		RespondWithError(w, ErrGetVolumeFailed, http.StatusInternalServerError)
@@ -351,36 +351,12 @@ func (vs *VolumeServer) GetVolume(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (vs *VolumeServer) GetVolume(w http.ResponseWriter, req *http.Request) {
+	vs.getVolume(w, req, false)
+}
+
 func (vs *VolumeServer) GetVolumeWithSize(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	handle := rata.Param(req, "handle")
-
-	hLog := vs.logger.Session("get-volume", lager.Data{
-		"volume": handle,
-	})
-
-	hLog.Debug("start")
-	defer hLog.Debug("done")
-
-	ctx := lagerctx.NewContext(req.Context(), hLog)
-
-	vol, found, err := vs.volumeRepo.GetVolume(ctx, handle, true)
-	if err != nil {
-		hLog.Error("failed-to-get-volume", err)
-		RespondWithError(w, ErrGetVolumeFailed, http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		hLog.Info("volume-not-found")
-		RespondWithError(w, ErrGetVolumeFailed, http.StatusNotFound)
-		return
-	}
-
-	if err := json.NewEncoder(w).Encode(vol); err != nil {
-		hLog.Error("failed-to-encode", err)
-	}
+	vs.getVolume(w, req, true)
 }
 
 func (vs *VolumeServer) SetProperty(w http.ResponseWriter, req *http.Request) {
