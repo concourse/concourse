@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 )
 
 type BtrfsFilesystem struct {

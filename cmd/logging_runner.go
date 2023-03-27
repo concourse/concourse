@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/ifrit"
 )
 

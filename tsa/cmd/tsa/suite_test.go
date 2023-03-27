@@ -17,7 +17,7 @@ import (
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	gserver "code.cloudfoundry.org/garden/server"
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"

@@ -1,6 +1,6 @@
 package volume
 
-import "code.cloudfoundry.org/lager/v3"
+import "code.cloudfoundry.org/lager"
 
 //go:generate counterfeiter . Strategy
 

@@ -3,7 +3,7 @@ package component
 import (
 	"context"
 
-	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 

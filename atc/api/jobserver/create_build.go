@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"code.cloudfoundry.org/lager/lagerctx"
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"

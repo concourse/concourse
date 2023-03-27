@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 )
 

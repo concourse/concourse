@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 )
 
 func (s *Server) ListDestroyingContainers(w http.ResponseWriter, r *http.Request) {

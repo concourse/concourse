@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/opa"
 

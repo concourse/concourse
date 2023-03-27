@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 )
 

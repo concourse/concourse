@@ -3,7 +3,7 @@ package wrappa
 import (
 	"net/http"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/tedsuo/rata"
 )

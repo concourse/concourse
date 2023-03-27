@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/logger"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	s "github.com/concourse/concourse/skymarshal/storage"

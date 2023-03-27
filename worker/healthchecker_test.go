@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/onsi/gomega/ghttp"
 
 	. "github.com/concourse/concourse/worker"

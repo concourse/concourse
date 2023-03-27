@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/skymarshal/skyserver"
 	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
 	"github.com/onsi/gomega/ghttp"

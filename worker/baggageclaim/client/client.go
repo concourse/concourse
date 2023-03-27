@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
 

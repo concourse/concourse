@@ -8,7 +8,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/clock/fakeclock"
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/atc/component"
 	"github.com/concourse/concourse/atc/component/cmocks"
 	"github.com/concourse/concourse/atc/db"

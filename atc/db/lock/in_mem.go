@@ -3,7 +3,7 @@ package lock
 import (
 	"sync"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 )
 
 func NewInMemoryFactory() LockFactory {

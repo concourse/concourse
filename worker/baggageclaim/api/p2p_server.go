@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 )
 
 var ErrGetP2pUrlFailed = errors.New("failed to get p2p url, network interface list is empty")

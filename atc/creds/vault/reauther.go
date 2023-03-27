@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/cenkalti/backoff"
 )

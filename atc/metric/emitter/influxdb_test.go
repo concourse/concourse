@@ -3,7 +3,7 @@ package emitter_test
 import (
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/metric/emitter"
 	"github.com/concourse/concourse/atc/metric/emitter/emitterfakes"

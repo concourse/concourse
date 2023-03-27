@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/worker/baggageclaim/fs"
 	"github.com/jessevdk/go-flags"
 )

@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"golang.org/x/crypto/ssh"
 )
 

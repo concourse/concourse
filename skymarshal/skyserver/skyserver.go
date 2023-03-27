@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/skymarshal/token"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2/jwt"

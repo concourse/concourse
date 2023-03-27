@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/tedsuo/rata"
 
 	"github.com/concourse/concourse/worker/baggageclaim"

@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection/connectionfakes"
 	. "github.com/onsi/ginkgo/v2"

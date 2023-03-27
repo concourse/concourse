@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate

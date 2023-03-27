@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/workerfakes"

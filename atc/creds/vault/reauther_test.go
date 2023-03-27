@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3/lagertest"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/cenkalti/backoff"
 )

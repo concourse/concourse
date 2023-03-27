@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/concourse/concourse/atc/creds"
 	"k8s.io/client-go/kubernetes"

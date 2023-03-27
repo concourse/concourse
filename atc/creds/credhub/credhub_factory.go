@@ -1,7 +1,7 @@
 package credhub
 
 import (
-	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager"
 	"github.com/concourse/concourse/atc/creds"
 )
 
