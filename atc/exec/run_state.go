@@ -88,6 +88,10 @@ func (state *runState) AddLocalVar(name string, val interface{}, redact bool) {
 	state.vars.AddLocalVar(name, val, redact)
 }
 
+func (state *runState) AddServiceVar(name string, val interface{}, redact bool) {
+	state.vars.AddServiceVar(name, val, redact)
+}
+
 func (state *runState) RedactionEnabled() bool {
 	return state.vars.RedactionEnabled()
 }

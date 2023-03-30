@@ -316,7 +316,7 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 		Tags:   parent.Tags,
 	}
 
-	getPlan, checkPlan := FetchImagePlan(planID, imageResource, types.Without(parent.Name), stepTags, skipInterval, parent.CheckEvery)
+	getPlan, checkPlan := FetchImagePlan("image", planID, imageResource, types.Without(parent.Name), stepTags, skipInterval, parent.CheckEvery)
 	checkPlan.Check.ResourceType = resourceType
 
 	return TypeImage{
@@ -337,9 +337,9 @@ func (types ResourceTypes) ImageForType(planID PlanID, resourceType string, step
 	}
 }
 
-func FetchImagePlan(planID PlanID, image ImageResource, resourceTypes ResourceTypes, stepTags Tags, skipInterval bool, checkEvery *CheckEvery) (Plan, *Plan) {
+func FetchImagePlan(imageName string, planID PlanID, image ImageResource, resourceTypes ResourceTypes, stepTags Tags, skipInterval bool, checkEvery *CheckEvery) (Plan, *Plan) {
 	// If resource type is a custom type, recurse in order to resolve nested resource types
-	getPlanID := planID + "/image-get"
+	getPlanID := PlanID(string(planID) + "/" + imageName + "-get")
 
 	tags := image.Tags
 	if len(image.Tags) == 0 {
@@ -363,7 +363,7 @@ func FetchImagePlan(planID PlanID, image ImageResource, resourceTypes ResourceTy
 
 	var maybeCheckPlan *Plan
 	if image.Version == nil {
-		checkPlanID := planID + "/image-check"
+		checkPlanID := PlanID(string(planID) + "/" + imageName + "-check")
 		// don't know the version, need to do a Check before the Get
 		interval := CheckEvery{
 			Interval: DefaultCheckInterval,

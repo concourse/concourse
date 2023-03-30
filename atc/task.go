@@ -157,6 +157,37 @@ type TaskCacheConfig struct {
 	Path string `json:"path,omitempty"`
 }
 
+type TaskServicePortsConfig struct {
+	Name   string `json:"name"`
+	Number uint32 `json:"number"`
+}
+
+type TaskServiceStartupProbe struct {
+	Run              TaskRunConfig `json:"run"`
+	FailureThreshold int           `json:"failure_threshold"`
+	PeriodSeconds    int           `json:"period_seconds"`
+}
+
+type TaskServiceSpecificConfig struct {
+	Ports        []TaskServicePortsConfig `json:"ports,omitempty"`
+	StartupProbe *TaskServiceStartupProbe `json:"startup_probe,omitempty"`
+}
+
+type TaskServiceConfig struct {
+	TaskConfig
+	TaskServiceSpecificConfig
+}
+
+type TaskServicePlan struct {
+	Name   string             `json:"name"`
+	File   string             `json:"file,omitempty"`
+	Config *TaskServiceConfig `json:"config,omitempty"`
+
+	// An artifact in the build plan to use as the service's image. Overrides any
+	// image set in the service's config.
+	ImageArtifactName string `json:"image,omitempty"` // FIXME: don't think this is being used yet
+}
+
 type TaskEnv map[string]string
 
 func (te *TaskEnv) UnmarshalJSON(p []byte) error {

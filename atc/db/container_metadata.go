@@ -24,11 +24,12 @@ type ContainerMetadata struct {
 type ContainerType string
 
 const (
-	ContainerTypeCheck ContainerType = "check"
-	ContainerTypeGet   ContainerType = "get"
-	ContainerTypePut   ContainerType = "put"
-	ContainerTypeTask  ContainerType = "task"
-	ContainerTypeRun   ContainerType = "run"
+	ContainerTypeCheck   ContainerType = "check"
+	ContainerTypeGet     ContainerType = "get"
+	ContainerTypePut     ContainerType = "put"
+	ContainerTypeTask    ContainerType = "task"
+	ContainerTypeRun     ContainerType = "run"
+	ContainerTypeService ContainerType = "service"
 )
 
 func ContainerTypeFromString(containerType string) (ContainerType, error) {
@@ -43,6 +44,8 @@ func ContainerTypeFromString(containerType string) (ContainerType, error) {
 		return ContainerTypeTask, nil
 	case "run":
 		return ContainerTypeRun, nil
+	case "service":
+		return ContainerTypeService, nil
 	default:
 		return "", fmt.Errorf("unrecognized containerType: %s", containerType)
 	}

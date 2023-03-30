@@ -200,6 +200,59 @@ run: {path: a/file}
 					Expect(err).To(HaveOccurred())
 				})
 			})
+
+			//			Context("given a valid task config with services", func() {
+			//				It("with file", func() {
+			//					data := []byte(`
+			//platform: beos
+			//
+			//services: [{ name: service1, file: aservice/file }]
+			//
+			//run: {path: a/file}
+			//`)
+			//					task, err := NewTaskConfig(data)
+			//					Expect(err).ToNot(HaveOccurred())
+			//					Expect(task.Services[0].Name).To(Equal("service1"))
+			//					Expect(task.Services[0].File).To(Equal("aservice/file"))
+			//				})
+			//
+			//				It("with full config", func() {
+			//					data := []byte(`
+			//platform: beos
+			//
+			//services:
+			//- name: service1
+			//  config:
+			//    image_resource: { type: registry-image, source: { repository: postgres } }
+			//    ports: [ { name: default, number: 1234 } ]
+			//    startup_probe: { run: { path: pg_isready }, failure_threshold: 10, period_seconds: 5 }
+			//
+			//run: {path: a/file}
+			//`)
+			//					task, err := NewTaskConfig(data)
+			//					Expect(err).ToNot(HaveOccurred())
+			//					Expect(task.Services[0].Config.Ports[0]).To(Equal(TaskServicePortsConfig{Name: "default", Number: 1234}))
+			//					Expect(task.Services[0].Config.StartupProbe).To(Equal(TaskServiceStartupProbe{
+			//						Run: TaskRunConfig{Path: "pg_isready"}, FailureThreshold: 10, PeriodSeconds: 5}))
+			//				})
+			//
+			//				It("with minimal config", func() {
+			//					data := []byte(`
+			//platform: beos
+			//
+			//services:
+			//- name: service1
+			//  config:
+			//    image_resource: { type: registry-image, source: { repository: postgres } }
+			//
+			//run: {path: a/file}
+			//`)
+			//					task, err := NewTaskConfig(data)
+			//					Expect(err).ToNot(HaveOccurred())
+			//					Expect(task.Services[0].Config.Ports).To(BeEmpty())
+			//					Expect(task.Services[0].Config.StartupProbe).To(Equal(TaskServiceStartupProbe{}))
+			//				})
+			//			})
 		})
 
 		Context("when platform is missing", func() {

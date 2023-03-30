@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/concourse/concourse/atc/worker"
 	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager"
@@ -15,7 +17,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
 	"go.opentelemetry.io/otel/trace"
@@ -62,6 +63,7 @@ type TaskDelegate interface {
 	StartSpan(context.Context, string, tracing.Attrs) (context.Context, trace.Span)
 
 	FetchImage(context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags, bool) (runtime.ImageSpec, error)
+	FetchServiceImage(string, context.Context, atc.ImageResource, atc.ResourceTypes, bool, atc.Tags, bool) (runtime.ImageSpec, error)
 
 	Stdout() io.Writer
 	Stderr() io.Writer
@@ -149,19 +151,14 @@ func (step *TaskStep) Run(ctx context.Context, state RunState) (bool, error) {
 	return ok, err
 }
 
-func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) (bool, error) {
-	logger := lagerctx.FromContext(ctx)
-	logger = logger.Session("task-step", lager.Data{
-		"step-name": step.plan.Name,
-		"job-id":    step.metadata.JobID,
-	})
-
+// can load a TaskConfigSource for a task step or a service of a task step
+func (step *TaskStep) loadTaskConfigSource(state RunState, configPath string, config *atc.TaskConfig, expectAllKeys bool) TaskConfigSource {
 	var taskConfigSource TaskConfigSource
 	var taskVars []vars.Variables
 
-	if step.plan.ConfigPath != "" {
+	if configPath != "" {
 		// external task - construct a source which reads it from file, and apply base resource type defaults.
-		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Streamer: step.streamer}
+		taskConfigSource = FileConfigSource{ConfigPath: configPath, Streamer: step.streamer}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables.
 		// this 2-phase strategy allows to interpolate 'vars' by cred variables.
@@ -175,7 +172,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		taskVars = []vars.Variables{state}
 	} else {
 		// embedded task - first we take it
-		taskConfigSource = StaticConfigSource{Config: step.plan.Config}
+		taskConfigSource = StaticConfigSource{Config: config}
 
 		// for interpolation - use just cred variables
 		taskVars = []vars.Variables{state}
@@ -197,14 +194,142 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	taskConfigSource = InterpolateTemplateConfigSource{
 		ConfigSource:  taskConfigSource,
 		Vars:          taskVars,
-		ExpectAllKeys: true,
+		ExpectAllKeys: expectAllKeys,
 	}
 
 	// validate
 	taskConfigSource = ValidatingConfigSource{ConfigSource: taskConfigSource}
 
-	repository := state.ArtifactRepository()
+	return taskConfigSource
+}
 
+func (step *TaskStep) setLimitDefaultsOnConfig(c *atc.TaskConfig) {
+	if c.Limits == nil {
+		c.Limits = &atc.ContainerLimits{}
+	}
+	if c.Limits.CPU == nil {
+		c.Limits.CPU = step.defaultLimits.CPU
+	}
+	if c.Limits.Memory == nil {
+		c.Limits.Memory = step.defaultLimits.Memory
+	}
+}
+
+func (step *TaskStep) runServices(ctx context.Context, state RunState, worker runtime.Worker, delegate TaskDelegate) ([]runtime.Process, error) {
+	var serviceConfigs []atc.TaskConfig
+	var serviceProcesses []runtime.Process
+	for _, s := range step.plan.Services {
+		logger := lagerctx.FromContext(ctx)
+		logger = logger.Session("start-services-task-step", lager.Data{
+			"step-name":    step.plan.Name,
+			"service-name": s.Name,
+			"job-id":       step.metadata.JobID,
+		})
+		serviceConfigSource := step.loadTaskConfigSource(state, s.File, &s.Config.TaskConfig, true)
+		config, err := serviceConfigSource.FetchConfig(ctx, logger, state.ArtifactRepository())
+		serviceConfigs = append(serviceConfigs, config)
+
+		for _, warning := range serviceConfigSource.Warnings() {
+			fmt.Fprintln(delegate.Stderr(), "[WARNING]", warning)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		step.setLimitDefaultsOnConfig(&config)
+
+		imageSpec, err := step.serviceImageSpec(s.Name, ctx, logger, state, delegate, config)
+		if err != nil {
+			return nil, err
+		}
+
+		// FIXME: do we do something with volume mounts?
+		// FIXME: go through each thing in metadata and re-eval if it's the right setting
+		var serviceContainerMetadata = db.ContainerMetadata{
+			Type:                 db.ContainerTypeService,
+			StepName:             step.containerMetadata.StepName + "-" + s.Name,
+			Attempt:              step.containerMetadata.Attempt,
+			WorkingDirectory:     config.Run.Dir,
+			User:                 step.containerMetadata.User,
+			PipelineID:           step.containerMetadata.PipelineID,
+			JobID:                step.containerMetadata.JobID,
+			BuildID:              step.containerMetadata.BuildID,
+			PipelineName:         step.containerMetadata.PipelineName,
+			PipelineInstanceVars: step.containerMetadata.PipelineInstanceVars,
+			JobName:              step.containerMetadata.JobName,
+			BuildName:            step.containerMetadata.BuildName,
+		}
+
+		containerSpec, err := step.containerSpec(logger, state, imageSpec, config, serviceContainerMetadata)
+		for _, p := range s.Config.Ports {
+			containerSpec.Ports = append(containerSpec.Ports, p.Number)
+		}
+		if err != nil {
+			return nil, err
+		}
+		tracing.Inject(ctx, &containerSpec) // FIXME: ??
+
+		owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, atc.PlanID(string(step.planID)+"/service-"+s.Name), step.metadata.TeamID)
+		container, _, err := worker.FindOrCreateContainer(ctx, owner, serviceContainerMetadata, containerSpec, delegate)
+		if err != nil {
+			return nil, err
+		}
+
+		process, err := attachOrRun(
+			ctx,
+			container,
+			runtime.ProcessSpec{
+				ID:   taskProcessID + "-" + s.Name + "-service",
+				Path: config.Run.Path,
+				Args: config.Run.Args,
+				Dir:  resolvePath(step.containerMetadata.WorkingDirectory, config.Run.Dir),
+				User: config.Run.User,
+				// Guardian sets the default TTY window size to width: 80, height: 24,
+				// which creates ANSI control sequences that do not work with other window sizes
+				TTY: &runtime.TTYSpec{
+					WindowSize: runtime.WindowSize{
+						Columns: 500,
+						Rows:    500,
+					},
+				},
+			},
+			runtime.ProcessIO{
+				Stdout: delegate.Stdout(), // TODO should put service output into it's own streams
+				Stderr: delegate.Stderr(),
+			},
+		)
+		if err != nil {
+			return nil, err
+		}
+		serviceProcesses = append(serviceProcesses, process)
+
+		properties, err := container.Properties()
+		if err == nil {
+			addresses := make(map[string]interface{})
+			ports := make(map[string]interface{})
+			portMappings := map[string]interface{}{"addresses": addresses, "ports": ports}
+			// FIXME: what about other runtimes?
+			for i, p := range s.Config.Ports {
+				if p.Name == "default" || i == 0 {
+					portMappings["host"] = properties["garden.network.container-ip"]
+					portMappings["port"] = p.Number
+				}
+				addresses[p.Name] = properties["garden.network.container-ip"]
+				ports[p.Name] = p.Number
+			}
+			state.AddServiceVar(s.Name, portMappings, false)
+		}
+	}
+
+	return serviceProcesses, nil
+}
+
+func (step *TaskStep) getContainerSpecAndConfig(ctx context.Context, state RunState, expectAllKeys bool, delegate TaskDelegate) (atc.TaskConfig, runtime.ContainerSpec, error) {
+	logger := lagerctx.FromContext(ctx)
+
+	taskConfigSource := step.loadTaskConfigSource(state, step.plan.ConfigPath, step.plan.Config, expectAllKeys)
+	repository := state.ArtifactRepository()
 	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
 
 	delegate.SetTaskConfig(config)
@@ -214,31 +339,39 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 
 	if err != nil {
-		return false, err
+		return config, runtime.ContainerSpec{}, err
 	}
 
-	if config.Limits == nil {
-		config.Limits = &atc.ContainerLimits{}
-	}
-	if config.Limits.CPU == nil {
-		config.Limits.CPU = step.defaultLimits.CPU
-	}
-	if config.Limits.Memory == nil {
-		config.Limits.Memory = step.defaultLimits.Memory
-	}
+	step.setLimitDefaultsOnConfig(&config)
 
 	delegate.Initializing(logger)
 
 	imageSpec, err := step.imageSpec(ctx, logger, state, delegate, config)
 	if err != nil {
-		return false, err
+		return config, runtime.ContainerSpec{}, err
 	}
 
 	containerSpec, err := step.containerSpec(logger, state, imageSpec, config, step.containerMetadata)
 	if err != nil {
-		return false, err
+		return config, containerSpec, err
 	}
 	tracing.Inject(ctx, &containerSpec)
+
+	return config, containerSpec, nil
+}
+
+func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDelegate) (bool, error) {
+	logger := lagerctx.FromContext(ctx)
+	logger = logger.Session("task-step", lager.Data{
+		"step-name": step.plan.Name,
+		"job-id":    step.metadata.JobID,
+	})
+
+	// on first load do not expectAllKeys in state, we will not have svc variables until after services are started
+	config, containerSpec, err := step.getContainerSpecAndConfig(ctx, state, false, delegate)
+	if err != nil {
+		return false, err
+	}
 
 	owner := db.NewBuildStepContainerOwner(step.metadata.BuildID, step.planID, step.metadata.TeamID)
 
@@ -274,9 +407,39 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	}
 	defer cancel()
 
-	ctx = lagerctx.NewContext(ctx, logger)
-
 	delegate.SelectedWorker(logger, worker.Name())
+
+	serviceCtx, cancelServices := context.WithCancel(ctx)
+	serviceProcesses, err := step.runServices(serviceCtx, state, worker, delegate)
+	if err != nil {
+		cancelServices()
+		return false, err
+	}
+	wg := sync.WaitGroup{}
+	for _, p := range serviceProcesses {
+		wg.Add(1)
+		go func(p runtime.Process) {
+			defer wg.Done()
+			logger.Info("waiting-for-service-to-exit", lager.Data{"service-process-id": p.ID()})
+			_, err := p.Wait(serviceCtx)
+			logger.Info("service-exit", lager.Data{"service-process-id": p.ID()})
+			if err != nil {
+				logger.Error("error-stopping-service", err, lager.Data{"service-process-id": p.ID()})
+			}
+		}(p)
+		//FIXME delegate.ServiceErrored(logger, TimeoutLogMessage)
+		//FIXME delegate.ServiceStopped(logger, ExitStatus(result.ExitStatus))
+	}
+	defer func() {
+		cancelServices()
+		wg.Wait()
+	}()
+
+	// reload config and containerSpec with new service variable interpolation
+	config, containerSpec, err = step.getContainerSpecAndConfig(ctx, state, true, delegate)
+	if err != nil {
+		return false, err
+	}
 
 	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
@@ -310,16 +473,16 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	if err != nil {
 		return false, err
 	}
-
 	result, runErr := process.Wait(ctx)
 
-	step.registerOutputs(logger, repository, config, volumeMounts, step.containerMetadata)
+	step.registerOutputs(logger, state.ArtifactRepository(), config, volumeMounts, step.containerMetadata) // FIXME: services?
 
 	// Do not initialize caches for one-off builds
 	if step.metadata.JobID != 0 {
-		if err := step.registerCaches(ctx, repository, config, volumeMounts, step.containerMetadata); err != nil {
+		if err := step.registerCaches(ctx, state.ArtifactRepository(), config, volumeMounts, step.containerMetadata); err != nil {
 			return false, err
 		}
+		// FIXME: service caches?
 	}
 
 	if runErr != nil {
@@ -341,6 +504,32 @@ func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.
 		return process, nil
 	}
 	return container.Run(ctx, spec, io)
+}
+
+func (step *TaskStep) serviceImageSpec(serviceName string, ctx context.Context, logger lager.Logger, state RunState, delegate TaskDelegate, config atc.TaskConfig) (runtime.ImageSpec, error) {
+	imageSpec := runtime.ImageSpec{
+		Privileged: bool(step.plan.Privileged),
+	}
+
+	// an image_resource
+	if config.ImageResource != nil {
+		imageSpec, err := delegate.FetchServiceImage(
+			serviceName,
+			ctx,
+			*config.ImageResource,
+			step.plan.ResourceTypes,
+			step.plan.Privileged,
+			step.plan.Tags,
+			step.plan.CheckSkipInterval,
+		)
+		return imageSpec, err
+
+		// a rootfs_uri
+	} else if config.RootfsURI != "" {
+		imageSpec.ImageURL = config.RootfsURI
+	}
+
+	return imageSpec, nil
 }
 
 func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state RunState, delegate TaskDelegate, config atc.TaskConfig) (runtime.ImageSpec, error) {
