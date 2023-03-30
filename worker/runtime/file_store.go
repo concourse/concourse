@@ -5,12 +5,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/txn2/txeh"
 )
 
 //counterfeiter:generate . FileStore
 
 // FileStore is responsible for managing files associated with containers.
-//
 type FileStore interface {
 	// CreateFile creates a file with a particular content in the store.
 	//
@@ -23,6 +24,9 @@ type FileStore interface {
 	// DeleteFile removes a file previously created in the store.
 	//
 	Delete(name string) (err error)
+
+	// ContainerIpLookup find container IP by container handle in hosts file
+	ContainerIpLookup(handle string) (string, error)
 }
 
 type fileStore struct {
@@ -79,4 +83,24 @@ func (f fileStore) Delete(path string) error {
 	}
 
 	return nil
+}
+
+func (f fileStore) ContainerIpLookup(handle string) (string, error) {
+	absPath := filepath.Join(f.root, handle)
+
+	hc := txeh.HostsConfig{ReadFilePath: filepath.Join(absPath, "/hosts")}
+	hosts, err := txeh.NewHosts(&hc)
+	if err != nil {
+		return "", fmt.Errorf("error reading hosts file: %w", err)
+	}
+
+	found, ip, _ := hosts.HostAddressLookup(handle)
+	if !found {
+		return "", fmt.Errorf("ip not found for container handle: %s", handle)
+	}
+	if err != nil {
+		return "", fmt.Errorf("error finding container ip: %w", err)
+	}
+
+	return ip, nil
 }

@@ -16,7 +16,6 @@ import (
 
 // CNINetworkConfig provides configuration for CNINetwork to override the
 // defaults.
-//
 type CNINetworkConfig struct {
 	// BridgeName is the name that the bridge set up in the current network
 	// namespace to connect the veth's to.
@@ -97,12 +96,10 @@ func (c CNINetworkConfig) ToJSON() string {
 
 // CNINetworkOpt defines a functional option that when applied, modifies the
 // configuration of a CNINetwork.
-//
 type CNINetworkOpt func(n *cniNetwork)
 
 // WithCNIBinariesDir is the directory where the binaries necessary for setting
 // up the network live.
-//
 func WithCNIBinariesDir(dir string) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.binariesDir = dir
@@ -111,7 +108,6 @@ func WithCNIBinariesDir(dir string) CNINetworkOpt {
 
 // WithNameServers sets the set of nameservers to be configured for the
 // /etc/resolv.conf inside the containers.
-//
 func WithNameServers(nameservers []string) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		for _, ns := range nameservers {
@@ -122,7 +118,6 @@ func WithNameServers(nameservers []string) CNINetworkOpt {
 
 // WithCNIClient is an implementor of the CNI interface for reaching out to CNI
 // plugins.
-//
 func WithCNIClient(c cni.CNI) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.client = c
@@ -131,7 +126,6 @@ func WithCNIClient(c cni.CNI) CNINetworkOpt {
 
 // WithCNINetworkConfig provides a custom CNINetworkConfig to be used by the CNI
 // client at startup time.
-//
 func WithCNINetworkConfig(c CNINetworkConfig) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.config = c
@@ -140,7 +134,6 @@ func WithCNINetworkConfig(c CNINetworkConfig) CNINetworkOpt {
 
 // WithCNIFileStore changes the default FileStore used to store files that
 // belong to network configurations for containers.
-//
 func WithCNIFileStore(f FileStore) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.store = f
@@ -149,14 +142,12 @@ func WithCNIFileStore(f FileStore) CNINetworkOpt {
 
 // FileStoreWithWorkDir creates a Filestore specific to the CNI networks
 // working directory
-//
 func FileStoreWithWorkDir(path string) FileStore {
 	return NewFileStore(filepath.Join(path, networkMountsDir))
 }
 
 // WithRestrictedNetworks defines the network ranges that containers will be restricted
 // from accessing.
-//
 func WithRestrictedNetworks(restrictedNetworks []string) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.restrictedNetworks = restrictedNetworks
@@ -164,7 +155,6 @@ func WithRestrictedNetworks(restrictedNetworks []string) CNINetworkOpt {
 }
 
 // WithAllowHostAccess allows containers to talk to the host
-//
 func WithAllowHostAccess() CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.allowHostAccess = true
@@ -180,7 +170,6 @@ func WithIptables(ipt iptables.Iptables) CNINetworkOpt {
 }
 
 // WithDefaultsForTesting testing damage
-//
 func WithDefaultsForTesting() CNINetworkOpt {
 	return func(n *cniNetwork) {
 		if n.binariesDir == "" {
@@ -367,6 +356,44 @@ func (n cniNetwork) restrictHostAccess() error {
 	err = n.ipt.AppendRule(filterTable, "INPUT", "-i", n.config.BridgeName, "-j", "REJECT", "--reject-with", "icmp-host-prohibited")
 	if err != nil {
 		return fmt.Errorf("error appending iptables rule: %w", err)
+	}
+
+	return nil
+}
+
+func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
+	containerIp, err := n.store.ContainerIpLookup(containerHandle)
+	if err != nil {
+		return fmt.Errorf("error getting container IP: %w", err)
+	}
+
+	err = n.ipt.InsertRule(filterTable, "INPUT", 1, "-s", containerIp, "-j", "DROP")
+	if err != nil {
+		return fmt.Errorf("error inserting iptables rule to INPUT: %w", err)
+	}
+
+	err = n.ipt.InsertRule(filterTable, "FORWARD", 1, "-s", containerIp, "-j", "DROP")
+	if err != nil {
+		return fmt.Errorf("error inserting iptables rule to FORWARD: %w", err)
+	}
+
+	return nil
+}
+
+func (n cniNetwork) ResumeContainerTraffic(containerHandle string) error {
+	containerIp, err := n.store.ContainerIpLookup(containerHandle)
+	if err != nil {
+		return fmt.Errorf("error getting container IP: %w", err)
+	}
+
+	err = n.ipt.DeleteRule(filterTable, "INPUT", "-s", containerIp, "-j", "DROP")
+	if err != nil {
+		return fmt.Errorf("error deleting iptables rule in INPUT: %w", err)
+	}
+
+	err = n.ipt.DeleteRule(filterTable, "FORWARD", "-s", containerIp, "-j", "DROP")
+	if err != nil {
+		return fmt.Errorf("error deleting iptables rule in FORWARD: %w", err)
 	}
 
 	return nil

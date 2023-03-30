@@ -81,3 +81,13 @@ func (s *FileStoreSuite) TestDeleteDir() {
 	_, err = os.Stat(filepath.Dir(fpath))
 	s.True(os.IsNotExist(err))
 }
+
+func (s *FileStoreSuite) TestContainerIpLookup() {
+	_, err := s.store.Create(filepath.Join("some-handle", "/hosts"), []byte("10.80.0.42 some-handle\n"))
+	s.NoError(err)
+
+	ip, err := s.store.ContainerIpLookup("some-handle")
+	s.NoError(err)
+
+	s.Equal(ip, "10.80.0.42")
+}

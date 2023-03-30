@@ -87,6 +87,13 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 		})
 	}
 
+	if plan.Hermetic {
+		validator.recordWarning(ConfigWarning{
+			Type:    "pipeline",
+			Message: validator.annotate("specifies `hermetic:` only works against worker containerd runtime"),
+		})
+	}
+
 	if plan.Config != nil {
 		validator.pushContext(".config")
 

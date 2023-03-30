@@ -105,6 +105,46 @@ func (s *BackendSuite) TestCreateWithNewContainerFailure() {
 	s.Equal(1, s.client.NewContainerCallCount())
 }
 
+func (s *BackendSuite) TestCreateWithContainerNetOutNotSet() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeTask.StartReturns(nil)
+
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("some-container-ID")
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+
+	s.client.NewContainerReturns(fakeContainer, nil)
+
+	_, err := s.backend.Create(minimumValidGdnSpec)
+	s.NoError(err)
+
+	s.Equal(1, s.network.DropContainerTrafficCallCount())
+
+	containerId := s.network.DropContainerTrafficArgsForCall(0)
+	s.Equal(containerId, "some-container-ID")
+}
+
+func (s *BackendSuite) TestCreateWithContainerNetOutSet() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeTask.StartReturns(nil)
+
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("some-container-ID")
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+
+	s.client.NewContainerReturns(fakeContainer, nil)
+
+	minimumValidGdnSpec.NetOut = []garden.NetOutRule{
+		{
+			Log: true,
+		},
+	}
+	_, err := s.backend.Create(minimumValidGdnSpec)
+	s.NoError(err)
+
+	s.Equal(0, s.network.DropContainerTrafficCallCount())
+}
+
 func (s *BackendSuite) TestCreateContainerNewTaskFailure() {
 	fakeContainer := new(libcontainerdfakes.FakeContainer)
 
@@ -258,6 +298,7 @@ func (s *BackendSuite) TestCreateContainerLockTimeout() {
 		s.Contains(err.Error(), "acquiring create container lock")
 	}
 }
+
 func (s *BackendSuite) TestContainersWithContainerdFailure() {
 	s.client.ContainersReturns(nil, errors.New("err"))
 
@@ -483,6 +524,23 @@ func (s *BackendSuite) TestDestroySucceeds() {
 
 	err := s.backend.Destroy("some handle")
 	s.NoError(err)
+}
+
+func (s *BackendSuite) TestDestroyCallResumeContainerTraffic() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	s.client.GetContainerReturns(fakeContainer, nil)
+
+	err := s.backend.Destroy("some handle")
+	s.NoError(err)
+
+	s.Equal(1, s.network.ResumeContainerTrafficCallCount())
+
+	containerId := s.network.ResumeContainerTrafficArgsForCall(0)
+	s.Equal(containerId, "some handle")
 }
 
 func (s *BackendSuite) TestStartInitsClientAndSetsUpRestrictedNetworks() {

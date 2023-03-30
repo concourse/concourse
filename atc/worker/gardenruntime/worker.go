@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"path"
 	"path/filepath"
 	"sort"
@@ -206,18 +207,33 @@ func (worker *Worker) createGardenContainer(
 
 	logger.Debug("creating-garden-container")
 
-	gardenContainer, err := worker.gardenClient.Create(
-		garden.ContainerSpec{
-			Handle:     creatingContainer.Handle(),
-			RootFSPath: fetchedImage.URL,
-			Privileged: fetchedImage.Privileged,
-			BindMounts: bindMounts,
-			Limits:     toGardenLimits(containerSpec.Limits),
-			Env:        worker.containerEnv(containerSpec, fetchedImage),
-			Properties: garden.Properties{
-				userPropertyName: fetchedImage.Metadata.User,
+	gdnSpec := garden.ContainerSpec{
+		Handle:     creatingContainer.Handle(),
+		RootFSPath: fetchedImage.URL,
+		Privileged: fetchedImage.Privileged,
+		BindMounts: bindMounts,
+		Limits:     toGardenLimits(containerSpec.Limits),
+		Env:        worker.containerEnv(containerSpec, fetchedImage),
+		Properties: garden.Properties{
+			userPropertyName: fetchedImage.Metadata.User,
+		},
+	}
+
+	// By default set NetOutRule to whitelist all range of IPs
+	// otherwise leave NetOutRule to nil so worker runtime knows nothing is allowed
+	// to reach outside
+	if !containerSpec.Hermetic {
+		gdnSpec.NetOut = []garden.NetOutRule{{
+			Networks: []garden.IPRange{
+				{
+					Start: net.ParseIP("0.0.0.0"),
+					End:   net.ParseIP("255.255.255.255"),
+				},
 			},
-		})
+		}}
+	}
+
+	gardenContainer, err := worker.gardenClient.Create(gdnSpec)
 	if err != nil {
 		logger.Error("failed-to-create-container-in-garden", err)
 		markContainerAsFailed(logger, creatingContainer)
@@ -237,7 +253,6 @@ func (worker *Worker) containerEnv(containerSpec runtime.ContainerSpec, fetchedI
 	if worker.dbWorker.HTTPSProxyURL() != "" {
 		env = append(env, fmt.Sprintf("https_proxy=%s", worker.dbWorker.HTTPSProxyURL()))
 	}
-
 	if worker.dbWorker.NoProxy() != "" {
 		env = append(env, fmt.Sprintf("no_proxy=%s", worker.dbWorker.NoProxy()))
 	}
@@ -300,8 +315,9 @@ func (worker *Worker) constructContainer(
 // * scratch (empty volume)
 // * working dir (i.e. spec.Dir, empty volume)
 // * inputs
-//   * local volumes are COW'd
-//   * remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
+//   - local volumes are COW'd
+//   - remote volumes are streamed into an empty volume, then COW'd (only COW is mounted)
+//
 // * outputs (empty volumes)
 // * caches (COW if exists, empty otherwise)
 func (worker *Worker) createVolumes(

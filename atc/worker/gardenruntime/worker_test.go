@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -1283,6 +1284,60 @@ var _ = Describe("Garden Worker", func() {
 				"/cache":         Not(grt.BePrivileged()),
 				"/etc/ssl/certs": Not(grt.BePrivileged()),
 			}))
+		})
+	})
+
+	Test("hermetic container spec produces empty NetOut", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		_, _, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("my-hermetic-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				Hermetic: true,
+			},
+			delegate,
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("validating the container was created with NetOut spec", func() {
+			garden := gardenServer(worker)
+			Expect(garden.ContainerList).To(HaveLen(1))
+			Expect(garden.ContainerList[0].Handle()).To(Equal("my-hermetic-handle"))
+			Expect(garden.ContainerList[0].Spec.NetOut).To(HaveLen(0))
+		})
+	})
+
+	Test("no hermetic container spec produces NetOut with all ip range", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		_, _, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("my-non-hermetic-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{},
+			delegate,
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("validating the container was created with NetOut spec", func() {
+			garden := gardenServer(worker)
+			Expect(garden.ContainerList).To(HaveLen(1))
+			Expect(garden.ContainerList[0].Handle()).To(Equal("my-non-hermetic-handle"))
+			Expect(garden.ContainerList[0].Spec.NetOut[0].Networks).To(HaveLen(1))
+			Expect(garden.ContainerList[0].Spec.NetOut[0].Networks[0].Start).To(Equal(net.ParseIP("0.0.0.0")))
+			Expect(garden.ContainerList[0].Spec.NetOut[0].Networks[0].End).To(Equal(net.ParseIP("255.255.255.255")))
 		})
 	})
 

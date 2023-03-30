@@ -1171,12 +1171,12 @@ var factoryTests = []PlannerTest{
 	{
 		Title: "put step with no_get",
 		Config: &atc.PutStep{
-			Name:      "some-name",
-			Resource:  "some-resource",
-			Params:    atc.Params{"some": "params"},
-			Tags:      atc.Tags{"tag-1", "tag-2"},
-			Inputs:    &atc.InputsConfig{All: true},
-			NoGet: true,
+			Name:     "some-name",
+			Resource: "some-resource",
+			Params:   atc.Params{"some": "params"},
+			Tags:     atc.Tags{"tag-1", "tag-2"},
+			Inputs:   &atc.InputsConfig{All: true},
+			NoGet:    true,
 		},
 		Inputs: []db.BuildInput{
 			{
@@ -1245,6 +1245,7 @@ var factoryTests = []PlannerTest{
 		Config: &atc.TaskStep{
 			Name:       "some-task",
 			Privileged: true,
+			Hermetic:   true,
 			Config: &atc.TaskConfig{
 				Platform: "linux",
 				Run:      atc.TaskRunConfig{Path: "hello"},
@@ -1264,6 +1265,7 @@ var factoryTests = []PlannerTest{
 			"task": {
 				"name": "some-task",
 				"privileged": true,
+				"hermetic": true,
 				"config": {
 					"platform": "linux",
 					"run": {"path": "hello"}
@@ -1316,6 +1318,7 @@ var factoryTests = []PlannerTest{
 			"task": {
 				"name": "some-task",
 				"privileged": true,
+				"hermetic": false,
 				"config": {
 					"platform": "linux",
 					"run": {"path": "hello"}
@@ -1366,6 +1369,7 @@ var factoryTests = []PlannerTest{
 			"task": {
 				"name": "some-task",
 				"privileged": true,
+				"hermetic": false,
 				"config": {
 					"platform": "linux",
 					"run": {"path": "hello"}

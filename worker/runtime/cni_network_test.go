@@ -327,6 +327,11 @@ func (s *CNINetworkSuite) TestAdd() {
 	_, id, netns, _ := s.cni.SetupArgsForCall(0)
 	s.Equal("id", id)
 	s.Equal("/proc/123/ns/net", netns)
+
+	s.Equal(s.store.AppendCallCount(), 1)
+	path, content := s.store.AppendArgsForCall(0)
+	s.Equal(path, "container-handle/hosts")
+	s.Equal(content, []byte("10.8.0.1 container-handle\n"))
 }
 
 func (s *CNINetworkSuite) TestRemoveNilTask() {
@@ -358,4 +363,56 @@ func (s *CNINetworkSuite) TestRemove() {
 	s.Equal(1, s.store.DeleteCallCount())
 	path := s.store.DeleteArgsForCall(0)
 	s.Equal("some-handle", path)
+}
+
+func (s *CNINetworkSuite) TestDropContainerTraffic() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	s.store.ContainerIpLookupReturns("10.8.0.1", nil)
+
+	err = network.DropContainerTraffic("some-handle")
+	s.NoError(err)
+
+	s.Equal(s.iptables.InsertRuleCallCount(), 2)
+	table, chain, pos, rulespec := s.iptables.InsertRuleArgsForCall(0)
+	s.Equal("filter", table)
+	s.Equal("INPUT", chain)
+	s.Equal(1, pos)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
+
+	table, chain, pos, rulespec = s.iptables.InsertRuleArgsForCall(1)
+	s.Equal("filter", table)
+	s.Equal("FORWARD", chain)
+	s.Equal(1, pos)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
+}
+
+func (s *CNINetworkSuite) TestResumeContainerTraffic() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	s.store.ContainerIpLookupReturns("10.8.0.1", nil)
+
+	err = network.ResumeContainerTraffic("some-handle")
+	s.NoError(err)
+
+	s.Equal(s.iptables.DeleteRuleCallCount(), 2)
+	table, chain, rulespec := s.iptables.DeleteRuleArgsForCall(0)
+	s.Equal("filter", table)
+	s.Equal("INPUT", chain)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
+
+	table, chain, rulespec = s.iptables.DeleteRuleArgsForCall(1)
+	s.Equal("filter", table)
+	s.Equal("FORWARD", chain)
+	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
 }

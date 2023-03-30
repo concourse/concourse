@@ -285,9 +285,11 @@ func (plan TaskPlan) Public() *json.RawMessage {
 	return enc(struct {
 		Name       string `json:"name"`
 		Privileged bool   `json:"privileged"`
+		Hermetic   bool   `json:"hermetic"`
 	}{
 		Name:       plan.Name,
 		Privileged: plan.Privileged,
+		Hermetic:   plan.Hermetic,
 	})
 }
 

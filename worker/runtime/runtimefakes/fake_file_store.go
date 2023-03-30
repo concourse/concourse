@@ -20,6 +20,19 @@ type FakeFileStore struct {
 	appendReturnsOnCall map[int]struct {
 		result1 error
 	}
+	ContainerIpLookupStub        func(string) (string, error)
+	containerIpLookupMutex       sync.RWMutex
+	containerIpLookupArgsForCall []struct {
+		arg1 string
+	}
+	containerIpLookupReturns struct {
+		result1 string
+		result2 error
+	}
+	containerIpLookupReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	CreateStub        func(string, []byte) (string, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
@@ -114,6 +127,70 @@ func (fake *FakeFileStore) AppendReturnsOnCall(i int, result1 error) {
 	fake.appendReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *FakeFileStore) ContainerIpLookup(arg1 string) (string, error) {
+	fake.containerIpLookupMutex.Lock()
+	ret, specificReturn := fake.containerIpLookupReturnsOnCall[len(fake.containerIpLookupArgsForCall)]
+	fake.containerIpLookupArgsForCall = append(fake.containerIpLookupArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.ContainerIpLookupStub
+	fakeReturns := fake.containerIpLookupReturns
+	fake.recordInvocation("ContainerIpLookup", []interface{}{arg1})
+	fake.containerIpLookupMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeFileStore) ContainerIpLookupCallCount() int {
+	fake.containerIpLookupMutex.RLock()
+	defer fake.containerIpLookupMutex.RUnlock()
+	return len(fake.containerIpLookupArgsForCall)
+}
+
+func (fake *FakeFileStore) ContainerIpLookupCalls(stub func(string) (string, error)) {
+	fake.containerIpLookupMutex.Lock()
+	defer fake.containerIpLookupMutex.Unlock()
+	fake.ContainerIpLookupStub = stub
+}
+
+func (fake *FakeFileStore) ContainerIpLookupArgsForCall(i int) string {
+	fake.containerIpLookupMutex.RLock()
+	defer fake.containerIpLookupMutex.RUnlock()
+	argsForCall := fake.containerIpLookupArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeFileStore) ContainerIpLookupReturns(result1 string, result2 error) {
+	fake.containerIpLookupMutex.Lock()
+	defer fake.containerIpLookupMutex.Unlock()
+	fake.ContainerIpLookupStub = nil
+	fake.containerIpLookupReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeFileStore) ContainerIpLookupReturnsOnCall(i int, result1 string, result2 error) {
+	fake.containerIpLookupMutex.Lock()
+	defer fake.containerIpLookupMutex.Unlock()
+	fake.ContainerIpLookupStub = nil
+	if fake.containerIpLookupReturnsOnCall == nil {
+		fake.containerIpLookupReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.containerIpLookupReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeFileStore) Create(arg1 string, arg2 []byte) (string, error) {
@@ -252,6 +329,8 @@ func (fake *FakeFileStore) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.appendMutex.RLock()
 	defer fake.appendMutex.RUnlock()
+	fake.containerIpLookupMutex.RLock()
+	defer fake.containerIpLookupMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	fake.deleteMutex.RLock()

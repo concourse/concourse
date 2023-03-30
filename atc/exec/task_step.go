@@ -423,7 +423,8 @@ func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSp
 		Env:       env,
 		Type:      metadata.Type,
 
-		Dir: metadata.WorkingDirectory,
+		Dir:      metadata.WorkingDirectory,
+		Hermetic: step.plan.Hermetic,
 	}
 
 	var err error
