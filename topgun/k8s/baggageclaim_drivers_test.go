@@ -3,7 +3,6 @@ package k8s_test
 import (
 	"context"
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -32,7 +31,7 @@ var _ = Describe("baggageclaim drivers", func() {
 		)
 
 		Context("cos image", func() {
-			baggageclaimFails("btrfs", COS)
+			baggageclaimWorks("btrfs", COS)
 			baggageclaimWorks("overlay", COS)
 			baggageclaimWorks("naive", COS)
 		})
@@ -97,27 +96,6 @@ func baggageclaimWorks(driver string, selectorFlags ...string) {
 			fly.Run("set-pipeline", "-n", "-c", "pipelines/get-task.yml", "-p", "some-pipeline")
 			fly.Run("unpause-pipeline", "-p", "some-pipeline")
 			fly.Run("trigger-job", "-w", "-j", "some-pipeline/simple-job")
-		})
-	})
-}
-
-func baggageclaimFails(driver string, selectorFlags ...string) {
-	Context(driver, func() {
-		It("fails", func() {
-			setReleaseNameAndNamespace("bd-" + driver)
-			deployWithDriverAndSelectors(driver, selectorFlags...)
-
-			Eventually(func() []byte {
-				var logs []byte
-				pods := getPods(namespace, metav1.ListOptions{LabelSelector: "app=" + namespace + "-worker"})
-				for _, p := range pods {
-					contents, _ := kubeClient.CoreV1().Pods(namespace).GetLogs(p.Name, &corev1.PodLogOptions{}).Do(context.TODO()).Raw()
-					logs = append(logs, contents...)
-				}
-
-				return logs
-
-			}, 2*time.Minute, 1*time.Second).Should(ContainSubstring("failed-to-set-up-driver"))
 		})
 	})
 }

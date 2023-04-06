@@ -157,9 +157,9 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	test := CurrentGinkgoTestDescription()
-	if test.Failed {
-		dir := filepath.Join("/tmp/logs", fmt.Sprintf("%s.%d", filepath.Base(test.FileName), test.LineNumber))
+	test := CurrentSpecReport()
+	if test.Failed() {
+		dir := filepath.Join("/tmp/logs", fmt.Sprintf("%s.%d", filepath.Base(test.FileName()), test.LineNumber()))
 
 		err := os.MkdirAll(dir, 0755)
 		Expect(err).ToNot(HaveOccurred())

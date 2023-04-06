@@ -108,9 +108,9 @@ func (mapping StringMapping) Name(id int) string {
 const CurrentJobName = "current"
 
 func (example Example) Run() {
-	currentTest := ginkgo.CurrentGinkgoTestDescription()
+	currentTest := ginkgo.CurrentSpecReport()
 
-	ctx, span := tracing.StartSpan(context.Background(), currentTest.TestText, tracing.Attrs{})
+	ctx, span := tracing.StartSpan(context.Background(), currentTest.LeafNodeText, tracing.Attrs{})
 	defer span.End()
 
 	setup := setupDB{
