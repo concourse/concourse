@@ -39,11 +39,18 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 	var orderedNames []string
 	if command.Alphabetical {
 		seen := map[string]bool{}
-		ps, err := target.Team().ListPipelines()
+		teamName := command.Team.Name()
+		if teamName == "" {
+			teamName = target.Team().Name()
+		}
+		team, err := target.FindTeam(teamName)
 		if err != nil {
 			return err
 		}
-
+		ps, err := team.ListPipelines()
+		if err != nil {
+			return err
+		}
 		for _, p := range ps {
 			if !seen[p.Name] {
 				seen[p.Name] = true
