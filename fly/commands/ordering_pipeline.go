@@ -10,7 +10,6 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 var ErrMissingPipelineName = errors.New("Need to specify at least one pipeline name")
@@ -35,15 +34,18 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-
+	teamName := command.Team.Name()
+	if teamName == "" {
+		teamName = target.Team().Name()
+	}
+	team, err := target.FindTeam(teamName)
+	if err != nil {
+		return err
+	}
 	var orderedNames []string
 	if command.Alphabetical {
 		seen := map[string]bool{}
-		teamName := command.Team.Name()
-		if teamName == "" {
-			teamName = target.Team().Name()
-		}
-		team, err := target.FindTeam(teamName)
+
 		if err != nil {
 			return err
 		}
@@ -65,12 +67,6 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 			}
 		}
 		orderedNames = command.Pipelines
-	}
-
-	var team concourse.Team
-	team, err = command.Team.LoadTeam(target)
-	if err != nil {
-		return err
 	}
 
 	err = team.OrderingPipelines(orderedNames)
