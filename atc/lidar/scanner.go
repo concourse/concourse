@@ -1,28 +1,28 @@
 package lidar
 
 import (
-	"context"
-	"strconv"
-	"sync"
-
 	"code.cloudfoundry.org/lager/lagerctx"
+	"context"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
+	"math/rand"
+	"strconv"
 )
 
-func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory) *scanner {
+func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory, batchSize int) *scanner {
 	return &scanner{
 		checkFactory: checkFactory,
 		planFactory:  planFactory,
+		batchSize:    batchSize,
 	}
 }
 
 type scanner struct {
 	checkFactory db.CheckFactory
 	planFactory  atc.PlanFactory
+	batchSize    int
 }
 
 func (s *scanner) Run(ctx context.Context) error {
@@ -52,29 +52,37 @@ func (s *scanner) Run(ctx context.Context) error {
 }
 
 func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypesMap map[int]db.ResourceTypes) {
-	logger := lagerctx.FromContext(ctx)
-	waitGroup := new(sync.WaitGroup)
-	for _, resource := range resources {
-		waitGroup.Add(1)
-
-		resourceTypes := resourceTypesMap[resource.PipelineID()]
-		go func(r db.Resource, rts db.ResourceTypes) {
-			defer func() {
-				err := util.DumpPanic(recover(), "scanning resource %d", r.ID())
-				if err != nil {
-					logger.Error("panic-in-scanner-run", err)
-				}
-			}()
-			defer waitGroup.Done()
-
-			s.check(ctx, r, rts)
-		}(resource, resourceTypes)
+	cursor := 0
+	total := len(resources)
+	limit := total
+	created := 0
+	scanned := 0
+	if s.batchSize > 0 && s.batchSize < limit {
+		limit = s.batchSize
+		cursor = rand.Int() % total
 	}
-	waitGroup.Wait()
+
+	for created < limit && scanned < total {
+		resource := resources[cursor]
+		resourceTypes := resourceTypesMap[resource.PipelineID()]
+		if s.check(ctx, resource, resourceTypes) {
+			created++
+		}
+		scanned++
+
+		cursor++
+		if cursor >= total {
+			cursor = 0
+		}
+	}
 }
 
-func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes) {
+func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes) bool {
 	logger := lagerctx.FromContext(ctx)
+
+	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never {
+		return false
+	}
 
 	spanCtx, span := tracing.StartSpan(ctx, "scanner.check", tracing.Attrs{
 		"team":                     checkable.TeamName(),
@@ -87,14 +95,10 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 
 	version := checkable.CurrentPinnedVersion()
 
-	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never {
-		return
-	}
-
 	_, created, err := s.checkFactory.TryCreateCheck(lagerctx.NewContext(spanCtx, logger), checkable, resourceTypes, version, false, false, false)
 	if err != nil {
 		logger.Error("failed-to-create-check", err)
-		return
+		return false
 	}
 
 	if !created {
@@ -102,4 +106,6 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	} else {
 		metric.Metrics.ChecksEnqueued.Inc()
 	}
+
+	return created
 }
