@@ -50,7 +50,10 @@ func (c *Claims) UnmarshalJSON(data []byte) error {
 }
 
 func (c Claims) Value() (driver.Value, error) {
-	return json.Marshal(c)
+	b, err := json.Marshal(c)
+	var v driver.Value
+	v = interface{}(b)
+	return v, err
 }
 
 func (c *Claims) Scan(value interface{}) error {

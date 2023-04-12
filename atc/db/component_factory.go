@@ -1,6 +1,7 @@
 package db
 
 import (
+	"code.cloudfoundry.org/clock"
 	"database/sql"
 
 	sq "github.com/Masterminds/squirrel"
@@ -14,18 +15,30 @@ type ComponentFactory interface {
 }
 
 type componentFactory struct {
-	conn Conn
+	conn                    Conn
+	goRoutineCountThreshold int
+	rander                  ComponentRand
+	clock                   clock.Clock
+	goRoutineCounter        GoroutineCounter
 }
 
-func NewComponentFactory(conn Conn) ComponentFactory {
+func NewComponentFactory(conn Conn, goRoutineCountThreshold int, rander ComponentRand, clock clock.Clock, goRoutineCounter GoroutineCounter) ComponentFactory {
 	return &componentFactory{
-		conn: conn,
+		conn:                    conn,
+		goRoutineCountThreshold: goRoutineCountThreshold,
+		rander:                  rander,
+		clock:                   clock,
+		goRoutineCounter:        goRoutineCounter,
 	}
 }
 
 func (f *componentFactory) Find(componentName string) (Component, bool, error) {
 	component := &component{
-		conn: f.conn,
+		conn:                  f.conn,
+		numGoroutineThreshold: f.goRoutineCountThreshold,
+		rander:                f.rander,
+		clock:                 f.clock,
+		goRoutineCounter:      f.goRoutineCounter,
 	}
 
 	row := componentsQuery.

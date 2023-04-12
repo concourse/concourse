@@ -1,6 +1,9 @@
 package atccmd
 
 import (
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -16,8 +19,6 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
@@ -58,12 +59,9 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
-	"github.com/concourse/flag/v2"
 	"github.com/go-jose/go-jose/v3/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"
-	"github.com/hashicorp/go-multierror"
-	"github.com/jessevdk/go-flags"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -73,8 +71,6 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
 	"golang.org/x/time/rate"
-	"gopkg.in/yaml.v2"
-
 	// dynamically registered metric emitters
 	_ "github.com/concourse/concourse/atc/metric/emitter"
 
@@ -264,6 +260,8 @@ type RunCommand struct {
 	DefaultGetTimeout  time.Duration `long:"default-get-timeout" description:"Default timeout of get steps"`
 	DefaultPutTimeout  time.Duration `long:"default-put-timeout" description:"Default timeout of put steps"`
 	DefaultTaskTimeout time.Duration `long:"default-task-timeout" description:"Default timeout of task steps"`
+
+	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
 }
 
 type Migration struct {
@@ -728,7 +726,12 @@ func (cmd *RunCommand) constructMembers(
 
 	// use backendConn so that the Component objects created by the factory uses
 	// the backend connection pool when reloading.
-	componentFactory := db.NewComponentFactory(backendConn)
+	componentFactory := db.NewComponentFactory(
+		backendConn,
+		cmd.NumGoroutineThreshold,
+		rand.New(rand.NewSource(time.Now().Unix())),
+		clock.NewClock(),
+		db.RealGoroutineCounter{})
 	bus := backendConn.Bus()
 
 	members := apiMembers
