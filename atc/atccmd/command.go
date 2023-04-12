@@ -1,9 +1,6 @@
 package atccmd
 
 import (
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -11,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -19,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager/lagerctx"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"

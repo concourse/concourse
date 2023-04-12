@@ -30,7 +30,7 @@ var _ = Describe("Component", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	FDescribe("IntervalElapsed", func() {
+	Describe("IntervalElapsed", func() {
 		var elapsed bool
 
 		BeforeEach(func() {

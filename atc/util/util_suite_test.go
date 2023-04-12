@@ -12,7 +12,7 @@ func init() {
 	util.PanicSink = GinkgoWriter
 }
 
-func TestLidar(t *testing.T) {
+func TestUtil(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Util Suite")
 }

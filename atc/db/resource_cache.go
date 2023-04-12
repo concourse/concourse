@@ -21,8 +21,6 @@ var ErrResourceCacheDisappeared = errors.New("resource-cache-disappeared")
 //
 // ResourceCaches are garbage-collected by gc.ResourceCacheCollector.
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
-
 //counterfeiter:generate . ResourceCache
 type ResourceCache interface {
 	ID() int

@@ -15,27 +15,27 @@ type ComponentFactory interface {
 }
 
 type componentFactory struct {
-	conn                    Conn
-	goRoutineCountThreshold int
-	rander                  ComponentRand
-	clock                   clock.Clock
-	goRoutineCounter        GoroutineCounter
+	conn                  Conn
+	numGoroutineThreshold int
+	rander                ComponentRand
+	clock                 clock.Clock
+	goRoutineCounter      GoroutineCounter
 }
 
-func NewComponentFactory(conn Conn, goRoutineCountThreshold int, rander ComponentRand, clock clock.Clock, goRoutineCounter GoroutineCounter) ComponentFactory {
+func NewComponentFactory(conn Conn, numGoroutineThreshold int, rander ComponentRand, clock clock.Clock, goRoutineCounter GoroutineCounter) ComponentFactory {
 	return &componentFactory{
-		conn:                    conn,
-		goRoutineCountThreshold: goRoutineCountThreshold,
-		rander:                  rander,
-		clock:                   clock,
-		goRoutineCounter:        goRoutineCounter,
+		conn:                  conn,
+		numGoroutineThreshold: numGoroutineThreshold,
+		rander:                rander,
+		clock:                 clock,
+		goRoutineCounter:      goRoutineCounter,
 	}
 }
 
 func (f *componentFactory) Find(componentName string) (Component, bool, error) {
 	component := &component{
 		conn:                  f.conn,
-		numGoroutineThreshold: f.goRoutineCountThreshold,
+		numGoroutineThreshold: f.numGoroutineThreshold,
 		rander:                f.rander,
 		clock:                 f.clock,
 		goRoutineCounter:      f.goRoutineCounter,
