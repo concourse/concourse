@@ -44,6 +44,7 @@ var _ = Describe("VaultManager", func() {
 			Expect(err).To(BeNil())
 			Expect(manager.SharedPath).To(Equal(""))
 			Expect(manager.PathPrefix).To(Equal("/concourse"))
+			Expect(manager.PathPrefixes).To(BeNil())
 			Expect(manager.LookupTemplates).To(Equal([]string{
 				"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 				"/{{.Team}}/{{.Secret}}",
@@ -68,6 +69,54 @@ var _ = Describe("VaultManager", func() {
 		It("fails on missing vault auth credentials", func() {
 			manager.Auth = vault.AuthConfig{}
 			Expect(manager.Validate()).ToNot(BeNil())
+		})
+	})
+
+	Describe("Validate() with path prefixes", func() {
+		BeforeEach(func() {
+			manager = vault.VaultManager{URL: "http://vault", Auth: vault.AuthConfig{ClientToken: "xxx"}}
+			_, err := flags.ParseArgs(&manager, []string{})
+			Expect(err).To(BeNil())
+		})
+
+		Context("with path_prefixes in the config", func() {
+			JustBeforeEach(func() {
+				manager.PathPrefix = ""
+				manager.PathPrefixes = []string{"/kv1", "/kv2"}
+			})
+
+			It("configures prefixes correctly", func() {
+				Expect(manager.Validate()).To(BeNil())
+
+				Expect(manager.PathPrefix).To(Equal(""))
+				Expect(manager.PathPrefixes).To(Equal([]string{"/kv1", "/kv2"}))
+			})
+		})
+
+		Context("with path_prefix config not set", func() {
+			JustBeforeEach(func() {
+				manager.PathPrefix = ""
+				manager.PathPrefixes = []string{}
+			})
+
+			It("returns an error", func() {
+				validateErr := manager.Validate()
+				Expect(validateErr).ToNot(BeNil())
+				Expect(validateErr.Error()).To(Equal("path prefix must be a non-empty string"))
+			})
+		})
+
+		Context("with both path_prefix configs set", func() {
+			JustBeforeEach(func() {
+				manager.PathPrefix = "/concourse"
+				manager.PathPrefixes = []string{"/secret"}
+			})
+
+			It("returns an error", func() {
+				validateErr := manager.Validate()
+				Expect(validateErr).ToNot(BeNil())
+				Expect(validateErr.Error()).To(Equal("only path prefix or path prefixes may be set, but not both"))
+			})
 		})
 	})
 
@@ -139,6 +188,7 @@ var _ = Describe("VaultManager", func() {
 				"url":                fakeVault.URL,
 				"disable_srv_lookup": true,
 				"path_prefix":        "/path-prefix",
+				"path_prefixes":      []string{},
 				"lookup_templates": []string{
 					"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 					"/thing/{{.Team}}/{{.Secret}}",
@@ -186,6 +236,7 @@ var _ = Describe("VaultManager", func() {
 			Expect(manager.URL).To(Equal(fakeVault.URL))
 			Expect(manager.ClientConfig.DisableSRVLookup).To(Equal(true))
 			Expect(manager.PathPrefix).To(Equal("/path-prefix"))
+			Expect(manager.PathPrefixes).To(Equal([]string{}))
 			Expect(manager.LookupTemplates).To(Equal([]string{
 				"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 				"/thing/{{.Team}}/{{.Secret}}",
@@ -209,6 +260,7 @@ var _ = Describe("VaultManager", func() {
 		Context("with optional configs omitted", func() {
 			BeforeEach(func() {
 				delete(config, "path_prefix")
+				delete(config, "path_prefixes")
 				delete(config, "auth_retry_max")
 				delete(config, "auth_retry_initial")
 				delete(config, "lookup_templates")
@@ -220,6 +272,7 @@ var _ = Describe("VaultManager", func() {
 
 				Expect(manager.ClientConfig.DisableSRVLookup).To(Equal(false))
 				Expect(manager.PathPrefix).To(Equal("/concourse"))
+				Expect(manager.PathPrefixes).To(Equal([]string{}))
 				Expect(manager.Auth.RetryMax).To(Equal(5 * time.Minute))
 				Expect(manager.Auth.RetryInitial).To(Equal(time.Second))
 				Expect(manager.LookupTemplates).To(Equal([]string{
