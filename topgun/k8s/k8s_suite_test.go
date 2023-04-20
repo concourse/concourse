@@ -337,6 +337,13 @@ func getPods(namespace string, listOptions metav1.ListOptions) []corev1.Pod {
 	return pods.Items
 }
 
+func getNotRunningPodLogs() {
+	events, _ := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "status.phase!=Running", TypeMeta: metav1.TypeMeta{Kind: "Pod"}})
+	for _, item := range events.Items {
+		fmt.Println(item)
+	}
+}
+
 func isPodReady(p corev1.Pod) bool {
 	for _, condition := range p.Status.Conditions {
 		if condition.Type != corev1.ContainersReady {
@@ -355,6 +362,7 @@ func waitAllPodsInNamespaceToBeReady(namespace string) {
 		actualPods := getPods(namespace, metav1.ListOptions{FieldSelector: "status.phase=Running"})
 
 		if len(expectedPods) != len(actualPods) {
+			getNotRunningPodLogs()
 			return false
 		}
 
