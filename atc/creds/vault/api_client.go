@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -83,6 +84,7 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 	if kv2 {
 		if data, ok := secret.Data["data"]; ok && data != nil {
 			secret.Data = data.(map[string]interface{})
+			secret.LeaseDuration = -1
 		} else {
 			// Return a nil secret object if the secret was deleted, but not destroyed
 			return nil, nil
@@ -215,6 +217,24 @@ func (ac *APIClient) baseClient() (*vaultapi.Client, error) {
 	err := ac.configureTLS(config.HttpClient.Transport.(*http.Transport).TLSClientConfig)
 	if err != nil {
 		return nil, err
+	}
+
+	// Enabling Vault rate limit header by
+	//  $ vault write sys/quotas/config enable_rate_limit_response_headers=true
+	// will make Vault API response header to include "Retry-After", and
+	// retryablehttp.DefaultBackoff() will just use the value of "Retry-After"
+	// as backoff duration. But sometime "Retry-After" might be 0, based on testing,
+	// immediate retry will hit rate limit error again. Thus we need to overwrite
+	// 0 duration with MinRetryWait.
+	//
+	// TODO: Once retryablehttp.DefaultBackoff fixed the 0 duration problem, this piece
+	// of code can be deleted.
+	config.Backoff = func(min, max time.Duration, attemptNum int, resp *http.Response) time.Duration {
+		d := retryablehttp.DefaultBackoff(min, max, attemptNum, resp)
+		if d == 0 {
+			d = config.MinRetryWait
+		}
+		return d
 	}
 
 	client, err := vaultapi.NewClient(config)

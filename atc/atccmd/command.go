@@ -158,7 +158,7 @@ type RunCommand struct {
 	ContainerPlacementStrategyOptions worker.PlacementOptions `group:"Container Placement Strategy"`
 
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
-	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" description:"Compression algorithm for internal streaming."`
+	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" choice:"raw" description:"Compression algorithm for internal streaming."`
 
 	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
@@ -280,13 +280,17 @@ type Migration struct {
 }
 
 func (m *Migration) Execute(args []string) error {
-	lockConn, err := constructLockConn(defaultDriverName, m.Postgres.ConnectionString())
+	lockConns, err := constructLockConns(defaultDriverName, m.Postgres.ConnectionString())
 	if err != nil {
 		return err
 	}
-	defer lockConn.Close()
+	defer func() {
+		for _, conn := range lockConns {
+			conn.Close()
+		}
+	}()
 
-	m.lockFactory = lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
+	m.lockFactory = lock.NewLockFactory(lockConns, metric.LogLockAcquired, metric.LogLockReleased)
 
 	if m.MigrateToLatestVersion {
 		return m.migrateToLatestVersion()
@@ -571,22 +575,29 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	// Connection tracker is off by default. Can be turned on/ff at runtime.
 	http.HandleFunc("/debug/connections", func(w http.ResponseWriter, r *http.Request) {
 		for _, stack := range db.GlobalConnectionTracker.Current() {
 			fmt.Fprintln(w, stack)
 		}
+	})
+	http.HandleFunc("/debug/connections/on", func(w http.ResponseWriter, r *http.Request) {
+		db.InitConnectionTracker(true)
+	})
+	http.HandleFunc("/debug/connections/off", func(w http.ResponseWriter, r *http.Request) {
+		db.InitConnectionTracker(false)
 	})
 
 	if err := cmd.configureMetrics(logger); err != nil {
 		return nil, err
 	}
 
-	lockConn, err := constructLockConn(retryingDriverName, cmd.Postgres.ConnectionString())
+	lockConns, err := constructLockConns(retryingDriverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
 
-	lockFactory := lock.NewLockFactory(lockConn, metric.LogLockAcquired, metric.LogLockReleased)
+	lockFactory := lock.NewLockFactory(lockConns, metric.LogLockAcquired, metric.LogLockReleased)
 
 	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, cmd.APIMaxOpenConnections/2, "api", lockFactory)
 	if err != nil {
@@ -659,10 +670,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	}
 
 	onExit := func() {
-		for _, closer := range []Closer{lockConn, apiConn, backendConn, gcConn, storage, workerConn} {
+		for _, closer := range []Closer{apiConn, backendConn, gcConn, storage, workerConn} {
 			closer.Close()
 		}
-
+		for _, closer := range lockConns {
+			closer.Close()
+		}
 		cmd.varSourcePool.Close()
 	}
 
@@ -1029,7 +1042,7 @@ func (cmd *RunCommand) backendComponents(
 		return nil, err
 	}
 
-	buildContainerStrategy, noInputBuildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
+	buildContainerStrategy, noInputBuildContainerStrategy, checkBuildContainerStrategy, err := cmd.chooseBuildContainerStrategy()
 	if err != nil {
 		return nil, err
 	}
@@ -1054,6 +1067,7 @@ func (cmd *RunCommand) backendComponents(
 		defaultLimits,
 		buildContainerStrategy,
 		noInputBuildContainerStrategy,
+		checkBuildContainerStrategy,
 		lockFactory,
 		rateLimiter,
 		policyChecker,
@@ -1169,6 +1183,8 @@ func (cmd *RunCommand) backendComponents(
 func (cmd *RunCommand) compression() compression.Compression {
 	if cmd.StreamingArtifactsCompression == "zstd" {
 		return compression.NewZstdCompression()
+	} else if cmd.StreamingArtifactsCompression == "raw" {
+		return compression.NewNoCompression()
 	} else {
 		return compression.NewGzipCompression()
 	}
@@ -1657,20 +1673,24 @@ type Closer interface {
 	Close() error
 }
 
-func constructLockConn(driverName, connectionString string) (*sql.DB, error) {
-	dbConn, err := sql.Open(driverName, connectionString)
-	if err != nil {
-		return nil, err
+func constructLockConns(driverName, connectionString string) ([lock.FactoryCount]*sql.DB, error) {
+	conns := [lock.FactoryCount]*sql.DB{}
+	for i := 0; i < lock.FactoryCount; i++ {
+		dbConn, err := sql.Open(driverName, connectionString)
+		if err != nil {
+			return conns, err
+		}
+
+		dbConn.SetMaxOpenConns(1)
+		dbConn.SetMaxIdleConns(1)
+		dbConn.SetConnMaxLifetime(0)
+
+		conns[i] = dbConn
 	}
-
-	dbConn.SetMaxOpenConns(1)
-	dbConn.SetMaxIdleConns(1)
-	dbConn.SetConnMaxLifetime(0)
-
-	return dbConn, nil
+	return conns, nil
 }
 
-func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, worker.PlacementStrategy, error) {
+func (cmd *RunCommand) chooseBuildContainerStrategy() (worker.PlacementStrategy, worker.PlacementStrategy, worker.PlacementStrategy, error) {
 	return worker.NewPlacementStrategy(cmd.ContainerPlacementStrategyOptions)
 }
 
@@ -1708,6 +1728,7 @@ func (cmd *RunCommand) constructEngine(
 	defaultLimits atc.ContainerLimits,
 	strategy worker.PlacementStrategy,
 	noInputStrategy worker.PlacementStrategy,
+	checkStrategy worker.PlacementStrategy,
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
@@ -1725,6 +1746,7 @@ func (cmd *RunCommand) constructEngine(
 				defaultLimits,
 				strategy,
 				noInputStrategy,
+				checkStrategy,
 				cmd.GlobalResourceCheckTimeout,
 				cmd.DefaultGetTimeout,
 				cmd.DefaultPutTimeout,

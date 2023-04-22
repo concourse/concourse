@@ -14,7 +14,12 @@ import (
 )
 
 func (streamer *tarGzipStreamer) In(stream io.Reader, dest string, privileged bool) (bool, error) {
-	err := tgzfs.Extract(stream, dest)
+	var err error
+	if streamer.skipGzip {
+		err = tarfs.Extract(stream, dest)
+	} else {
+		err = tgzfs.Extract(stream, dest)
+	}
 	if err != nil {
 		return true, err
 	}
@@ -38,7 +43,11 @@ func (streamer *tarGzipStreamer) Out(w io.Writer, src string, privileged bool) e
 		tarPath = filepath.Base(src)
 	}
 
-	return tgzfs.Compress(w, tarDir, tarPath)
+	if streamer.skipGzip {
+		return tarfs.Compress(w, tarDir, tarPath)
+	} else {
+		return tgzfs.Compress(w, tarDir, tarPath)
+	}
 }
 
 func (streamer *tarZstdStreamer) In(stream io.Reader, dest string, privileged bool) (bool, error) {

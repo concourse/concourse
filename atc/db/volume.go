@@ -153,12 +153,13 @@ type CreatedVolume interface {
 	Type() VolumeType
 	TeamID() int
 	WorkerArtifactID() int
+	WorkerResourceCacheID() int
 	CreateChildForContainer(CreatingContainer, string) (CreatingVolume, error)
 	Destroying() (DestroyingVolume, error)
 	WorkerName() string
 
-	InitializeResourceCache(ResourceCache) error
-	InitializeStreamedResourceCache(ResourceCache, string) error
+	InitializeResourceCache(ResourceCache) (*UsedWorkerResourceCache, error)
+	InitializeStreamedResourceCache(ResourceCache, int) (*UsedWorkerResourceCache, error)
 	GetResourceCacheID() int
 	InitializeArtifact(name string, buildID int) (WorkerArtifact, error)
 	InitializeTaskCache(jobID int, stepName string, path string) error
@@ -179,6 +180,7 @@ type createdVolume struct {
 	typ                      VolumeType
 	containerHandle          string
 	parentHandle             string
+	workerResourceCacheID    int
 	resourceCacheID          int
 	workerBaseResourceTypeID int
 	workerTaskCacheID        int
@@ -193,14 +195,15 @@ type VolumeResourceType struct {
 	Version                atc.Version
 }
 
-func (volume *createdVolume) Handle() string          { return volume.handle }
-func (volume *createdVolume) Path() string            { return volume.path }
-func (volume *createdVolume) WorkerName() string      { return volume.workerName }
-func (volume *createdVolume) Type() VolumeType        { return volume.typ }
-func (volume *createdVolume) TeamID() int             { return volume.teamID }
-func (volume *createdVolume) ContainerHandle() string { return volume.containerHandle }
-func (volume *createdVolume) ParentHandle() string    { return volume.parentHandle }
-func (volume *createdVolume) WorkerArtifactID() int   { return volume.workerArtifactID }
+func (volume *createdVolume) Handle() string             { return volume.handle }
+func (volume *createdVolume) Path() string               { return volume.path }
+func (volume *createdVolume) WorkerName() string         { return volume.workerName }
+func (volume *createdVolume) Type() VolumeType           { return volume.typ }
+func (volume *createdVolume) TeamID() int                { return volume.teamID }
+func (volume *createdVolume) ContainerHandle() string    { return volume.containerHandle }
+func (volume *createdVolume) ParentHandle() string       { return volume.parentHandle }
+func (volume *createdVolume) WorkerArtifactID() int      { return volume.workerArtifactID }
+func (volume *createdVolume) WorkerResourceCacheID() int { return volume.workerResourceCacheID }
 
 func (volume *createdVolume) ResourceType() (*VolumeResourceType, error) {
 	if volume.resourceCacheID == 0 {
@@ -360,10 +363,10 @@ func (volume *createdVolume) findWorkerBaseResourceTypeByBaseResourceTypeID() (*
 	}, nil
 }
 
-func (volume *createdVolume) InitializeResourceCache(resourceCache ResourceCache) error {
+func (volume *createdVolume) InitializeResourceCache(resourceCache ResourceCache) (*UsedWorkerResourceCache, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer tx.Rollback()
@@ -373,83 +376,90 @@ func (volume *createdVolume) InitializeResourceCache(resourceCache ResourceCache
 		WorkerName: volume.workerName,
 	}.Find(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !found {
-		return ErrWorkerBaseResourceTypeDisappeared
+		return nil, ErrWorkerBaseResourceTypeDisappeared
 	}
 
-	initialized, err := volume.initializeResourceCache(tx, resourceCache, usedWorkerBaseResourceType.ID)
+	uwrc, initialized, err := volume.initializeResourceCache(tx, resourceCache, usedWorkerBaseResourceType.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !initialized {
 		// Another volume became the resource cache - don't commit the transaction
-		return nil
+		return nil, nil
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return uwrc, nil
 }
 
-func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache ResourceCache, sourceWorkerName string) error {
+func (volume *createdVolume) InitializeStreamedResourceCache(resourceCache ResourceCache, sourceWorkerResourceCacheID int) (*UsedWorkerResourceCache, error) {
 	tx, err := volume.conn.Begin()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	defer tx.Rollback()
 
-	sourceWorkerResourceCache, found, err := WorkerResourceCache{
-		WorkerName:    sourceWorkerName,
-		ResourceCache: resourceCache,
-	}.Find(tx)
+	sourceWorkerResourceCache, found, err := WorkerResourceCache{}.FindByID(tx, sourceWorkerResourceCacheID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !found {
 		// resource cache disappeared from source worker. this means the cache
 		// was invalidated *after* we started the step that streamed the
 		// volume. in this case, we don't want to initialize this volume as a
 		// cache, but we also don't want to error the build.
-		return nil
+		return nil, nil
 	}
 	if sourceWorkerResourceCache.WorkerBaseResourceTypeID == 0 {
 		// same as not found above. If source worker resource cache's worker
 		// base resource type id is 0, that means source worker's base resource
 		// type has been invalidated, in this case, we don't want to initialize
 		// this volume as a cache, but we also don't want to error the build.
-		return nil
+		return nil, nil
 	}
 
-	initialized, err := volume.initializeResourceCache(tx, resourceCache, sourceWorkerResourceCache.WorkerBaseResourceTypeID)
+	uwrc, initialized, err := volume.initializeResourceCache(tx, resourceCache, sourceWorkerResourceCache.WorkerBaseResourceTypeID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !initialized {
 		// Another volume became the resource cache - don't commit the transaction
-		return nil
+		return nil, nil
 	}
 
-	return tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	return uwrc, nil
 }
 
 // initializeResourceCache creates a worker resource cache and point current volume's
 // worker_resource_cache_id to the cache. When initializing a local generated resource
 // cache, then source worker is just the volume's worker.
-func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache ResourceCache, workerBaseResourceTypeID int) (bool, error) {
+func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache ResourceCache, workerBaseResourceTypeID int) (*UsedWorkerResourceCache, bool, error) {
 	workerResourceCache, valid, err := WorkerResourceCache{
 		WorkerName:    volume.WorkerName(),
 		ResourceCache: resourceCache,
 	}.FindOrCreate(tx, workerBaseResourceTypeID)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 	if !valid {
 		// there's already a WorkerResourceCache for this resource cache on
 		// this worker, but originating from a different sourceWorker, meaning
 		// the other streamed volume "won the race", and will become the cached
 		// volume
-		return false, nil
+		return nil, false, nil
 	}
 
 	rows, err := psql.Update("volumes").
@@ -462,25 +472,26 @@ func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache Resour
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
 			// another volume was 'blessed' as the cache volume - leave this one
 			// owned by the container so it just expires when the container is GCed
-			return false, nil
+			return nil, false, nil
 		}
 
-		return false, err
+		return nil, false, err
 	}
 
 	affected, err := rows.RowsAffected()
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
 	if affected == 0 {
-		return false, ErrVolumeMissing
+		return nil, false, ErrVolumeMissing
 	}
 
+	volume.workerResourceCacheID = workerResourceCache.ID
 	volume.resourceCacheID = resourceCache.ID()
 	volume.typ = VolumeTypeResource
 
-	return true, nil
+	return workerResourceCache, true, nil
 }
 
 func (volume *createdVolume) GetResourceCacheID() int {

@@ -19,7 +19,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/oteltest"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -56,9 +56,10 @@ var _ = Describe("TaskStep", func() {
 		}
 
 		stepMetadata = exec.StepMetadata{
-			TeamID:  123,
-			BuildID: 1234,
-			JobID:   12345,
+			TeamID:      123,
+			BuildID:     1234,
+			JobID:       12345,
+			ExternalURL: "http://foo.bar",
 		}
 
 		planID = atc.PlanID("42")
@@ -176,6 +177,10 @@ var _ = Describe("TaskStep", func() {
 			fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 		})
 
+		It("Task env includes atc external url", func() {
+			Expect(chosenContainer.Spec.Env).To(ConsistOf("ATC_EXTERNAL_URL=http://foo.bar", "SECURE=secret-task-param"))
+		})
+
 		Context("before running the task", func() {
 			BeforeEach(func() {
 				chosenContainer.ProcessDefs[0].Stub.Do = func(_ context.Context, _ *runtimetest.Process) error {
@@ -271,6 +276,16 @@ var _ = Describe("TaskStep", func() {
 			It("overrides the limits from the config", func() {
 				Expect(atc.CPULimit(*chosenContainer.Spec.Limits.CPU)).To(Equal(atc.CPULimit(2048)))
 				Expect(atc.MemoryLimit(*chosenContainer.Spec.Limits.Memory)).To(Equal(atc.MemoryLimit(2048)))
+			})
+		})
+
+		Context("when hermetic is configured", func() {
+			BeforeEach(func() {
+				taskPlan.Hermetic = true
+			})
+
+			It("returns the context.Canceled error", func() {
+				Expect(chosenContainer.Spec.Hermetic).To(Equal(true))
 			})
 		})
 

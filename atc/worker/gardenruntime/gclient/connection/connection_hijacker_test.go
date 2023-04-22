@@ -9,7 +9,7 @@ import (
 
 	"code.cloudfoundry.org/garden/routes"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"
 )

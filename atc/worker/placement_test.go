@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/atc/worker/workertest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 )
@@ -15,7 +15,7 @@ import (
 var _ = Describe("Container Placement Strategies", func() {
 	Describe("Volume Locality", func() {
 		volumeLocalityStrategy := func() worker.PlacementStrategy {
-			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies: []string{"volume-locality"},
 			})
 			Expect(err).ToNot(HaveOccurred())
@@ -160,11 +160,11 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 			resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-			err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(ctx, resourceCache1)
+			_, err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(ctx, resourceCache1)
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-			err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(ctx, resourceCache2)
+			_, err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(ctx, resourceCache2)
 			Expect(err).ToNot(HaveOccurred())
 
 			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
@@ -203,11 +203,11 @@ var _ = Describe("Container Placement Strategies", func() {
 				),
 			)
 			resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-			err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(ctx, resourceCache1)
+			_, err := scenario.WorkerVolume("worker1", "cache-input2").InitializeResourceCache(ctx, resourceCache1)
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-			err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(ctx, resourceCache2)
+			_, err = scenario.WorkerVolume("worker2", "input2").InitializeResourceCache(ctx, resourceCache2)
 			Expect(err).ToNot(HaveOccurred())
 
 			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, []db.Worker{scenario.Worker("worker1").DBWorker()}, runtime.ContainerSpec{
@@ -469,7 +469,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Fewest Build Containers", func() {
 		fewestBuildContainersStrategy := func() worker.PlacementStrategy {
-			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies: []string{"fewest-build-containers"},
 			})
 			Expect(err).ToNot(HaveOccurred())
@@ -505,7 +505,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Tasks", func() {
 		limitActiveTasksStrategy := func(max int) worker.PlacementStrategy {
-			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies:              []string{"limit-active-tasks"},
 				MaxActiveTasksPerWorker: max,
 			})
@@ -582,7 +582,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Containers", func() {
 		limitActiveContainersStrategy := func(max int) worker.PlacementStrategy {
-			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies:                   []string{"limit-active-containers"},
 				MaxActiveContainersPerWorker: max,
 			})
@@ -670,7 +670,7 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Volumes", func() {
 		limitActiveVolumesStrategy := func(max int) worker.PlacementStrategy {
-			strategy, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
+			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
 				Strategies:                []string{"limit-active-volumes"},
 				MaxActiveVolumesPerWorker: max,
 			})

@@ -360,3 +360,7 @@ func AllowSyscall(syscall string, args ...specs.LinuxSeccompArg) specs.LinuxSysc
 		Args:   args,
 	}
 }
+
+func GetDefaultSeccompProfile() specs.LinuxSeccomp {
+	return *seccomp
+}

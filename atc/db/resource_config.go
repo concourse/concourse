@@ -1,6 +1,7 @@
 package db
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -124,15 +125,27 @@ func findOrCreateResourceConfigScope(
 	}
 
 	var scopeID int
-
-	rows, err := psql.Select("id").
-		From("resource_config_scopes").
-		Where(sq.Eq{
-			"resource_id":        resourceID,
-			"resource_config_id": resourceConfig.ID(),
-		}).
-		RunWith(tx).
-		Query()
+	var rows *sql.Rows
+	var err error
+	if uniqueResourceID == nil {
+		rows, err = psql.Select("id").
+			From("resource_config_scopes").
+			Where(sq.Eq{
+				"resource_config_id": resourceConfig.ID(),
+			}).
+			Where(sq.Expr("resource_id IS NULL")).
+			RunWith(tx).
+			Query()
+	} else {
+		rows, err = psql.Select("id").
+			From("resource_config_scopes").
+			Where(sq.Eq{
+				"resource_id":        resourceID,
+				"resource_config_id": resourceConfig.ID(),
+			}).
+			RunWith(tx).
+			Query()
+	}
 	if err != nil {
 		return nil, err
 	}

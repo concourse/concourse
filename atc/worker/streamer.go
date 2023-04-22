@@ -79,7 +79,9 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Artifact, dst runtime.
 			}
 		}
 
-		err = dst.InitializeStreamedResourceCache(ctx, usedResourceCache, srcVolume.DBVolume().WorkerName())
+		_, err = dst.InitializeStreamedResourceCache(ctx,
+			usedResourceCache,
+			srcVolume.DBVolume().WorkerResourceCacheID())
 		if err != nil {
 			logger.Error("failed-to-init-resource-cache-on-dest-worker", err)
 			return err

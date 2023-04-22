@@ -74,6 +74,22 @@ type FakeCNI struct {
 		result1 *cni.Result
 		result2 error
 	}
+	SetupSeriallyStub        func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)
+	setupSeriallyMutex       sync.RWMutex
+	setupSeriallyArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}
+	setupSeriallyReturns struct {
+		result1 *cni.Result
+		result2 error
+	}
+	setupSeriallyReturnsOnCall map[int]struct {
+		result1 *cni.Result
+		result2 error
+	}
 	StatusStub        func() error
 	statusMutex       sync.RWMutex
 	statusArgsForCall []struct {
@@ -397,6 +413,73 @@ func (fake *FakeCNI) SetupReturnsOnCall(i int, result1 *cni.Result, result2 erro
 	}{result1, result2}
 }
 
+func (fake *FakeCNI) SetupSerially(arg1 context.Context, arg2 string, arg3 string, arg4 ...cni.NamespaceOpts) (*cni.Result, error) {
+	fake.setupSeriallyMutex.Lock()
+	ret, specificReturn := fake.setupSeriallyReturnsOnCall[len(fake.setupSeriallyArgsForCall)]
+	fake.setupSeriallyArgsForCall = append(fake.setupSeriallyArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 string
+		arg4 []cni.NamespaceOpts
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.SetupSeriallyStub
+	fakeReturns := fake.setupSeriallyReturns
+	fake.recordInvocation("SetupSerially", []interface{}{arg1, arg2, arg3, arg4})
+	fake.setupSeriallyMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCNI) SetupSeriallyCallCount() int {
+	fake.setupSeriallyMutex.RLock()
+	defer fake.setupSeriallyMutex.RUnlock()
+	return len(fake.setupSeriallyArgsForCall)
+}
+
+func (fake *FakeCNI) SetupSeriallyCalls(stub func(context.Context, string, string, ...cni.NamespaceOpts) (*cni.Result, error)) {
+	fake.setupSeriallyMutex.Lock()
+	defer fake.setupSeriallyMutex.Unlock()
+	fake.SetupSeriallyStub = stub
+}
+
+func (fake *FakeCNI) SetupSeriallyArgsForCall(i int) (context.Context, string, string, []cni.NamespaceOpts) {
+	fake.setupSeriallyMutex.RLock()
+	defer fake.setupSeriallyMutex.RUnlock()
+	argsForCall := fake.setupSeriallyArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeCNI) SetupSeriallyReturns(result1 *cni.Result, result2 error) {
+	fake.setupSeriallyMutex.Lock()
+	defer fake.setupSeriallyMutex.Unlock()
+	fake.SetupSeriallyStub = nil
+	fake.setupSeriallyReturns = struct {
+		result1 *cni.Result
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCNI) SetupSeriallyReturnsOnCall(i int, result1 *cni.Result, result2 error) {
+	fake.setupSeriallyMutex.Lock()
+	defer fake.setupSeriallyMutex.Unlock()
+	fake.SetupSeriallyStub = nil
+	if fake.setupSeriallyReturnsOnCall == nil {
+		fake.setupSeriallyReturnsOnCall = make(map[int]struct {
+			result1 *cni.Result
+			result2 error
+		})
+	}
+	fake.setupSeriallyReturnsOnCall[i] = struct {
+		result1 *cni.Result
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCNI) Status() error {
 	fake.statusMutex.Lock()
 	ret, specificReturn := fake.statusReturnsOnCall[len(fake.statusArgsForCall)]
@@ -463,6 +546,8 @@ func (fake *FakeCNI) Invocations() map[string][][]interface{} {
 	defer fake.removeMutex.RUnlock()
 	fake.setupMutex.RLock()
 	defer fake.setupMutex.RUnlock()
+	fake.setupSeriallyMutex.RLock()
+	defer fake.setupSeriallyMutex.RUnlock()
 	fake.statusMutex.RLock()
 	defer fake.statusMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -2,6 +2,7 @@ package worker_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"code.cloudfoundry.org/lager"
@@ -10,7 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/concourse/concourse/atc/worker/workertest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -32,7 +33,11 @@ var _ = BeforeEach(func() {
 	db.CleanupBaseResourceTypesCache()
 
 	ignore := func(logger lager.Logger, id lock.LockID) {}
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), ignore, ignore)
+	var lockConns [lock.FactoryCount]*sql.DB
+	for i := 0; i < lock.FactoryCount; i++ {
+		lockConns[i] = postgresRunner.OpenSingleton()
+	}
+	lockFactory = lock.NewLockFactory(lockConns, ignore, ignore)
 })
 
 var _ = AfterEach(func() {

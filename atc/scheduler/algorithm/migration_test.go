@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/concourse/atc"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 // NOTE: The purpose of these tests are to test the migration of build inputs

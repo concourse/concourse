@@ -26,4 +26,10 @@ type Network interface {
 	// Removes a task from the network.
 	//
 	Remove(ctx context.Context, task containerd.Task, handle string) (err error)
+
+	// Drop all incoming traffic from a container
+	DropContainerTraffic(containerHandle string) (err error)
+
+	// Resume all incoming traffic from a container
+	ResumeContainerTraffic(containerHandle string) (err error)
 }

@@ -14,8 +14,7 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/square/certstrap/pkix"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -82,7 +81,7 @@ var _ = Describe("VaultManager", func() {
 			key, err := pkix.CreateRSAKey(1024)
 			Expect(err).ToNot(HaveOccurred())
 
-			ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "", "", "", "", "vault-ca")
+			ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "", "", "", "", "vault-ca", nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			serverKey, err := pkix.CreateRSAKey(1024)

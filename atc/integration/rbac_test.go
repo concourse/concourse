@@ -9,7 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -151,7 +151,7 @@ jobs:
 
 		BeforeEach(func() {
 			var err error
-			tmp, err = ioutil.TempDir("", fmt.Sprintf("tmp-%d", GinkgoParallelNode()))
+			tmp, err = ioutil.TempDir("", fmt.Sprintf("tmp-%d", GinkgoParallelProcess()))
 			Expect(err).ToNot(HaveOccurred())
 		})
 

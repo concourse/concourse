@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	cmd "github.com/concourse/concourse/atc/db/migration/cli/command"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

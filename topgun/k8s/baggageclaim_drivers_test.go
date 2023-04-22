@@ -3,13 +3,10 @@ package k8s_test
 import (
 	"context"
 	"fmt"
-	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/storage/v1"
-	k8sErrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -34,7 +31,7 @@ var _ = Describe("baggageclaim drivers", func() {
 		)
 
 		Context("cos image", func() {
-			baggageclaimFails("btrfs", COS)
+			baggageclaimWorks("btrfs", COS)
 			baggageclaimWorks("overlay", COS)
 			baggageclaimWorks("naive", COS)
 		})
@@ -45,14 +42,17 @@ var _ = Describe("baggageclaim drivers", func() {
 			baggageclaimWorks("naive", UBUNTU)
 		})
 
-		Context("with a real btrfs partition", func() {
+		Context("with a real partition", func() {
 			It("successfully recreates the worker", func() {
-				By("deploying concourse with ONLY one worker and having the worker pod use the gcloud disk and format it with btrfs")
+				By("deploying concourse with ONLY one worker and having the worker pod use the gcloud disk and format it")
 
-				scName := "btrfs"
-				createBtrfsStorageClass(scName)
+				scName := "standard"
+				// TODO: undo this change when GKE ubuntu_containerd support btrfs file system
+				// see issue https://github.com/concourse/concourse/issues/8669
+				// scName := "btrfs"
+				// createBtrfsStorageClass(scName)
 
-				setReleaseNameAndNamespace("real-btrfs-disk")
+				setReleaseNameAndNamespace("real-disk")
 				pvcName := "disk-" + namespace
 
 				deployWithDriverAndSelectors("btrfs", UBUNTU,
@@ -80,7 +80,6 @@ var _ = Describe("baggageclaim drivers", func() {
 				waitAllPodsInNamespaceToBeReady(namespace)
 			})
 		})
-
 	})
 })
 
@@ -101,27 +100,6 @@ func baggageclaimWorks(driver string, selectorFlags ...string) {
 	})
 }
 
-func baggageclaimFails(driver string, selectorFlags ...string) {
-	Context(driver, func() {
-		It("fails", func() {
-			setReleaseNameAndNamespace("bd-" + driver)
-			deployWithDriverAndSelectors(driver, selectorFlags...)
-
-			Eventually(func() []byte {
-				var logs []byte
-				pods := getPods(namespace, metav1.ListOptions{LabelSelector: "app=" + namespace + "-worker"})
-				for _, p := range pods {
-					contents, _ := kubeClient.CoreV1().Pods(namespace).GetLogs(p.Name, &corev1.PodLogOptions{}).Do(context.TODO()).Raw()
-					logs = append(logs, contents...)
-				}
-
-				return logs
-
-			}, 2*time.Minute, 1*time.Second).Should(ContainSubstring("failed-to-set-up-driver"))
-		})
-	})
-}
-
 func deployWithDriverAndSelectors(driver string, selectorFlags ...string) {
 	helmDeployTestFlags := []string{
 		"--set=concourse.web.kubernetes.enabled=false",
@@ -132,19 +110,20 @@ func deployWithDriverAndSelectors(driver string, selectorFlags ...string) {
 	deployConcourseChart(releaseName, append(helmDeployTestFlags, selectorFlags...)...)
 }
 
-func createBtrfsStorageClass(name string) {
-	_, err := kubeClient.StorageV1().StorageClasses().Create(context.TODO(), &v1.StorageClass{
-		ObjectMeta:  metav1.ObjectMeta{Name: "btrfs"},
-		Provisioner: "kubernetes.io/gce-pd",
-		Parameters: map[string]string{
-			"type":   "pd-standard",
-			"fstype": name,
-		},
-	}, metav1.CreateOptions{})
-	if err != nil && !k8sErrs.IsAlreadyExists(err) {
-		Fail("failed to create btrfs storage class: " + err.Error())
-	}
-}
+// func createBtrfsStorageClass(name string) {
+// 	_, err := kubeClient.StorageV1().StorageClasses().Create(context.TODO(), &v1.StorageClass{
+// 		ObjectMeta:  metav1.ObjectMeta{Name: "btrfs"},
+// 		Provisioner: "kubernetes.io/gce-pd",
+// 		Parameters: map[string]string{
+// 			"type":   "pd-standard",
+// 			"fstype": name,
+// 		},
+// 	}, metav1.CreateOptions{})
+// 	if err != nil && !k8sErrs.IsAlreadyExists(err) {
+// 		Fail("failed to create btrfs storage class: " + err.Error())
+// 	}
+// }
+
 func createPVC(name string, scName string) {
 	_, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).
 		Create(context.TODO(), &corev1.PersistentVolumeClaim{

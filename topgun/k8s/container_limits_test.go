@@ -3,7 +3,7 @@ package k8s_test
 import (
 	"github.com/onsi/gomega/gbytes"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -25,7 +25,7 @@ var _ = Describe("Container Limits", func() {
 
 	onGke(func() {
 		containerLimitsWork(COS, TaskCPULimit, TaskMemoryLimit)
-		containerLimitsFail(UBUNTU, TaskCPULimit, TaskMemoryLimit)
+		containerLimitsWork(UBUNTU, TaskCPULimit, TaskMemoryLimit)
 	})
 
 	AfterEach(func() {
@@ -67,24 +67,6 @@ func containerLimitsWork(selectorFlags ...string) {
 
 			Expect(hijackSession.ExitCode()).To(Equal(0))
 			Expect(hijackSession).To(gbytes.Say("1073741824\n512"))
-		})
-	})
-}
-
-func containerLimitsFail(selectorFlags ...string) {
-	Context("container limits fail", func() {
-		It("fails to set the memory limit", func() {
-			deployWithSelectors(selectorFlags...)
-
-			atc := waitAndLogin(namespace, releaseName+"-web")
-			defer atc.Close()
-
-			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
-			<-buildSession.Exited
-			Expect(buildSession.ExitCode()).To(Equal(2))
-			Expect(buildSession).To(gbytes.Say(
-				"memory.memsw.limit_in_bytes: (permission denied|no such file or directory)",
-			))
 		})
 	})
 }

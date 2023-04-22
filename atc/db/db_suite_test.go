@@ -1,13 +1,14 @@
 package db_test
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
 	"code.cloudfoundry.org/lager/lagertest"
 	sq "github.com/Masterminds/squirrel"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"
@@ -110,7 +111,11 @@ var _ = BeforeEach(func() {
 	dbConn = postgresRunner.OpenConn()
 	db.CleanupBaseResourceTypesCache()
 
-	lockFactory = lock.NewLockFactory(postgresRunner.OpenSingleton(), metric.LogLockAcquired, metric.LogLockReleased)
+	var lockConns [lock.FactoryCount]*sql.DB
+	for i := 0; i < lock.FactoryCount; i++ {
+		lockConns[i] = postgresRunner.OpenSingleton()
+	}
+	lockFactory = lock.NewLockFactory(lockConns, metric.LogLockAcquired, metric.LogLockReleased)
 
 	checkBuildChan = make(chan db.Build, 10)
 	seqGenerator = util.NewSequenceGenerator(1)

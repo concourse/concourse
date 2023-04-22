@@ -22,8 +22,8 @@ func NewScopedHandlerFactory(
 
 func (pdbh *ScopedHandlerFactory) HandlerFor(pipelineScopedHandler func(db.Pipeline) http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		teamName := r.FormValue(":team_name")
-		pipelineName := r.FormValue(":pipeline_name")
+		teamName := r.URL.Query().Get(":team_name")
+		pipelineName := r.URL.Query().Get(":pipeline_name")
 		pipelineRef := atc.PipelineRef{Name: pipelineName}
 		var err error
 		pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())

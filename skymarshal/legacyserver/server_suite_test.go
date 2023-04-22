@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/concourse/concourse/skymarshal/legacyserver"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,12 +25,51 @@ const (
 	LockTypeResourceScanning
 	LockTypeJobScheduling
 	LockTypeInMemoryCheckBuildTracking
+	LockTypeResourceGet
+	LockTypeVolumeStreaming
 )
+
+const (
+	factoryDefault = iota
+	factoryVolumeCreating
+	factoryResourceConfigChecking
+	factoryInMemoryCheckBuildTracking
+	factoryBuildTracking
+	factoryJobScheduling
+
+	// FactoryCount must be the last item
+	FactoryCount
+)
+
+func mapLockTypeToFactory(lockType int) int {
+	switch lockType {
+	case LockTypeVolumeCreating:
+		return factoryVolumeCreating
+	case LockTypeResourceConfigChecking:
+		return factoryResourceConfigChecking
+	case LockTypeInMemoryCheckBuildTracking:
+		return factoryInMemoryCheckBuildTracking
+	case factoryBuildTracking:
+		return LockTypeBuildTracking
+	case LockTypeJobScheduling:
+		return factoryJobScheduling
+	default:
+		return factoryDefault
+	}
+}
 
 var ErrLostLock = errors.New("lock was lost while held, possibly due to connection breakage")
 
+/*
+	When adding a new lock type or update existing ones, consider if
+	the ID will be exhausting max int32 ID pool quickly. If yes,
+	use ID % math.MaxInt32 to prevent pg_try_advisory_lock(int, int)
+	query from failing by "integer out of range" error.
+	Refer to https://github.com/concourse/concourse/pull/8390
+*/
+
 func NewBuildTrackingLockID(buildID int) LockID {
-	return LockID{LockTypeBuildTracking, buildID}
+	return LockID{LockTypeBuildTracking, buildID % math.MaxInt32}
 }
 
 func NewResourceConfigCheckingLockID(resourceConfigID int) LockID {
@@ -41,7 +81,7 @@ func NewTaskLockID(taskName string) LockID {
 }
 
 func NewVolumeCreatingLockID(volumeID int) LockID {
-	return LockID{LockTypeVolumeCreating, volumeID}
+	return LockID{LockTypeVolumeCreating, volumeID % math.MaxInt32}
 }
 
 func NewDatabaseMigrationLockID() LockID {
@@ -61,7 +101,11 @@ func NewInMemoryCheckBuildTrackingLockID(checkableType string, checkableId int) 
 }
 
 func NewVolumeStreamingLockID(resourceCacheID int, worker string) LockID {
-	return LockID{LockTypeJobScheduling, lockIDFromString(fmt.Sprintf("%d-%s", resourceCacheID, worker))}
+	return LockID{LockTypeVolumeStreaming, lockIDFromString(fmt.Sprintf("%d-%s", resourceCacheID, worker))}
+}
+
+func NewResourceGetLockID(name string) LockID {
+	return LockID{LockTypeResourceGet, lockIDFromString(name)}
 }
 
 //counterfeiter:generate . LockFactory
@@ -81,23 +125,29 @@ type lockFactory struct {
 type LogFunc func(logger lager.Logger, id LockID)
 
 func NewLockFactory(
-	conn *sql.DB,
+	conns [FactoryCount]*sql.DB,
 	acquire LogFunc,
 	release LogFunc,
 ) LockFactory {
-	return &lockFactory{
-		db: &lockDB{
-			conn:  conn,
-			mutex: &sync.Mutex{},
-		},
-		acquireFunc: acquire,
-		releaseFunc: release,
-		locks: lockRepo{
-			locks: map[string]bool{},
-			mutex: &sync.Mutex{},
-		},
-		acquireMutex: &sync.Mutex{},
+	factories := lockFactories{}
+
+	for i := 0; i < FactoryCount; i++ {
+		factories[i] = &lockFactory{
+			db: &lockDB{
+				conn:  conns[i],
+				mutex: &sync.Mutex{},
+			},
+			acquireFunc: acquire,
+			releaseFunc: release,
+			locks: lockRepo{
+				locks: map[string]bool{},
+				mutex: &sync.Mutex{},
+			},
+			acquireMutex: &sync.Mutex{},
+		}
 	}
+
+	return factories
 }
 
 func NewTestLockFactory(db LockDB) LockFactory {
@@ -111,6 +161,13 @@ func NewTestLockFactory(db LockDB) LockFactory {
 		acquireFunc:  func(logger lager.Logger, id LockID) {},
 		releaseFunc:  func(logger lager.Logger, id LockID) {},
 	}
+}
+
+type lockFactories [FactoryCount]*lockFactory
+
+func (f lockFactories) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
+	factory := f[mapLockTypeToFactory(id[0])]
+	return factory.Acquire(logger, id)
 }
 
 func (f *lockFactory) Acquire(logger lager.Logger, id LockID) (Lock, bool, error) {
@@ -277,7 +334,7 @@ func (lr lockRepo) Unregister(id LockID) {
 type LockID []int
 
 func (l LockID) toKey() string {
-	s := []string{}
+	s := make([]string, 0, len(l))
 	for i := range l {
 		s = append(s, strconv.Itoa(l[i]))
 	}
@@ -285,7 +342,7 @@ func (l LockID) toKey() string {
 }
 
 func (l LockID) toDBParams() string {
-	s := []string{}
+	s := make([]string, 0, len(l))
 	for i := range l {
 		s = append(s, fmt.Sprintf("$%d", i+1))
 	}

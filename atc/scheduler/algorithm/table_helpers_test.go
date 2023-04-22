@@ -17,7 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/tracing"
 	"github.com/lib/pq"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
 	"go.opentelemetry.io/otel/attribute"
@@ -108,9 +108,9 @@ func (mapping StringMapping) Name(id int) string {
 const CurrentJobName = "current"
 
 func (example Example) Run() {
-	currentTest := ginkgo.CurrentGinkgoTestDescription()
+	currentTest := ginkgo.CurrentSpecReport()
 
-	ctx, span := tracing.StartSpan(context.Background(), currentTest.TestText, tracing.Attrs{})
+	ctx, span := tracing.StartSpan(context.Background(), currentTest.LeafNodeText, tracing.Attrs{})
 	defer span.End()
 
 	setup := setupDB{

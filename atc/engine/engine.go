@@ -220,7 +220,9 @@ func (b *engineBuild) Run(ctx context.Context) {
 		logger.Info("releasing")
 
 	case <-done:
-		if errors.As(runErr, &exec.Retriable{}) {
+		// Don't retry check build because if a check build drops into endless retry,
+		// there is no way to abort it.
+		if b.build.Name() != db.CheckBuildName && errors.As(runErr, &exec.Retriable{}) {
 			return
 		}
 
@@ -273,10 +275,6 @@ func (b *engineBuild) trackStarted(logger lager.Logger) {
 		metric.BuildStarted{
 			Build: b.build,
 		}.Emit(logger)
-	} else {
-		metric.CheckBuildStarted{
-			Build: b.build,
-		}.Emit(logger)
 	}
 }
 
@@ -295,10 +293,6 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 	if !b.build.IsRunning() {
 		if b.build.Name() != db.CheckBuildName {
 			metric.BuildFinished{
-				Build: b.build,
-			}.Emit(logger)
-		} else {
-			metric.CheckBuildFinished{
 				Build: b.build,
 			}.Emit(logger)
 		}

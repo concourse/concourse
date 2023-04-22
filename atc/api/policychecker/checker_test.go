@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -152,7 +152,7 @@ var _ = Describe("PolicyChecker", func() {
 			Context("when every is ok", func() {
 				BeforeEach(func() {
 					fakeAccess.TeamRolesReturns(map[string][]string{
-						"some-team": []string{"some-role"},
+						"some-team": {"some-role"},
 					})
 					fakeAccess.ClaimsReturns(accessor.Claims{UserName: "some-user"})
 					body := bytes.NewBuffer([]byte("a: b"))

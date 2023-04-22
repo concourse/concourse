@@ -1,0 +1,25 @@
+{
+  "extends": ["config:base", "group:all"],
+  "packageRules": [
+    {
+      "matchLanguages": ["js"],
+      "addLabels": ["javascript"],
+      "extends": ["schedule:monthly"],
+      "groupName": "javasript",
+      "groupSlug": "js"
+    },
+    {
+      "matchLanguages": ["go"],
+      "addLabels": ["golang"],
+      "extends": ["schedule:weekly"],
+      "groupName": "golang",
+      "groupSlug": "go"
+    },
+    {
+      "matchPackageNames": ["k8s.io/client-go"],
+      "allowedVersions": "!/1\\.(4\\.0|5\\.0|5\\.1|5\\.2)$/"
+    }
+  ],
+  "ignoreDeps": ["elm", "client-go"],
+  "labels": ["dependencies", "misc", "release/undocumented"]
+}

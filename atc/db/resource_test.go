@@ -13,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.opentelemetry.io/otel/oteltest"
 	"go.opentelemetry.io/otel/trace"
@@ -1954,12 +1954,12 @@ var _ = Describe("Resource", func() {
 				createdVolume, err := resourceCacheVolume.Created()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = createdVolume.InitializeResourceCache(resourceCache)
+				_, err = createdVolume.InitializeResourceCache(resourceCache)
 				Expect(err).ToNot(HaveOccurred())
 			}
 
 			hasResourceCacheVolume := func(workerName string, usedResourceCache db.ResourceCache) bool {
-				_, found, err := volumeRepository.FindResourceCacheVolume(workerName, usedResourceCache)
+				_, found, err := volumeRepository.FindResourceCacheVolume(workerName, usedResourceCache, time.Now())
 				Expect(err).ToNot(HaveOccurred())
 				return found
 			}

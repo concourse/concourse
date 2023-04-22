@@ -3,6 +3,7 @@ package worker_test
 import (
 	"context"
 	"io/ioutil"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -12,7 +13,7 @@ import (
 	"github.com/concourse/concourse/atc/worker/gardenruntime"
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/atc/worker/workertest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -110,7 +111,7 @@ var _ = Describe("Streamer", func() {
 		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
 			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
-			err := src.InitializeResourceCache(ctx, resourceCache)
+			_, err := src.InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -118,7 +119,7 @@ var _ = Describe("Streamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("validating the volume was marked as a resource cache on the dst worker", func() {
-			volume, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache)
+			volume, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(volume.Handle()).To(Equal(dst.Handle()))
@@ -160,7 +161,7 @@ var _ = Describe("Streamer", func() {
 		var resourceCache db.ResourceCache
 		By("initializing src as a resource cache", func() {
 			resourceCache = scenario.FindOrCreateResourceCache("src-worker")
-			err := src.InitializeResourceCache(ctx, resourceCache)
+			_, err := src.InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -168,7 +169,7 @@ var _ = Describe("Streamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("validating the volume was NOT marked as a resource cache on the dst worker", func() {
-			_, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache)
+			_, found, err := scenario.DBBuilder.VolumeRepo.FindResourceCacheVolume("dst-worker", resourceCache, time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
 		})

@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/vars"
+	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -18,7 +19,7 @@ import (
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -1451,6 +1452,44 @@ var _ = Describe("Pipeline", func() {
 
 			// Not required behavior, just a sanity check for what I think will happen
 			Expect(build4DB.ReapTime()).To(Equal(build1DB.ReapTime()))
+		})
+		It("deletes all build logs when there are more than 65_536", func() {
+			txn, err := dbConn.Begin()
+			Expect(err).ToNot(HaveOccurred())
+
+			// we break the abstractions so that we can efficiently bulk insert a heap of build events
+			// if we did this the "right" way (like the test above) it's excruciatingly slow.
+			stmt, err := txn.Prepare(pq.CopyIn(fmt.Sprintf("pipeline_build_events_%d", pipeline.ID()), "event_id", "build_id", "type", "version", "payload"))
+			Expect(err).ToNot(HaveOccurred())
+
+			numToInsert := 250_000
+			ids := make([]int, numToInsert)
+			for i := 0; i < numToInsert; i++ {
+				_, err = stmt.Exec(i, i, i, i, "")
+				Expect(err).ToNot(HaveOccurred())
+				ids[i] = i
+			}
+
+			_, err = stmt.Exec()
+			Expect(err).ToNot(HaveOccurred())
+
+			err = stmt.Close()
+			Expect(err).ToNot(HaveOccurred())
+
+			err = txn.Commit()
+			Expect(err).ToNot(HaveOccurred())
+
+			var count int
+			err = dbConn.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM pipeline_build_events_%d", pipeline.ID())).Scan(&count)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(numToInsert))
+
+			err = pipeline.DeleteBuildEventsByBuildIDs(ids)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = dbConn.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM pipeline_build_events_%d", pipeline.ID())).Scan(&count)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(0))
 		})
 	})
 

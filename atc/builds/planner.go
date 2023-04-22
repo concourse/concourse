@@ -59,6 +59,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 	visitor.plan = visitor.planFactory.NewPlan(atc.TaskPlan{
 		Name:              step.Name,
 		Privileged:        step.Privileged,
+		Hermetic:          step.Hermetic,
 		Limits:            step.Limits,
 		Config:            step.Config,
 		ConfigPath:        step.ConfigPath,
@@ -169,6 +170,11 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 	})
 
 	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, visitor.manuallyTriggered)
+
+	if step.NoGet {
+		visitor.plan = plan
+		return nil
+	}
 
 	dependentGetPlan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Type:        resource.Type,

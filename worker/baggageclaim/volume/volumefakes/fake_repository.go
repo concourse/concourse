@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
@@ -124,13 +125,13 @@ type FakeRepository struct {
 	setPropertyReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StreamInStub        func(context.Context, string, string, string, io.Reader) (bool, error)
+	StreamInStub        func(context.Context, string, string, baggageclaim.Encoding, io.Reader) (bool, error)
 	streamInMutex       sync.RWMutex
 	streamInArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 string
-		arg4 string
+		arg4 baggageclaim.Encoding
 		arg5 io.Reader
 	}
 	streamInReturns struct {
@@ -141,13 +142,13 @@ type FakeRepository struct {
 		result1 bool
 		result2 error
 	}
-	StreamOutStub        func(context.Context, string, string, string, io.Writer) error
+	StreamOutStub        func(context.Context, string, string, baggageclaim.Encoding, io.Writer) error
 	streamOutMutex       sync.RWMutex
 	streamOutArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 string
-		arg4 string
+		arg4 baggageclaim.Encoding
 		arg5 io.Writer
 	}
 	streamOutReturns struct {
@@ -156,13 +157,13 @@ type FakeRepository struct {
 	streamOutReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StreamP2pOutStub        func(context.Context, string, string, string, string) error
+	StreamP2pOutStub        func(context.Context, string, string, baggageclaim.Encoding, string) error
 	streamP2pOutMutex       sync.RWMutex
 	streamP2pOutArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 string
-		arg4 string
+		arg4 baggageclaim.Encoding
 		arg5 string
 	}
 	streamP2pOutReturns struct {
@@ -201,15 +202,16 @@ func (fake *FakeRepository) CreateVolume(arg1 context.Context, arg2 string, arg3
 		arg4 volume.Properties
 		arg5 bool
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.CreateVolumeStub
+	fakeReturns := fake.createVolumeReturns
 	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.createVolumeMutex.Unlock()
-	if fake.CreateVolumeStub != nil {
-		return fake.CreateVolumeStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -265,15 +267,16 @@ func (fake *FakeRepository) DestroyVolume(arg1 context.Context, arg2 string) err
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.DestroyVolumeStub
+	fakeReturns := fake.destroyVolumeReturns
 	fake.recordInvocation("DestroyVolume", []interface{}{arg1, arg2})
 	fake.destroyVolumeMutex.Unlock()
-	if fake.DestroyVolumeStub != nil {
-		return fake.DestroyVolumeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyVolumeReturns
 	return fakeReturns.result1
 }
 
@@ -326,15 +329,16 @@ func (fake *FakeRepository) DestroyVolumeAndDescendants(arg1 context.Context, ar
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.DestroyVolumeAndDescendantsStub
+	fakeReturns := fake.destroyVolumeAndDescendantsReturns
 	fake.recordInvocation("DestroyVolumeAndDescendants", []interface{}{arg1, arg2})
 	fake.destroyVolumeAndDescendantsMutex.Unlock()
-	if fake.DestroyVolumeAndDescendantsStub != nil {
-		return fake.DestroyVolumeAndDescendantsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.destroyVolumeAndDescendantsReturns
 	return fakeReturns.result1
 }
 
@@ -387,15 +391,16 @@ func (fake *FakeRepository) GetPrivileged(arg1 context.Context, arg2 string) (bo
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.GetPrivilegedStub
+	fakeReturns := fake.getPrivilegedReturns
 	fake.recordInvocation("GetPrivileged", []interface{}{arg1, arg2})
 	fake.getPrivilegedMutex.Unlock()
-	if fake.GetPrivilegedStub != nil {
-		return fake.GetPrivilegedStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getPrivilegedReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -451,15 +456,16 @@ func (fake *FakeRepository) GetVolume(arg1 context.Context, arg2 string) (volume
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.GetVolumeStub
+	fakeReturns := fake.getVolumeReturns
 	fake.recordInvocation("GetVolume", []interface{}{arg1, arg2})
 	fake.getVolumeMutex.Unlock()
-	if fake.GetVolumeStub != nil {
-		return fake.GetVolumeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getVolumeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -518,15 +524,16 @@ func (fake *FakeRepository) ListVolumes(arg1 context.Context, arg2 volume.Proper
 		arg1 context.Context
 		arg2 volume.Properties
 	}{arg1, arg2})
+	stub := fake.ListVolumesStub
+	fakeReturns := fake.listVolumesReturns
 	fake.recordInvocation("ListVolumes", []interface{}{arg1, arg2})
 	fake.listVolumesMutex.Unlock()
-	if fake.ListVolumesStub != nil {
-		return fake.ListVolumesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.listVolumesReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -586,15 +593,16 @@ func (fake *FakeRepository) SetPrivileged(arg1 context.Context, arg2 string, arg
 		arg2 string
 		arg3 bool
 	}{arg1, arg2, arg3})
+	stub := fake.SetPrivilegedStub
+	fakeReturns := fake.setPrivilegedReturns
 	fake.recordInvocation("SetPrivileged", []interface{}{arg1, arg2, arg3})
 	fake.setPrivilegedMutex.Unlock()
-	if fake.SetPrivilegedStub != nil {
-		return fake.SetPrivilegedStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setPrivilegedReturns
 	return fakeReturns.result1
 }
 
@@ -649,15 +657,16 @@ func (fake *FakeRepository) SetProperty(arg1 context.Context, arg2 string, arg3 
 		arg3 string
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.SetPropertyStub
+	fakeReturns := fake.setPropertyReturns
 	fake.recordInvocation("SetProperty", []interface{}{arg1, arg2, arg3, arg4})
 	fake.setPropertyMutex.Unlock()
-	if fake.SetPropertyStub != nil {
-		return fake.SetPropertyStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setPropertyReturns
 	return fakeReturns.result1
 }
 
@@ -703,25 +712,26 @@ func (fake *FakeRepository) SetPropertyReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRepository) StreamIn(arg1 context.Context, arg2 string, arg3 string, arg4 string, arg5 io.Reader) (bool, error) {
+func (fake *FakeRepository) StreamIn(arg1 context.Context, arg2 string, arg3 string, arg4 baggageclaim.Encoding, arg5 io.Reader) (bool, error) {
 	fake.streamInMutex.Lock()
 	ret, specificReturn := fake.streamInReturnsOnCall[len(fake.streamInArgsForCall)]
 	fake.streamInArgsForCall = append(fake.streamInArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
 		arg3 string
-		arg4 string
+		arg4 baggageclaim.Encoding
 		arg5 io.Reader
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.StreamInStub
+	fakeReturns := fake.streamInReturns
 	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamInMutex.Unlock()
-	if fake.StreamInStub != nil {
-		return fake.StreamInStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.streamInReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -731,13 +741,13 @@ func (fake *FakeRepository) StreamInCallCount() int {
 	return len(fake.streamInArgsForCall)
 }
 
-func (fake *FakeRepository) StreamInCalls(stub func(context.Context, string, string, string, io.Reader) (bool, error)) {
+func (fake *FakeRepository) StreamInCalls(stub func(context.Context, string, string, baggageclaim.Encoding, io.Reader) (bool, error)) {
 	fake.streamInMutex.Lock()
 	defer fake.streamInMutex.Unlock()
 	fake.StreamInStub = stub
 }
 
-func (fake *FakeRepository) StreamInArgsForCall(i int) (context.Context, string, string, string, io.Reader) {
+func (fake *FakeRepository) StreamInArgsForCall(i int) (context.Context, string, string, baggageclaim.Encoding, io.Reader) {
 	fake.streamInMutex.RLock()
 	defer fake.streamInMutex.RUnlock()
 	argsForCall := fake.streamInArgsForCall[i]
@@ -770,25 +780,26 @@ func (fake *FakeRepository) StreamInReturnsOnCall(i int, result1 bool, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeRepository) StreamOut(arg1 context.Context, arg2 string, arg3 string, arg4 string, arg5 io.Writer) error {
+func (fake *FakeRepository) StreamOut(arg1 context.Context, arg2 string, arg3 string, arg4 baggageclaim.Encoding, arg5 io.Writer) error {
 	fake.streamOutMutex.Lock()
 	ret, specificReturn := fake.streamOutReturnsOnCall[len(fake.streamOutArgsForCall)]
 	fake.streamOutArgsForCall = append(fake.streamOutArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
 		arg3 string
-		arg4 string
+		arg4 baggageclaim.Encoding
 		arg5 io.Writer
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.StreamOutStub
+	fakeReturns := fake.streamOutReturns
 	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamOutMutex.Unlock()
-	if fake.StreamOutStub != nil {
-		return fake.StreamOutStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.streamOutReturns
 	return fakeReturns.result1
 }
 
@@ -798,13 +809,13 @@ func (fake *FakeRepository) StreamOutCallCount() int {
 	return len(fake.streamOutArgsForCall)
 }
 
-func (fake *FakeRepository) StreamOutCalls(stub func(context.Context, string, string, string, io.Writer) error) {
+func (fake *FakeRepository) StreamOutCalls(stub func(context.Context, string, string, baggageclaim.Encoding, io.Writer) error) {
 	fake.streamOutMutex.Lock()
 	defer fake.streamOutMutex.Unlock()
 	fake.StreamOutStub = stub
 }
 
-func (fake *FakeRepository) StreamOutArgsForCall(i int) (context.Context, string, string, string, io.Writer) {
+func (fake *FakeRepository) StreamOutArgsForCall(i int) (context.Context, string, string, baggageclaim.Encoding, io.Writer) {
 	fake.streamOutMutex.RLock()
 	defer fake.streamOutMutex.RUnlock()
 	argsForCall := fake.streamOutArgsForCall[i]
@@ -834,25 +845,26 @@ func (fake *FakeRepository) StreamOutReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRepository) StreamP2pOut(arg1 context.Context, arg2 string, arg3 string, arg4 string, arg5 string) error {
+func (fake *FakeRepository) StreamP2pOut(arg1 context.Context, arg2 string, arg3 string, arg4 baggageclaim.Encoding, arg5 string) error {
 	fake.streamP2pOutMutex.Lock()
 	ret, specificReturn := fake.streamP2pOutReturnsOnCall[len(fake.streamP2pOutArgsForCall)]
 	fake.streamP2pOutArgsForCall = append(fake.streamP2pOutArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
 		arg3 string
-		arg4 string
+		arg4 baggageclaim.Encoding
 		arg5 string
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.StreamP2pOutStub
+	fakeReturns := fake.streamP2pOutReturns
 	fake.recordInvocation("StreamP2pOut", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamP2pOutMutex.Unlock()
-	if fake.StreamP2pOutStub != nil {
-		return fake.StreamP2pOutStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.streamP2pOutReturns
 	return fakeReturns.result1
 }
 
@@ -862,13 +874,13 @@ func (fake *FakeRepository) StreamP2pOutCallCount() int {
 	return len(fake.streamP2pOutArgsForCall)
 }
 
-func (fake *FakeRepository) StreamP2pOutCalls(stub func(context.Context, string, string, string, string) error) {
+func (fake *FakeRepository) StreamP2pOutCalls(stub func(context.Context, string, string, baggageclaim.Encoding, string) error) {
 	fake.streamP2pOutMutex.Lock()
 	defer fake.streamP2pOutMutex.Unlock()
 	fake.StreamP2pOutStub = stub
 }
 
-func (fake *FakeRepository) StreamP2pOutArgsForCall(i int) (context.Context, string, string, string, string) {
+func (fake *FakeRepository) StreamP2pOutArgsForCall(i int) (context.Context, string, string, baggageclaim.Encoding, string) {
 	fake.streamP2pOutMutex.RLock()
 	defer fake.streamP2pOutMutex.RUnlock()
 	argsForCall := fake.streamP2pOutArgsForCall[i]
@@ -905,15 +917,16 @@ func (fake *FakeRepository) VolumeParent(arg1 context.Context, arg2 string) (vol
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.VolumeParentStub
+	fakeReturns := fake.volumeParentReturns
 	fake.recordInvocation("VolumeParent", []interface{}{arg1, arg2})
 	fake.volumeParentMutex.Unlock()
-	if fake.VolumeParentStub != nil {
-		return fake.VolumeParentStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.volumeParentReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

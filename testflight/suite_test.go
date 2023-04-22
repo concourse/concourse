@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/go-concourse/concourse"
@@ -43,6 +43,7 @@ type suiteConfig struct {
 	ATCGuestUsername string `json:"atc_guest_username"`
 	ATCGuestPassword string `json:"atc_guest_password"`
 	DownloadCLI      bool   `json:"download_cli"`
+	Runtime          string `json:"runtime"`
 }
 
 var (
@@ -96,12 +97,17 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	atcGuestUsername := os.Getenv("ATC_GUEST_USERNAME")
 	if atcGuestUsername != "" {
-		config.ATCGuestUsername = atcUsername
+		config.ATCGuestUsername = atcGuestUsername
 	}
 
 	atcGuestPassword := os.Getenv("ATC_GUEST_PASSWORD")
 	if atcGuestPassword != "" {
 		config.ATCGuestPassword = atcGuestPassword
+	}
+
+	workerRuntime := os.Getenv("RUNTIME")
+	if workerRuntime != "" {
+		config.Runtime = workerRuntime
 	}
 
 	payload, err := json.Marshal(config)
@@ -184,7 +190,7 @@ func randomPipelineName() string {
 	guid, err := uuid.NewV4()
 	Expect(err).ToNot(HaveOccurred())
 
-	return fmt.Sprintf("%s-%d-%s", pipelinePrefix, GinkgoParallelNode(), guid)
+	return fmt.Sprintf("%s-%d-%s", pipelinePrefix, GinkgoParallelProcess(), guid)
 }
 
 func fly(argv ...string) *gexec.Session {

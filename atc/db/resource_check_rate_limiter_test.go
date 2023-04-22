@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"golang.org/x/time/rate"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"

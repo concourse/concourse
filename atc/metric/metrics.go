@@ -460,39 +460,6 @@ func (event BuildFinished) Emit(logger lager.Logger) {
 	)
 }
 
-type CheckBuildStarted struct {
-	Build db.Build
-}
-
-func (event CheckBuildStarted) Emit(logger lager.Logger) {
-	Metrics.emit(
-		logger.Session("check-build-started"),
-		Event{
-			Name:       "check build started",
-			Value:      float64(event.Build.ID()),
-			Attributes: event.Build.TracingAttrs(),
-		},
-	)
-}
-
-type CheckBuildFinished struct {
-	Build db.Build
-}
-
-func (event CheckBuildFinished) Emit(logger lager.Logger) {
-	attrs := event.Build.TracingAttrs()
-	attrs["build_status"] = event.Build.Status().String()
-
-	Metrics.emit(
-		logger.Session("check-build-finished"),
-		Event{
-			Name:       "check build finished",
-			Value:      ms(event.Build.EndTime().Sub(event.Build.StartTime())),
-			Attributes: attrs,
-		},
-	)
-}
-
 func ms(duration time.Duration) float64 {
 	return float64(duration) / 1000000
 }
@@ -549,6 +516,8 @@ var lockTypeNames = map[int]string{
 	lock.LockTypeDatabaseMigration:          "DatabaseMigration",
 	lock.LockTypeResourceScanning:           "ResourceScanning",
 	lock.LockTypeInMemoryCheckBuildTracking: "InMemoryCheckBuildTracking",
+	lock.LockTypeResourceGet:                "ResourceGet",
+	lock.LockTypeVolumeStreaming:            "VolumeStreaming",
 }
 
 type LockAcquired struct {

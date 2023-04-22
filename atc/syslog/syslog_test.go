@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/syslog"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/square/certstrap/pkix"
 )
@@ -34,7 +34,7 @@ var _ = Describe("Syslog", func() {
 				key, err := pkix.CreateRSAKey(1024)
 				Expect(err).NotTo(HaveOccurred())
 
-				ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "Acme Co", "", "", "", "")
+				ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "Acme Co", "", "", "", "", nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				req, err := pkix.CreateCertificateSigningRequest(key, "", []net.IP{net.IPv4(127, 0, 0, 1)}, nil, nil, "Acme Co", "", "", "", "")

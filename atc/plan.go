@@ -313,6 +313,10 @@ type TaskPlan struct {
 	// this.
 	Privileged bool `json:"privileged"`
 
+	// Run the task in 'hermetic' mode. If set to true, network traffic from
+	// the container to external will be dropped.
+	Hermetic bool `json:"hermetic"`
+
 	// Worker tags to influence placement of the container.
 	Tags Tags `json:"tags,omitempty"`
 

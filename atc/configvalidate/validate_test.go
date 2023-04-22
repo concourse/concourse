@@ -10,7 +10,7 @@ import (
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -1116,6 +1116,29 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(some-resource).config: missing 'platform'"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(some-resource).config: missing path to executable to run"))
+				})
+			})
+
+			Context("when a task plan sets hermetic", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name:     "some-resource",
+							Hermetic: true,
+							Config: &atc.TaskConfig{
+								Params: atc.TaskEnv{
+									"param1": "value1",
+								},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns a warning", func() {
+					Expect(warnings).To(HaveLen(1))
+					Expect(warnings[0].Message).To(ContainSubstring("specifies `hermetic:` only works against worker containerd runtime"))
 				})
 			})
 

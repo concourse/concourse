@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/square/certstrap/pkix"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -153,7 +153,7 @@ func generateKeyPairWithCA(namespace, service string) (*pkix.Certificate, *pkix.
 	CAKey, err := pkix.CreateRSAKey(1024)
 	Expect(err).NotTo(HaveOccurred())
 
-	CACert, err := pkix.CreateCertificateAuthority(CAKey, "", time.Now().Add(time.Hour), "Pivotal", "", "", "", "CA")
+	CACert, err := pkix.CreateCertificateAuthority(CAKey, "", time.Now().Add(time.Hour), "Pivotal", "", "", "", "CA", []string{})
 	Expect(err).NotTo(HaveOccurred())
 
 	serverKey, err := pkix.CreateRSAKey(1024)

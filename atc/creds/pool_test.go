@@ -11,7 +11,7 @@ import (
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

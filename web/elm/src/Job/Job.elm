@@ -503,6 +503,9 @@ tooltip model session =
                 , containerAttrs = Nothing
                 }
 
+        ( _, HoverState.Tooltip (UserDisplayName username) _ ) ->
+            Login.tooltip username
+
         _ ->
             Nothing
 

@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/atc"

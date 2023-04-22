@@ -2,6 +2,7 @@ package runtime_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync"
 	"testing"
@@ -102,6 +103,46 @@ func (s *BackendSuite) TestCreateWithNewContainerFailure() {
 	s.Error(err)
 
 	s.Equal(1, s.client.NewContainerCallCount())
+}
+
+func (s *BackendSuite) TestCreateWithContainerNetOutNotSet() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeTask.StartReturns(nil)
+
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("some-container-ID")
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+
+	s.client.NewContainerReturns(fakeContainer, nil)
+
+	_, err := s.backend.Create(minimumValidGdnSpec)
+	s.NoError(err)
+
+	s.Equal(1, s.network.DropContainerTrafficCallCount())
+
+	containerId := s.network.DropContainerTrafficArgsForCall(0)
+	s.Equal(containerId, "some-container-ID")
+}
+
+func (s *BackendSuite) TestCreateWithContainerNetOutSet() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	fakeTask.StartReturns(nil)
+
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.IDReturns("some-container-ID")
+	fakeContainer.NewTaskReturns(fakeTask, nil)
+
+	s.client.NewContainerReturns(fakeContainer, nil)
+
+	minimumValidGdnSpec.NetOut = []garden.NetOutRule{
+		{
+			Log: true,
+		},
+	}
+	_, err := s.backend.Create(minimumValidGdnSpec)
+	s.NoError(err)
+
+	s.Equal(0, s.network.DropContainerTrafficCallCount())
 }
 
 func (s *BackendSuite) TestCreateContainerNewTaskFailure() {
@@ -257,6 +298,7 @@ func (s *BackendSuite) TestCreateContainerLockTimeout() {
 		s.Contains(err.Error(), "acquiring create container lock")
 	}
 }
+
 func (s *BackendSuite) TestContainersWithContainerdFailure() {
 	s.client.ContainersReturns(nil, errors.New("err"))
 
@@ -484,6 +526,23 @@ func (s *BackendSuite) TestDestroySucceeds() {
 	s.NoError(err)
 }
 
+func (s *BackendSuite) TestDestroyCallResumeContainerTraffic() {
+	fakeTask := new(libcontainerdfakes.FakeTask)
+
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	s.client.GetContainerReturns(fakeContainer, nil)
+
+	err := s.backend.Destroy("some handle")
+	s.NoError(err)
+
+	s.Equal(1, s.network.ResumeContainerTrafficCallCount())
+
+	containerId := s.network.ResumeContainerTrafficArgsForCall(0)
+	s.Equal(containerId, "some handle")
+}
+
 func (s *BackendSuite) TestStartInitsClientAndSetsUpRestrictedNetworks() {
 	err := s.backend.Start()
 	s.NoError(err)
@@ -521,4 +580,78 @@ func (s *BackendSuite) TestGraceTimeReturnsDuration() {
 	fakeContainer.PropertyReturns("123", nil)
 	result := s.backend.GraceTime(fakeContainer)
 	s.Equal(time.Duration(123), result)
+}
+
+func (s *BackendSuite) TestHookFileParse() {
+	var samples = map[string]runtime.HookFile{`
+{
+    "version": "1.0.0",
+    "hook": {
+        "path": "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
+        "args": [
+            "oci-seccomp-bpf-hook",
+            "-s"
+        ]
+    },
+    "when": {
+        "annotations": {
+            "^io\\.containers\\.trace-syscall$": ".*"
+        }
+    },
+    "stages": [
+        "prestart"
+    ]
+}
+`: {
+		Version: "1.0.0",
+		Hook: specs.Hook{
+			Path: "/usr/libexec/oci/hooks.d/oci-seccomp-bpf-hook",
+			Args: []string{"oci-seccomp-bpf-hook", "-s"},
+			Env:  nil,
+		},
+		When: runtime.When{
+			Annotations: map[string]string{
+				"^io\\.containers\\.trace-syscall$": ".*",
+			},
+			Always:   false,
+			Commands: nil,
+		},
+		Stages: []string{"prestart"},
+	},
+		`{
+    "version": "1.0.0",
+    "hook": {
+        "path": "/usr/bin/nvidia-container-toolkit",
+        "args": ["nvidia-container-toolkit", "prestart"],
+        "env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        ]
+    },
+    "when": {
+        "always": true,
+        "commands": [".*"]
+    },
+    "stages": ["prestart"]
+}
+`: {
+			Version: "1.0.0",
+			Hook: specs.Hook{
+				Path: "/usr/bin/nvidia-container-toolkit",
+				Args: []string{"nvidia-container-toolkit", "prestart"},
+				Env:  []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"},
+			},
+			When: runtime.When{
+				Always:      true,
+				Commands:    []string{".*"},
+				Annotations: nil,
+			},
+			Stages: []string{"prestart"},
+		}}
+
+	for sample_json, expected_outcome := range samples {
+		var dest runtime.HookFile
+		var err = json.Unmarshal([]byte(sample_json), &dest)
+		s.Equal(err, nil)
+		s.Equal(dest, expected_outcome)
+	}
 }

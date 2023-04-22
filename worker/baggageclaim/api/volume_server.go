@@ -481,7 +481,7 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 		subPath = queryPath[0]
 	}
 
-	badStream, err := vs.volumeRepo.StreamIn(ctx, handle, subPath, req.Header.Get("Content-Encoding"), req.Body)
+	badStream, err := vs.volumeRepo.StreamIn(ctx, handle, subPath, baggageclaim.Encoding(req.Header.Get("Content-Encoding")), req.Body)
 	if err != nil {
 		if err == volume.ErrVolumeDoesNotExist {
 			hLog.Info("volume-not-found")
@@ -527,7 +527,7 @@ func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 		subPath = queryPath[0]
 	}
 
-	err := vs.volumeRepo.StreamOut(ctx, handle, subPath, req.Header.Get("Accept-Encoding"), w)
+	err := vs.volumeRepo.StreamOut(ctx, handle, subPath, baggageclaim.Encoding(req.Header.Get("Accept-Encoding")), w)
 	if err != nil {
 		if err == volume.ErrVolumeDoesNotExist {
 			hLog.Info("volume-not-found")
@@ -604,7 +604,7 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 
 	doneChan := make(chan error, 1)
 	go func(doneChan chan<- error) {
-		err := vs.volumeRepo.StreamP2pOut(ctx, handle, subPath, encoding, streamInURL)
+		err := vs.volumeRepo.StreamP2pOut(ctx, handle, subPath, baggageclaim.Encoding(encoding), streamInURL)
 		if err != nil {
 			hLog.Error("failed-to-stream-out", err)
 			doneChan <- fmt.Errorf("%s: %w", ErrStreamP2pOutFailed, err)

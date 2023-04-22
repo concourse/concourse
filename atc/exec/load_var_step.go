@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim"
@@ -84,8 +85,14 @@ func (step *LoadVarStep) run(ctx context.Context, state RunState, delegate Build
 	})
 
 	delegate.Initializing(logger)
-	stdout := delegate.Stdout()
 
+	interpolatedPlan, err := creds.NewLoadVarPlan(state, step.plan).Evaluate()
+	if err != nil {
+		return false, err
+	}
+	step.plan = interpolatedPlan
+
+	stdout := delegate.Stdout()
 	delegate.Starting(logger)
 
 	value, err := step.fetchVars(ctx, logger, step.plan.File, state)

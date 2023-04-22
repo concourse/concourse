@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/tedsuo/rata"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

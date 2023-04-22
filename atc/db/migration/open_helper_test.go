@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -15,7 +15,7 @@ var _ = Describe("OpenHelper", func() {
 	var (
 		err         error
 		db          *sql.DB
-		lockDB      *sql.DB
+		lockDB      [lock.FactoryCount]*sql.DB
 		lockFactory lock.LockFactory
 		openHelper  *migration.OpenHelper
 		fakeLogFunc = func(logger lager.Logger, id lock.LockID) {}
@@ -25,16 +25,19 @@ var _ = Describe("OpenHelper", func() {
 		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
 		Expect(err).NotTo(HaveOccurred())
 
-		lockDB, err = sql.Open("postgres", postgresRunner.DataSourceName())
-		Expect(err).NotTo(HaveOccurred())
-
+		for i := 0; i < lock.FactoryCount; i++ {
+			lockDB[i], err = sql.Open("postgres", postgresRunner.DataSourceName())
+			Expect(err).NotTo(HaveOccurred())
+		}
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
 		openHelper = migration.NewOpenHelper("postgres", postgresRunner.DataSourceName(), lockFactory, nil, nil)
 	})
 
 	AfterEach(func() {
 		_ = db.Close()
-		_ = lockDB.Close()
+		for _, closer := range lockDB {
+			closer.Close()
+		}
 	})
 
 	Context("legacy migration_version table exists", func() {

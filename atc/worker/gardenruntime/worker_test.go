@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -21,7 +22,7 @@ import (
 	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/atc/worker/workertest"
 	"github.com/concourse/concourse/worker/baggageclaim"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 )
@@ -422,11 +423,11 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
+		_, err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(ctx, resourceCache2)
+		_, err = scenario.WorkerVolume("worker2", "remote-volume").InitializeResourceCache(ctx, resourceCache2)
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker1")
@@ -567,7 +568,7 @@ var _ = Describe("Garden Worker", func() {
 
 			By("initializing remote input as a resource cache", func() {
 				resourceCache := scenario.FindOrCreateResourceCache("worker2")
-				err := scenario.WorkerVolume("worker2", "remote-image-volume").InitializeResourceCache(ctx, resourceCache)
+				_, err := scenario.WorkerVolume("worker2", "remote-image-volume").InitializeResourceCache(ctx, resourceCache)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -814,7 +815,7 @@ var _ = Describe("Garden Worker", func() {
 
 			By("initializing remote input as a resource cache", func() {
 				resourceCache := scenario.FindOrCreateResourceCache("worker2")
-				err := scenario.WorkerVolume("worker2", "remote-input").InitializeResourceCache(ctx, resourceCache)
+				_, err := scenario.WorkerVolume("worker2", "remote-input").InitializeResourceCache(ctx, resourceCache)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -909,11 +910,15 @@ var _ = Describe("Garden Worker", func() {
 		)
 
 		resourceCache1 := scenario.FindOrCreateResourceCache("worker1")
-		err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
+		_, err := scenario.WorkerVolume("worker1", "locally-cached-volume").InitializeResourceCache(ctx, resourceCache1)
 		Expect(err).ToNot(HaveOccurred())
 
 		resourceCache2 := scenario.FindOrCreateResourceCache("worker2")
-		err = scenario.WorkerVolume("worker2", "remote-volume").InitializeStreamedResourceCache(ctx, resourceCache2, "worker1")
+		removeVolume := scenario.WorkerVolume("worker2", "remote-volume")
+		uwrc2, err := removeVolume.InitializeResourceCache(ctx, resourceCache2)
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = scenario.WorkerVolume("worker2", "remote-volume").InitializeStreamedResourceCache(ctx, resourceCache2, uwrc2.ID)
 		Expect(err).ToNot(HaveOccurred())
 
 		worker := scenario.Worker("worker1")
@@ -1279,6 +1284,60 @@ var _ = Describe("Garden Worker", func() {
 				"/cache":         Not(grt.BePrivileged()),
 				"/etc/ssl/certs": Not(grt.BePrivileged()),
 			}))
+		})
+	})
+
+	Test("hermetic container spec produces empty NetOut", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		_, _, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("my-hermetic-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{
+				Hermetic: true,
+			},
+			delegate,
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("validating the container was created with NetOut spec", func() {
+			garden := gardenServer(worker)
+			Expect(garden.ContainerList).To(HaveLen(1))
+			Expect(garden.ContainerList[0].Handle()).To(Equal("my-hermetic-handle"))
+			Expect(garden.ContainerList[0].Spec.NetOut).To(HaveLen(0))
+		})
+	})
+
+	Test("no hermetic container spec produces NetOut with all ip range", func() {
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		_, _, err := worker.FindOrCreateContainer(
+			ctx,
+			db.NewFixedHandleContainerOwner("my-non-hermetic-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{},
+			delegate,
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("validating the container was created with NetOut spec", func() {
+			garden := gardenServer(worker)
+			Expect(garden.ContainerList).To(HaveLen(1))
+			Expect(garden.ContainerList[0].Handle()).To(Equal("my-non-hermetic-handle"))
+			Expect(garden.ContainerList[0].Spec.NetOut[0].Networks).To(HaveLen(1))
+			Expect(garden.ContainerList[0].Spec.NetOut[0].Networks[0].Start).To(Equal(net.ParseIP("0.0.0.0")))
+			Expect(garden.ContainerList[0].Spec.NetOut[0].Networks[0].End).To(Equal(net.ParseIP("255.255.255.255")))
 		})
 	})
 

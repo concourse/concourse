@@ -2,7 +2,7 @@ package atc_test
 
 import (
 	"github.com/concourse/concourse/atc"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 )
@@ -226,6 +226,7 @@ var _ = Describe("Plan", func() {
 							Task: &atc.TaskPlan{
 								Name:       "name",
 								Privileged: true,
+								Hermetic:   true,
 								Tags:       atc.Tags{"tags"},
 								ConfigPath: "some/config/path.yml",
 								Config: &atc.TaskConfig{
@@ -566,7 +567,8 @@ var _ = Describe("Plan", func() {
               "id": "2",
               "task": {
                 "name": "name",
-                "privileged": false
+                "privileged": false,
+								"hermetic": false
               }
             }
           ]
@@ -697,7 +699,8 @@ var _ = Describe("Plan", func() {
 				"id": "5",
 				"task": {
 					"name": "name",
-					"privileged": true
+					"privileged": true,
+					"hermetic": true
 				}
 			},
 			{
@@ -707,14 +710,16 @@ var _ = Describe("Plan", func() {
 						"id": "7",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					"ensure": {
 						"id": "8",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				}
@@ -726,14 +731,16 @@ var _ = Describe("Plan", func() {
 						"id": "10",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					"on_success": {
 						"id": "11",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				}
@@ -745,14 +752,16 @@ var _ = Describe("Plan", func() {
 						"id": "13",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					"on_failure": {
 						"id": "14",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				}
@@ -764,14 +773,16 @@ var _ = Describe("Plan", func() {
 						"id": "16",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					"on_abort": {
 						"id": "17",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				}
@@ -783,7 +794,8 @@ var _ = Describe("Plan", func() {
 						"id": "19",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				}
@@ -795,7 +807,8 @@ var _ = Describe("Plan", func() {
 						"id": "21",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					"duration": "lol"
@@ -808,7 +821,8 @@ var _ = Describe("Plan", func() {
 						"id": "23",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				]
@@ -820,21 +834,24 @@ var _ = Describe("Plan", func() {
 						"id": "25",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					{
 						"id": "26",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					{
 						"id": "27",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				]
@@ -846,14 +863,16 @@ var _ = Describe("Plan", func() {
 						"id": "29",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					"on_abort": {
 						"id": "30",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				}
@@ -878,14 +897,16 @@ var _ = Describe("Plan", func() {
 						"id": "34",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					},
 					"on_error": {
 						"id": "35",
 						"task": {
 							"name": "name",
-							"privileged": false
+							"privileged": false,
+							"hermetic": false
 						}
 					}
 				}
@@ -898,7 +919,8 @@ var _ = Describe("Plan", func() {
 							"id": "37",
 							"task": {
 								"name": "name",
-								"privileged": false
+								"privileged": false,
+								"hermetic": false
 							}
 						}
 					],

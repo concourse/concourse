@@ -24,6 +24,17 @@ type FakeNetwork struct {
 	addReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DropContainerTrafficStub        func(string) error
+	dropContainerTrafficMutex       sync.RWMutex
+	dropContainerTrafficArgsForCall []struct {
+		arg1 string
+	}
+	dropContainerTrafficReturns struct {
+		result1 error
+	}
+	dropContainerTrafficReturnsOnCall map[int]struct {
+		result1 error
+	}
 	RemoveStub        func(context.Context, containerd.Task, string) error
 	removeMutex       sync.RWMutex
 	removeArgsForCall []struct {
@@ -35,6 +46,17 @@ type FakeNetwork struct {
 		result1 error
 	}
 	removeReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ResumeContainerTrafficStub        func(string) error
+	resumeContainerTrafficMutex       sync.RWMutex
+	resumeContainerTrafficArgsForCall []struct {
+		arg1 string
+	}
+	resumeContainerTrafficReturns struct {
+		result1 error
+	}
+	resumeContainerTrafficReturnsOnCall map[int]struct {
 		result1 error
 	}
 	SetupHostNetworkStub        func() error
@@ -127,6 +149,67 @@ func (fake *FakeNetwork) AddReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeNetwork) DropContainerTraffic(arg1 string) error {
+	fake.dropContainerTrafficMutex.Lock()
+	ret, specificReturn := fake.dropContainerTrafficReturnsOnCall[len(fake.dropContainerTrafficArgsForCall)]
+	fake.dropContainerTrafficArgsForCall = append(fake.dropContainerTrafficArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.DropContainerTrafficStub
+	fakeReturns := fake.dropContainerTrafficReturns
+	fake.recordInvocation("DropContainerTraffic", []interface{}{arg1})
+	fake.dropContainerTrafficMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeNetwork) DropContainerTrafficCallCount() int {
+	fake.dropContainerTrafficMutex.RLock()
+	defer fake.dropContainerTrafficMutex.RUnlock()
+	return len(fake.dropContainerTrafficArgsForCall)
+}
+
+func (fake *FakeNetwork) DropContainerTrafficCalls(stub func(string) error) {
+	fake.dropContainerTrafficMutex.Lock()
+	defer fake.dropContainerTrafficMutex.Unlock()
+	fake.DropContainerTrafficStub = stub
+}
+
+func (fake *FakeNetwork) DropContainerTrafficArgsForCall(i int) string {
+	fake.dropContainerTrafficMutex.RLock()
+	defer fake.dropContainerTrafficMutex.RUnlock()
+	argsForCall := fake.dropContainerTrafficArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeNetwork) DropContainerTrafficReturns(result1 error) {
+	fake.dropContainerTrafficMutex.Lock()
+	defer fake.dropContainerTrafficMutex.Unlock()
+	fake.DropContainerTrafficStub = nil
+	fake.dropContainerTrafficReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNetwork) DropContainerTrafficReturnsOnCall(i int, result1 error) {
+	fake.dropContainerTrafficMutex.Lock()
+	defer fake.dropContainerTrafficMutex.Unlock()
+	fake.DropContainerTrafficStub = nil
+	if fake.dropContainerTrafficReturnsOnCall == nil {
+		fake.dropContainerTrafficReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.dropContainerTrafficReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeNetwork) Remove(arg1 context.Context, arg2 containerd.Task, arg3 string) error {
 	fake.removeMutex.Lock()
 	ret, specificReturn := fake.removeReturnsOnCall[len(fake.removeArgsForCall)]
@@ -186,6 +269,67 @@ func (fake *FakeNetwork) RemoveReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.removeReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNetwork) ResumeContainerTraffic(arg1 string) error {
+	fake.resumeContainerTrafficMutex.Lock()
+	ret, specificReturn := fake.resumeContainerTrafficReturnsOnCall[len(fake.resumeContainerTrafficArgsForCall)]
+	fake.resumeContainerTrafficArgsForCall = append(fake.resumeContainerTrafficArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.ResumeContainerTrafficStub
+	fakeReturns := fake.resumeContainerTrafficReturns
+	fake.recordInvocation("ResumeContainerTraffic", []interface{}{arg1})
+	fake.resumeContainerTrafficMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeNetwork) ResumeContainerTrafficCallCount() int {
+	fake.resumeContainerTrafficMutex.RLock()
+	defer fake.resumeContainerTrafficMutex.RUnlock()
+	return len(fake.resumeContainerTrafficArgsForCall)
+}
+
+func (fake *FakeNetwork) ResumeContainerTrafficCalls(stub func(string) error) {
+	fake.resumeContainerTrafficMutex.Lock()
+	defer fake.resumeContainerTrafficMutex.Unlock()
+	fake.ResumeContainerTrafficStub = stub
+}
+
+func (fake *FakeNetwork) ResumeContainerTrafficArgsForCall(i int) string {
+	fake.resumeContainerTrafficMutex.RLock()
+	defer fake.resumeContainerTrafficMutex.RUnlock()
+	argsForCall := fake.resumeContainerTrafficArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeNetwork) ResumeContainerTrafficReturns(result1 error) {
+	fake.resumeContainerTrafficMutex.Lock()
+	defer fake.resumeContainerTrafficMutex.Unlock()
+	fake.ResumeContainerTrafficStub = nil
+	fake.resumeContainerTrafficReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNetwork) ResumeContainerTrafficReturnsOnCall(i int, result1 error) {
+	fake.resumeContainerTrafficMutex.Lock()
+	defer fake.resumeContainerTrafficMutex.Unlock()
+	fake.ResumeContainerTrafficStub = nil
+	if fake.resumeContainerTrafficReturnsOnCall == nil {
+		fake.resumeContainerTrafficReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.resumeContainerTrafficReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -312,8 +456,12 @@ func (fake *FakeNetwork) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.addMutex.RLock()
 	defer fake.addMutex.RUnlock()
+	fake.dropContainerTrafficMutex.RLock()
+	defer fake.dropContainerTrafficMutex.RUnlock()
 	fake.removeMutex.RLock()
 	defer fake.removeMutex.RUnlock()
+	fake.resumeContainerTrafficMutex.RLock()
+	defer fake.resumeContainerTrafficMutex.RUnlock()
 	fake.setupHostNetworkMutex.RLock()
 	defer fake.setupHostNetworkMutex.RUnlock()
 	fake.setupMountsMutex.RLock()

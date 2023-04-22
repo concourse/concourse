@@ -1061,6 +1061,9 @@ tooltip session =
                 , containerAttrs = Just Styles.cardTooltip
                 }
 
+        HoverState.Tooltip (UserDisplayName username) _ ->
+            Login.tooltip username
+
         _ ->
             Nothing
 
@@ -1263,13 +1266,12 @@ loginInstruction userState =
                 [ id "login-instruction"
                 , style "line-height" "42px"
                 ]
-                [ Html.text "login "
-                , Html.a
+                [ Html.a
                     [ href "/login"
                     , style "text-decoration" "underline"
                     , style "color" Colors.welcomeCardText
                     ]
-                    [ Html.text "here" ]
+                    [ Html.text "login here" ]
                 ]
             ]
 

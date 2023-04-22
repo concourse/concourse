@@ -323,6 +323,7 @@ type PutStep struct {
 	Tags      Tags          `json:"tags,omitempty"`
 	GetParams Params        `json:"get_params,omitempty"`
 	Timeout   string        `json:"timeout,omitempty"`
+	NoGet     bool          `json:"no_get,omitempty"`
 }
 
 func (step *PutStep) ResourceName() string {
@@ -340,6 +341,7 @@ func (step *PutStep) Visit(v StepVisitor) error {
 type TaskStep struct {
 	Name              string            `json:"task"`
 	Privileged        bool              `json:"privileged,omitempty"`
+	Hermetic          bool              `json:"hermetic,omitempty"`
 	ConfigPath        string            `json:"file,omitempty"`
 	Limits            *ContainerLimits  `json:"container_limits,omitempty"`
 	Config            *TaskConfig       `json:"config,omitempty"`

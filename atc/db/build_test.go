@@ -20,7 +20,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
 )

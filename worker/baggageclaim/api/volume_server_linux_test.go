@@ -17,7 +17,7 @@ import (
 	"regexp"
 	"syscall"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/lagertest"
@@ -40,7 +40,7 @@ var _ = Describe("Volume Server", func() {
 	BeforeEach(func() {
 		var err error
 
-		tempDir, err = ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelNode()))
+		tempDir, err = ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
 		Expect(err).NotTo(HaveOccurred())
 
 		// ioutil.TempDir creates it 0700; we need public readability for

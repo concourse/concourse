@@ -7,7 +7,7 @@ import (
 	"log"
 	"os/exec"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -58,8 +58,7 @@ var _ = Describe("login -k Command", func() {
 
 				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-				err = stdin.Close()
-				Expect(err).NotTo(HaveOccurred())
+				defer stdin.Close()
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))

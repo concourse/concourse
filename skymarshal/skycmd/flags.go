@@ -73,7 +73,7 @@ func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
 
 // e.g.
 // The github connector has configuration for: users, teams, orgs
-// The cf conncetor has configuration for: users, orgs, spaces
+// The cloudfoundry conncetor has configuration for: users, orgs, spaces
 
 func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 
@@ -212,6 +212,10 @@ type Connector struct {
 }
 
 func (con *Connector) ID() string {
+	if con.id == "cloudfoundry" {
+		return "cf"
+	}
+
 	return con.id
 }
 

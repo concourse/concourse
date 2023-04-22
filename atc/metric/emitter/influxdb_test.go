@@ -8,7 +8,7 @@ import (
 	"github.com/concourse/concourse/atc/metric/emitter"
 	"github.com/concourse/concourse/atc/metric/emitter/emitterfakes"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

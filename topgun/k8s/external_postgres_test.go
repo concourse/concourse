@@ -3,7 +3,7 @@ package k8s_test
 import (
 	"path"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("External PostgreSQL", func() {
@@ -19,9 +19,9 @@ var _ = Describe("External PostgreSQL", func() {
 			"--set=livenessProbe.initialDelaySeconds=3",
 			"--set=livenessProbe.periodSeconds=3",
 			"--set=persistence.enabled=false",
-			"--set=postgresqlDatabase=pg-database",
-			"--set=postgresqlPassword=pg-password",
-			"--set=postgresqlUsername=pg-user",
+			"--set=auth.database=pg-database",
+			"--set=auth.password=pg-password",
+			"--set=auth.username=pg-user",
 			"--set=readinessProbe.initialDelaySeconds=3",
 			"--set=readinessProbe.periodSeconds=3",
 		)

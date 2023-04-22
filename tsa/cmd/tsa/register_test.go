@@ -19,7 +19,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
 	"github.com/concourse/concourse/worker/baggageclaim"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
