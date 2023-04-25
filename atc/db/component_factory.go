@@ -66,7 +66,11 @@ func (f *componentFactory) CreateOrUpdate(c atc.Component) (Component, error) {
 	defer Rollback(tx)
 
 	obj := &component{
-		conn: f.conn,
+		conn:                  f.conn,
+		numGoroutineThreshold: f.numGoroutineThreshold,
+		rander:                f.rander,
+		clock:                 f.clock,
+		goRoutineCounter:      f.goRoutineCounter,
 	}
 
 	row := psql.Insert("components").
