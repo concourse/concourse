@@ -7,7 +7,7 @@ require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20230109140612-2e6c285deddc
 	code.cloudfoundry.org/garden v0.0.0-20230322140108-76fb7bb00c07
 	code.cloudfoundry.org/lager v1.1.1-0.20230321195817-3d52f427a2d2
-	code.cloudfoundry.org/localip v0.0.0-20220131190813-865a62baabe7
+	code.cloudfoundry.org/localip v0.0.0-20230406154131-9ff4293aa842
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go/v5 v5.1.1
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.10.2
@@ -56,7 +56,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo/v2 v2.9.2
-	github.com/onsi/gomega v1.27.4
+	github.com/onsi/gomega v1.27.6
 	github.com/opencontainers/runc v1.1.4
 	github.com/opencontainers/runtime-spec v1.0.3-0.20220909204839-494a5a6aca78
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -127,7 +127,7 @@ require (
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/go-logr/logr v1.2.3 // indirect
+	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
@@ -227,7 +227,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
-	github.com/google/pprof v0.0.0-20230309165930-d61513b1440d // indirect
+	github.com/google/pprof v0.0.0-20230323073829-e72429f035bd // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -237,7 +237,6 @@ require (
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/openzipkin/zipkin-go v0.4.1 // indirect
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
-	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	go.step.sm/crypto v0.16.2 // indirect
