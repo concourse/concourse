@@ -16,7 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
+	ginkgomon "github.com/tedsuo/ifrit/ginkgomon_v2"
 	"golang.org/x/crypto/ssh"
 
 	. "github.com/onsi/ginkgo/v2"

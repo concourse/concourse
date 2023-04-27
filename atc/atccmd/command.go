@@ -59,7 +59,7 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag/v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v3/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"
 	"github.com/hashicorp/go-multierror"

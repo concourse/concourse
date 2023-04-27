@@ -18,7 +18,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/tedsuo/ifrit/ginkgomon"
+	"github.com/tedsuo/ifrit/ginkgomon_v2"
 )
 
 type Runner struct {
@@ -89,7 +89,7 @@ synchronous_commit = off
 full_page_writes = off
 `)
 
-	ginkgoRunner := &ginkgomon.Runner{
+	ginkgoRunner := &ginkgomon_v2.Runner{
 		Name:          "postgres",
 		Command:       startCmd,
 		AnsiColorCode: "90m",
