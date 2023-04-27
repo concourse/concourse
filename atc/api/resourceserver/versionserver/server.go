@@ -1,7 +1,7 @@
 package versionserver
 
 import (
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type Server struct {

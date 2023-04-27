@@ -5,7 +5,7 @@ import (
 	"net"
 	"os"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type serverRunner struct {

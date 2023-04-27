@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/tsa"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/restart"

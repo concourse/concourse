@@ -5,8 +5,9 @@ go 1.20
 require (
 	code.cloudfoundry.org/clock v1.0.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20230109140612-2e6c285deddc
-	code.cloudfoundry.org/garden v0.0.0-20230322140108-76fb7bb00c07
-	code.cloudfoundry.org/lager v1.1.1-0.20230321195817-3d52f427a2d2
+	code.cloudfoundry.org/garden v0.0.0-20230418162742-6c127706d54f
+	code.cloudfoundry.org/lager v2.0.0+incompatible
+	code.cloudfoundry.org/lager/v3 v3.0.1
 	code.cloudfoundry.org/localip v0.0.0-20230406154131-9ff4293aa842
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	github.com/DataDog/datadog-go/v5 v5.1.1
@@ -18,9 +19,9 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v1.6.0
-	github.com/concourse/flag/v2 v2.0.1
+	github.com/concourse/flag/v2 v2.0.0
 	github.com/concourse/go-archive v1.0.1
-	github.com/concourse/retryhttp v1.2.3-0.20230327165842-78d9fca73a17
+	github.com/concourse/retryhttp v1.2.0
 	github.com/containerd/containerd v1.6.18
 	github.com/containerd/go-cni v1.1.7
 	github.com/containerd/typeurl v1.0.2
@@ -75,7 +76,7 @@ require (
 	github.com/vbauerster/mpb/v4 v4.12.2
 	github.com/vito/go-interact v1.0.1
 	github.com/vito/go-sse v1.0.0
-	github.com/vito/houdini v1.1.3-0.20230327184626-d0062efc0247
+	github.com/vito/houdini v1.1.2
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.opentelemetry.io/otel v1.11.2
 	go.opentelemetry.io/otel/exporters/jaeger v1.11.2
@@ -87,7 +88,7 @@ require (
 	golang.org/x/crypto v0.7.0
 	golang.org/x/oauth2 v0.3.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.6.0
+	golang.org/x/sys v0.7.0
 	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.51.0
 	gopkg.in/square/go-jose.v2 v2.6.0
@@ -188,11 +189,11 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.2 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/mod v0.9.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
-	golang.org/x/tools v0.7.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/tools v0.8.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/api v0.99.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -227,7 +228,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
-	github.com/google/pprof v0.0.0-20230323073829-e72429f035bd // indirect
+	github.com/google/pprof v0.0.0-20230406165453-00490a63f317 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

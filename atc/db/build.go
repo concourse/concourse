@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/vars"

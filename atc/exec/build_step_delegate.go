@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/concourse/concourse/atc"

@@ -3,7 +3,7 @@ package emitter
 import (
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/pkg/errors"
 

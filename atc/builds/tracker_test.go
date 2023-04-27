@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/builds/buildsfakes"

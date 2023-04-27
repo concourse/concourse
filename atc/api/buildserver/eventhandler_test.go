@@ -10,7 +10,7 @@ import (
 
 	. "github.com/concourse/concourse/atc/testhelpers"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/concourse/concourse/atc/creds"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/vars"
 
 	. "github.com/concourse/concourse/atc/creds/conjur"

@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/localip"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	flags "github.com/jessevdk/go-flags"

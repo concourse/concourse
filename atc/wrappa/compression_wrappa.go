@@ -1,7 +1,7 @@
 package wrappa
 
 import (
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/NYTimes/gziphandler"
 	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
