@@ -2,7 +2,9 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/lib/pq"
 )
@@ -40,16 +42,26 @@ type notificationsBus struct {
 	executor Executor
 
 	notifications *notificationsMap
+
+	notifyChan      chan string
+	notifyCache     map[string]struct{}
+	notifyCacheLock sync.Mutex
+	notifyDoneChan  chan struct{}
 }
 
 func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus {
 	bus := &notificationsBus{
-		listener:      listener,
-		executor:      executor,
-		notifications: newNotificationsMap(),
+		listener:       listener,
+		executor:       executor,
+		notifications:  newNotificationsMap(),
+		notifyChan:     make(chan string, 1000000),
+		notifyDoneChan: make(chan struct{}, 1),
+		notifyCache:    map[string]struct{}{},
 	}
 
 	go bus.wait()
+	go bus.cacheNotify()
+	bus.asyncNotify()
 
 	return bus
 }
@@ -59,6 +71,19 @@ func (bus *notificationsBus) Close() error {
 }
 
 func (bus *notificationsBus) Notify(channel string) error {
+	if !strings.HasPrefix(channel, buildEventChannelPrefix) {
+		return bus.notify(channel)
+	}
+
+	// non-blocking push
+	select {
+	case bus.notifyChan <- channel:
+	default:
+	}
+	return nil
+}
+
+func (bus *notificationsBus) notify(channel string) error {
 	_, err := bus.executor.Exec("NOTIFY " + channel)
 	return err
 }
@@ -105,6 +130,43 @@ func (bus *notificationsBus) wait() {
 			bus.handleReconnect()
 		}
 	}
+}
+
+func (bus *notificationsBus) cacheNotify() {
+	for {
+		channel, ok := <-bus.notifyChan
+		if !ok {
+			break
+		}
+
+		bus.notifyCacheLock.Lock()
+		if _, ok := bus.notifyCache[channel]; ok {
+			bus.notifyCacheLock.Unlock()
+			continue
+		}
+		bus.notifyCache[channel] = struct{}{}
+		bus.notifyCacheLock.Unlock()
+	}
+	close(bus.notifyDoneChan)
+}
+
+func (bus *notificationsBus) asyncNotify() {
+	ticker := time.NewTicker(1 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				bus.notifyCacheLock.Lock()
+				for channel, _ := range bus.notifyCache {
+					bus.notify(channel)
+				}
+				bus.notifyCache = map[string]struct{}{}
+				bus.notifyCacheLock.Unlock()
+			case <-bus.notifyDoneChan:
+				break
+			}
+		}
+	}()
 }
 
 func (bus *notificationsBus) handleNotification(notification *pq.Notification) {

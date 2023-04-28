@@ -2102,8 +2102,10 @@ func buildStartedChannel() string {
 	return atc.ComponentBuildTracker
 }
 
+const buildEventChannelPrefix = "build_events_"
+
 func buildEventsChannel(buildID int) string {
-	return fmt.Sprintf("build_events_%d", buildID)
+	return fmt.Sprintf("%s%d", buildEventChannelPrefix, buildID)
 }
 
 func buildAbortChannel(buildID int) string {
