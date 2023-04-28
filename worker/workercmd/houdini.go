@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/tedsuo/ifrit"
 	"github.com/vito/houdini"
 )
