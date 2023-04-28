@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"

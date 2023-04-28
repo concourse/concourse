@@ -17,7 +17,7 @@ import (
 	gconn "code.cloudfoundry.org/garden/client/connection"
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	gserver "code.cloudfoundry.org/garden/server"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
@@ -26,7 +26,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
+	ginkgomon "github.com/tedsuo/ifrit/ginkgomon_v2"
 	"golang.org/x/crypto/ssh"
 )
 

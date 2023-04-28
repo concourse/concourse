@@ -20,8 +20,8 @@ import (
 
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	sq "github.com/Masterminds/squirrel"
 	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
 	"golang.org/x/oauth2"

@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 )
 
 var connectors []*Connector

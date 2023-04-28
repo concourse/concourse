@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
 
@@ -389,7 +389,7 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 	var result string
 	buf := make([]byte, 1024)
 	for {
-		len, err := response.Body.Read(buf);
+		len, err := response.Body.Read(buf)
 		if len > 0 {
 			result += strings.TrimSpace(string(buf[:len]))
 		}

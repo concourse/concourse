@@ -7,7 +7,7 @@ import (
 	"github.com/lib/pq"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"

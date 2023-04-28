@@ -3,7 +3,7 @@ package volume
 import (
 	"errors"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/worker/baggageclaim"
 )
 

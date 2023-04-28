@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc/metric"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 // ReportWorkerVolumes provides an API endpoint for workers to report their current volumes

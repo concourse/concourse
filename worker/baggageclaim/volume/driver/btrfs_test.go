@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/concourse/concourse/worker/baggageclaim/fs"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"

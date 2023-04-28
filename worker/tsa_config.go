@@ -3,7 +3,7 @@ package worker
 import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 )
 
 type TSAConfig struct {

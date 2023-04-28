@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	sq "github.com/Masterminds/squirrel"
 
 	. "github.com/onsi/ginkgo/v2"

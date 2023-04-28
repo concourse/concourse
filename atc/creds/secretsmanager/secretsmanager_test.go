@@ -3,7 +3,7 @@ package secretsmanager_test
 import (
 	"errors"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/concourse/concourse/atc/creds"
 
