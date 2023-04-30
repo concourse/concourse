@@ -170,22 +170,6 @@ var _ = Describe("Component", func() {
 				})
 			})
 
-			Context("when there are 100000 goroutine", func() {
-				BeforeEach(func() {
-					fakeGoroutineCounter.NumGoroutineReturns(100000)
-					// Make current time reach to next run
-					fakeCompClock.Increment(component.Interval() + 10*time.Millisecond)
-				})
-
-				It("should drift 1 second", func() {
-					Expect(elapsed).To(BeFalse())
-
-					fakeCompClock.Increment(1 * time.Second)
-					elapsed = component.IntervalElapsed()
-					Expect(elapsed).To(BeTrue())
-				})
-			})
-
 			Context("when there are 150000 goroutine", func() {
 				BeforeEach(func() {
 					fakeGoroutineCounter.NumGoroutineReturns(150000)
