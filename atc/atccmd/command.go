@@ -7,6 +7,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
+	"github.com/jessevdk/go-flags"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -18,7 +20,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
@@ -59,6 +61,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
+	"github.com/concourse/flag/v2"
 	"github.com/go-jose/go-jose/v3/jwt"
 
 	"github.com/cppforlife/go-semi-semantic/version"
@@ -71,6 +74,8 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
 	"golang.org/x/time/rate"
+	"gopkg.in/yaml.v2"
+
 	// dynamically registered metric emitters
 	_ "github.com/concourse/concourse/atc/metric/emitter"
 

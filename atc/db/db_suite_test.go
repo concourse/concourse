@@ -9,6 +9,9 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	sq "github.com/Masterminds/squirrel"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
