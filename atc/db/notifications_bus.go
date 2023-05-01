@@ -154,6 +154,7 @@ func (bus *notificationsBus) cacheNotify() {
 func (bus *notificationsBus) asyncNotify() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	go func() {
+	async:
 		for {
 			select {
 			case <-ticker.C:
@@ -164,7 +165,8 @@ func (bus *notificationsBus) asyncNotify() {
 				bus.notifyCache = map[string]struct{}{}
 				bus.notifyCacheLock.Unlock()
 			case <-bus.notifyDoneChan:
-				break
+				ticker.Stop()
+				break async
 			}
 		}
 	}()
