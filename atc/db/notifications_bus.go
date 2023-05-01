@@ -130,6 +130,8 @@ func (bus *notificationsBus) wait() {
 			bus.handleReconnect()
 		}
 	}
+	close(bus.notifyChan)
+	close(bus.notifyDoneChan)
 }
 
 func (bus *notificationsBus) cacheNotify() {
@@ -147,11 +149,10 @@ func (bus *notificationsBus) cacheNotify() {
 		bus.notifyCache[channel] = struct{}{}
 		bus.notifyCacheLock.Unlock()
 	}
-	close(bus.notifyDoneChan)
 }
 
 func (bus *notificationsBus) asyncNotify() {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(500 * time.Millisecond)
 	go func() {
 		for {
 			select {
