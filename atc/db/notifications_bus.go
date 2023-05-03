@@ -51,10 +51,11 @@ type notificationsBus struct {
 
 func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus {
 	bus := &notificationsBus{
-		listener:       listener,
-		executor:       executor,
-		notifications:  newNotificationsMap(),
-		notifyChan:     make(chan string, 1000000),
+		listener:      listener,
+		executor:      executor,
+		notifications: newNotificationsMap(),
+		// TODO: make the chan size configurable
+		notifyChan:     make(chan string, 100000),
 		notifyDoneChan: make(chan struct{}, 1),
 		notifyCache:    map[string]struct{}{},
 	}
@@ -67,6 +68,11 @@ func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus
 }
 
 func (bus *notificationsBus) Close() error {
+	close(bus.notifyChan)
+	bus.notifyChan = nil
+	close(bus.notifyDoneChan)
+	bus.notifyDoneChan = nil
+	bus.notifyCache = nil
 	return bus.listener.Close()
 }
 
@@ -130,15 +136,13 @@ func (bus *notificationsBus) wait() {
 			bus.handleReconnect()
 		}
 	}
-	close(bus.notifyChan)
-	close(bus.notifyDoneChan)
 }
 
 func (bus *notificationsBus) cacheNotify() {
 	for {
 		channel, ok := <-bus.notifyChan
 		if !ok {
-			break
+			return
 		}
 
 		bus.notifyCacheLock.Lock()
@@ -154,7 +158,6 @@ func (bus *notificationsBus) cacheNotify() {
 func (bus *notificationsBus) asyncNotify() {
 	ticker := time.NewTicker(500 * time.Millisecond)
 	go func() {
-	async:
 		for {
 			select {
 			case <-ticker.C:
@@ -166,7 +169,7 @@ func (bus *notificationsBus) asyncNotify() {
 				bus.notifyCacheLock.Unlock()
 			case <-bus.notifyDoneChan:
 				ticker.Stop()
-				break async
+				return
 			}
 		}
 	}()
