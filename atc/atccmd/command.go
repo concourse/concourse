@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -59,9 +60,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag/v2"
-	"github.com/go-jose/go-jose/v3/jwt"
-
 	"github.com/cppforlife/go-semi-semantic/version"
+	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jessevdk/go-flags"
 	gocache "github.com/patrickmn/go-cache"
@@ -264,6 +264,8 @@ type RunCommand struct {
 	DefaultGetTimeout  time.Duration `long:"default-get-timeout" description:"Default timeout of get steps"`
 	DefaultPutTimeout  time.Duration `long:"default-put-timeout" description:"Default timeout of put steps"`
 	DefaultTaskTimeout time.Duration `long:"default-task-timeout" description:"Default timeout of task steps"`
+
+	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
 }
 
 type Migration struct {
@@ -728,7 +730,12 @@ func (cmd *RunCommand) constructMembers(
 
 	// use backendConn so that the Component objects created by the factory uses
 	// the backend connection pool when reloading.
-	componentFactory := db.NewComponentFactory(backendConn)
+	componentFactory := db.NewComponentFactory(
+		backendConn,
+		cmd.NumGoroutineThreshold,
+		rand.New(rand.NewSource(time.Now().Unix())),
+		clock.NewClock(),
+		db.RealGoroutineCounter{})
 	bus := backendConn.Bus()
 
 	members := apiMembers
