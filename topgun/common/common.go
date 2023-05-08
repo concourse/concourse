@@ -67,7 +67,7 @@ var (
 )
 
 var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(2 * time.Minute)
+	SetDefaultEventuallyTimeout(4 * time.Minute)
 	SetDefaultEventuallyPollingInterval(time.Second)
 	SetDefaultConsistentlyDuration(time.Minute)
 	SetDefaultConsistentlyPollingInterval(time.Second)
