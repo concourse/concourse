@@ -365,7 +365,7 @@ var _ = Describe("NotificationBus", func() {
 				})
 			})
 
-			It("should still be able to listen for notifications", func(done Done) {
+			It("should still be able to listen for notifications", func() {
 				_, err := bus.Listen("some-channel", 1)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -374,8 +374,6 @@ var _ = Describe("NotificationBus", func() {
 
 				_, err = bus.Listen("some-new-channel", 1)
 				Expect(err).NotTo(HaveOccurred())
-
-				close(done)
 			})
 		})
 
@@ -390,15 +388,13 @@ var _ = Describe("NotificationBus", func() {
 				})
 			})
 
-			It("should still be able to unlisten for notifications", func(done Done) {
+			It("should still be able to unlisten for notifications", func() {
 
 				err := bus.Unlisten("some-channel", a)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = bus.Unlisten("some-other-channel", b)
 				Expect(err).NotTo(HaveOccurred())
-
-				close(done)
 			})
 		})
 	})
