@@ -1078,6 +1078,11 @@ func (cmd *RunCommand) backendComponents(
 		policyChecker,
 	)
 
+	buildEventWatcher, err := db.NewBuildEventWatcher(logger, dbConn.Bus())
+	if err != nil {
+		return nil, err
+	}
+
 	// In case that a user configures resource-checking-interval, but forgets to
 	// configure resource-with-webhook-checking-interval, keep both checking-
 	// intervals consistent. Even if both intervals are configured, there is no
@@ -1154,6 +1159,13 @@ func (cmd *RunCommand) backendComponents(
 				),
 				syslogDrainConfigured,
 			),
+		},
+		{
+			Component: atc.Component{
+				Name:     "beingWatched",
+				Interval: 30 * time.Second,
+			},
+			Runnable: buildEventWatcher,
 		},
 	}
 

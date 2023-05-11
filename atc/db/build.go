@@ -1142,22 +1142,14 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 }
 
 func (b *build) Events(from uint) (EventSource, error) {
-	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
-		return true, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	return newBuildEventSource(
 		b.id,
 		b.eventsTable(),
 		b.conn,
-		notifier,
 		from,
 		func(tx Tx, buildID int) (bool, error) {
 			completed := false
-			err = psql.Select("completed").
+			err := psql.Select("completed").
 				From("builds").
 				Where(sq.Eq{"id": buildID}).
 				RunWith(tx).
@@ -1168,7 +1160,7 @@ func (b *build) Events(from uint) (EventSource, error) {
 			}
 			return completed, nil
 		},
-	), nil
+	)
 }
 
 func (b *build) SaveEvent(event atc.Event) error {

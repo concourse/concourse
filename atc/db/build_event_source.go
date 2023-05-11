@@ -3,7 +3,9 @@ package db
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"sync"
 
@@ -27,10 +29,9 @@ func newBuildEventSource(
 	buildID int,
 	table string,
 	conn Conn,
-	notifier Notifier,
 	from uint,
 	watcher buildCompleteWatcherFunc,
-) *buildEventSource {
+) (*buildEventSource, error) {
 	wg := new(sync.WaitGroup)
 
 	source := &buildEventSource{
@@ -39,8 +40,6 @@ func newBuildEventSource(
 
 		conn: conn,
 
-		notifier: notifier,
-
 		events: make(chan event.Envelope, 2000),
 		stop:   make(chan struct{}),
 		wg:     wg,
@@ -48,10 +47,44 @@ func newBuildEventSource(
 		watcherFunc: watcher,
 	}
 
-	wg.Add(1)
-	go source.collectEvents(from)
+	tx, err := conn.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer Rollback(tx)
 
-	return source
+	completed, err := watcher(tx, buildID)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
+
+	if !completed {
+		notifier, err := newConditionNotifier(conn.Bus(), buildEventsChannel(buildID), func() (bool, error) {
+			return true, nil
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		err = markBuildAsBeingWatched(conn, buildEventsChannel(buildID))
+		if err != nil {
+			notifier.Close()
+			return nil, err
+		}
+
+		source.notifier = notifier
+	} else {
+		fmt.Fprintf(os.Stderr, "EVAN: no need to notify build %d\n", buildID)
+	}
+
+	wg.Add(1)
+	go source.collectEvents(from, completed)
+
+	return source, nil
 }
 
 type buildEventSource struct {
@@ -81,6 +114,7 @@ func (source *buildEventSource) Next() (event.Envelope, error) {
 func (source *buildEventSource) Close() error {
 	select {
 	case <-source.stop:
+		// If closed already, then do nothing.
 		return nil
 	default:
 		close(source.stop)
@@ -88,10 +122,13 @@ func (source *buildEventSource) Close() error {
 
 	source.wg.Wait()
 
-	return source.notifier.Close()
+	if source.notifier != nil {
+		return source.notifier.Close()
+	}
+	return nil
 }
 
-func (source *buildEventSource) collectEvents(from uint) {
+func (source *buildEventSource) collectEvents(from uint, completed bool) {
 	defer source.wg.Done()
 
 	batchSize := cap(source.events)
@@ -115,11 +152,13 @@ func (source *buildEventSource) collectEvents(from uint) {
 
 		defer Rollback(tx)
 
-		completed, err := source.watcherFunc(tx, source.buildID)
-		if err != nil {
-			source.err = err
-			close(source.events)
-			return
+		if !completed {
+			completed, err = source.watcherFunc(tx, source.buildID)
+			if err != nil {
+				source.err = err
+				close(source.events)
+				return
+			}
 		}
 
 		eventsQuery := psql.Select("event_id", "type", "version", "payload").

@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +49,7 @@ type notificationsBus struct {
 	notifyCache     map[string]struct{}
 	notifyCacheLock sync.Mutex
 	notifyDoneChan  chan struct{}
+	watchedMap      *beingWatchedBuildEventChannelMap
 }
 
 func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus {
@@ -54,10 +57,12 @@ func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus
 		listener:      listener,
 		executor:      executor,
 		notifications: newNotificationsMap(),
+
 		// TODO: make the chan size configurable
-		notifyChan:     make(chan string, 100000),
+		notifyChan:     make(chan string, 10000),
 		notifyDoneChan: make(chan struct{}, 1),
 		notifyCache:    map[string]struct{}{},
+		watchedMap:     NewBeingWatchedBuildEventChannelMap(),
 	}
 
 	go bus.wait()
@@ -163,7 +168,10 @@ func (bus *notificationsBus) asyncNotify() {
 			case <-ticker.C:
 				bus.notifyCacheLock.Lock()
 				for channel, _ := range bus.notifyCache {
-					bus.notify(channel)
+					if bus.watchedMap.BeingWatched(channel) {
+						fmt.Fprintf(os.Stderr, "EVAN: notify %s\n", channel)
+						bus.notify(channel)
+					}
 				}
 				bus.notifyCache = map[string]struct{}{}
 				bus.notifyCacheLock.Unlock()

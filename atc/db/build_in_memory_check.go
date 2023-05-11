@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -175,24 +176,16 @@ func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
 		return nil, fmt.Errorf("no build event")
 	}
 
-	notifier, err := newConditionNotifier(b.conn.Bus(), buildEventsChannel(b.id), func() (bool, error) {
-		return true, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	return newBuildEventSource(
 		b.id,
 		"check_build_events",
 		b.conn,
-		notifier,
 		from,
 		func(tx Tx, buildID int) (bool, error) {
 			completed := false
 
 			var lastCheckStartTime, lastCheckEndTime pq.NullTime
-			err = psql.Select("rcs.last_check_start_time", "rcs.last_check_end_time").
+			err := psql.Select("rcs.last_check_start_time", "rcs.last_check_end_time").
 				From("resource_config_scopes rcs").
 				Join("resources r ON r.resource_config_scope_id = rcs.id").
 				Where(sq.Eq{"r.id": b.resourceId}).
@@ -230,7 +223,7 @@ func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
 
 			return completed, nil
 		},
-	), nil
+	)
 }
 
 func (b *inMemoryCheckBuildForApi) RerunOf() int        { return 0 }
@@ -389,6 +382,7 @@ func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 		return err
 	}
 
+	fmt.Fprintf(os.Stderr, "EVAN:in-memory-build start notify %s\n", buildEventsChannel(b.id))
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
 }
 
