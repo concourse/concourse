@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -382,7 +381,6 @@ func (b *inMemoryCheckBuild) OnCheckBuildStart() error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "EVAN:in-memory-build start notify %s\n", buildEventsChannel(b.id))
 	return b.conn.Bus().Notify(buildEventsChannel(b.id))
 }
 

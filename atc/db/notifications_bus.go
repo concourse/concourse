@@ -2,8 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -50,6 +48,8 @@ type notificationsBus struct {
 	notifyCacheLock sync.Mutex
 	notifyDoneChan  chan struct{}
 	watchedMap      *beingWatchedBuildEventChannelMap
+
+	wg *sync.WaitGroup
 }
 
 func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus {
@@ -63,10 +63,16 @@ func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus
 		notifyDoneChan: make(chan struct{}, 1),
 		notifyCache:    map[string]struct{}{},
 		watchedMap:     NewBeingWatchedBuildEventChannelMap(),
+
+		wg: new(sync.WaitGroup),
 	}
 
+	// DO NOT use bus.wg to wait for bus.wait().
 	go bus.wait()
+
+	bus.wg.Add(1)
 	go bus.cacheNotify()
+
 	bus.asyncNotify()
 
 	return bus
@@ -74,10 +80,12 @@ func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus
 
 func (bus *notificationsBus) Close() error {
 	close(bus.notifyChan)
-	bus.notifyChan = nil
 	close(bus.notifyDoneChan)
+
+	bus.wg.Wait()
+	bus.notifyChan = nil
 	bus.notifyDoneChan = nil
-	bus.notifyCache = nil
+
 	return bus.listener.Close()
 }
 
@@ -144,6 +152,8 @@ func (bus *notificationsBus) wait() {
 }
 
 func (bus *notificationsBus) cacheNotify() {
+	defer bus.wg.Done()
+
 	for {
 		channel, ok := <-bus.notifyChan
 		if !ok {
@@ -162,14 +172,18 @@ func (bus *notificationsBus) cacheNotify() {
 
 func (bus *notificationsBus) asyncNotify() {
 	ticker := time.NewTicker(500 * time.Millisecond)
+	bus.wg.Add(1)
+
 	go func() {
+		defer bus.wg.Done()
+
 		for {
 			select {
 			case <-ticker.C:
 				bus.notifyCacheLock.Lock()
 				for channel, _ := range bus.notifyCache {
 					if bus.watchedMap.BeingWatched(channel) {
-						fmt.Fprintf(os.Stderr, "EVAN: notify %s\n", channel)
+						//fmt.Fprintf(os.Stderr, "EVAN: notify %s\n", channel)
 						bus.notify(channel)
 					}
 				}
