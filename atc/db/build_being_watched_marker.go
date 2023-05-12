@@ -55,12 +55,17 @@ func (m *beingWatchedBuildEventChannelMap) store(key string, value time.Time) {
 	m.Unlock()
 }
 
+func (m *beingWatchedBuildEventChannelMap) Mark(buildEventChannel string) {
+	m.store(buildEventChannel, time.Now())
+}
+
 // BeingWatched returns true if given buildEventChannel is being watched.
 func (m *beingWatchedBuildEventChannelMap) BeingWatched(buildEventChannel string) bool {
 	_, ok := beingWatchedBuildEventMap.load(buildEventChannel)
 	return ok
 }
 
+// Clean deletes entries based on conditionFunc returning true.
 func (m *beingWatchedBuildEventChannelMap) Clean(conditionFunc func(k string, v time.Time) (string, bool)) {
 	var toClean []string
 	m.RLock()
@@ -100,7 +105,7 @@ type BuildBeingWatchedMarker struct {
 	notifier   chan Notification
 }
 
-func NewBuildEventWatcher(logger lager.Logger, bus NotificationsBus) (*BuildBeingWatchedMarker, error) {
+func NewBuildBeingWatchedMarker(logger lager.Logger, bus NotificationsBus) (*BuildBeingWatchedMarker, error) {
 	w := &BuildBeingWatchedMarker{
 		bus:        bus,
 		watchedMap: NewBeingWatchedBuildEventChannelMap(),
@@ -121,8 +126,8 @@ func NewBuildEventWatcher(logger lager.Logger, bus NotificationsBus) (*BuildBein
 				return
 			}
 
-			beingWatchedBuildEventMap.store(notification.Payload, time.Now())
-			logger.Debug("EVAN: start-to-watch-build", lager.Data{"channel": notification.Payload})
+			beingWatchedBuildEventMap.Mark(notification.Payload)
+			logger.Debug("start-to-watch-build", lager.Data{"channel": notification.Payload})
 		}
 	}(logger, w.notifier)
 
@@ -135,6 +140,8 @@ func (bt *BuildBeingWatchedMarker) Run(ctx context.Context) error {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
+	// FIXME: We are using a simple strategy to cleanup BeingWatched map.
+	// We simply clean marks after two hours. Which means, if a user
 	bt.watchedMap.Clean(func(k string, v time.Time) (string, bool) {
 		if v.Before(time.Now().Add(-2 * time.Hour)) {
 			return k, true

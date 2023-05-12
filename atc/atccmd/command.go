@@ -1078,7 +1078,7 @@ func (cmd *RunCommand) backendComponents(
 		policyChecker,
 	)
 
-	buildEventWatcher, err := db.NewBuildEventWatcher(logger, dbConn.Bus())
+	buildEventWatcher, err := db.NewBuildBeingWatchedMarker(logger, dbConn.Bus())
 	if err != nil {
 		return nil, err
 	}

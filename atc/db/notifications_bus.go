@@ -183,7 +183,6 @@ func (bus *notificationsBus) asyncNotify() {
 				bus.notifyCacheLock.Lock()
 				for channel, _ := range bus.notifyCache {
 					if bus.watchedMap.BeingWatched(channel) {
-						//fmt.Fprintf(os.Stderr, "EVAN: notify %s\n", channel)
 						bus.notify(channel)
 					}
 				}
