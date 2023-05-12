@@ -2,8 +2,8 @@ package artifactserver
 
 import (
 	"encoding/json"
-	"net/http"
 	"fmt"
+	"net/http"
 
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/compression"
@@ -31,14 +31,14 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 		volume, artifact, err := s.workerPool.CreateVolumeForArtifact(ctx, workerSpec)
 		if err != nil {
 			hLog.Error("failed-to-create-volume", err)
-			http.Error(w, fmt.Sprintf("%v",err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 			return
 		}
 
-		err = volume.StreamIn(r.Context(), "/", compression.NewGzipCompression(), r.Body)
+		err = volume.StreamIn(r.Context(), "/", compression.NewGzipCompression(), 0, r.Body)
 		if err != nil {
 			hLog.Error("failed-to-stream-volume-contents", err)
-			http.Error(w, fmt.Sprintf("%v",err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
 			return
 		}
 

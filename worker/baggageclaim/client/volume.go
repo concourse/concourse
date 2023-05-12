@@ -35,8 +35,8 @@ func (cv *clientVolume) Properties(ctx context.Context) (baggageclaim.VolumeProp
 	return vr.Properties, nil
 }
 
-func (cv *clientVolume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
-	return cv.bcClient.streamIn(ctx, cv.handle, path, encoding, tarStream)
+func (cv *clientVolume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, limitInMB int, tarStream io.Reader) error {
+	return cv.bcClient.streamIn(ctx, cv.handle, path, encoding, limitInMB, tarStream)
 }
 
 func (cv *clientVolume) StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error) {
@@ -63,6 +63,6 @@ func (cv *clientVolume) GetStreamInP2pUrl(ctx context.Context, path string) (str
 	return cv.bcClient.getStreamInP2pUrl(ctx, cv.handle, path)
 }
 
-func (cv *clientVolume) StreamP2pOut(ctx context.Context, path, url string, encoding baggageclaim.Encoding) error {
-	return cv.bcClient.streamP2pOut(ctx, cv.handle, encoding, path, url)
+func (cv *clientVolume) StreamP2pOut(ctx context.Context, path, url string, encoding baggageclaim.Encoding, limitInMB int) error {
+	return cv.bcClient.streamP2pOut(ctx, cv.handle, encoding, limitInMB, path, url)
 }

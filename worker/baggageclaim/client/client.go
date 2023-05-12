@@ -250,7 +250,7 @@ func (c *client) newVolume(apiVolume baggageclaim.VolumeResponse) baggageclaim.V
 	return volume
 }
 
-func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, tarContent io.Reader) error {
+func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, limitInMB int, tarContent io.Reader) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamIn", tracing.Attrs{
 		"volume":   destHandle,
 		"encoding": string(encoding),
@@ -261,7 +261,10 @@ func (c *client) streamIn(ctx context.Context, destHandle string, path string, e
 		"handle": destHandle,
 	}, tarContent)
 
-	request.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
+	request.URL.RawQuery = url.Values{
+		"path":  []string{path},
+		"limit": []string{fmt.Sprintf("%d", limitInMB)},
+	}.Encode()
 	if err != nil {
 		return err
 	}
@@ -356,7 +359,7 @@ func (c *client) streamOut(ctx context.Context, srcHandle string, encoding bagga
 	return response.Body, nil
 }
 
-func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) error {
+func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, limitInMB int, path string, streamInURL string) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamP2pOut", tracing.Attrs{
 		"volume":   srcHandle,
 		"encoding": string(encoding),
@@ -371,6 +374,7 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 		"path":        []string{path},
 		"streamInURL": []string{streamInURL},
 		"encoding":    []string{string(encoding)},
+		"limit":       []string{fmt.Sprintf("%d", limitInMB)},
 	}.Encode()
 	if err != nil {
 		return err

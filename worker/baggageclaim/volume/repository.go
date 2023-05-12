@@ -33,10 +33,10 @@ type Repository interface {
 	GetPrivileged(ctx context.Context, handle string) (bool, error)
 	SetPrivileged(ctx context.Context, handle string, privileged bool) error
 
-	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, stream io.Reader) (bool, error)
+	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, stream io.Reader) (bool, error)
 	StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error
 
-	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error
+	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, streamInURL string) error
 
 	VolumeParent(ctx context.Context, handle string) (Volume, bool, error)
 }
@@ -369,7 +369,7 @@ func (repo *repository) SetPrivileged(ctx context.Context, handle string, privil
 	return nil
 }
 
-func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, stream io.Reader) (bool, error) {
+func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, stream io.Reader) (bool, error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamIn", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
@@ -418,16 +418,26 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 		return false, err
 	}
 
+	limitedReader := NewLimitedReader(limitInMB, stream)
+	var streamed bool
 	switch encoding {
 	case baggageclaim.ZstdEncoding:
-		return repo.zstdStreamer.In(stream, destinationPath, privileged)
+		streamed, err = repo.zstdStreamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.GzipEncoding:
-		return repo.gzipStreamer.In(stream, destinationPath, privileged)
+		streamed, err = repo.gzipStreamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.RawEncoding:
-		return repo.rawStreamer.In(stream, destinationPath, privileged)
+		streamed, err = repo.rawStreamer.In(limitedReader, destinationPath, privileged)
+	default:
+		return false, ErrUnsupportedStreamEncoding
+	}
+	if err != nil {
+		if limitedReader.LastError() != nil {
+			err = fmt.Errorf("%s: %w", err, limitedReader.LastError())
+		}
+		return streamed, err
 	}
 
-	return false, ErrUnsupportedStreamEncoding
+	return streamed, nil
 }
 
 func (repo *repository) StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error {
@@ -477,7 +487,7 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 	return ErrUnsupportedStreamEncoding
 }
 
-func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error {
+func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, streamInURL string) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamP2pOut", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
@@ -520,19 +530,23 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	logger.Debug("p2p-streaming-start", lager.Data{"streamInURL": streamInURL})
 
 	reader, writer := io.Pipe()
+	limitedWriter := NewLimitedWriter(limitInMB, writer)
 	go func() {
 		var err error
 		switch encoding {
 		case baggageclaim.ZstdEncoding:
-			err = repo.zstdStreamer.Out(writer, srcPath, isPrivileged)
+			err = repo.zstdStreamer.Out(limitedWriter, srcPath, isPrivileged)
 		case baggageclaim.GzipEncoding:
-			err = repo.gzipStreamer.Out(writer, srcPath, isPrivileged)
+			err = repo.gzipStreamer.Out(limitedWriter, srcPath, isPrivileged)
 		case baggageclaim.RawEncoding:
-			err = repo.rawStreamer.Out(writer, srcPath, isPrivileged)
+			err = repo.rawStreamer.Out(limitedWriter, srcPath, isPrivileged)
 		default:
 			err = ErrUnsupportedStreamEncoding
 		}
 		if err != nil {
+			if limitedWriter.LastError() != nil {
+				err = fmt.Errorf("%s: %w", err, limitedWriter.LastError())
+			}
 			writer.CloseWithError(fmt.Errorf("failed to compress source volume: %w", err))
 			return
 		}
@@ -611,4 +625,92 @@ func (repo *repository) volumeFrom(liveVolume FilesystemLiveVolume) (Volume, err
 		Properties: properties,
 		Privileged: isPrivileged,
 	}, nil
+}
+
+type ErrExceedStreamLimit struct {
+	LimitInMB int
+}
+
+func (e ErrExceedStreamLimit) Error() string {
+	return fmt.Sprintf("exceeded volume streaming limit of %dMB", e.LimitInMB)
+}
+
+type LimitedReader struct {
+	limit      int
+	read       int
+	underlying io.Reader
+
+	lastErr error
+}
+
+func (w *LimitedReader) LastError() error {
+	return w.lastErr
+}
+
+func (w *LimitedReader) Read(p []byte) (int, error) {
+	if w.limit <= 0 {
+		return w.underlying.Read(p)
+	}
+
+	n, err := w.underlying.Read(p)
+	if err != nil {
+		return n, err
+	}
+
+	w.read += n
+
+	if w.read > w.limit {
+		w.lastErr = ErrExceedStreamLimit{w.limit >> 20}
+		return n, w.lastErr
+	}
+
+	return n, nil
+}
+
+func NewLimitedReader(limitInMB int, reader io.Reader) *LimitedReader {
+	return &LimitedReader{
+		limit:      limitInMB << 20,
+		read:       0,
+		underlying: reader,
+	}
+}
+
+type LimitedWriter struct {
+	limit      int
+	written    int
+	underlying io.Writer
+
+	lastErr error
+}
+
+func (w *LimitedWriter) LastError() error {
+	return w.lastErr
+}
+
+func (w *LimitedWriter) Write(p []byte) (int, error) {
+	if w.limit <= 0 {
+		return w.underlying.Write(p)
+	}
+
+	n, err := w.underlying.Write(p)
+	if err != nil {
+		return n, err
+	}
+
+	w.written += n
+
+	if w.written > w.limit {
+		w.lastErr = ErrExceedStreamLimit{w.limit >> 20}
+		return n, w.lastErr
+	}
+
+	return n, nil
+}
+
+func NewLimitedWriter(limitInMB int, writer io.Writer) *LimitedWriter {
+	return &LimitedWriter{
+		limit:      limitInMB << 20,
+		written:    0,
+		underlying: writer,
+	}
 }
