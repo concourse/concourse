@@ -1,10 +1,15 @@
 package db
 
 import (
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"context"
+	"errors"
 	"fmt"
+	sq "github.com/Masterminds/squirrel"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -55,8 +60,18 @@ func (m *beingWatchedBuildEventChannelMap) store(key string, value time.Time) {
 	m.Unlock()
 }
 
-func (m *beingWatchedBuildEventChannelMap) Mark(buildEventChannel string) {
-	m.store(buildEventChannel, time.Now())
+func (m *beingWatchedBuildEventChannelMap) clone() map[string]time.Time {
+	c := map[string]time.Time{}
+	m.RLock()
+	for k, v := range m.internal {
+		c[k] = v
+	}
+	m.RUnlock()
+	return c
+}
+
+func (m *beingWatchedBuildEventChannelMap) Mark(buildEventChannel string, t time.Time) {
+	m.store(buildEventChannel, t)
 }
 
 // BeingWatched returns true if given buildEventChannel is being watched.
@@ -65,17 +80,18 @@ func (m *beingWatchedBuildEventChannelMap) BeingWatched(buildEventChannel string
 	return ok
 }
 
-// Clean deletes entries based on conditionFunc returning true.
-func (m *beingWatchedBuildEventChannelMap) Clean(conditionFunc func(k string, v time.Time) (string, bool)) {
+// Clean deletes entries based on conditionFunc returning true. To reduce holding
+// lock, it will clone the internal map, and determine which item should be deleted
+// based on cloned data.
+func (m *beingWatchedBuildEventChannelMap) Clean(conditionFunc func(k string, v time.Time) bool) {
+	clone := m.clone()
 	var toClean []string
-	m.RLock()
-	for k, v := range m.internal {
-		kk, do := conditionFunc(k, v)
+	for k, v := range clone {
+		do := conditionFunc(k, v)
 		if do {
-			toClean = append(toClean, kk)
+			toClean = append(toClean, k)
 		}
 	}
-	m.RUnlock()
 
 	for _, k := range toClean {
 		m.delete(k)
@@ -84,11 +100,11 @@ func (m *beingWatchedBuildEventChannelMap) Clean(conditionFunc func(k string, v 
 
 const beingWatchedNotifyChannelName = "being_watched_build_event_channel"
 
-// markBuildAsBeingWatched marks a build as BeingWatched by sending a db
+// MarkBuildAsBeingWatched marks a build as BeingWatched by sending a db
 // notification to channel beingWatchedNotifyChannelName with payload of
 // the build's event channel name. This is because a build may be watched
 // from any ATCs, while the build may be running in a separate ATC.
-func markBuildAsBeingWatched(db Conn, buildEventChannel string) error {
+func MarkBuildAsBeingWatched(db Conn, buildEventChannel string) error {
 	_, err := db.Exec(fmt.Sprintf("NOTIFY %s, '%s'", beingWatchedNotifyChannelName, buildEventChannel))
 	if err != nil {
 		return err
@@ -100,53 +116,72 @@ func markBuildAsBeingWatched(db Conn, buildEventChannel string) error {
 // mark builds as BeingWatched accordingly in a singleton map. And it periodically
 // cleans up the map.
 type BuildBeingWatchedMarker struct {
-	bus        NotificationsBus
-	watchedMap *beingWatchedBuildEventChannelMap
-	notifier   chan Notification
+	conn               Conn
+	dataRetainDuration time.Duration
+	watchedMap         *beingWatchedBuildEventChannelMap
+	notifier           chan Notification
+	clock              clock.Clock
+	wg                 *sync.WaitGroup
 }
 
-func NewBuildBeingWatchedMarker(logger lager.Logger, bus NotificationsBus) (*BuildBeingWatchedMarker, error) {
-	w := &BuildBeingWatchedMarker{
-		bus:        bus,
-		watchedMap: NewBeingWatchedBuildEventChannelMap(),
+const DefaultBuildBeingWatchedMarkDuration = 2 * time.Hour
+
+func NewBuildBeingWatchedMarker(logger lager.Logger, conn Conn, dataRetainDuration time.Duration, clock clock.Clock) (*BuildBeingWatchedMarker, error) {
+	if dataRetainDuration < 0 {
+		return nil, errors.New("data retain duration must be positive")
 	}
 
-	notifier, err := w.bus.Listen(beingWatchedNotifyChannelName, 100)
+	w := &BuildBeingWatchedMarker{
+		conn:               conn,
+		dataRetainDuration: dataRetainDuration,
+		watchedMap:         NewBeingWatchedBuildEventChannelMap(),
+		clock:              clock,
+		wg:                 new(sync.WaitGroup),
+	}
+
+	notifier, err := w.conn.Bus().Listen(beingWatchedNotifyChannelName, 100)
 	if err != nil {
 		return nil, err
 	}
 	w.notifier = notifier
 
-	go func(logger lager.Logger, notifier chan Notification) {
-		defer w.bus.Unlisten(beingWatchedNotifyChannelName, notifier)
+	w.wg.Add(1)
+	go func(logger lager.Logger, w *BuildBeingWatchedMarker) {
+		defer w.wg.Done()
+		defer w.conn.Bus().Unlisten(beingWatchedNotifyChannelName, notifier)
 
 		for {
-			notification, ok := <-notifier
+			notification, ok := <-w.notifier
 			if !ok {
 				return
 			}
 
-			beingWatchedBuildEventMap.Mark(notification.Payload)
+			beingWatchedBuildEventMap.Mark(notification.Payload, w.clock.Now())
 			logger.Debug("start-to-watch-build", lager.Data{"channel": notification.Payload})
 		}
-	}(logger, w.notifier)
+	}(logger, w)
 
 	return w, nil
 }
 
+// Run is periodically invoked to clean the internal map. We have no way to
+// know if a build is no longer watched by any client, so cleanup strategy
+// is, after a build is added to the map, we keep it in the map for 2 hours.
+// After 2 hours, we will query its status. If it's completed, then we delete
+// it from the map. If we cannot find the build, mostly like that's a check
+// build, as a check build should never last 2 hours, so we just delete it
+// from the map.
 func (bt *BuildBeingWatchedMarker) Run(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx)
 
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	// FIXME: We are using a simple strategy to cleanup BeingWatched map.
-	// We simply clean marks after two hours. Which means, if a user
-	bt.watchedMap.Clean(func(k string, v time.Time) (string, bool) {
-		if v.Before(time.Now().Add(-2 * time.Hour)) {
-			return k, true
+	bt.watchedMap.Clean(func(k string, v time.Time) bool {
+		if v.After(bt.clock.Now().Add(-bt.dataRetainDuration)) {
+			return false
 		}
-		return k, false
+		return bt.isBuildCompleted(k)
 	})
 
 	return nil
@@ -154,6 +189,35 @@ func (bt *BuildBeingWatchedMarker) Run(ctx context.Context) error {
 
 func (bt *BuildBeingWatchedMarker) Drain(ctx context.Context) {
 	logger := lagerctx.FromContext(ctx)
+
+	logger.Debug("start")
+	defer logger.Debug("done")
+
 	logger.Info("close-being-watched-build-marker")
 	close(bt.notifier)
+	bt.wg.Wait()
+}
+
+func (bt *BuildBeingWatchedMarker) isBuildCompleted(channel string) bool {
+	strBuildID := strings.TrimPrefix(channel, buildEventChannelPrefix)
+	buildID, err := strconv.Atoi(strBuildID)
+	if err != nil {
+		// If build id is not an integer, then we consider a wrong channel,
+		// so return true to delete it.
+		return true
+	}
+
+	completed := false
+	err = psql.Select("completed").
+		From("builds").
+		Where(sq.Eq{"id": buildID}).
+		RunWith(bt.conn).
+		QueryRow().
+		Scan(&completed)
+	if err != nil {
+		// If we cannot get a build's status, then we consider the build is
+		// no longer being watched.
+		return true
+	}
+	return completed
 }

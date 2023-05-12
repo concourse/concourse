@@ -68,7 +68,7 @@ func newBuildEventSource(
 			return nil, err
 		}
 
-		err = markBuildAsBeingWatched(conn, buildEventsChannel(buildID))
+		err = MarkBuildAsBeingWatched(conn, buildEventsChannel(buildID))
 		if err != nil {
 			notifier.Close()
 			return nil, err
