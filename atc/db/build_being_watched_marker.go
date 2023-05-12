@@ -122,6 +122,7 @@ type BuildBeingWatchedMarker struct {
 	notifier           chan Notification
 	clock              clock.Clock
 	wg                 *sync.WaitGroup
+	stop               chan struct{}
 }
 
 const DefaultBuildBeingWatchedMarkDuration = 2 * time.Hour
@@ -137,6 +138,7 @@ func NewBuildBeingWatchedMarker(logger lager.Logger, conn Conn, dataRetainDurati
 		watchedMap:         NewBeingWatchedBuildEventChannelMap(),
 		clock:              clock,
 		wg:                 new(sync.WaitGroup),
+		stop:               make(chan struct{}, 1),
 	}
 
 	notifier, err := w.conn.Bus().Listen(beingWatchedNotifyChannelName, 100)
@@ -151,13 +153,13 @@ func NewBuildBeingWatchedMarker(logger lager.Logger, conn Conn, dataRetainDurati
 		defer w.conn.Bus().Unlisten(beingWatchedNotifyChannelName, notifier)
 
 		for {
-			notification, ok := <-w.notifier
-			if !ok {
+			select {
+			case notification := <-w.notifier:
+				beingWatchedBuildEventMap.Mark(notification.Payload, w.clock.Now())
+				logger.Debug("start-to-watch-build", lager.Data{"channel": notification.Payload})
+			case <-w.stop:
 				return
 			}
-
-			beingWatchedBuildEventMap.Mark(notification.Payload, w.clock.Now())
-			logger.Debug("start-to-watch-build", lager.Data{"channel": notification.Payload})
 		}
 	}(logger, w)
 
@@ -193,8 +195,7 @@ func (bt *BuildBeingWatchedMarker) Drain(ctx context.Context) {
 	logger.Debug("start")
 	defer logger.Debug("done")
 
-	logger.Info("close-being-watched-build-marker")
-	close(bt.notifier)
+	close(bt.stop)
 	bt.wg.Wait()
 }
 
