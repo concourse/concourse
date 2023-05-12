@@ -1162,8 +1162,8 @@ func (cmd *RunCommand) backendComponents(
 		},
 		{
 			Component: atc.Component{
-				Name:     "beingWatched",
-				Interval: 30 * time.Second,
+				Name:     atc.ComponentBeingWatchedBuildMarker,
+				Interval: 10 * time.Minute,
 			},
 			Runnable: buildEventWatcher,
 		},

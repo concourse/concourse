@@ -3,9 +3,7 @@ package db
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
-	"os"
 	"strconv"
 	"sync"
 
@@ -77,8 +75,6 @@ func newBuildEventSource(
 		}
 
 		source.notifier = notifier
-	} else {
-		fmt.Fprintf(os.Stderr, "EVAN: no need to notify build %d\n", buildID)
 	}
 
 	wg.Add(1)
