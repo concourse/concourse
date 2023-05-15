@@ -3,7 +3,6 @@ package db
 import (
 	"code.cloudfoundry.org/clock"
 	"database/sql"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 )
