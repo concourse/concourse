@@ -733,7 +733,7 @@ func (cmd *RunCommand) constructMembers(
 	componentFactory := db.NewComponentFactory(
 		backendConn,
 		cmd.NumGoroutineThreshold,
-		rand.New(rand.NewSource(time.Now().Unix())),
+		rander{},
 		clock.NewClock(),
 		db.RealGoroutineCounter{})
 	bus := backendConn.Bus()
@@ -2066,4 +2066,11 @@ type RunnableComponent struct {
 
 func (cmd *RunCommand) isMTLSEnabled() bool {
 	return string(cmd.TLSCaCert) != ""
+}
+
+type rander struct{}
+
+func (r rander) Int() int {
+	// The global rand is thread-safe.
+	return rand.Int()
 }
