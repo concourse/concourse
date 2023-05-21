@@ -6,8 +6,8 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: fdf1:f4a2:d53::/48
-          gateway: fdf1:f4a2:d53::1000
+        - subnet: fdf1:f4a2:d53::/64
+          gateway: fdf1:f4a2:d53::ffff
 services:
   db:
     image: postgres:${POSTGRES_TAG:-latest}
@@ -55,7 +55,7 @@ services:
     privileged: true
     networks:
       - default
-    sysctls:
+    sysctls: 
       - net.ipv6.conf.all.disable_ipv6=0
     depends_on: [web]
     ports:
