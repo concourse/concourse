@@ -51,7 +51,7 @@ func (s *CNINetworkSuite) TestNewCNINetworkWithInvalidConfigDoesntFail() {
 	_, err := runtime.NewCNINetwork(
 		runtime.WithDefaultsForTesting(),
 		runtime.WithCNINetworkConfig(runtime.CNINetworkConfig{
-			Subnet: "_____________",
+			IPv4: runtime.CNIv4NetworkConfig{Subnet: "_____________"},
 		}),
 		runtime.WithIptables(s.iptables),
 	)
