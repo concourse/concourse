@@ -334,8 +334,8 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 		}
 		
 		opts := []cni.Opt {
-			cni.WithLoNetwork,
 			cni.WithConfListBytes([]byte(n.config.ToJSONv4())),
+			cni.WithLoNetwork,
 		}
 		if n.config.IPv6.Enabled {
 			opts = append(opts, cni.WithConfListBytes([]byte(n.config.ToJSONv6())))
