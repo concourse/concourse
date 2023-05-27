@@ -359,7 +359,7 @@ func (c *client) streamOut(ctx context.Context, srcHandle string, encoding bagga
 	return response.Body, nil
 }
 
-func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, limitInMB int, path string, streamInURL string) error {
+func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamP2pOut", tracing.Attrs{
 		"volume":   srcHandle,
 		"encoding": string(encoding),
@@ -374,7 +374,6 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 		"path":        []string{path},
 		"streamInURL": []string{streamInURL},
 		"encoding":    []string{string(encoding)},
-		"limit":       []string{fmt.Sprintf("%d", limitInMB)},
 	}.Encode()
 	if err != nil {
 		return err

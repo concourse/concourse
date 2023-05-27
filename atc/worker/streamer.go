@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
+	"net/url"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -54,7 +54,6 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Artifact, dst runtime.
 
 	err := s.stream(ctx, src, dst)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "EVAN:atc:%s\n", err)
 		return err
 	}
 
@@ -141,6 +140,19 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 		return err
 	}
 
+	// Verify stream-in url
+	rawUrl, err := url.Parse(streamInUrl)
+	if err != nil {
+		return fmt.Errorf("invalid stream-in-url: %w", err)
+	}
+	// If stream limit is set, append the limit to stream-in url
+	if s.limitInMB > 0 {
+		query := rawUrl.Query()
+		query.Add("limit", fmt.Sprintf("%d", s.limitInMB))
+		rawUrl.RawQuery = query.Encode()
+	}
+	streamInUrl = rawUrl.String()
+
 	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
 		"origin-volume": src.Handle(),
 		"origin-worker": src.DBVolume().WorkerName(),
@@ -156,7 +168,7 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 		defer putCancel()
 	}
 
-	return src.StreamP2POut(putCtx, ".", streamInUrl, s.compression, s.limitInMB)
+	return src.StreamP2POut(putCtx, ".", streamInUrl, s.compression)
 }
 
 func (s Streamer) StreamFile(ctx context.Context, artifact runtime.Artifact, path string) (io.ReadCloser, error) {

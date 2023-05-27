@@ -118,7 +118,7 @@ type Volume interface {
 
 	// StreamP2pOut streams the contents of this volume directly to another
 	// baggageclaim server on the same network.
-	StreamP2pOut(ctx context.Context, path string, streamInURL string, encoding Encoding, limitInMB int) error
+	StreamP2pOut(ctx context.Context, path string, streamInURL string, encoding Encoding) error
 }
 
 // Volumes represents a list of Volume object.

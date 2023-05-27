@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"sync"
@@ -508,7 +507,7 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 
 		var errExceedStreamLimit volume.ErrExceedStreamLimit
 		if errors.As(err, &errExceedStreamLimit) {
-			hLog.Error("worker:stream in:exceed limit\n", err)
+			hLog.Error("exceeded-stream-limit", err)
 			RespondWithError(w, err, http.StatusForbidden)
 			return
 		}
@@ -615,29 +614,12 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var limitInMB int
-	if queryLimit, ok := req.URL.Query()["limit"]; ok {
-		var err error
-		limitInMB, err = strconv.Atoi(queryLimit[0])
-		if err != nil || limitInMB < 0 {
-			RespondWithError(w, fmt.Errorf("invalid limit %s", queryLimit[0]), http.StatusBadRequest)
-			return
-		}
-	}
-
-	rawUrl, err := url.Parse(streamInURL)
-	if err != nil {
-		hLog.Info("bad-param-streamInURL")
-		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
-	}
-	streamInURL = rawUrl.String()
-
 	w.Header().Set("Content-Type", "plain/text")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 
 	doneChan := make(chan error, 1)
 	go func(doneChan chan<- error) {
-		err := vs.volumeRepo.StreamP2pOut(ctx, handle, subPath, baggageclaim.Encoding(encoding), limitInMB, streamInURL)
+		err := vs.volumeRepo.StreamP2pOut(ctx, handle, subPath, baggageclaim.Encoding(encoding), streamInURL)
 		if err != nil {
 			hLog.Error("failed-to-stream-out", err)
 			doneChan <- fmt.Errorf("%s: %w", ErrStreamP2pOutFailed, err)

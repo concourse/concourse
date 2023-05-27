@@ -63,6 +63,6 @@ func (cv *clientVolume) GetStreamInP2pUrl(ctx context.Context, path string) (str
 	return cv.bcClient.getStreamInP2pUrl(ctx, cv.handle, path)
 }
 
-func (cv *clientVolume) StreamP2pOut(ctx context.Context, path, url string, encoding baggageclaim.Encoding, limitInMB int) error {
-	return cv.bcClient.streamP2pOut(ctx, cv.handle, encoding, limitInMB, path, url)
+func (cv *clientVolume) StreamP2pOut(ctx context.Context, path, url string, encoding baggageclaim.Encoding) error {
+	return cv.bcClient.streamP2pOut(ctx, cv.handle, encoding, path, url)
 }

@@ -2,6 +2,7 @@ package volume
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -36,7 +37,7 @@ type Repository interface {
 	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, stream io.Reader) (bool, error)
 	StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error
 
-	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, streamInURL string) error
+	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error
 
 	VolumeParent(ctx context.Context, handle string) (Volume, bool, error)
 }
@@ -419,14 +420,14 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 	}
 
 	limitedReader := NewLimitedReader(limitInMB, stream)
-	var streamed bool
+	var badStream bool
 	switch encoding {
 	case baggageclaim.ZstdEncoding:
-		streamed, err = repo.zstdStreamer.In(limitedReader, destinationPath, privileged)
+		badStream, err = repo.zstdStreamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.GzipEncoding:
-		streamed, err = repo.gzipStreamer.In(limitedReader, destinationPath, privileged)
+		badStream, err = repo.gzipStreamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.RawEncoding:
-		streamed, err = repo.rawStreamer.In(limitedReader, destinationPath, privileged)
+		badStream, err = repo.rawStreamer.In(limitedReader, destinationPath, privileged)
 	default:
 		return false, ErrUnsupportedStreamEncoding
 	}
@@ -434,10 +435,10 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 		if limitedReader.LastError() != nil {
 			err = fmt.Errorf("%s: %w", err, limitedReader.LastError())
 		}
-		return streamed, err
+		return badStream, err
 	}
 
-	return streamed, nil
+	return badStream, nil
 }
 
 func (repo *repository) StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error {
@@ -487,7 +488,7 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 	return ErrUnsupportedStreamEncoding
 }
 
-func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, streamInURL string) error {
+func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamP2pOut", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
@@ -530,23 +531,19 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	logger.Debug("p2p-streaming-start", lager.Data{"streamInURL": streamInURL})
 
 	reader, writer := io.Pipe()
-	limitedWriter := NewLimitedWriter(limitInMB, writer)
 	go func() {
 		var err error
 		switch encoding {
 		case baggageclaim.ZstdEncoding:
-			err = repo.zstdStreamer.Out(limitedWriter, srcPath, isPrivileged)
+			err = repo.zstdStreamer.Out(writer, srcPath, isPrivileged)
 		case baggageclaim.GzipEncoding:
-			err = repo.gzipStreamer.Out(limitedWriter, srcPath, isPrivileged)
+			err = repo.gzipStreamer.Out(writer, srcPath, isPrivileged)
 		case baggageclaim.RawEncoding:
-			err = repo.rawStreamer.Out(limitedWriter, srcPath, isPrivileged)
+			err = repo.rawStreamer.Out(writer, srcPath, isPrivileged)
 		default:
 			err = ErrUnsupportedStreamEncoding
 		}
 		if err != nil {
-			if limitedWriter.LastError() != nil {
-				err = fmt.Errorf("%s: %w", err, limitedWriter.LastError())
-			}
 			writer.CloseWithError(fmt.Errorf("failed to compress source volume: %w", err))
 			return
 		}
@@ -556,7 +553,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPut, streamInURL, reader)
 	if err != nil {
-		logger.Error("failed-to-create-p2p-request", err)
+		logger.Error("failed-to-create-p2p-stream-in-request", err)
 		return err
 	}
 
@@ -572,7 +569,16 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 		return nil
 	}
 
-	return fmt.Errorf("p2p streaming error %d", resp.StatusCode)
+	// Upon stream-in failure, decode error message from stream-in api.
+	var errorResponse *struct {
+		Message string `json:"error"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&errorResponse)
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("p2p-stream-in %d: %s", resp.StatusCode, errorResponse.Message)
 }
 
 func (repo *repository) VolumeParent(ctx context.Context, handle string) (Volume, bool, error) {
@@ -672,45 +678,5 @@ func NewLimitedReader(limitInMB int, reader io.Reader) *LimitedReader {
 		limit:      limitInMB << 20,
 		read:       0,
 		underlying: reader,
-	}
-}
-
-type LimitedWriter struct {
-	limit      int
-	written    int
-	underlying io.Writer
-
-	lastErr error
-}
-
-func (w *LimitedWriter) LastError() error {
-	return w.lastErr
-}
-
-func (w *LimitedWriter) Write(p []byte) (int, error) {
-	if w.limit <= 0 {
-		return w.underlying.Write(p)
-	}
-
-	n, err := w.underlying.Write(p)
-	if err != nil {
-		return n, err
-	}
-
-	w.written += n
-
-	if w.written > w.limit {
-		w.lastErr = ErrExceedStreamLimit{w.limit >> 20}
-		return n, w.lastErr
-	}
-
-	return n, nil
-}
-
-func NewLimitedWriter(limitInMB int, writer io.Writer) *LimitedWriter {
-	return &LimitedWriter{
-		limit:      limitInMB << 20,
-		written:    0,
-		underlying: writer,
 	}
 }

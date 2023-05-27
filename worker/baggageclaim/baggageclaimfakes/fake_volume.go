@@ -136,14 +136,13 @@ type FakeVolume struct {
 		result1 io.ReadCloser
 		result2 error
 	}
-	StreamP2pOutStub        func(context.Context, string, string, baggageclaim.Encoding, int) error
+	StreamP2pOutStub        func(context.Context, string, string, baggageclaim.Encoding) error
 	streamP2pOutMutex       sync.RWMutex
 	streamP2pOutArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 string
 		arg4 baggageclaim.Encoding
-		arg5 int
 	}
 	streamP2pOutReturns struct {
 		result1 error
@@ -771,7 +770,7 @@ func (fake *FakeVolume) StreamOutReturnsOnCall(i int, result1 io.ReadCloser, res
 	}{result1, result2}
 }
 
-func (fake *FakeVolume) StreamP2pOut(arg1 context.Context, arg2 string, arg3 string, arg4 baggageclaim.Encoding, arg5 int) error {
+func (fake *FakeVolume) StreamP2pOut(arg1 context.Context, arg2 string, arg3 string, arg4 baggageclaim.Encoding) error {
 	fake.streamP2pOutMutex.Lock()
 	ret, specificReturn := fake.streamP2pOutReturnsOnCall[len(fake.streamP2pOutArgsForCall)]
 	fake.streamP2pOutArgsForCall = append(fake.streamP2pOutArgsForCall, struct {
@@ -779,14 +778,13 @@ func (fake *FakeVolume) StreamP2pOut(arg1 context.Context, arg2 string, arg3 str
 		arg2 string
 		arg3 string
 		arg4 baggageclaim.Encoding
-		arg5 int
-	}{arg1, arg2, arg3, arg4, arg5})
+	}{arg1, arg2, arg3, arg4})
 	stub := fake.StreamP2pOutStub
 	fakeReturns := fake.streamP2pOutReturns
-	fake.recordInvocation("StreamP2pOut", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("StreamP2pOut", []interface{}{arg1, arg2, arg3, arg4})
 	fake.streamP2pOutMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4, arg5)
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
@@ -800,17 +798,17 @@ func (fake *FakeVolume) StreamP2pOutCallCount() int {
 	return len(fake.streamP2pOutArgsForCall)
 }
 
-func (fake *FakeVolume) StreamP2pOutCalls(stub func(context.Context, string, string, baggageclaim.Encoding, int) error) {
+func (fake *FakeVolume) StreamP2pOutCalls(stub func(context.Context, string, string, baggageclaim.Encoding) error) {
 	fake.streamP2pOutMutex.Lock()
 	defer fake.streamP2pOutMutex.Unlock()
 	fake.StreamP2pOutStub = stub
 }
 
-func (fake *FakeVolume) StreamP2pOutArgsForCall(i int) (context.Context, string, string, baggageclaim.Encoding, int) {
+func (fake *FakeVolume) StreamP2pOutArgsForCall(i int) (context.Context, string, string, baggageclaim.Encoding) {
 	fake.streamP2pOutMutex.RLock()
 	defer fake.streamP2pOutMutex.RUnlock()
 	argsForCall := fake.streamP2pOutArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeVolume) StreamP2pOutReturns(result1 error) {

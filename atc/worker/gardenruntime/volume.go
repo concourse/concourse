@@ -121,8 +121,8 @@ func (v Volume) GetStreamInP2PURL(ctx context.Context, path string) (string, err
 	return v.bcVolume.GetStreamInP2pUrl(ctx, path)
 }
 
-func (v Volume) StreamP2POut(ctx context.Context, path string, destURL string, compression compression.Compression, limitInMB int) error {
-	return v.bcVolume.StreamP2pOut(ctx, path, destURL, compression.Encoding(), limitInMB)
+func (v Volume) StreamP2POut(ctx context.Context, path string, destURL string, compression compression.Compression) error {
+	return v.bcVolume.StreamP2pOut(ctx, path, destURL, compression.Encoding())
 }
 
 var _ runtime.P2PVolume = Volume{}
