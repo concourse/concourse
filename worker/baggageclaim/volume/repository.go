@@ -34,7 +34,7 @@ type Repository interface {
 	GetPrivileged(ctx context.Context, handle string) (bool, error)
 	SetPrivileged(ctx context.Context, handle string, privileged bool) error
 
-	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, stream io.Reader) (bool, error)
+	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB float64, stream io.Reader) (bool, error)
 	StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error
 
 	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error
@@ -370,7 +370,7 @@ func (repo *repository) SetPrivileged(ctx context.Context, handle string, privil
 	return nil
 }
 
-func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB int, stream io.Reader) (bool, error) {
+func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB float64, stream io.Reader) (bool, error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamIn", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
@@ -419,7 +419,7 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 		return false, err
 	}
 
-	limitedReader := NewLimitedReader(limitInMB, stream)
+	limitedReader := NewLimitedReader(int(limitInMB*1024*1024), stream)
 	var badStream bool
 	switch encoding {
 	case baggageclaim.ZstdEncoding:
@@ -634,11 +634,15 @@ func (repo *repository) volumeFrom(liveVolume FilesystemLiveVolume) (Volume, err
 }
 
 type ErrExceedStreamLimit struct {
-	LimitInMB int
+	Limit int
 }
 
 func (e ErrExceedStreamLimit) Error() string {
-	return fmt.Sprintf("exceeded volume streaming limit of %dMB", e.LimitInMB)
+	if e.Limit < 1024*1024 {
+		return fmt.Sprintf("exceeded volume streaming limit of %dB", e.Limit)
+	} else {
+		return fmt.Sprintf("exceeded volume streaming limit of %dMB", e.Limit>>20)
+	}
 }
 
 type LimitedReader struct {
@@ -666,16 +670,16 @@ func (w *LimitedReader) Read(p []byte) (int, error) {
 	w.read += n
 
 	if w.read > w.limit {
-		w.lastErr = ErrExceedStreamLimit{w.limit >> 20}
-		return n, w.lastErr
+		w.lastErr = ErrExceedStreamLimit{w.limit}
+		return n - (w.read - w.limit), w.lastErr
 	}
 
 	return n, nil
 }
 
-func NewLimitedReader(limitInMB int, reader io.Reader) *LimitedReader {
+func NewLimitedReader(limit int, reader io.Reader) *LimitedReader {
 	return &LimitedReader{
-		limit:      limitInMB << 20,
+		limit:      limit,
 		read:       0,
 		underlying: reader,
 	}

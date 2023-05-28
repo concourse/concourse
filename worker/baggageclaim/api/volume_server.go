@@ -481,10 +481,11 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 		subPath = queryPath[0]
 	}
 
-	var limitInMB int
+	// Parsing limit as a float value which allows to use a small limit less than MB in tests.
+	var limitInMB float64
 	if queryLimit, ok := req.URL.Query()["limit"]; ok {
 		var err error
-		limitInMB, err = strconv.Atoi(queryLimit[0])
+		limitInMB, err = strconv.ParseFloat(queryLimit[0], 64)
 		if err != nil || limitInMB < 0 {
 			RespondWithError(w, fmt.Errorf("invalid limit %s", queryLimit[0]), http.StatusBadRequest)
 			return

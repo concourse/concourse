@@ -1225,3 +1225,44 @@ var _ = Describe("Repository", func() {
 		})
 	})
 })
+
+var _ = Describe("LimitedReader", func() {
+	var (
+		limitReader *volume.LimitedReader
+		buffer      *bytes.Buffer
+		readBytes   int
+		readErr     error
+	)
+	BeforeEach(func() {
+		buffer = new(bytes.Buffer)
+	})
+	JustBeforeEach(func() {
+		var p = make([]byte, 100)
+		readBytes, readErr = limitReader.Read(p)
+	})
+	Context("when not hit limit", func() {
+		BeforeEach(func() {
+			limitReader = volume.NewLimitedReader(100, buffer)
+			n, err := buffer.Write([]byte("1234567890"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(n).To(Equal(10))
+		})
+		It("should read the whole content", func() {
+			Expect(readErr).ToNot(HaveOccurred())
+			Expect(readBytes).To(Equal(10))
+		})
+	})
+	Context("when hit limit", func() {
+		BeforeEach(func() {
+			limitReader = volume.NewLimitedReader(6, buffer)
+			n, err := buffer.Write([]byte("1234567890"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(n).To(Equal(10))
+		})
+		It("should read the whole content", func() {
+			Expect(readErr).To(HaveOccurred())
+			Expect(readErr.Error()).To(Equal("exceeded volume streaming limit of 6B"))
+			Expect(readBytes).To(Equal(6))
+		})
+	})
+})
