@@ -570,12 +570,12 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	}
 
 	// Upon stream-in failure, decode error message from stream-in api.
-	var errorResponse *struct {
+	var errorResponse struct {
 		Message string `json:"error"`
 	}
 	err = json.NewDecoder(resp.Body).Decode(&errorResponse)
 	if err != nil {
-		return err
+		errorResponse.Message = err.Error()
 	}
 
 	return fmt.Errorf("p2p-stream-in %d: %s", resp.StatusCode, errorResponse.Message)

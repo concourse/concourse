@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1107,7 +1106,7 @@ var _ = Describe("Repository", func() {
 		)
 		BeforeEach(func() {
 			var err error
-			tempFile, err = ioutil.TempFile("", "StreamP2pOutTest")
+			tempFile, err = os.CreateTemp("", "StreamP2pOutTest")
 			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {
@@ -1127,7 +1126,7 @@ var _ = Describe("Repository", func() {
 				serverCalled = true
 
 				var err error
-				serverReadBytes, err = ioutil.ReadAll(r.Body)
+				serverReadBytes, err = io.ReadAll(r.Body)
 				Expect(err).ToNot(HaveOccurred())
 			}))
 			streamErr = repository.StreamP2pOut(context.Background(), "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
@@ -1196,7 +1195,7 @@ var _ = Describe("Repository", func() {
 					})
 					It("should fail", func() {
 						Expect(streamErr).To(HaveOccurred())
-						Expect(streamErr).To(Equal(fmt.Errorf("p2p streaming error %d", http.StatusInternalServerError)))
+						Expect(streamErr.Error()).To(ContainSubstring("p2p-stream-in 500:"))
 					})
 					It("should http request", func() {
 						Expect(serverCalled).To(BeTrue())
