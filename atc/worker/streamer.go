@@ -21,7 +21,7 @@ import (
 
 type Streamer struct {
 	compression compression.Compression
-	limitInMB   int
+	limitInMB   float64
 	p2p         P2PConfig
 
 	resourceCacheFactory db.ResourceCacheFactory
@@ -32,7 +32,7 @@ type P2PConfig struct {
 	Timeout time.Duration
 }
 
-func NewStreamer(cacheFactory db.ResourceCacheFactory, compression compression.Compression, limitInMB int, p2p P2PConfig) Streamer {
+func NewStreamer(cacheFactory db.ResourceCacheFactory, compression compression.Compression, limitInMB float64, p2p P2PConfig) Streamer {
 	return Streamer{
 		resourceCacheFactory: cacheFactory,
 		compression:          compression,
@@ -146,9 +146,9 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 		return fmt.Errorf("invalid stream-in-url: %w", err)
 	}
 	// If stream limit is set, append the limit to stream-in url
-	if s.limitInMB > 0 {
+	if s.limitInMB > 0.00000094 {
 		query := rawUrl.Query()
-		query.Add("limit", fmt.Sprintf("%d", s.limitInMB))
+		query.Add("limit", fmt.Sprintf("%f", s.limitInMB))
 		rawUrl.RawQuery = query.Encode()
 	}
 	streamInUrl = rawUrl.String()

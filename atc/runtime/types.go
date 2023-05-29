@@ -314,7 +314,7 @@ type Volume interface {
 	// result of a StreamOut call for another Volume.
 	//
 	// path is a relative path - "." indicates using the root of the Volume.
-	StreamIn(ctx context.Context, path string, compression compression.Compression, limitInMB int, reader io.Reader) error
+	StreamIn(ctx context.Context, path string, compression compression.Compression, limitInMB float64, reader io.Reader) error
 
 	// InitializeResourceCache is called upon a successful run of the get step
 	// to register this Volume as a resource cache.

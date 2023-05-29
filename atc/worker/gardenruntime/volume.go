@@ -113,7 +113,7 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 	return v.bcVolume.StreamOut(ctx, path, compression.Encoding())
 }
 
-func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, limitInMB int, reader io.Reader) error {
+func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, limitInMB float64, reader io.Reader) error {
 	return v.bcVolume.StreamIn(ctx, path, compression.Encoding(), limitInMB, reader)
 }
 

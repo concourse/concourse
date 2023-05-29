@@ -229,7 +229,7 @@ var _ = Describe("Baggage Claim Client", func() {
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					),
 				)
-				err := vol.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, strings.NewReader("some tar content"))
+				err := vol.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, 0, strings.NewReader("some tar content"))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(bodyChan).To(Receive(Equal([]byte("some tar content"))))
@@ -238,7 +238,7 @@ var _ = Describe("Baggage Claim Client", func() {
 			Context("when unexpected error occurs", func() {
 				It("returns error code and useful message", func() {
 					mockErrorResponse("PUT", "/volumes/some-handle/stream-in", "lost baggage", http.StatusInternalServerError)
-					err := vol.StreamIn(context.TODO(), "./some/path/", baggageclaim.GzipEncoding, strings.NewReader("even more tar"))
+					err := vol.StreamIn(context.TODO(), "./some/path/", baggageclaim.GzipEncoding, 0, strings.NewReader("even more tar"))
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("lost baggage"))
 				})
