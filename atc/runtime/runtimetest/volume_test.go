@@ -23,7 +23,7 @@ func TestVolume_StreamInOut_Root(t *testing.T) {
 	stream, err := volume1.StreamOut(ctx, "/", gzipCompression)
 	require.NoError(t, err)
 
-	err = volume2.StreamIn(ctx, ".", gzipCompression, stream)
+	err = volume2.StreamIn(ctx, ".", gzipCompression, 0, stream)
 	require.NoError(t, err)
 
 	require.Equal(t, content, volume2.Content)
@@ -40,7 +40,7 @@ func TestVolume_StreamInOut_File(t *testing.T) {
 	stream, err := volume1.StreamOut(ctx, "file1", gzipCompression)
 	require.NoError(t, err)
 
-	err = volume2.StreamIn(ctx, "/", gzipCompression, stream)
+	err = volume2.StreamIn(ctx, "/", gzipCompression, 0, stream)
 	require.NoError(t, err)
 
 	require.Equal(t, content, volume2.Content)
