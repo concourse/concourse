@@ -218,7 +218,7 @@ echo world > output-2/file-2
 			err := ioutil.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
-trap "echo task got sigterm; exit 1" SIGTERM
+trap "echo task got sigterm; exit 1" TERM
 sleep 1000 &
 echo waiting-for-abort
 wait
