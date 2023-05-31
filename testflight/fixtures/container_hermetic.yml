@@ -14,6 +14,4 @@ jobs:
             args:
             - -exc
             - |
-              apt update -o APT::Update::Error-Mode=any -o Acquire::Retries=1
-              apt install -y curl
-              curl -I https://1.1.1.1
+              wget https://1.1.1.1
