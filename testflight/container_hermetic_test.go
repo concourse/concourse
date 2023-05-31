@@ -16,9 +16,9 @@ var _ = Describe("A job with a task that has hermetic set to true", func() {
 		<-watch.Exited
 
 		if config.Runtime == "containerd" {
-			By("containerd runtime it should failed on installing curl")
-			Expect(watch).To(gbytes.Say("error"))
-			Expect(watch).To(gexec.Exit(5)) // can't download libs for installing curl
+			By("containerd runtime it should failed on establish network connection")
+			Expect(watch).To(gbytes.Say("failure resolving"))
+			Expect(watch).To(gexec.Exit(100)) // can't apt update
 		} else {
 			By("guardian runtime it should success on curl")
 			Expect(watch).To(gbytes.Say("200"))
