@@ -9,5 +9,4 @@ run:
   args:
   - -c
   - |
-    apt update && apt install -y dnsutils
     nslookup web
