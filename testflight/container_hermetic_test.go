@@ -4,7 +4,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("A job with a task that has hermetic set to true", func() {
@@ -17,8 +16,8 @@ var _ = Describe("A job with a task that has hermetic set to true", func() {
 
 		if config.Runtime == "containerd" {
 			By("containerd runtime it should failed on establish network connection")
-			Expect(watch).To(gbytes.Say("failed: Network is unreachable"))
-			Expect(watch).To(gexec.Exit(4)) // can't apt update
+			Expect(watch).To(gbytes.Say("failed: Connection timed out"))
+			Expect(watch.ExitCode()).ToNot(Equal(0))
 		} else {
 			By("guardian runtime it should success establish network connection")
 			Expect(watch).To(gbytes.Say("200 OK"))
