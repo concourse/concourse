@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -218,21 +219,24 @@ var _ = Describe("Baggage Claim Client", func() {
 
 			It("streams the volume", func() {
 				bodyChan := make(chan []byte, 1)
+				limitChan := make(chan string, 1)
 
 				bcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/volumes/some-handle/stream-in"),
 						func(w http.ResponseWriter, r *http.Request) {
-							str, _ := ioutil.ReadAll(r.Body)
+							str, _ := io.ReadAll(r.Body)
 							bodyChan <- str
+							limitChan <- r.URL.Query().Get("limit")
 						},
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					),
 				)
-				err := vol.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, 0, strings.NewReader("some tar content"))
+				err := vol.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, 1024, strings.NewReader("some tar content"))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(bodyChan).To(Receive(Equal([]byte("some tar content"))))
+				Expect(limitChan).To(Receive(Equal(fmt.Sprintf("%f", float64(1024)))))
 			})
 
 			Context("when unexpected error occurs", func() {

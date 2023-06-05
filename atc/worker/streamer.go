@@ -145,8 +145,8 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 	if err != nil {
 		return fmt.Errorf("invalid stream-in-url: %w", err)
 	}
-	// If stream limit is set, append the limit to stream-in url
-	if s.limitInMB > 0.00000094 {
+	// If stream limit is set to greater than 1 byte, append the limit to stream-in url
+	if s.limitInMB > float64(1)/1024/1024 {
 		query := rawUrl.Query()
 		query.Add("limit", fmt.Sprintf("%f", s.limitInMB))
 		rawUrl.RawQuery = query.Encode()

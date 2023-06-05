@@ -559,11 +559,6 @@ func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		var errExceedStreamLimit volume.ErrExceedStreamLimit
-		if errors.As(err, &errExceedStreamLimit) {
-			RespondWithError(w, err, http.StatusForbidden)
-		}
-
 		if os.IsNotExist(err) {
 			hLog.Info("source-path-not-found")
 			RespondWithError(w, ErrStreamOutNotFound, http.StatusNotFound)
