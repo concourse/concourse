@@ -16,11 +16,12 @@ var _ = Describe("A job with a task that has hermetic set to true", func() {
 
 		if config.Runtime == "containerd" {
 			By("containerd runtime it should failed on establish network connection")
-			Expect(watch).To(gbytes.Say("failed: Connection timed out"))
+			Expect(watch).To(gbytes.Say("timed out"))
 			Expect(watch.ExitCode()).ToNot(Equal(0))
 		} else {
 			By("guardian runtime it should success establish network connection")
-			Expect(watch).To(gbytes.Say("200 OK"))
+			Expect(watch).To(gbytes.Say("saved"))
+			Expect(watch.ExitCode()).To(Equal(0))
 		}
 	})
 })

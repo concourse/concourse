@@ -14,4 +14,4 @@ jobs:
             args:
             - -exc
             - |
-              wget -t 2 -T 5 https://1.1.1.1
+              wget -t 2 -T 5 --no-check-certificate https://1.1.1.1
