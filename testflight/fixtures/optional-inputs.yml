@@ -15,7 +15,7 @@ jobs:
         args:
         - -c
         - |
-          set -euxo pipefail
+          set -eux
           echo "banana" > some-data/foo
           echo "step 1 complete: generated some required data"
   - task: task-missing-optional-input
@@ -35,7 +35,7 @@ jobs:
         args:
         - -c
         - |
-          set -euxo pipefail
+          set -eux
           ls
           cat required-input/foo
           if [ -d optional-input ] ; then
@@ -62,7 +62,7 @@ jobs:
         - -e
         - -c
         - |
-          set -euxo pipefail
+          set -eux
           ls
           cat required-input/foo
           cat optional-input/foo  # should exist now
