@@ -31,7 +31,8 @@ var _ = Describe("baggageclaim drivers", func() {
 		)
 
 		Context("cos image", func() {
-			baggageclaimWorks("btrfs", COS)
+			// See in https://github.com/concourse/concourse/issues/8669
+			// baggageclaimWorks("btrfs", COS)
 			baggageclaimWorks("overlay", COS)
 			baggageclaimWorks("naive", COS)
 		})
