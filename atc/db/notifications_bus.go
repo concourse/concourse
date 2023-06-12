@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -52,14 +53,26 @@ type notificationsBus struct {
 	wg *sync.WaitGroup
 }
 
+var notificationBusQueueSize = 10000
+
+func SetNotificationBusQueueSize(size int) error {
+	if size <= 0 {
+		return nil
+	}
+	if size < 1000 || size > 1000000 {
+		return fmt.Errorf("db notification bus size out of range of [1000, 1000000]")
+	}
+	notificationBusQueueSize = size
+	return nil
+}
+
 func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus {
 	bus := &notificationsBus{
 		listener:      listener,
 		executor:      executor,
 		notifications: newNotificationsMap(),
 
-		// TODO: make the chan size configurable
-		notifyChan:     make(chan string, 10000),
+		notifyChan:     make(chan string, notificationBusQueueSize),
 		notifyDoneChan: make(chan struct{}, 1),
 		notifyCache:    map[string]struct{}{},
 		watchedMap:     NewBeingWatchedBuildEventChannelMap(),

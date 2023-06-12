@@ -266,6 +266,8 @@ type RunCommand struct {
 	DefaultTaskTimeout time.Duration `long:"default-task-timeout" description:"Default timeout of task steps"`
 
 	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
+
+	DBNotificationBusQueueSize int `long:"db-notification-bus-queue-size" default:"10000" description:"DB notification bus queue size, default is 10000. If UI often misses loading running build logs, then consider to increase the queue size."`
 }
 
 type Migration struct {
@@ -539,7 +541,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.DefaultWebhookInterval = cmd.ResourceWithWebhookCheckingInterval
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
-		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
+		content, err := os.ReadFile(cmd.BaseResourceTypeDefaults.Path())
 		if err != nil {
 			return nil, err
 		}
@@ -551,6 +553,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		}
 
 		atc.LoadBaseResourceTypeDefaults(defaults)
+	}
+
+	err = db.SetNotificationBusQueueSize(cmd.DBNotificationBusQueueSize)
+	if err != nil {
+		return nil, err
 	}
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
