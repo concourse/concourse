@@ -54,8 +54,8 @@ func (v Volume) Source() string {
 	return fmt.Sprintf("%s-worker", v.Handle())
 }
 
-func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error {
-	return v.Content.StreamIn(ctx, path, compression.Encoding(), reader)
+func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, limitInMB float64, reader io.Reader) error {
+	return v.Content.StreamIn(ctx, path, compression.Encoding(), limitInMB, reader)
 }
 
 func (v Volume) StreamOut(ctx context.Context, path string, compression compression.Compression) (io.ReadCloser, error) {
@@ -82,7 +82,7 @@ func (v Volume) DBVolume() db.CreatedVolume {
 	return v.DBVolume_
 }
 
-func (vc VolumeContent) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
+func (vc VolumeContent) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, _ float64, tarStream io.Reader) error {
 	if encoding != baggageclaim.GzipEncoding {
 		return errors.New("only gzip is supported for runtimetest.VolumeContent")
 	}

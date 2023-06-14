@@ -233,9 +233,21 @@ var _ = Describe("Volume Server", func() {
 					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
 					Expect(tarContentsPath).To(BeAnExistingFile())
 
-					Expect(ioutil.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+					Expect(os.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
 				})
 
+				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
+					// Set streaming limit to 9-byte
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.GzipEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(403))
+					Expect(recorder.Body.String()).To(ContainSubstring("exceeded volume streaming limit of 9B"))
+
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).ToNot(BeAnExistingFile())
+				})
 			})
 
 			Context("when using zstd encoding", func() {
@@ -259,6 +271,7 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("extracts the tar stream into the volume's DataPath", func() {
+					// Set streaming limit to 9-byte
 					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
 					request.Header.Set("Content-Encoding", string(baggageclaim.ZstdEncoding))
 					recorder := httptest.NewRecorder()
@@ -268,7 +281,61 @@ var _ = Describe("Volume Server", func() {
 					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
 					Expect(tarContentsPath).To(BeAnExistingFile())
 
-					Expect(ioutil.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+					Expect(os.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+				})
+
+				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.ZstdEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(403))
+					Expect(recorder.Body.String()).To(ContainSubstring("exceeded volume streaming limit of 9B"))
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).ToNot(BeAnExistingFile())
+				})
+			})
+
+			Context("when using raw encoding", func() {
+				var tarBuffer *bytes.Buffer
+				BeforeEach(func() {
+					tarBuffer = new(bytes.Buffer)
+					tarWriter := tar.NewWriter(tarBuffer)
+					defer tarWriter.Close()
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "some-file",
+						Mode: 0600,
+						Size: int64(len("file-content")),
+					})
+					Expect(err).NotTo(HaveOccurred())
+					_, err = tarWriter.Write([]byte("file-content"))
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("extracts the tar stream into the volume's DataPath", func() {
+					// Set streaming limit to 9-byte
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.RawEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(204))
+
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).To(BeAnExistingFile())
+
+					Expect(os.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+				})
+
+				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.RawEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(403))
+					Expect(recorder.Body.String()).To(ContainSubstring("exceeded volume streaming limit of 9B"))
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).ToNot(BeAnExistingFile())
 				})
 			})
 		})

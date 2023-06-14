@@ -253,7 +253,7 @@ var _ = Describe("ArtifactRepository API", func() {
 					It("streams out the contents of the volume from the root path", func() {
 						tarStream := runtimetest.VolumeContent{}
 
-						err := tarStream.StreamIn(context.Background(), ".", baggageclaim.GzipEncoding, response.Body)
+						err := tarStream.StreamIn(context.Background(), ".", baggageclaim.GzipEncoding, 0, response.Body)
 						Expect(err).ToNot(HaveOccurred())
 
 						Expect(tarStream).To(Equal(volume.Content))

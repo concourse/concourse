@@ -113,8 +113,8 @@ func (v Volume) StreamOut(ctx context.Context, path string, compression compress
 	return v.bcVolume.StreamOut(ctx, path, compression.Encoding())
 }
 
-func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error {
-	return v.bcVolume.StreamIn(ctx, path, compression.Encoding(), reader)
+func (v Volume) StreamIn(ctx context.Context, path string, compression compression.Compression, limitInMB float64, reader io.Reader) error {
+	return v.bcVolume.StreamIn(ctx, path, compression.Encoding(), limitInMB, reader)
 }
 
 func (v Volume) GetStreamInP2PURL(ctx context.Context, path string) (string, error) {
@@ -367,17 +367,17 @@ func (worker *Worker) createVolumeForTaskCache(
 // Artifact, if one exists, preferring Volumes that are closer to the current
 // worker. It checks for the following things, in order of preference:
 //
-// 1. The Artifact is a Volume on the current worker (return the input Volume)
-// 2. The Artifact is a Volume on another worker, but there is an equivalent
-//    resource cache Volume on the current worker (return the local resource
-//    cache Volume). In this case, worker_resource_cache on the other worker
-//    should be valid before the time of volumeShouldBeValidBefore. In other
-//    words, if a worker resource cache has been invalidated, then later build
-//    should never use it, but builds started before the cache is invalidated
-//    may still use it.
-// 3. The Artifact is a Volume on another worker with no local resource cache
-//    Volume (return the input Volume)
-// 4. The Artifact is not a Volume (return not ok)
+//  1. The Artifact is a Volume on the current worker (return the input Volume)
+//  2. The Artifact is a Volume on another worker, but there is an equivalent
+//     resource cache Volume on the current worker (return the local resource
+//     cache Volume). In this case, worker_resource_cache on the other worker
+//     should be valid before the time of volumeShouldBeValidBefore. In other
+//     words, if a worker resource cache has been invalidated, then later build
+//     should never use it, but builds started before the cache is invalidated
+//     may still use it.
+//  3. The Artifact is a Volume on another worker with no local resource cache
+//     Volume (return the input Volume)
+//  4. The Artifact is not a Volume (return not ok)
 func (worker *Worker) findVolumeForArtifact(
 	ctx context.Context,
 	teamID int,

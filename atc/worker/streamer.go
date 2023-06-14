@@ -3,7 +3,9 @@ package worker
 import (
 	"archive/tar"
 	"context"
+	"fmt"
 	"io"
+	"net/url"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -19,6 +21,7 @@ import (
 
 type Streamer struct {
 	compression compression.Compression
+	limitInMB   float64
 	p2p         P2PConfig
 
 	resourceCacheFactory db.ResourceCacheFactory
@@ -29,10 +32,11 @@ type P2PConfig struct {
 	Timeout time.Duration
 }
 
-func NewStreamer(cacheFactory db.ResourceCacheFactory, compression compression.Compression, p2p P2PConfig) Streamer {
+func NewStreamer(cacheFactory db.ResourceCacheFactory, compression compression.Compression, limitInMB float64, p2p P2PConfig) Streamer {
 	return Streamer{
 		resourceCacheFactory: cacheFactory,
 		compression:          compression,
+		limitInMB:            limitInMB,
 		p2p:                  p2p,
 	}
 }
@@ -124,7 +128,7 @@ func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, ds
 
 	defer out.Close()
 
-	return dst.StreamIn(ctx, ".", s.compression, out)
+	return dst.StreamIn(ctx, ".", s.compression, s.limitInMB, out)
 }
 
 func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runtime.P2PVolume) error {
@@ -135,6 +139,19 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 	if err != nil {
 		return err
 	}
+
+	// Verify stream-in url
+	rawUrl, err := url.Parse(streamInUrl)
+	if err != nil {
+		return fmt.Errorf("invalid stream-in-url: %w", err)
+	}
+	// If stream limit is set to greater than 1 byte, append the limit to stream-in url
+	if s.limitInMB > float64(1)/1024/1024 {
+		query := rawUrl.Query()
+		query.Add("limit", fmt.Sprintf("%f", s.limitInMB))
+		rawUrl.RawQuery = query.Encode()
+	}
+	streamInUrl = rawUrl.String()
 
 	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
 		"origin-volume": src.Handle(),

@@ -2,6 +2,7 @@ package volume
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -33,7 +34,7 @@ type Repository interface {
 	GetPrivileged(ctx context.Context, handle string) (bool, error)
 	SetPrivileged(ctx context.Context, handle string, privileged bool) error
 
-	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, stream io.Reader) (bool, error)
+	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB float64, stream io.Reader) (bool, error)
 	StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error
 
 	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error
@@ -369,7 +370,7 @@ func (repo *repository) SetPrivileged(ctx context.Context, handle string, privil
 	return nil
 }
 
-func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, stream io.Reader) (bool, error) {
+func (repo *repository) StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB float64, stream io.Reader) (bool, error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamIn", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
@@ -418,16 +419,26 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 		return false, err
 	}
 
+	limitedReader := NewLimitedReader(int(limitInMB*1024*1024), stream)
+	var badStream bool
 	switch encoding {
 	case baggageclaim.ZstdEncoding:
-		return repo.zstdStreamer.In(stream, destinationPath, privileged)
+		badStream, err = repo.zstdStreamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.GzipEncoding:
-		return repo.gzipStreamer.In(stream, destinationPath, privileged)
+		badStream, err = repo.gzipStreamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.RawEncoding:
-		return repo.rawStreamer.In(stream, destinationPath, privileged)
+		badStream, err = repo.rawStreamer.In(limitedReader, destinationPath, privileged)
+	default:
+		return false, ErrUnsupportedStreamEncoding
+	}
+	if err != nil {
+		if limitedReader.LastError() != nil {
+			err = fmt.Errorf("%s: %w", err, limitedReader.LastError())
+		}
+		return badStream, err
 	}
 
-	return false, ErrUnsupportedStreamEncoding
+	return badStream, nil
 }
 
 func (repo *repository) StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error {
@@ -542,7 +553,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPut, streamInURL, reader)
 	if err != nil {
-		logger.Error("failed-to-create-p2p-request", err)
+		logger.Error("failed-to-create-p2p-stream-in-request", err)
 		return err
 	}
 
@@ -558,7 +569,16 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 		return nil
 	}
 
-	return fmt.Errorf("p2p streaming error %d", resp.StatusCode)
+	// Upon stream-in failure, decode error message from stream-in api.
+	var errorResponse struct {
+		Message string `json:"error"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&errorResponse)
+	if err != nil {
+		errorResponse.Message = err.Error()
+	}
+
+	return fmt.Errorf("p2p-stream-in %d: %s", resp.StatusCode, errorResponse.Message)
 }
 
 func (repo *repository) VolumeParent(ctx context.Context, handle string) (Volume, bool, error) {
@@ -611,4 +631,56 @@ func (repo *repository) volumeFrom(liveVolume FilesystemLiveVolume) (Volume, err
 		Properties: properties,
 		Privileged: isPrivileged,
 	}, nil
+}
+
+type ErrExceedStreamLimit struct {
+	Limit int
+}
+
+func (e ErrExceedStreamLimit) Error() string {
+	if e.Limit < 1024*1024 {
+		return fmt.Sprintf("exceeded volume streaming limit of %dB", e.Limit)
+	} else {
+		return fmt.Sprintf("exceeded volume streaming limit of %dMB", e.Limit>>20)
+	}
+}
+
+type LimitedReader struct {
+	limit      int
+	read       int
+	underlying io.Reader
+
+	lastErr error
+}
+
+func (w *LimitedReader) LastError() error {
+	return w.lastErr
+}
+
+func (w *LimitedReader) Read(p []byte) (int, error) {
+	if w.limit <= 0 {
+		return w.underlying.Read(p)
+	}
+
+	n, err := w.underlying.Read(p)
+	if err != nil {
+		return n, err
+	}
+
+	w.read += n
+
+	if w.read > w.limit {
+		w.lastErr = ErrExceedStreamLimit{w.limit}
+		return n - (w.read - w.limit), w.lastErr
+	}
+
+	return n, nil
+}
+
+func NewLimitedReader(limit int, reader io.Reader) *LimitedReader {
+	return &LimitedReader{
+		limit:      limit,
+		read:       0,
+		underlying: reader,
+	}
 }

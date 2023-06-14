@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1107,7 +1106,7 @@ var _ = Describe("Repository", func() {
 		)
 		BeforeEach(func() {
 			var err error
-			tempFile, err = ioutil.TempFile("", "StreamP2pOutTest")
+			tempFile, err = os.CreateTemp("", "StreamP2pOutTest")
 			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {
@@ -1127,7 +1126,7 @@ var _ = Describe("Repository", func() {
 				serverCalled = true
 
 				var err error
-				serverReadBytes, err = ioutil.ReadAll(r.Body)
+				serverReadBytes, err = io.ReadAll(r.Body)
 				Expect(err).ToNot(HaveOccurred())
 			}))
 			streamErr = repository.StreamP2pOut(context.Background(), "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
@@ -1196,7 +1195,7 @@ var _ = Describe("Repository", func() {
 					})
 					It("should fail", func() {
 						Expect(streamErr).To(HaveOccurred())
-						Expect(streamErr).To(Equal(fmt.Errorf("p2p streaming error %d", http.StatusInternalServerError)))
+						Expect(streamErr.Error()).To(ContainSubstring("p2p-stream-in 500:"))
 					})
 					It("should http request", func() {
 						Expect(serverCalled).To(BeTrue())
@@ -1222,6 +1221,47 @@ var _ = Describe("Repository", func() {
 					})
 				})
 			})
+		})
+	})
+})
+
+var _ = Describe("LimitedReader", func() {
+	var (
+		limitReader *volume.LimitedReader
+		buffer      *bytes.Buffer
+		readBytes   int
+		readErr     error
+	)
+	BeforeEach(func() {
+		buffer = new(bytes.Buffer)
+	})
+	JustBeforeEach(func() {
+		var p = make([]byte, 100)
+		readBytes, readErr = limitReader.Read(p)
+	})
+	Context("when not hit limit", func() {
+		BeforeEach(func() {
+			limitReader = volume.NewLimitedReader(100, buffer)
+			n, err := buffer.Write([]byte("1234567890"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(n).To(Equal(10))
+		})
+		It("should read the whole content", func() {
+			Expect(readErr).ToNot(HaveOccurred())
+			Expect(readBytes).To(Equal(10))
+		})
+	})
+	Context("when hit limit", func() {
+		BeforeEach(func() {
+			limitReader = volume.NewLimitedReader(6, buffer)
+			n, err := buffer.Write([]byte("1234567890"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(n).To(Equal(10))
+		})
+		It("should read the whole content", func() {
+			Expect(readErr).To(HaveOccurred())
+			Expect(readErr.Error()).To(Equal("exceeded volume streaming limit of 6B"))
+			Expect(readBytes).To(Equal(6))
 		})
 	})
 })

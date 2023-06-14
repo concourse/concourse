@@ -144,8 +144,8 @@ func (v *Volume) SetPrivileged(_ context.Context, p bool) error {
 }
 func (v Volume) GetPrivileged(_ context.Context) (bool, error) { return v.Spec.Privileged, nil }
 
-func (v Volume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
-	return v.Content.StreamIn(ctx, path, encoding, tarStream)
+func (v Volume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, limitInMB float64, tarStream io.Reader) error {
+	return v.Content.StreamIn(ctx, path, encoding, limitInMB, tarStream)
 }
 
 func (v Volume) StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error) {
@@ -157,7 +157,7 @@ func (v Volume) GetStreamInP2pUrl(_ context.Context, path string) (string, error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer close(closeCh)
 		path := strings.TrimPrefix(r.URL.Path, "/")
-		if err := v.StreamIn(r.Context(), path, baggageclaim.GzipEncoding, r.Body); err != nil {
+		if err := v.StreamIn(r.Context(), path, baggageclaim.GzipEncoding, 0, r.Body); err != nil {
 			panic(err)
 		}
 	}))

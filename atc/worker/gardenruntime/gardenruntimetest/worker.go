@@ -65,7 +65,7 @@ func (w Worker) Build(db worker.DB, dbWorker db.Worker) runtime.Worker {
 		&Garden{ContainerList: w.Containers},
 		&Baggageclaim{Volumes: w.Volumes, Mutex: sync.Mutex{}},
 		db.ToGardenRuntimeDB(),
-		worker.NewStreamer(db.ResourceCacheFactory, compression.NewGzipCompression(), worker.P2PConfig{
+		worker.NewStreamer(db.ResourceCacheFactory, compression.NewGzipCompression(), 0, worker.P2PConfig{
 			Enabled: false,
 		}),
 	)

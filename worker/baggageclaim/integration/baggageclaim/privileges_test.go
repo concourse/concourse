@@ -171,7 +171,7 @@ var _ = Describe("Privileges", func() {
 				})
 
 				It("maps uid 0 to uid 0", func() {
-					err := privilegedVolume.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, tgzStream)
+					err := privilegedVolume.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, 0, tgzStream)
 					Expect(err).ToNot(HaveOccurred())
 
 					stat, err := os.Stat(filepath.Join(privilegedVolume.Path(), dataFilename))
@@ -332,7 +332,7 @@ var _ = Describe("Privileges", func() {
 				})
 
 				It("maps uid 0 to (MAX_UID)", func() {
-					err := unprivilegedVolume.StreamIn(ctx, ".", baggageclaim.GzipEncoding, tgzStream)
+					err := unprivilegedVolume.StreamIn(ctx, ".", baggageclaim.GzipEncoding, 0, tgzStream)
 					Expect(err).ToNot(HaveOccurred())
 
 					stat, err := os.Stat(filepath.Join(unprivilegedVolume.Path(), dataFilename))
