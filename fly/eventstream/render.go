@@ -54,7 +54,7 @@ func Render(dst io.Writer, src eventstream.EventStream, options RenderOptions) i
 
 		case event.WaitingForStreamedVolume:
 			dstImpl.SetTimestamp(e.Time)
-			fmt.Fprintf(dstImpl, "\x1b[1mwaiting for volume\x1b[0m %s \x1b[1mto be streamed by another step\n", e.Volume)
+			fmt.Fprintf(dstImpl, "\x1b[1mwaiting for volume\x1b[0m %s \x1b[1mto be streamed by another step\x1b[0m\n", e.Volume)
 
 		case event.InitializeCheck:
 			dstImpl.SetTimestamp(e.Time)
