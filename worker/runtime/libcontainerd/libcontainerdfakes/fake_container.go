@@ -8,7 +8,7 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/containers"
-	"github.com/gogo/protobuf/types"
+	typeurl "github.com/containerd/typeurl/v2"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -40,17 +40,17 @@ type FakeContainer struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	ExtensionsStub        func(context.Context) (map[string]types.Any, error)
+	ExtensionsStub        func(context.Context) (map[string]typeurl.Any, error)
 	extensionsMutex       sync.RWMutex
 	extensionsArgsForCall []struct {
 		arg1 context.Context
 	}
 	extensionsReturns struct {
-		result1 map[string]types.Any
+		result1 map[string]typeurl.Any
 		result2 error
 	}
 	extensionsReturnsOnCall map[int]struct {
-		result1 map[string]types.Any
+		result1 map[string]typeurl.Any
 		result2 error
 	}
 	IDStub        func() string
@@ -303,7 +303,7 @@ func (fake *FakeContainer) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeContainer) Extensions(arg1 context.Context) (map[string]types.Any, error) {
+func (fake *FakeContainer) Extensions(arg1 context.Context) (map[string]typeurl.Any, error) {
 	fake.extensionsMutex.Lock()
 	ret, specificReturn := fake.extensionsReturnsOnCall[len(fake.extensionsArgsForCall)]
 	fake.extensionsArgsForCall = append(fake.extensionsArgsForCall, struct {
@@ -328,7 +328,7 @@ func (fake *FakeContainer) ExtensionsCallCount() int {
 	return len(fake.extensionsArgsForCall)
 }
 
-func (fake *FakeContainer) ExtensionsCalls(stub func(context.Context) (map[string]types.Any, error)) {
+func (fake *FakeContainer) ExtensionsCalls(stub func(context.Context) (map[string]typeurl.Any, error)) {
 	fake.extensionsMutex.Lock()
 	defer fake.extensionsMutex.Unlock()
 	fake.ExtensionsStub = stub
@@ -341,28 +341,28 @@ func (fake *FakeContainer) ExtensionsArgsForCall(i int) context.Context {
 	return argsForCall.arg1
 }
 
-func (fake *FakeContainer) ExtensionsReturns(result1 map[string]types.Any, result2 error) {
+func (fake *FakeContainer) ExtensionsReturns(result1 map[string]typeurl.Any, result2 error) {
 	fake.extensionsMutex.Lock()
 	defer fake.extensionsMutex.Unlock()
 	fake.ExtensionsStub = nil
 	fake.extensionsReturns = struct {
-		result1 map[string]types.Any
+		result1 map[string]typeurl.Any
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) ExtensionsReturnsOnCall(i int, result1 map[string]types.Any, result2 error) {
+func (fake *FakeContainer) ExtensionsReturnsOnCall(i int, result1 map[string]typeurl.Any, result2 error) {
 	fake.extensionsMutex.Lock()
 	defer fake.extensionsMutex.Unlock()
 	fake.ExtensionsStub = nil
 	if fake.extensionsReturnsOnCall == nil {
 		fake.extensionsReturnsOnCall = make(map[int]struct {
-			result1 map[string]types.Any
+			result1 map[string]typeurl.Any
 			result2 error
 		})
 	}
 	fake.extensionsReturnsOnCall[i] = struct {
-		result1 map[string]types.Any
+		result1 map[string]typeurl.Any
 		result2 error
 	}{result1, result2}
 }

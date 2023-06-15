@@ -9,8 +9,8 @@ import (
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/protobuf"
 	"github.com/containerd/containerd/runtime/v2/runc/options"
-	"github.com/containerd/typeurl"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -84,7 +84,7 @@ func (s *KillerSuite) TestKillTaskWithOnlyInitProc() {
 }
 
 func (s *KillerSuite) TestKillTaskLoadProcessError() {
-	procInfo, err := typeurl.MarshalAny(&options.ProcessDetails{
+	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -108,7 +108,7 @@ func (s *KillerSuite) TestKillTaskLoadProcessError() {
 }
 
 func (s *KillerSuite) TestUngracefulKillTaskProcKillError() {
-	procInfo, err := typeurl.MarshalAny(&options.ProcessDetails{
+	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -125,7 +125,7 @@ func (s *KillerSuite) TestUngracefulKillTaskProcKillError() {
 }
 
 func (s *KillerSuite) TestGracefulKillTaskProcKillGracePeriodTimeoutError() {
-	procInfo, err := typeurl.MarshalAny(&options.ProcessDetails{
+	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -144,7 +144,7 @@ func (s *KillerSuite) TestGracefulKillTaskProcKillGracePeriodTimeoutError() {
 }
 
 func (s *KillerSuite) TestGracefulKillTaskProcKillUncaughtError() {
-	procInfo, err := typeurl.MarshalAny(&options.ProcessDetails{
+	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -163,7 +163,7 @@ func (s *KillerSuite) TestGracefulKillTaskProcKillUncaughtError() {
 }
 
 func (s *KillerSuite) TestGracefulKillTaskProcKillErrorOnUngracefulTry() {
-	procInfo, err := typeurl.MarshalAny(&options.ProcessDetails{
+	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)

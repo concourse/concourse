@@ -23,7 +23,7 @@ require (
 	github.com/concourse/retryhttp v1.2.0
 	github.com/containerd/containerd v1.7.2
 	github.com/containerd/go-cni v1.1.9
-	github.com/containerd/typeurl v1.0.2
+	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/coreos/go-iptables v0.6.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/cyberark/conjur-api-go v0.10.2
@@ -216,7 +216,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
-	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/coreos/go-oidc/v3 v3.4.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
