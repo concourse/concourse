@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -39,10 +38,10 @@ var _ = Describe("Fly CLI", func() {
 
 	BeforeEach(func() {
 		var err error
-		tmpdir, err = ioutil.TempDir("", "fly-build-dir")
+		tmpdir, err = os.MkdirTemp("", "fly-build-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		outputDir, err = ioutil.TempDir("", "fly-task-output")
+		outputDir, err = os.MkdirTemp("", "fly-task-output")
 		Expect(err).NotTo(HaveOccurred())
 
 		buildDir = filepath.Join(tmpdir, "fixture")
@@ -52,7 +51,7 @@ var _ = Describe("Fly CLI", func() {
 
 		taskConfigPath = filepath.Join(buildDir, "task.yml")
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			taskConfigPath,
 			[]byte(`---
 platform: some-platform
@@ -250,13 +249,13 @@ run:
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				outputFiles, err := ioutil.ReadDir(outputDir)
+				outputFiles, err := os.ReadDir(outputDir)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(outputFiles).To(HaveLen(1))
 				Expect(outputFiles[0].Name()).To(Equal("some-file"))
 
-				data, err := ioutil.ReadFile(filepath.Join(outputDir, outputFiles[0].Name()))
+				data, err := os.ReadFile(filepath.Join(outputDir, outputFiles[0].Name()))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(data).To(Equal([]byte("tar-contents")))
 			})

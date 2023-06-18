@@ -2,7 +2,6 @@ package driver_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -20,7 +19,7 @@ var _ = Describe("Overlay", func() {
 
 		BeforeEach(func() {
 			var err error
-			tmpdir, err = ioutil.TempDir("", "overlay-test")
+			tmpdir, err = os.MkdirTemp("", "overlay-test")
 			Expect(err).ToNot(HaveOccurred())
 
 			overlaysDir := filepath.Join(tmpdir, "overlays")
@@ -41,12 +40,12 @@ var _ = Describe("Overlay", func() {
 
 			// write to file under rootVolData
 			rootFile := filepath.Join(rootVolInit.DataPath(), "updated-file")
-			err = ioutil.WriteFile(rootFile, []byte("depth-0"), 0644)
+			err = os.WriteFile(rootFile, []byte("depth-0"), 0644)
 			Expect(err).ToNot(HaveOccurred())
 
 			for depth := 1; depth <= 10; depth++ {
 				doomedFile := filepath.Join(rootVolInit.DataPath(), fmt.Sprintf("doomed-file-%d", depth))
-				err := ioutil.WriteFile(doomedFile, []byte(fmt.Sprintf("i will be removed at depth %d", depth)), 0644)
+				err := os.WriteFile(doomedFile, []byte(fmt.Sprintf("i will be removed at depth %d", depth)), 0644)
 				Expect(err).ToNot(HaveOccurred())
 			}
 
@@ -91,10 +90,10 @@ var _ = Describe("Overlay", func() {
 
 				updateFilePath := filepath.Join(childLive.DataPath(), "updated-file")
 
-				content, err := ioutil.ReadFile(updateFilePath)
+				content, err := os.ReadFile(updateFilePath)
 				Expect(string(content)).To(Equal(fmt.Sprintf("depth-%d", depth-1)))
 
-				err = ioutil.WriteFile(updateFilePath, []byte(fmt.Sprintf("depth-%d", depth)), 0644)
+				err = os.WriteFile(updateFilePath, []byte(fmt.Sprintf("depth-%d", depth)), 0644)
 				Expect(err).ToNot(HaveOccurred())
 
 				nest = childLive

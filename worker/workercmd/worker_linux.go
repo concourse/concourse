@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -190,14 +189,14 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 	if cmd.ResourceTypes != "" {
 		basePath := cmd.ResourceTypes.Path()
 
-		entries, err := ioutil.ReadDir(basePath)
+		entries, err := os.ReadDir(basePath)
 		if err != nil {
 			logger.Error("failed-to-read-resources-dir", err)
 			return nil, err
 		}
 
 		for _, e := range entries {
-			meta, err := ioutil.ReadFile(filepath.Join(basePath, e.Name(), "resource_metadata.json"))
+			meta, err := os.ReadFile(filepath.Join(basePath, e.Name(), "resource_metadata.json"))
 			if err != nil {
 				logger.Error("failed-to-read-resource-type-metadata", err)
 				return nil, err

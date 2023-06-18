@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -125,7 +125,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns the created build", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{
@@ -263,7 +263,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns all builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[
@@ -398,7 +398,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns all builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[
@@ -623,7 +623,7 @@ var _ = Describe("Builds API", func() {
 							buildID := dbBuildFactory.BuildForAPIArgsForCall(0)
 							Expect(buildID).To(Equal(1))
 
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{
@@ -762,7 +762,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns the build with it's input and output versioned resources", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{
@@ -895,7 +895,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("serves the request via the event handler", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal("fake event handler factory was here"))
@@ -957,7 +957,7 @@ var _ = Describe("Builds API", func() {
 							})
 
 							It("serves the request via the event handler", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(string(body)).To(Equal("fake event handler factory was here"))
@@ -1271,7 +1271,7 @@ var _ = Describe("Builds API", func() {
 				})
 
 				It("returns the build preparation", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`{
@@ -1491,7 +1491,7 @@ var _ = Describe("Builds API", func() {
 					})
 
 					It("returns the plan", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{

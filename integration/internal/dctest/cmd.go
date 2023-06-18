@@ -2,7 +2,6 @@ package dctest
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -64,7 +63,7 @@ func InitDynamic(t *testing.T, doc *ypath.Document, parentDir string) Cmd {
 	name := filepath.Base(t.Name())
 	fileName := filepath.Join(parentDir, fmt.Sprintf(".docker-compose.%s.yml", name))
 
-	err := ioutil.WriteFile(fileName, doc.Bytes(), os.ModePerm)
+	err := os.WriteFile(fileName, doc.Bytes(), os.ModePerm)
 	require.NoError(t, err)
 
 	cleanupOnce(t, func() {

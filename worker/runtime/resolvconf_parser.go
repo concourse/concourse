@@ -2,7 +2,7 @@ package runtime
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
@@ -14,7 +14,7 @@ import (
 // here: https://github.com/cloudfoundry/guardian/blob/master/kawasaki/dns/resolv_compiler.go
 func ParseHostResolveConf(path string) ([]string, error) {
 
-	resolvConf, err := ioutil.ReadFile(path)
+	resolvConf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read host's resolv.conf: %w", err)
 	}

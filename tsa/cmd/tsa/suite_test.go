@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -128,14 +128,14 @@ var _ = BeforeEach(func() {
 	teamKeyFile, teamPubKeyFile, teamKey, _ = generateSSHKeypair()
 	otherTeamKeyFile, otherTeamPubKeyFile, otherTeamKey, _ = generateSSHKeypair()
 
-	authorizedKeys, err := ioutil.TempFile("", "authorized-keys")
+	authorizedKeys, err := os.CreateTemp("", "authorized-keys")
 	Expect(err).NotTo(HaveOccurred())
 
 	defer authorizedKeys.Close()
 
 	authorizedKeysFile = authorizedKeys.Name()
 
-	userPrivateKeyBytes, err := ioutil.ReadFile(globalKeyFile)
+	userPrivateKeyBytes, err := os.ReadFile(globalKeyFile)
 	Expect(err).NotTo(HaveOccurred())
 
 	userSigner, err := ssh.ParsePrivateKey(userPrivateKeyBytes)
@@ -200,7 +200,7 @@ var _ = AfterEach(func() {
 })
 
 func generateSSHKeypair() (string, string, *rsa.PrivateKey, ssh.PublicKey) {
-	path, err := ioutil.TempDir("", "tsa-key")
+	path, err := os.MkdirTemp("", "tsa-key")
 	Expect(err).NotTo(HaveOccurred())
 
 	privateKeyPath := filepath.Join(path, "id_rsa")
@@ -220,10 +220,10 @@ func generateSSHKeypair() (string, string, *rsa.PrivateKey, ssh.PublicKey) {
 
 	publicKeyBytes := ssh.MarshalAuthorizedKey(publicKeyRsa)
 
-	err = ioutil.WriteFile(privateKeyPath, privateKeyBytes, 0600)
+	err = os.WriteFile(privateKeyPath, privateKeyBytes, 0600)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = ioutil.WriteFile(publicKeyPath, publicKeyBytes, 0600)
+	err = os.WriteFile(publicKeyPath, publicKeyBytes, 0600)
 	Expect(err).NotTo(HaveOccurred())
 
 	return privateKeyPath, publicKeyPath, privateKey, publicKeyRsa

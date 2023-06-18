@@ -1,7 +1,6 @@
 package cli_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -23,7 +22,7 @@ var _ = Describe("Migration CLI", func() {
 		)
 
 		BeforeEach(func() {
-			migrationDir, err = ioutil.TempDir("", "")
+			migrationDir, err = os.MkdirTemp("", "")
 			Expect(err).ToNot(HaveOccurred())
 
 		})
@@ -77,7 +76,7 @@ var _ = Describe("Migration CLI", func() {
 func ExpectGeneratedFilesToMatchSpecification(migrationDir, fileNamePattern, migrationName string,
 	checkContents func(migrationID string, actualFileContents string)) {
 
-	files, err := ioutil.ReadDir(migrationDir)
+	files, err := os.ReadDir(migrationDir)
 	Expect(err).ToNot(HaveOccurred())
 	var migrationFilesCount = 0
 	regex := regexp.MustCompile(fileNamePattern)
@@ -90,7 +89,7 @@ func ExpectGeneratedFilesToMatchSpecification(migrationDir, fileNamePattern, mig
 			Expect(matches).To(HaveLen(4))
 			Expect(matches[2]).To(Equal(migrationName))
 
-			fileContents, err := ioutil.ReadFile(path.Join(migrationDir, migrationFileName))
+			fileContents, err := os.ReadFile(path.Join(migrationDir, migrationFileName))
 			Expect(err).ToNot(HaveOccurred())
 			checkContents(matches[1], string(fileContents))
 			migrationFilesCount++

@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -81,7 +80,7 @@ var _ = Describe("BBR", func() {
 
 			BeforeEach(func() {
 				var err error
-				tmpDir, err = ioutil.TempDir("", "")
+				tmpDir, err = os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -110,7 +109,7 @@ var _ = Describe("BBR", func() {
 					"--artifact-path", tmpDir,
 				}
 				Run(nil, "bbr", backupArgs...)
-				entries, err := ioutil.ReadDir(tmpDir)
+				entries, err := os.ReadDir(tmpDir)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(entries).To(HaveLen(1))
 
@@ -149,7 +148,7 @@ var _ = Describe("BBR", func() {
 
 			BeforeEach(func() {
 				var err error
-				tmpDir, err = ioutil.TempDir("", "")
+				tmpDir, err = os.MkdirTemp("", "")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -178,7 +177,7 @@ var _ = Describe("BBR", func() {
 					"--artifact-path", tmpDir,
 				}
 				Run(nil, "bbr", backupArgs...)
-				entries, err := ioutil.ReadDir(tmpDir)
+				entries, err := os.ReadDir(tmpDir)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(entries).To(HaveLen(1))
 

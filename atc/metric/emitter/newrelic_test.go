@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -173,10 +173,10 @@ func verifyEvents(expectedEvents int) http.HandlerFunc {
 		if request.Header.Get("Content-Encoding") == "gzip" {
 			reader, err := gzip.NewReader(request.Body)
 			Expect(err).To(Not(HaveOccurred()))
-			givenBody, err = ioutil.ReadAll(reader)
+			givenBody, err = io.ReadAll(reader)
 			Expect(err).To(Not(HaveOccurred()))
 		} else {
-			givenBody, err = ioutil.ReadAll(request.Body)
+			givenBody, err = io.ReadAll(request.Body)
 			Expect(err).To(Not(HaveOccurred()))
 		}
 

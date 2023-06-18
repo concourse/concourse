@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -100,7 +99,7 @@ func (h *WorkerHijackStreamer) Hijack(ctx context.Context, handler string, body 
 		defer hijackCloser.Close()
 		defer httpResp.Body.Close()
 
-		errRespBytes, err := ioutil.ReadAll(httpResp.Body)
+		errRespBytes, err := io.ReadAll(httpResp.Body)
 		if err != nil {
 			return nil, nil, fmt.Errorf("backend error: Exit status: %d, error reading response body: %s", httpResp.StatusCode, err)
 		}

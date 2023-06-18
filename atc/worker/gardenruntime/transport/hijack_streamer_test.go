@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -97,11 +96,11 @@ var _ = Describe("hijackStreamer", func() {
 
 		Context("when httpResponse is success", func() {
 			BeforeEach(func() {
-				httpResp = http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(body)}
+				httpResp = http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(body)}
 			})
 
 			It("returns response body", func() {
-				actualBodyBytes, err := ioutil.ReadAll(actualReadCloser)
+				actualBodyBytes, err := io.ReadAll(actualReadCloser)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(expectedString).To(Equal(string(actualBodyBytes)))
 			})
@@ -154,7 +153,7 @@ var _ = Describe("hijackStreamer", func() {
 
 		Context("when httpResponse fails", func() {
 			BeforeEach(func() {
-				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: ioutil.NopCloser(body)}
+				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: io.NopCloser(body)}
 			})
 
 			It("returns error", func() {
@@ -181,7 +180,7 @@ var _ = Describe("hijackStreamer", func() {
 				Expect(actualRequest.URL).To(Equal(expectedRequest.URL))
 				Expect(actualRequest.Header).To(Equal(expectedRequest.Header))
 
-				s, err := ioutil.ReadAll(actualRequest.Body)
+				s, err := io.ReadAll(actualRequest.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(s)).To(Equal("some-request-body"))
 			})
@@ -306,7 +305,7 @@ var _ = Describe("hijackStreamer", func() {
 		Context("when httpResponse fails", func() {
 			BeforeEach(func() {
 				fakeHijackableClient.DoReturns(nil, nil, errors.New("Request failed"))
-				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: ioutil.NopCloser(body)}
+				httpResp = http.Response{StatusCode: http.StatusTeapot, Body: io.NopCloser(body)}
 			})
 
 			It("returns error", func() {
@@ -327,7 +326,7 @@ var _ = Describe("hijackStreamer", func() {
 				Expect(actualRequest.URL).To(Equal(expectedRequest.URL))
 				Expect(actualRequest.Header).To(Equal(expectedRequest.Header))
 
-				s, err := ioutil.ReadAll(actualRequest.Body)
+				s, err := io.ReadAll(actualRequest.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(s)).To(Equal("some-request-body"))
 			})

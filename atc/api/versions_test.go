@@ -3,7 +3,7 @@ package api_test
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -129,7 +129,7 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns the json", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -162,7 +162,7 @@ var _ = Describe("Versions API", func() {
 				Context("when resource is not public", func() {
 					Context("when the user is not authenticated", func() {
 						It("returns the json without version metadata", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`[
@@ -186,7 +186,7 @@ var _ = Describe("Versions API", func() {
 						})
 
 						It("returns the json without version metadata", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`[
@@ -367,7 +367,7 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns the json", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -936,7 +936,7 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns the json", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -972,7 +972,7 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns an empty list", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[]`))
@@ -1136,7 +1136,7 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns the json", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -1172,7 +1172,7 @@ var _ = Describe("Versions API", func() {
 					})
 
 					It("returns an empty list", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[]`))
@@ -1261,7 +1261,7 @@ var _ = Describe("Versions API", func() {
 						})
 
 						It("returns the number of rows deleted", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{"versions_removed": 3}`))
@@ -1275,7 +1275,7 @@ var _ = Describe("Versions API", func() {
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed")))
+							Expect(io.ReadAll(response.Body)).To(Equal([]byte("failed")))
 						})
 					})
 				})
@@ -1382,7 +1382,7 @@ var _ = Describe("Versions API", func() {
 						})
 
 						It("returns the number of rows deleted", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{"versions_removed": 3}`))
@@ -1396,7 +1396,7 @@ var _ = Describe("Versions API", func() {
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed")))
+							Expect(io.ReadAll(response.Body)).To(Equal([]byte("failed")))
 						})
 					})
 				})

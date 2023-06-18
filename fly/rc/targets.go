@@ -3,7 +3,6 @@ package rc
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -192,7 +191,7 @@ func LoadTargets() (Targets, error) {
 
 	flyrc := flyrcPath()
 	if _, err := os.Stat(flyrc); err == nil {
-		flyTargetsBytes, err := ioutil.ReadFile(flyrc)
+		flyTargetsBytes, err := os.ReadFile(flyrc)
 		if err != nil {
 			return nil, err
 		}
@@ -223,7 +222,7 @@ func writeTargets(configFileLocation string, targetsToWrite Targets) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(configFileLocation, yamlBytes, os.FileMode(0600))
+	err = os.WriteFile(configFileLocation, yamlBytes, os.FileMode(0600))
 	if err != nil {
 		return err
 	}

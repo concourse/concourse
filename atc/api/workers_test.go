@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -197,7 +197,7 @@ var _ = Describe("Workers API", func() {
 			payload, err := json.Marshal(worker)
 			Expect(err).NotTo(HaveOccurred())
 
-			req, err := http.NewRequest("POST", server.URL+"/api/v1/workers?ttl="+ttl, ioutil.NopCloser(bytes.NewBuffer(payload)))
+			req, err := http.NewRequest("POST", server.URL+"/api/v1/workers?ttl="+ttl, io.NopCloser(bytes.NewBuffer(payload)))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -425,7 +425,7 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns the validation error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
+					Expect(io.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
 				})
 
 				It("does not save it", func() {
@@ -443,7 +443,7 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns the validation error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("missing garden address")))
+					Expect(io.ReadAll(response.Body)).To(Equal([]byte("missing garden address")))
 				})
 
 				It("does not save it", func() {
@@ -461,7 +461,7 @@ var _ = Describe("Workers API", func() {
 				})
 
 				It("returns the validation error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("invalid worker version, only numeric characters are allowed")))
+					Expect(io.ReadAll(response.Body)).To(Equal([]byte("invalid worker version, only numeric characters are allowed")))
 				})
 
 				It("does not save it", func() {
@@ -752,7 +752,7 @@ var _ = Describe("Workers API", func() {
 
 			It("returns 400", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-				Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"stderr":"cannot prune running worker"}`))
+				Expect(io.ReadAll(response.Body)).To(MatchJSON(`{"stderr":"cannot prune running worker"}`))
 			})
 		})
 
@@ -812,7 +812,7 @@ var _ = Describe("Workers API", func() {
 			payload, err := json.Marshal(worker)
 			Expect(err).NotTo(HaveOccurred())
 
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/heartbeat?ttl="+ttlStr, ioutil.NopCloser(bytes.NewBuffer(payload)))
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/heartbeat?ttl="+ttlStr, io.NopCloser(bytes.NewBuffer(payload)))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -831,7 +831,7 @@ var _ = Describe("Workers API", func() {
 		})
 
 		It("returns saved worker", func() {
-			contents, err := ioutil.ReadAll(response.Body)
+			contents, err := io.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(contents).To(MatchJSON(`{
@@ -870,7 +870,7 @@ var _ = Describe("Workers API", func() {
 			})
 
 			It("returns the validation error in the response body", func() {
-				Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
+				Expect(io.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
 			})
 
 			It("does not heartbeat worker", func() {

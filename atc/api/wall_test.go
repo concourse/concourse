@@ -3,7 +3,7 @@ package api_test
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -44,7 +44,7 @@ var _ = Describe("Wall API", func() {
 
 			It("returns only message", func() {
 				Expect(dbWall.GetWallCallCount()).To(Equal(1))
-				Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"message":"test message"}`))
+				Expect(io.ReadAll(response.Body)).To(MatchJSON(`{"message":"test message"}`))
 			})
 		})
 
@@ -88,7 +88,7 @@ var _ = Describe("Wall API", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			req, err := http.NewRequest("PUT", server.URL+"/api/v1/wall",
-				ioutil.NopCloser(bytes.NewBuffer(payload)))
+				io.NopCloser(bytes.NewBuffer(payload)))
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)

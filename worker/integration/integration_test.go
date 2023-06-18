@@ -3,7 +3,6 @@ package integration_test
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"io/ioutil"
 	"os"
 
 	"github.com/concourse/concourse/worker/workercmd"
@@ -20,7 +19,7 @@ type WorkerRunnerSuite struct {
 }
 
 func (s *WorkerRunnerSuite) BeforeTest(suiteName, testName string) {
-	tmpdir, err := ioutil.TempDir("", suiteName+testName)
+	tmpdir, err := os.MkdirTemp("", suiteName+testName)
 	s.NoError(err)
 
 	err = os.Chdir(tmpdir)

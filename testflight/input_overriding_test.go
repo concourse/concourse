@@ -1,7 +1,6 @@
 package testflight_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -36,7 +35,7 @@ var _ = Describe("A job with multiple inputs", func() {
 		firstVersionA = newMockVersion("some-resource-a", "first-a")
 		firstVersionB = newMockVersion("some-resource-b", "first-b")
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			filepath.Join(tmp, "task.yml"),
 			[]byte(`---
 platform: linux
@@ -67,7 +66,7 @@ run:
 		err = os.Mkdir(localGitRepoBDir, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			filepath.Join(localGitRepoBDir, "version"),
 			[]byte("some-overridden-version"),
 			0644,

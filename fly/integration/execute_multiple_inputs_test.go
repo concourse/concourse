@@ -5,8 +5,8 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -40,13 +40,13 @@ var _ = Describe("Fly CLI", func() {
 	BeforeEach(func() {
 		var err error
 
-		buildDir, err = ioutil.TempDir("", "fly-build-dir")
+		buildDir, err = os.MkdirTemp("", "fly-build-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		otherInputDir, err = ioutil.TempDir("", "fly-s3-asset-dir")
+		otherInputDir, err = os.MkdirTemp("", "fly-s3-asset-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			filepath.Join(buildDir, "task.yml"),
 			[]byte(`---
 platform: some-platform
@@ -73,7 +73,7 @@ run:
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			filepath.Join(otherInputDir, "s3-asset-file"),
 			[]byte(`blob`),
 			0644,

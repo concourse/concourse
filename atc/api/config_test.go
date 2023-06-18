@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -190,7 +190,7 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("returns an error in the response body", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 										{
 											"errors": [
 												"instance vars are malformed: unexpected end of JSON input"
@@ -371,7 +371,7 @@ var _ = Describe("Config API", func() {
 					})
 
 					It("returns warnings in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+						Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [
 									{
@@ -404,7 +404,7 @@ var _ = Describe("Config API", func() {
 					})
 
 					It("returns warnings in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+						Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
 										"pipeline: identifier cannot be an empty string"
@@ -439,7 +439,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("returns error JSON", func() {
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
 										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
@@ -470,7 +470,7 @@ var _ = Describe("Config API", func() {
 						})
 
 						It("returns error JSON", func() {
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
 										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
@@ -530,7 +530,7 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("returns the error in the response body", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed to save config: oh no!")))
+								Expect(io.ReadAll(response.Body)).To(Equal([]byte("failed to save config: oh no!")))
 							})
 						})
 
@@ -569,7 +569,7 @@ var _ = Describe("Config API", func() {
 							})
 
 							It("returns error JSON", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
 										"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
@@ -641,7 +641,7 @@ jobs:
         BAZ: 1.9`
 
 								request.Header.Set("Content-Type", "application/x-yaml")
-								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								request.Body = io.NopCloser(bytes.NewBufferString(payload))
 							})
 
 							It("returns 200", func() {
@@ -765,7 +765,7 @@ jobs:
     file: some/task/config.yaml`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
-									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+									request.Body = io.NopCloser(bytes.NewBufferString(payload))
 								})
 
 								ExpectCredsValidationPass()
@@ -786,7 +786,7 @@ jobs:
   - get: some-resource`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
-									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+									request.Body = io.NopCloser(bytes.NewBufferString(payload))
 								})
 
 								ExpectCredsValidationPass()
@@ -806,7 +806,7 @@ jobs:
   - get: some-resource`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
-									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+									request.Body = io.NopCloser(bytes.NewBufferString(payload))
 								})
 
 								ExpectCredsValidationPass()
@@ -830,7 +830,7 @@ jobs:
       FOO: ((BAR))`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
-									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+									request.Body = io.NopCloser(bytes.NewBufferString(payload))
 								})
 
 								ExpectCredsValidationPass()
@@ -854,7 +854,7 @@ jobs:
       FOO: ((BAR))`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
-									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+									request.Body = io.NopCloser(bytes.NewBufferString(payload))
 								})
 
 								ExpectCredsValidationPass()
@@ -879,7 +879,7 @@ jobs:
         FOO: ((BAR))`
 
 									request.Header.Set("Content-Type", "application/x-yaml")
-									request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+									request.Body = io.NopCloser(bytes.NewBufferString(payload))
 								})
 
 								ExpectCredsValidationPass()
@@ -949,7 +949,7 @@ jobs:
 								}
 
 								request.Header.Set("Content-Type", "application/x-yaml")
-								request.Body = ioutil.NopCloser(bytes.NewBufferString(payload))
+								request.Body = io.NopCloser(bytes.NewBufferString(payload))
 							})
 
 							Context("when the check_creds param is set", func() {
@@ -989,7 +989,7 @@ jobs:
 									})
 
 									It("returns the credential name that was missing", func() {
-										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["credential validation failed\n\n1 error occurred:\n\t* failed to interpolate task config: undefined vars: BAR\n\n"]}`))
+										Expect(io.ReadAll(response.Body)).To(MatchJSON(`{"errors":["credential validation failed\n\n1 error occurred:\n\t* failed to interpolate task config: undefined vars: BAR\n\n"]}`))
 									})
 								})
 
@@ -1005,7 +1005,7 @@ jobs:
 									})
 
 									It("returns the credential name that was missing", func() {
-										Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"errors":["credential validation failed\n\n1 error occurred:\n\t* failed to interpolate task config: undefined vars: BAR\n\n"]}`))
+										Expect(io.ReadAll(response.Body)).To(MatchJSON(`{"errors":["credential validation failed\n\n1 error occurred:\n\t* failed to interpolate task config: undefined vars: BAR\n\n"]}`))
 									})
 								})
 							})
@@ -1037,7 +1037,7 @@ jobs:
 							})
 
 							It("returns the error in the response body", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("failed to save config: oh no!")))
+								Expect(io.ReadAll(response.Body)).To(Equal([]byte("failed to save config: oh no!")))
 							})
 						})
 
@@ -1061,7 +1061,7 @@ jobs:
 							})
 
 							It("returns error JSON", func() {
-								Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+								Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
 										"invalid groups:\n\tgroup 'some-group' has unknown resource 'missing-resource'\n"
@@ -1094,7 +1094,7 @@ jobs:
 								})
 
 								It("returns an error in the response body", func() {
-									Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+									Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 										{
 											"errors": [
 												"instance vars are malformed: unexpected end of JSON input"
@@ -1265,7 +1265,7 @@ jobs:
 					})
 
 					It("returns an error in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring(`malformed config: error unmarshaling JSON: while decoding JSON: json: unknown field \"pubic\"`))
+						Expect(io.ReadAll(response.Body)).To(ContainSubstring(`malformed config: error unmarshaling JSON: while decoding JSON: json: unknown field \"pubic\"`))
 					})
 
 					It("does not save it", func() {
@@ -1291,7 +1291,7 @@ jobs:
 				})
 
 				It("returns an error in the response body", func() {
-					Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+					Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
 									"config version is malformed: expected integer"

@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -154,7 +153,7 @@ var _ = BeforeEach(func() {
 	fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
 	var err error
-	cliDownloadsDir, err = ioutil.TempDir("", "cli-downloads")
+	cliDownloadsDir, err = os.MkdirTemp("", "cli-downloads")
 	Expect(err).NotTo(HaveOccurred())
 
 	constructedEventHandler = &fakeEventHandlerFactory{}

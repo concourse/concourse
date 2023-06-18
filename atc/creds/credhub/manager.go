@@ -3,8 +3,8 @@ package credhub
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"sync"
 
 	"code.cloudfoundry.org/credhub-cli/credhub"
@@ -60,7 +60,7 @@ func (manager *CredHubManager) Init(log lager.Logger) error {
 
 	caCerts := []string{}
 	for _, cert := range manager.TLS.CACerts {
-		contents, err := ioutil.ReadFile(cert)
+		contents, err := os.ReadFile(cert)
 		if err != nil {
 			return err
 		}

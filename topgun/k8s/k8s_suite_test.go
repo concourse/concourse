@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -86,7 +85,7 @@ var _ = BeforeEach(func() {
 	SetDefaultEventuallyTimeout(90 * time.Second)
 	SetDefaultConsistentlyDuration(30 * time.Second)
 
-	tmp, err := ioutil.TempDir("", "topgun-tmp")
+	tmp, err := os.MkdirTemp("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
 	fly = FlyCli{

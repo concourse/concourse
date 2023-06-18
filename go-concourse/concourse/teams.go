@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -146,7 +146,7 @@ func (client *client) FindTeam(teamName string) (Team, error) {
 	case http.StatusNotFound:
 		return nil, fmt.Errorf("team '%s' does not exist", teamName)
 	default:
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return nil, internal.UnexpectedResponseError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,

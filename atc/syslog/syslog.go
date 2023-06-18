@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -36,7 +36,7 @@ func Dial(transport, address string, caCerts []string) (*Syslog, error) {
 		}
 
 		for _, cert := range caCerts {
-			content, err := ioutil.ReadFile(cert)
+			content, err := os.ReadFile(cert)
 			if err != nil {
 				return nil, err
 			}

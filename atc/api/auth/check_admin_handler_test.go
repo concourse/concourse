@@ -3,7 +3,6 @@ package auth_test
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
@@ -104,7 +103,7 @@ var _ = Describe("CheckAdminHandler", func() {
 				})
 
 				It("proxies to the handler", func() {
-					responseBody, err := ioutil.ReadAll(response.Body)
+					responseBody, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(responseBody)).To(Equal("simple hello"))
 				})
@@ -124,7 +123,7 @@ var _ = Describe("CheckAdminHandler", func() {
 
 			It("rejects the request", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
-				responseBody, err := ioutil.ReadAll(response.Body)
+				responseBody, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(responseBody)).To(Equal("nope\n"))
 			})

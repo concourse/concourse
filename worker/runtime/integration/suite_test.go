@@ -1,7 +1,7 @@
 package integration_test
 
 import (
-	"io/ioutil"
+	"os"
 	"os/user"
 	"sync"
 	"testing"
@@ -47,7 +47,7 @@ func TestSuite(t *testing.T) {
 		return
 	}
 
-	tmpDir, err := ioutil.TempDir("", "containerd-test")
+	tmpDir, err := os.MkdirTemp("", "containerd-test")
 	if err != nil {
 		panic(err)
 	}

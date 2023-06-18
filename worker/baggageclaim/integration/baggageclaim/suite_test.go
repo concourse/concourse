@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -79,7 +78,7 @@ type BaggageClaimRunner struct {
 func NewRunner(path string, driver string) *BaggageClaimRunner {
 	port := 7788 + GinkgoParallelProcess()
 
-	volumeDir, err := ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
+	volumeDir, err := os.MkdirTemp("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
 	Expect(err).NotTo(HaveOccurred())
 
 	err = os.Mkdir(filepath.Join(volumeDir, "overlays"), 0700)
@@ -154,7 +153,7 @@ func writeData(volumePath string) string {
 	filename := randSeq(10)
 	newFilePath := filepath.Join(volumePath, filename)
 
-	err := ioutil.WriteFile(newFilePath, []byte(filename), 0755)
+	err := os.WriteFile(newFilePath, []byte(filename), 0755)
 	Expect(err).NotTo(HaveOccurred())
 
 	return filename

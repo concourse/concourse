@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -47,7 +46,7 @@ var _ = Describe("Fly CLI", func() {
 
 	BeforeEach(func() {
 		var err error
-		tmpdir, err = ioutil.TempDir("", "fly-build-dir")
+		tmpdir, err = os.MkdirTemp("", "fly-build-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		buildDir = filepath.Join(tmpdir, "fixture")
@@ -57,7 +56,7 @@ var _ = Describe("Fly CLI", func() {
 
 		taskConfigPath = filepath.Join(buildDir, "task.yml")
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			taskConfigPath,
 			[]byte(`---
 platform: some-platform
@@ -357,7 +356,7 @@ run:
 	Context("when the build config is invalid", func() {
 		BeforeEach(func() {
 			// missing platform and run path
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(buildDir, "task.yml"),
 				[]byte(`---
 run: {}
@@ -418,7 +417,7 @@ run: {}
 			var bardir string
 
 			BeforeEach(func() {
-				err := ioutil.WriteFile(
+				err := os.WriteFile(
 					filepath.Join(buildDir, "task.yml"),
 					[]byte(`---
 platform: some-platform
@@ -497,7 +496,7 @@ run:
 
 			Context("when the current directory name is not the same as the missing input", func() {
 				BeforeEach(func() {
-					err := ioutil.WriteFile(
+					err := os.WriteFile(
 						filepath.Join(buildDir, "task.yml"),
 						[]byte(`---
 platform: some-platform
@@ -582,11 +581,11 @@ run:
 		BeforeEach(func() {
 			gitIgnorePath := filepath.Join(buildDir, ".gitignore")
 
-			err := ioutil.WriteFile(gitIgnorePath, []byte(`*.test`), 0644)
+			err := os.WriteFile(gitIgnorePath, []byte(`*.test`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			fileToBeIgnoredPath := filepath.Join(buildDir, "dev.test")
-			err = ioutil.WriteFile(fileToBeIgnoredPath, []byte(`test file content`), 0644)
+			err = os.WriteFile(fileToBeIgnoredPath, []byte(`test file content`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = os.Mkdir(filepath.Join(buildDir, ".git"), 0755)
@@ -599,7 +598,7 @@ run:
 			Expect(err).NotTo(HaveOccurred())
 
 			gitHEADPath := filepath.Join(buildDir, ".git/HEAD")
-			err = ioutil.WriteFile(gitHEADPath, []byte(`ref: refs/heads/master`), 0644)
+			err = os.WriteFile(gitHEADPath, []byte(`ref: refs/heads/master`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -769,7 +768,7 @@ run:
 		Context("when input is not a folder", func() {
 			It("prints an error", func() {
 				testFile := filepath.Join(buildDir, "test-file.txt")
-				err := ioutil.WriteFile(
+				err := os.WriteFile(
 					testFile,
 					[]byte(`test file content`),
 					0644,
@@ -807,7 +806,7 @@ run:
 
 	Context("when the task specifies no input", func() {
 		BeforeEach(func() {
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(buildDir, "task.yml"),
 				[]byte(`---
 platform: some-platform
@@ -863,7 +862,7 @@ run:
 
 	Context("when the task specifies an optional input", func() {
 		BeforeEach(func() {
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(buildDir, "task.yml"),
 				[]byte(`---
 platform: some-platform
@@ -954,7 +953,7 @@ run:
 
 	Context("when the task specifies more than one required input", func() {
 		BeforeEach(func() {
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(buildDir, "task.yml"),
 				[]byte(`---
 platform: some-platform

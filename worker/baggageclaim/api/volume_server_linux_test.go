@@ -9,7 +9,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -40,10 +39,10 @@ var _ = Describe("Volume Server", func() {
 	BeforeEach(func() {
 		var err error
 
-		tempDir, err = ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
+		tempDir, err = os.MkdirTemp("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
 		Expect(err).NotTo(HaveOccurred())
 
-		// ioutil.TempDir creates it 0700; we need public readability for
+		// os.MkdirTemp creates it 0700; we need public readability for
 		// unprivileged StreamIn
 		err = os.Chmod(tempDir, 0755)
 		Expect(err).NotTo(HaveOccurred())

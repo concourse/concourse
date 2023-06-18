@@ -2,7 +2,6 @@ package syslog_test
 
 import (
 	"crypto/tls"
-	"io/ioutil"
 	"net"
 	"os"
 	"time"
@@ -55,7 +54,7 @@ var _ = Describe("Syslog", func() {
 				tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
 				Expect(err).NotTo(HaveOccurred())
 
-				caFile, err := ioutil.TempFile("", "ca")
+				caFile, err := os.CreateTemp("", "ca")
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = caFile.Write(caPEM)

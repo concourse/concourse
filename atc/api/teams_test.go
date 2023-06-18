@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -94,7 +94,7 @@ var _ = Describe("Teams API", func() {
 			})
 
 			It("should return the teams the user is authorized for", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[
@@ -171,7 +171,7 @@ var _ = Describe("Teams API", func() {
 			})
 
 			It("returns a team JSON", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`
@@ -356,7 +356,7 @@ var _ = Describe("Teams API", func() {
 					})
 
 					It("returns a warning in the response body", func() {
-						Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+						Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"warnings": [
 										{
@@ -571,7 +571,7 @@ var _ = Describe("Teams API", func() {
 						})
 
 						It("returns a warning in the response body", func() {
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [
 									{
@@ -589,7 +589,7 @@ var _ = Describe("Teams API", func() {
 
 						It("returns a warning in the response body", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
 										"team: identifier cannot be an empty string"
@@ -733,7 +733,7 @@ var _ = Describe("Teams API", func() {
 				})
 
 				It("returns the builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[

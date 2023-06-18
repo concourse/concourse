@@ -3,7 +3,6 @@ package integration_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -28,7 +27,7 @@ var _ = Describe("Syncing", func() {
 	)
 
 	BeforeEach(func() {
-		copiedFlyDir, err := ioutil.TempDir("", "fly_sync")
+		copiedFlyDir, err := os.MkdirTemp("", "fly_sync")
 		Expect(err).ToNot(HaveOccurred())
 
 		copiedFly, err := os.Create(filepath.Join(copiedFlyDir, filepath.Base(flyPath)))
@@ -160,13 +159,13 @@ var _ = Describe("Syncing", func() {
 })
 
 func readBinary(path string) []byte {
-	expectedBinary, err := ioutil.ReadFile(flyPath)
+	expectedBinary, err := os.ReadFile(flyPath)
 	Expect(err).NotTo(HaveOccurred())
 	return expectedBinary[:8]
 }
 
 func expectBinaryToMatch(path string, expectedBinary []byte) {
-	contents, err := ioutil.ReadFile(path)
+	contents, err := os.ReadFile(path)
 	Expect(err).NotTo(HaveOccurred())
 
 	// don't let ginkgo try and output the entire binary as ascii

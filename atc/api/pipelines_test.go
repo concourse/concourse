@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -116,7 +116,7 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("returns a JSON array of pipeline objects", func() {
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(body).To(MatchJSON(`[
 				{
@@ -163,7 +163,7 @@ var _ = Describe("Pipelines API", func() {
 
 		Context("when not authenticated", func() {
 			It("returns only public pipelines", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				var pipelines []map[string]interface{}
@@ -188,7 +188,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns all pipelines of the team + all public pipelines", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(dbPipelineFactory.VisiblePipelinesCallCount()).To(Equal(1))
@@ -215,7 +215,7 @@ var _ = Describe("Pipelines API", func() {
 					Expect(dbPipelineFactory.AllPipelinesCallCount()).To(Equal(1),
 						"Expected AllPipelines() to be called once")
 
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					var pipelinesResponse []atc.Pipeline
@@ -273,7 +273,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns a JSON array of pipeline objects", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(body).To(MatchJSON(`[
 					{
@@ -315,7 +315,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns all team's pipelines", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 				var pipelines []map[string]interface{}
 				json.Unmarshal(body, &pipelines)
@@ -344,7 +344,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns only team's public pipelines", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 				var pipelines []map[string]interface{}
 				json.Unmarshal(body, &pipelines)
@@ -362,7 +362,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns only team's public pipelines", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 				var pipelines []map[string]interface{}
 				json.Unmarshal(body, &pipelines)
@@ -442,7 +442,7 @@ var _ = Describe("Pipelines API", func() {
 			})
 
 			It("returns a pipeline JSON", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`
@@ -637,7 +637,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns an unknown badge", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -670,7 +670,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns a successful badge", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -703,7 +703,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns an aborted badge", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -736,7 +736,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns an errored badge", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -769,7 +769,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns a failed badge", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -1309,7 +1309,7 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns 400", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
+						Expect(io.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
 					})
 				})
 
@@ -1409,7 +1409,7 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns 400", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-						Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
+						Expect(io.ReadAll(response.Body)).To(ContainSubstring("pipeline 'a-pipeline' not found"))
 					})
 				})
 
@@ -1553,7 +1553,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns a json representation of all the versions in the pipeline", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`{
@@ -1722,7 +1722,7 @@ var _ = Describe("Pipelines API", func() {
 						})
 
 						It("returns a warning in the response body", func() {
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"warnings": [
 									{
@@ -1740,7 +1740,7 @@ var _ = Describe("Pipelines API", func() {
 
 						It("returns 400 Bad Request and an error in the response body", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
 										"pipeline: identifier cannot be an empty string"
@@ -1887,7 +1887,7 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				It("returns the builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[
@@ -2067,7 +2067,7 @@ var _ = Describe("Pipelines API", func() {
 					})
 
 					It("returns the created build", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{

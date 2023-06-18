@@ -2,7 +2,7 @@ package api_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -74,7 +74,7 @@ var _ = Describe("Log Level API", func() {
 							})
 
 							It("returns the current log level", func() {
-								Expect(ioutil.ReadAll(getResponse.Body)).To(Equal([]byte(atcLevel)))
+								Expect(io.ReadAll(getResponse.Body)).To(Equal([]byte(atcLevel)))
 							})
 						})
 					})

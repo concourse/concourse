@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -31,7 +30,6 @@ const defaultMessage = "hello world"
 // waitForSignal blocks until the signal we care about (`sig`) is develired.
 //
 // ps.: all other signals are ignored.
-//
 func waitForSignal(sig string) {
 	s, found := signals[strings.ToLower(sig)]
 	if !found {
@@ -72,7 +70,7 @@ func writeTenTimes(content string) {
 }
 
 func catFile(pathToFile string) {
-	bytes, err := ioutil.ReadFile(pathToFile)
+	bytes, err := os.ReadFile(pathToFile)
 	if err != nil {
 		log.Fatal("failed to read file ", err)
 	}

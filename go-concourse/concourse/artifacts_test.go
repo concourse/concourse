@@ -2,7 +2,7 @@ package concourse_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -82,7 +82,7 @@ var _ = Describe("ArtifactRepository", func() {
 			It("returns the contents", func() {
 				contents, err := team.GetArtifact(17)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(ioutil.ReadAll(contents)).To(Equal([]byte("some-other-contents")))
+				Expect(io.ReadAll(contents)).To(Equal([]byte("some-other-contents")))
 			})
 		})
 	})

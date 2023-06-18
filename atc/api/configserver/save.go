@@ -3,7 +3,7 @@ package configserver
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -41,7 +41,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	var config atc.Config
 	switch r.Header.Get("Content-type") {
 	case "application/json", "application/x-yaml":
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			HandleBadRequest(w, fmt.Sprintf("read failed: %s", err))
 			return

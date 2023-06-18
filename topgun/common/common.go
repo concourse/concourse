@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -135,7 +134,7 @@ var _ = BeforeEach(func() {
 	Fly.Target = DeploymentName
 
 	var err error
-	tmp, err = ioutil.TempDir("", "topgun-tmp")
+	tmp, err = os.MkdirTemp("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
 	Fly.Home = filepath.Join(tmp, "fly-home")

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -47,7 +46,7 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	var caCert string
 	if command.CACert != "" {
-		caCertBytes, err := ioutil.ReadFile(string(command.CACert))
+		caCertBytes, err := os.ReadFile(string(command.CACert))
 		if err != nil {
 			return err
 		}

@@ -3,7 +3,7 @@ package skycmd
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -77,7 +77,7 @@ func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
 
 func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 
-	content, err := ioutil.ReadFile(flag.Config.Path())
+	content, err := os.ReadFile(flag.Config.Path())
 	if err != nil {
 		return nil, err
 	}

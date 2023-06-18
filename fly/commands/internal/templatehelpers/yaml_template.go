@@ -2,7 +2,7 @@ package templatehelpers
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -38,7 +38,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	allowEmpty bool,
 	strict bool,
 ) ([]byte, error) {
-	config, err := ioutil.ReadFile(string(yamlTemplate.filePath))
+	config, err := os.ReadFile(string(yamlTemplate.filePath))
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %s", err.Error())
 	}
@@ -75,7 +75,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 	// same values in the files specified earlier on command line
 	for i := len(yamlTemplate.templateVariablesFiles) - 1; i >= 0; i-- {
 		path := yamlTemplate.templateVariablesFiles[i]
-		templateVars, err := ioutil.ReadFile(string(path))
+		templateVars, err := os.ReadFile(string(path))
 		if err != nil {
 			return nil, fmt.Errorf("could not read template variables file (%s): %s", string(path), err.Error())
 		}
