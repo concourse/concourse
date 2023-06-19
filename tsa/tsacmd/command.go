@@ -9,8 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"io/ioutil"
-
 	yaml "gopkg.in/yaml.v2"
 
 	"os/signal"
@@ -211,7 +209,7 @@ func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 		logger, _ := cmd.constructLogger()
 		var rawTeamAuthorizedKeys []yamlTeamAuthorizedKey
 
-		authorizedKeysBytes, err := ioutil.ReadFile(cmd.TeamAuthorizedKeysFile.Path())
+		authorizedKeysBytes, err := os.ReadFile(cmd.TeamAuthorizedKeysFile.Path())
 		if err != nil {
 			return nil, fmt.Errorf("failed to read yaml authorized keys file: %s", err)
 		}

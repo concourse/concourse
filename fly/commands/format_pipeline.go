@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"sigs.k8s.io/yaml"
@@ -19,7 +18,7 @@ type FormatPipelineCommand struct {
 
 func (command *FormatPipelineCommand) Execute(args []string) error {
 	configPath := string(command.Config)
-	configBytes, err := ioutil.ReadFile(configPath)
+	configBytes, err := os.ReadFile(configPath)
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not read config file", err)
 	}
@@ -46,7 +45,7 @@ func (command *FormatPipelineCommand) Execute(args []string) error {
 			displayhelpers.FailWithErrorf("could not stat config file", err)
 		}
 
-		err = ioutil.WriteFile(configPath, unwrappedConfigBytes, fi.Mode())
+		err = os.WriteFile(configPath, unwrappedConfigBytes, fi.Mode())
 		if err != nil {
 			displayhelpers.FailWithErrorf("could not write formatted config to %s", err, command.Config)
 		}

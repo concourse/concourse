@@ -1,7 +1,6 @@
 package testflight_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -32,7 +31,7 @@ var _ = Describe("Flying", func() {
 		err = os.MkdirAll(input2, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			filepath.Join(fixture, "run"),
 			[]byte(`#!/bin/sh
 echo some output
@@ -44,7 +43,7 @@ exit 0
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			filepath.Join(tmp, "task.yml"),
 			[]byte(`---
 platform: linux
@@ -83,7 +82,7 @@ run:
 
 	Describe("hijacking", func() {
 		It("executes an interactive command in a running task's container", func() {
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
 mkfifo /tmp/fifo
@@ -117,23 +116,23 @@ cat < /tmp/fifo
 		BeforeEach(func() {
 			gitIgnorePath := filepath.Join(input1, ".gitignore")
 
-			err := ioutil.WriteFile(gitIgnorePath, []byte(`*.exist`), 0644)
+			err := os.WriteFile(gitIgnorePath, []byte(`*.exist`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			fileToBeIgnoredPath := filepath.Join(input1, "expect-not-to.exist")
-			err = ioutil.WriteFile(fileToBeIgnoredPath, []byte(`ignored file content`), 0644)
+			err = os.WriteFile(fileToBeIgnoredPath, []byte(`ignored file content`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			fileToBeIncludedPath := filepath.Join(input2, "expect-to.exist")
-			err = ioutil.WriteFile(fileToBeIncludedPath, []byte(`included file content`), 0644)
+			err = os.WriteFile(fileToBeIncludedPath, []byte(`included file content`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			file1 := filepath.Join(input1, "file-1")
-			err = ioutil.WriteFile(file1, []byte(`file-1 contents`), 0644)
+			err = os.WriteFile(file1, []byte(`file-1 contents`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			file2 := filepath.Join(input2, "file-2")
-			err = ioutil.WriteFile(file2, []byte(`file-2 contents`), 0644)
+			err = os.WriteFile(file2, []byte(`file-2 contents`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = os.Mkdir(filepath.Join(input1, ".git"), 0755)
@@ -146,10 +145,10 @@ cat < /tmp/fifo
 			Expect(err).NotTo(HaveOccurred())
 
 			gitHEADPath := filepath.Join(input1, ".git/HEAD")
-			err = ioutil.WriteFile(gitHEADPath, []byte(`ref: refs/heads/master`), 0644)
+			err = os.WriteFile(gitHEADPath, []byte(`ref: refs/heads/master`), 0644)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(
+			err = os.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
 cp -a input-1/. output-1/
@@ -168,12 +167,12 @@ cp -a input-2/. output-2/
 			file1 := filepath.Join(tmp, "output-1", "file-1")
 			file2 := filepath.Join(tmp, "output-2", "file-2")
 
-			_, err := ioutil.ReadFile(fileToBeIgnoredPath)
+			_, err := os.ReadFile(fileToBeIgnoredPath)
 			Expect(err).To(HaveOccurred())
 
-			Expect(ioutil.ReadFile(fileToBeIncludedPath)).To(Equal([]byte("included file content")))
-			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("file-1 contents")))
-			Expect(ioutil.ReadFile(file2)).To(Equal([]byte("file-2 contents")))
+			Expect(os.ReadFile(fileToBeIncludedPath)).To(Equal([]byte("included file content")))
+			Expect(os.ReadFile(file1)).To(Equal([]byte("file-1 contents")))
+			Expect(os.ReadFile(file2)).To(Equal([]byte("file-2 contents")))
 		})
 
 		It("uploads git repo input and non git repo input, INCLUDING things in the .gitignore for git repo inputs", func() {
@@ -184,16 +183,16 @@ cp -a input-2/. output-2/
 			file1 := filepath.Join(tmp, "output-1", "file-1")
 			file2 := filepath.Join(tmp, "output-2", "file-2")
 
-			Expect(ioutil.ReadFile(fileToBeIgnoredPath)).To(Equal([]byte("ignored file content")))
-			Expect(ioutil.ReadFile(fileToBeIncludedPath)).To(Equal([]byte("included file content")))
-			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("file-1 contents")))
-			Expect(ioutil.ReadFile(file2)).To(Equal([]byte("file-2 contents")))
+			Expect(os.ReadFile(fileToBeIgnoredPath)).To(Equal([]byte("ignored file content")))
+			Expect(os.ReadFile(fileToBeIncludedPath)).To(Equal([]byte("included file content")))
+			Expect(os.ReadFile(file1)).To(Equal([]byte("file-1 contents")))
+			Expect(os.ReadFile(file2)).To(Equal([]byte("file-2 contents")))
 		})
 	})
 
 	Describe("pulling down outputs", func() {
 		It("works", func() {
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
 echo hello > output-1/file-1
@@ -208,14 +207,14 @@ echo world > output-2/file-2
 			file1 := filepath.Join(tmp, "output-1", "file-1")
 			file2 := filepath.Join(tmp, "output-2", "file-2")
 
-			Expect(ioutil.ReadFile(file1)).To(Equal([]byte("hello\n")))
-			Expect(ioutil.ReadFile(file2)).To(Equal([]byte("world\n")))
+			Expect(os.ReadFile(file1)).To(Equal([]byte("hello\n")))
+			Expect(os.ReadFile(file2)).To(Equal([]byte("world\n")))
 		})
 	})
 
 	Describe("aborting", func() {
 		It("terminates the running task", func() {
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
 trap "echo task got sigterm; exit 1" TERM
@@ -243,7 +242,7 @@ wait
 
 	Context("when an optional input is not provided", func() {
 		It("runs the task without error", func() {
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(fixture, "run"),
 				[]byte(`#!/bin/sh
 ls`),
@@ -279,7 +278,7 @@ run:
   args: [some-resource/version]
 `
 
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(tmp, "task.yml"),
 				[]byte(taskFileContents),
 				0644,
@@ -338,7 +337,7 @@ run:
   args: [mapped-resource/version]
 `
 
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(tmp, "task.yml"),
 				[]byte(taskFileContents),
 				0644,
@@ -397,7 +396,7 @@ run:
   args: [some-resource/version]
 `
 
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(tmp, "task.yml"),
 				[]byte(taskFileContents),
 				0644,
@@ -458,7 +457,7 @@ run:
   path: cat
   args: [some-resource/version]
 `
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(tmp, "task.yml"),
 				[]byte(taskFileContents),
 				0644,
@@ -482,7 +481,7 @@ run:
 
 		Context("when -j is not specified and local input in custom resource type is provided", func() {
 			BeforeEach(func() {
-				err := ioutil.WriteFile(
+				err := os.WriteFile(
 					filepath.Join(fixture, "version"),
 					[]byte(`#!/bin/sh
 echo hello from fixture

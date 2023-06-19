@@ -3,7 +3,7 @@ package integration_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -76,7 +76,7 @@ func (s *IntegrationSuite) stopContainerd() {
 
 func (s *IntegrationSuite) SetupSuite() {
 	var err error
-	s.tmpDir, err = ioutil.TempDir("", "containerd")
+	s.tmpDir, err = os.MkdirTemp("", "containerd")
 	s.NoError(err)
 
 	s.startContainerd()
@@ -136,7 +136,7 @@ func (s *IntegrationSuite) BeforeTest(suiteName, testName string) {
 func (s *IntegrationSuite) setupRootfs() {
 	var err error
 
-	s.rootfs, err = ioutil.TempDir("", "containerd-integration")
+	s.rootfs, err = os.MkdirTemp("", "containerd-integration")
 	s.NoError(err)
 
 	cmd := exec.Command("go", "build",
@@ -691,8 +691,8 @@ func (s *IntegrationSuite) TestAttachToUnknownProc() {
 	}()
 
 	_, err = container.Attach("inexistent", garden.ProcessIO{
-		Stdout: ioutil.Discard,
-		Stderr: ioutil.Discard,
+		Stdout: io.Discard,
+		Stderr: io.Discard,
 	})
 	s.Error(err)
 }

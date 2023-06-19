@@ -3,7 +3,6 @@ package atc
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +26,7 @@ func (path *PathFlag) UnmarshalFlag(value string) error {
 			return nil
 		}
 
-		tempf, err := ioutil.TempFile("", tempFilePattern)
+		tempf, err := os.CreateTemp("", tempFilePattern)
 		if err != nil {
 			return fmt.Errorf("failed to create a temp file")
 		}

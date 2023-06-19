@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -41,19 +40,19 @@ var _ = Describe("Import Strategy", func() {
 
 			BeforeEach(func() {
 				var err error
-				dir, err = ioutil.TempDir("", "host_path")
+				dir, err = os.MkdirTemp("", "host_path")
 				Expect(err).NotTo(HaveOccurred())
 
-				err = ioutil.WriteFile(filepath.Join(dir, "file-with-perms"), []byte("file-with-perms-contents"), 0600)
+				err = os.WriteFile(filepath.Join(dir, "file-with-perms"), []byte("file-with-perms-contents"), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = ioutil.WriteFile(filepath.Join(dir, "some-file"), []byte("some-file-contents"), 0644)
+				err = os.WriteFile(filepath.Join(dir, "some-file"), []byte("some-file-contents"), 0644)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = os.MkdirAll(filepath.Join(dir, "some-dir"), 0755)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = ioutil.WriteFile(filepath.Join(dir, "some-dir", "file-in-dir"), []byte("file-in-dir-contents"), 0644)
+				err = os.WriteFile(filepath.Join(dir, "some-dir", "file-in-dir"), []byte("file-in-dir-contents"), 0644)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = os.MkdirAll(filepath.Join(dir, "empty-dir"), 0755)
@@ -82,10 +81,10 @@ var _ = Describe("Import Strategy", func() {
 					Expect(createdDir).To(BeADirectory())
 
 					Expect(filepath.Join(createdDir, "some-file")).To(BeARegularFile())
-					Expect(ioutil.ReadFile(filepath.Join(createdDir, "some-file"))).To(Equal([]byte("some-file-contents")))
+					Expect(os.ReadFile(filepath.Join(createdDir, "some-file"))).To(Equal([]byte("some-file-contents")))
 
 					Expect(filepath.Join(createdDir, "file-with-perms")).To(BeARegularFile())
-					Expect(ioutil.ReadFile(filepath.Join(createdDir, "file-with-perms"))).To(Equal([]byte("file-with-perms-contents")))
+					Expect(os.ReadFile(filepath.Join(createdDir, "file-with-perms"))).To(Equal([]byte("file-with-perms-contents")))
 					fi, err := os.Lstat(filepath.Join(createdDir, "file-with-perms"))
 					Expect(err).NotTo(HaveOccurred())
 					expectedFI, err := os.Lstat(filepath.Join(dir, "file-with-perms"))
@@ -95,7 +94,7 @@ var _ = Describe("Import Strategy", func() {
 					Expect(filepath.Join(createdDir, "some-dir")).To(BeADirectory())
 
 					Expect(filepath.Join(createdDir, "some-dir", "file-in-dir")).To(BeARegularFile())
-					Expect(ioutil.ReadFile(filepath.Join(createdDir, "some-dir", "file-in-dir"))).To(Equal([]byte("file-in-dir-contents")))
+					Expect(os.ReadFile(filepath.Join(createdDir, "some-dir", "file-in-dir"))).To(Equal([]byte("file-in-dir-contents")))
 					fi, err = os.Lstat(filepath.Join(createdDir, "some-dir", "file-in-dir"))
 					Expect(err).NotTo(HaveOccurred())
 					expectedFI, err = os.Lstat(filepath.Join(dir, "some-dir", "file-in-dir"))
@@ -127,7 +126,7 @@ var _ = Describe("Import Strategy", func() {
 
 				BeforeEach(func() {
 					var err error
-					tgz, err = ioutil.TempFile("", "host_path_archive")
+					tgz, err = os.CreateTemp("", "host_path_archive")
 					Expect(err).ToNot(HaveOccurred())
 
 					err = tgzfs.Compress(tgz, strategy.Path, ".")

@@ -3,8 +3,8 @@ package integration_test
 import (
 	"encoding/pem"
 	"io"
-	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -149,7 +149,7 @@ var _ = Describe("login -k Command", func() {
 						Bytes: loginATCServer.HTTPTestServer.TLS.Certificates[0].Certificate[0],
 					}))
 
-					caCertFile, err := ioutil.TempFile("", "ca_cert.pem")
+					caCertFile, err := os.CreateTemp("", "ca_cert.pem")
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = caCertFile.WriteString(sslCert)

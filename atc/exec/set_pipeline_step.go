@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -333,7 +332,7 @@ func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
 	}
 	defer stream.Close()
 
-	byteConfig, err := ioutil.ReadAll(stream)
+	byteConfig, err := io.ReadAll(stream)
 	if err != nil {
 		return nil, err
 	}

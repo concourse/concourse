@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"text/template"
@@ -58,11 +57,11 @@ func (c *GenerateCommand) GenerateSQLMigration() error {
 
 	contents := ""
 
-	err := ioutil.WriteFile(path.Join(c.MigrationDirectory, upMigrationFileName), []byte(contents), 0644)
+	err := os.WriteFile(path.Join(c.MigrationDirectory, upMigrationFileName), []byte(contents), 0644)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path.Join(c.MigrationDirectory, downMigrationFileName), []byte(contents), 0644)
+	err = os.WriteFile(path.Join(c.MigrationDirectory, downMigrationFileName), []byte(contents), 0644)
 	if err != nil {
 		return err
 	}

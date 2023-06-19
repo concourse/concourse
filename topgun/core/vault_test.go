@@ -2,7 +2,6 @@ package topgun_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -37,7 +36,7 @@ var _ = XDescribe("Vault", func() {
 		BeforeEach(func() {
 			var err error
 
-			varsStore, err = ioutil.TempFile("", "vars-store.yml")
+			varsStore, err = os.CreateTemp("", "vars-store.yml")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(varsStore.Close()).To(Succeed())
 
@@ -163,7 +162,7 @@ var _ = XDescribe("Vault", func() {
 					"-v", "web_instances=0",
 				)
 
-				vaultCACertFile, err := ioutil.TempFile("", "vault-ca.cert")
+				vaultCACertFile, err := os.CreateTemp("", "vault-ca.cert")
 				Expect(err).ToNot(HaveOccurred())
 
 				vaultCACert := vaultCACertFile.Name()

@@ -1,7 +1,6 @@
 package testflight_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +43,7 @@ run:
 
 		JustBeforeEach(func() {
 
-			err := ioutil.WriteFile(
+			err := os.WriteFile(
 				filepath.Join(fixture, "task.yml"),
 				[]byte(taskFileContents),
 				0755,
@@ -111,7 +110,7 @@ run:
 image_resource_type: mock
 echo_text: Hello World From Command Line
 `
-				err := ioutil.WriteFile(
+				err := os.WriteFile(
 					filepath.Join(fixture, "vars.yml"),
 					[]byte(varsContents),
 					0755,

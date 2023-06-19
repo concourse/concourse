@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -289,7 +288,7 @@ var _ = Describe("Baggage Claim Client", func() {
 				out, err := vol.StreamOut(context.TODO(), ".", baggageclaim.GzipEncoding)
 				Expect(err).NotTo(HaveOccurred())
 
-				b, err := ioutil.ReadAll(out)
+				b, err := io.ReadAll(out)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(string(b)).To(Equal("some tar content"))

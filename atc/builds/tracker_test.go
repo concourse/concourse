@@ -2,7 +2,7 @@ package builds_test
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"testing"
 	"time"
 
@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	util.PanicSink = ioutil.Discard
+	util.PanicSink = io.Discard
 }
 
 type TrackerSuite struct {

@@ -1,7 +1,6 @@
 package rc_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -18,7 +17,7 @@ var _ = Describe("Targets", func() {
 
 	BeforeEach(func() {
 		var err error
-		tmpDir, err = ioutil.TempDir("", "fly-test")
+		tmpDir, err = os.MkdirTemp("", "fly-test")
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("HOME", tmpDir)
@@ -39,7 +38,7 @@ var _ = Describe("Targets", func() {
     token:
       type: Bearer
       value: some-token`
-				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("loads target with default team", func() {
@@ -64,7 +63,7 @@ var _ = Describe("Targets", func() {
   some-target:
     api: http://concourse.com
     team: main`
-				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			AfterEach(func() {
@@ -113,7 +112,7 @@ var _ = Describe("Targets", func() {
     token:
       type: Bearer
       value: some-other-token`
-			ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+			os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 		})
 		Describe("DeleteTarget", func() {
 			Context("when provided with target name to delete", func() {
@@ -160,7 +159,7 @@ var _ = Describe("Targets", func() {
     token:
       type: Bearer
       value: some-token`
-			ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+			os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 		})
 		Context("when props are provided for update", func() {
 			It("should update target to specified prop attributes", func() {
@@ -225,7 +224,7 @@ var _ = Describe("Targets", func() {
 
 			Describe("when the file exists with 0755 permissions", func() {
 				BeforeEach(func() {
-					err := ioutil.WriteFile(flyrc, []byte{}, 0755)
+					err := os.WriteFile(flyrc, []byte{}, 0755)
 					Expect(err).ToNot(HaveOccurred())
 				})
 

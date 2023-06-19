@@ -2,7 +2,7 @@ package api_test
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -103,7 +103,7 @@ var _ = Describe("cc.xml", func() {
 							})
 
 							It("returns the CC.xml", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchXML(`
@@ -131,7 +131,7 @@ var _ = Describe("cc.xml", func() {
 							})
 
 							It("returns the CC.xml", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchXML(`
@@ -159,7 +159,7 @@ var _ = Describe("cc.xml", func() {
 							})
 
 							It("returns the CC.xml", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchXML(`
@@ -187,7 +187,7 @@ var _ = Describe("cc.xml", func() {
 							})
 
 							It("returns the CC.xml", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchXML(`
@@ -216,7 +216,7 @@ var _ = Describe("cc.xml", func() {
 							})
 
 							It("returns the CC.xml", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchXML(`
@@ -229,7 +229,7 @@ var _ = Describe("cc.xml", func() {
 
 						Context("when no last build exists", func() {
 							It("returns the CC.xml without the job", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchXML("<Projects></Projects>"))
@@ -247,7 +247,7 @@ var _ = Describe("cc.xml", func() {
 						})
 
 						It("returns the CC.xml", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchXML("<Projects></Projects>"))
@@ -292,7 +292,7 @@ var _ = Describe("cc.xml", func() {
 					})
 
 					It("returns the proper web url in the CC.xml", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchXML(`
@@ -313,7 +313,7 @@ var _ = Describe("cc.xml", func() {
 					})
 
 					It("returns the CC.xml", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchXML("<Projects></Projects>"))

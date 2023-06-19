@@ -2,7 +2,7 @@ package concourse
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -30,7 +30,7 @@ func (client *client) UserInfo() (atc.UserInfo, error) {
 	case http.StatusUnauthorized:
 		return atc.UserInfo{}, ErrUnauthorized
 	default:
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return atc.UserInfo{}, internal.UnexpectedResponseError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,

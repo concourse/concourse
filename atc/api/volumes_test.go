@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -136,7 +135,7 @@ var _ = Describe("Volumes API", func() {
 					})
 
 					It("returns all volumes", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -268,7 +267,7 @@ var _ = Describe("Volumes API", func() {
 					})
 
 					It("returns a partial list of volumes", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -364,7 +363,7 @@ var _ = Describe("Volumes API", func() {
 					})
 
 					It("returns all volumes", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -390,7 +389,7 @@ var _ = Describe("Volumes API", func() {
 						})
 
 						It("returns empty list of volumes", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`[]`))

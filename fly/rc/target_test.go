@@ -3,7 +3,6 @@ package rc_test
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -95,7 +94,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 
 	BeforeEach(func() {
 		var err error
-		tmpDir, err = ioutil.TempDir("", "fly-test")
+		tmpDir, err = os.MkdirTemp("", "fly-test")
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("HOME", tmpDir)
@@ -114,7 +113,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
   some-target-a: {}
   another-target: {}
   `
-			ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+			os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 		})
 
 		AfterEach(func() {
@@ -140,7 +139,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
     token:
       type: Bearer
       value: some-token`
-				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("loads target with correct transport", func() {
@@ -180,7 +179,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 				flyrcContents, err := yaml.Marshal(flyrcConfig)
 				Expect(err).NotTo(HaveOccurred())
 
-				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("loads target with correct transport", func() {
@@ -214,11 +213,11 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 				certPath := filepath.Join(userHomeDir(), "client.pem")
 				keyPath := filepath.Join(userHomeDir(), "client.key")
 
-				err := ioutil.WriteFile(certPath, []byte(clientCert), 0600)
+				err := os.WriteFile(certPath, []byte(clientCert), 0600)
 
 				Expect(err).ToNot(HaveOccurred())
 
-				err = ioutil.WriteFile(keyPath, []byte(clientKey), 0600)
+				err = os.WriteFile(keyPath, []byte(clientKey), 0600)
 				Expect(err).ToNot(HaveOccurred())
 
 				flyrcConfig := rc.RC{
@@ -238,7 +237,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 				flyrcContents, err := yaml.Marshal(flyrcConfig)
 				Expect(err).NotTo(HaveOccurred())
 
-				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("loads target with correct transport", func() {
@@ -262,7 +261,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 			BeforeEach(func() {
 				certPath := filepath.Join(userHomeDir(), "client.pem")
 
-				err := ioutil.WriteFile(certPath, []byte(clientCert), 0600)
+				err := os.WriteFile(certPath, []byte(clientCert), 0600)
 				Expect(err).ToNot(HaveOccurred())
 
 				flyrcConfig := rc.RC{
@@ -281,7 +280,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 				flyrcContents, err := yaml.Marshal(flyrcConfig)
 				Expect(err).NotTo(HaveOccurred())
 
-				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("warns the user and exits with failure", func() {
@@ -294,7 +293,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 			BeforeEach(func() {
 				keyPath := filepath.Join(userHomeDir(), "client.key")
 
-				err := ioutil.WriteFile(keyPath, []byte(clientKey), 0600)
+				err := os.WriteFile(keyPath, []byte(clientKey), 0600)
 				Expect(err).ToNot(HaveOccurred())
 
 				flyrcConfig := rc.RC{
@@ -313,7 +312,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 				flyrcContents, err := yaml.Marshal(flyrcConfig)
 				Expect(err).NotTo(HaveOccurred())
 
-				ioutil.WriteFile(flyrc, []byte(flyrcContents), 0777)
+				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
 			})
 
 			It("warns the user and exits with failure", func() {

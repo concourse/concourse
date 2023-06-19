@@ -3,7 +3,6 @@ package postgresrunner
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -33,7 +32,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	err := os.MkdirAll(pgBase, 0755)
 	Expect(err).NotTo(HaveOccurred())
 
-	tmpdir, err := ioutil.TempDir(pgBase, "postgres")
+	tmpdir, err := os.MkdirTemp(pgBase, "postgres")
 	Expect(err).NotTo(HaveOccurred())
 
 	currentUser, err := user.Current()

@@ -2,7 +2,7 @@ package teamserver
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -14,7 +14,7 @@ func (s *Server) RenameTeam(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("rename-team")
 
-		data, err := ioutil.ReadAll(r.Body)
+		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			logger.Error("failed-to-read-body", err)
 			w.WriteHeader(http.StatusInternalServerError)

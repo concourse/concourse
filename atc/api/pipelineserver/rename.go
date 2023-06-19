@@ -2,7 +2,7 @@ package pipelineserver
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -15,7 +15,7 @@ func (s *Server) RenamePipeline(team db.Team) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := s.logger.Session("rename-pipeline")
 
-		data, err := ioutil.ReadAll(r.Body)
+		data, err := io.ReadAll(r.Body)
 		if err != nil {
 			logger.Error("failed-to-read-body", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -3,7 +3,7 @@ package tsa
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -80,7 +80,7 @@ func (l *Sweeper) Sweep(ctx context.Context, worker atc.Worker, resourceAction s
 		return containerBytes, fmt.Errorf("bad-response (%d): %s", response.StatusCode, string(b))
 	}
 
-	containerBytes, err = ioutil.ReadAll(response.Body)
+	containerBytes, err = io.ReadAll(response.Body)
 	if err != nil {
 		logger.Error("failed-to-read-response-body", err)
 		return containerBytes, fmt.Errorf("bad-repsonse-body (%d): %s", response.StatusCode, err.Error())

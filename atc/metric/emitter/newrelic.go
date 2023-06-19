@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -222,7 +221,7 @@ func (emitter *NewRelicEmitter) emitBatch(logger lager.Logger, payload []NewReli
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logger.Info("failed-to-read-response-body",
 				lager.Data{"error": err.Error(), "status-code": resp.StatusCode})

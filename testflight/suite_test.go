@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -150,7 +149,7 @@ var _ = BeforeEach(func() {
 	SetDefaultConsistentlyPollingInterval(time.Second)
 
 	var err error
-	tmp, err = ioutil.TempDir("", "testflight-tmp")
+	tmp, err = os.MkdirTemp("", "testflight-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
 	flyTarget = testflightFlyTarget
@@ -170,7 +169,7 @@ func downloadFly(atcUrl string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	outFile, err := ioutil.TempFile("", "fly")
+	outFile, err := os.CreateTemp("", "fly")
 	if err != nil {
 		return "", err
 	}

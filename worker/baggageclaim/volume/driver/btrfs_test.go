@@ -2,7 +2,6 @@ package driver_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,7 +34,7 @@ var _ = Describe("BtrFS", func() {
 
 	BeforeEach(func() {
 		var err error
-		tempDir, err = ioutil.TempDir("", "baggageclaim_driver_test")
+		tempDir, err = os.MkdirTemp("", "baggageclaim_driver_test")
 		Expect(err).NotTo(HaveOccurred())
 
 		logger := lagertest.NewTestLogger("fs")

@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -261,11 +260,11 @@ var _ = Describe("login Command", func() {
 					userInfoHandler(),
 				)
 
-				caCertFile, err := ioutil.TempFile("", "fly-login-test")
+				caCertFile, err := os.CreateTemp("", "fly-login-test")
 				Expect(err).NotTo(HaveOccurred())
 				caCertFilePath = caCertFile.Name()
 
-				err = ioutil.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
+				err = os.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
 				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
@@ -529,7 +528,7 @@ var _ = Describe("login Command", func() {
 				})
 
 				It("flyrc is backwards-compatible with pre-v5.4.0", func() {
-					flyRcContents, err := ioutil.ReadFile(homeDir + "/.flyrc")
+					flyRcContents, err := os.ReadFile(homeDir + "/.flyrc")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(flyRcContents)).To(HavePrefix("targets:"))
 				})

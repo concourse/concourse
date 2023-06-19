@@ -3,7 +3,7 @@ package policychecker
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"sigs.k8s.io/yaml"
@@ -57,7 +57,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 
 	switch ct := req.Header.Get("Content-type"); ct {
 	case "application/json", "text/vnd.yaml", "text/yaml", "text/x-yaml", "application/x-yaml":
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return nil, err
 		} else if len(body) > 0 {
@@ -70,7 +70,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 				return nil, err
 			}
 
-			req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+			req.Body = io.NopCloser(bytes.NewBuffer(body))
 		}
 	}
 

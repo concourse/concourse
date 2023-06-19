@@ -1,7 +1,7 @@
 package topgun_test
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
 	"time"
@@ -117,7 +117,7 @@ var _ = Describe("Worker stalling", func() {
 				It("resumes the build", func() {
 					By("reattaching to the build")
 					// consume all output so far
-					_, err := ioutil.ReadAll(buildSession.Out)
+					_, err := io.ReadAll(buildSession.Out)
 					Expect(err).ToNot(HaveOccurred())
 
 					// wait for new output

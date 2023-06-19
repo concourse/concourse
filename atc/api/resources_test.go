@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -100,7 +100,7 @@ var _ = Describe("Resources API", func() {
 			})
 
 			It("returns each resource, including their build", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[
@@ -161,7 +161,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns empty array", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[]`))
@@ -274,7 +274,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns each resource", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -326,7 +326,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns each resource", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[
@@ -364,7 +364,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns an empty list", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[]`))
@@ -756,7 +756,7 @@ var _ = Describe("Resources API", func() {
 
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`{
 								"id": 10,
 								"name": "some-name",
 								"team_name": "some-team",
@@ -851,7 +851,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns each resource type", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -894,7 +894,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns each resource type", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[
@@ -1021,7 +1021,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns the resource json", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`
@@ -1108,7 +1108,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns the resource json", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`
@@ -1151,7 +1151,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns the resource json describing the pinned version", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`
@@ -1182,7 +1182,7 @@ var _ = Describe("Resources API", func() {
 					})
 
 					It("returns the pin comment in the response json", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`
@@ -1245,7 +1245,7 @@ var _ = Describe("Resources API", func() {
 				})
 
 				It("returns the resource json", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`
@@ -1434,7 +1434,7 @@ var _ = Describe("Resources API", func() {
 
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
 								 "name": "some-name",
 								 "team_name": "some-team",
@@ -1625,7 +1625,7 @@ var _ = Describe("Resources API", func() {
 
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
 								 "name": "some-name",
 								 "team_name": "some-team",
@@ -1764,7 +1764,7 @@ var _ = Describe("Resources API", func() {
 
 						It("returns 201", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusCreated))
-							Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{
+							Expect(io.ReadAll(response.Body)).To(MatchJSON(`{
                  "id": 10,
 								 "name": "some-name",
 								 "team_name": "some-team",
@@ -1888,7 +1888,7 @@ var _ = Describe("Resources API", func() {
 							})
 
 							It("returns the number of rows deleted", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
@@ -1922,7 +1922,7 @@ var _ = Describe("Resources API", func() {
 							})
 
 							It("returns the number of rows deleted", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
@@ -1936,7 +1936,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("returns that 0 rows were deleted", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
@@ -2104,7 +2104,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("returns shared resources", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{
@@ -2153,7 +2153,7 @@ var _ = Describe("Resources API", func() {
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("some-error")))
+							Expect(io.ReadAll(response.Body)).To(Equal([]byte("some-error")))
 						})
 					})
 				})
@@ -2291,7 +2291,7 @@ var _ = Describe("Resources API", func() {
 						})
 
 						It("returns shared resources and resource types", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{
@@ -2340,7 +2340,7 @@ var _ = Describe("Resources API", func() {
 
 						It("returns 500", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-							Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("some-error")))
+							Expect(io.ReadAll(response.Body)).To(Equal([]byte("some-error")))
 						})
 					})
 				})

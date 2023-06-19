@@ -2,7 +2,7 @@ package emitter_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -211,7 +211,7 @@ var _ = Describe("PrometheusEmitter", func() {
 		})
 
 		res, _ := http.Get(fmt.Sprintf("http://%s:%s/metrics", prometheusConfig.BindIP, prometheusConfig.BindPort))
-		body, _ := ioutil.ReadAll(res.Body)
+		body, _ := io.ReadAll(res.Body)
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
 		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{invalid_label=\"foo\",platform=\"darwin\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))

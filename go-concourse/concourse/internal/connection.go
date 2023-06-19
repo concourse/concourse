@@ -3,7 +3,6 @@ package internal
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -209,7 +208,7 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 	}
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		body, _ := ioutil.ReadAll(response.Body)
+		body, _ := io.ReadAll(response.Body)
 
 		return UnexpectedResponseError{
 			StatusCode: response.StatusCode,

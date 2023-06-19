@@ -7,7 +7,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -540,7 +539,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.DefaultWebhookInterval = cmd.ResourceWithWebhookCheckingInterval
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
-		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
+		content, err := os.ReadFile(cmd.BaseResourceTypeDefaults.Path())
 		if err != nil {
 			return nil, err
 		}
@@ -1300,7 +1299,7 @@ func (cmd *RunCommand) validateCustomRoles() error {
 		return nil
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to open RBAC config file (%s): %w", cmd.ConfigRBAC, err)
 	}
@@ -1338,7 +1337,7 @@ func (cmd *RunCommand) parseCustomRoles() (map[string]string, error) {
 		return mapping, nil
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -1486,7 +1485,7 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 
 		if cmd.isMTLSEnabled() {
 			tlsLogger.Debug("mTLS-Enabled")
-			clientCACert, err := ioutil.ReadFile(string(cmd.TLSCaCert))
+			clientCACert, err := os.ReadFile(string(cmd.TLSCaCert))
 			if err != nil {
 				return nil, err
 			}

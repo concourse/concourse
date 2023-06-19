@@ -2,7 +2,7 @@ package api_test
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -67,7 +67,7 @@ var _ = Describe("Users API", func() {
 			})
 
 			It("returns the current user", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`{
@@ -159,7 +159,7 @@ var _ = Describe("Users API", func() {
 					})
 
 					It("returns an empty array", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[]`))
@@ -182,7 +182,7 @@ var _ = Describe("Users API", func() {
 					})
 
 					It("returns all users logged in since table creation", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[{
@@ -242,7 +242,7 @@ var _ = Describe("Users API", func() {
 				dbUserFactory.GetAllUsersByLoginDateReturns([]db.User{user1}, nil)
 			})
 			It("returns users", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[{
@@ -259,7 +259,7 @@ var _ = Describe("Users API", func() {
 				date = "1969-14-30"
 			})
 			It("returns an error message", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`{"error": "wrong date format (yyyy-mm-dd)"}`))
@@ -275,7 +275,7 @@ var _ = Describe("Users API", func() {
 				date = ""
 			})
 			It("returns an empty array", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[]`))

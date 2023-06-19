@@ -2,7 +2,7 @@ package worker_test
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -233,7 +233,7 @@ var _ = Describe("Streamer", func() {
 
 		defer stream.Close()
 
-		fileContent, err := ioutil.ReadAll(stream)
+		fileContent, err := io.ReadAll(stream)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(fileContent).To(Equal([]byte("content 2")))
@@ -256,7 +256,7 @@ var _ = Describe("Streamer", func() {
 
 		defer stream.Close()
 
-		fileContent, err := ioutil.ReadAll(stream)
+		fileContent, err := io.ReadAll(stream)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(fileContent).To(Equal([]byte("content 2")))

@@ -3,8 +3,8 @@ package vault
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 	"sync/atomic"
@@ -272,7 +272,7 @@ func (ac *APIClient) configureTLS(config *tls.Config) error {
 	}
 
 	if ac.tlsConfig.ClientCertFile != "" {
-		content, err := ioutil.ReadFile(ac.tlsConfig.ClientCertFile)
+		content, err := os.ReadFile(ac.tlsConfig.ClientCertFile)
 		if err != nil {
 			return err
 		}
@@ -281,7 +281,7 @@ func (ac *APIClient) configureTLS(config *tls.Config) error {
 	}
 
 	if ac.tlsConfig.ClientKeyFile != "" {
-		content, err := ioutil.ReadFile(ac.tlsConfig.ClientKeyFile)
+		content, err := os.ReadFile(ac.tlsConfig.ClientKeyFile)
 		if err != nil {
 			return err
 		}

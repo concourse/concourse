@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -128,7 +128,7 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		It("returns all jobs from public pipelines and pipelines in authenticated teams", func() {
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(body).To(MatchJSON(`[
@@ -195,7 +195,7 @@ var _ = Describe("Jobs API", func() {
 			})
 
 			It("returns empty array", func() {
-				body, err := ioutil.ReadAll(response.Body)
+				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(body).To(MatchJSON(`[]`))
@@ -428,7 +428,7 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns the job's name, if it's paused, and any running and finished builds", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchJSON(`{
@@ -599,7 +599,7 @@ var _ = Describe("Jobs API", func() {
 					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=cov")
 					Expect(err).NotTo(HaveOccurred())
 
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(strings.Contains(string(body), `
@@ -611,7 +611,7 @@ var _ = Describe("Jobs API", func() {
 					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge")
 					Expect(err).NotTo(HaveOccurred())
 
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(strings.Contains(string(body), `
@@ -623,7 +623,7 @@ var _ = Describe("Jobs API", func() {
 					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=")
 					Expect(err).NotTo(HaveOccurred())
 
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(strings.Contains(string(body), `
@@ -635,7 +635,7 @@ var _ = Describe("Jobs API", func() {
 					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=%24cov")
 					Expect(err).NotTo(HaveOccurred())
 
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(strings.Contains(string(body), `
@@ -671,7 +671,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns some SVG showing that the job is successful", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -724,7 +724,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns some SVG showing that the job has failed", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -777,7 +777,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns some SVG showing that the job was aborted", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -830,7 +830,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns some SVG showing that the job has errored", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
@@ -863,7 +863,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns an unknown badge", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="98" height="20">
@@ -1084,7 +1084,7 @@ var _ = Describe("Jobs API", func() {
 				})
 
 				It("returns each job's name and any running and finished builds", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(body).To(MatchJSON(`[
@@ -1189,7 +1189,7 @@ var _ = Describe("Jobs API", func() {
 						fakePipeline.DashboardReturns(dashboardResponse, nil)
 					})
 					It("should return an empty array", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[]`))
@@ -1348,7 +1348,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns the builds", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`[
@@ -1641,7 +1641,7 @@ var _ = Describe("Jobs API", func() {
 									})
 
 									It("returns the build", func() {
-										body, err := ioutil.ReadAll(response.Body)
+										body, err := io.ReadAll(response.Body)
 										Expect(err).NotTo(HaveOccurred())
 
 										Expect(body).To(MatchJSON(`{
@@ -1847,7 +1847,7 @@ var _ = Describe("Jobs API", func() {
 								})
 
 								It("returns the inputs", func() {
-									body, err := ioutil.ReadAll(response.Body)
+									body, err := io.ReadAll(response.Body)
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(body).To(MatchJSON(`[
@@ -1936,7 +1936,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("returns the build", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{
@@ -2183,7 +2183,7 @@ var _ = Describe("Jobs API", func() {
 							})
 
 							It("returns the build", func() {
-								body, err := ioutil.ReadAll(response.Body)
+								body, err := io.ReadAll(response.Body)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(body).To(MatchJSON(`{
@@ -2418,7 +2418,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("it returns the number of rows deleted", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
@@ -2430,7 +2430,7 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("it returns that 0 rows were deleted", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))
@@ -2469,7 +2469,7 @@ var _ = Describe("Jobs API", func() {
 					})
 
 					It("it returns the number of rows deleted", func() {
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`{"caches_removed": 1}`))
@@ -2481,7 +2481,7 @@ var _ = Describe("Jobs API", func() {
 						})
 
 						It("it returns that 0 rows were deleted", func() {
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`{"caches_removed": 0}`))

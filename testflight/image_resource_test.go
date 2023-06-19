@@ -1,7 +1,6 @@
 package testflight_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -21,7 +20,7 @@ var _ = Describe("Flying with an image_resource", func() {
 		err := os.MkdirAll(fixture, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = ioutil.WriteFile(
+		err = os.WriteFile(
 			filepath.Join(fixture, "run"),
 			[]byte(`#!/bin/sh
 ls /bin
@@ -32,7 +31,7 @@ ls /bin
 	})
 
 	It("propagates the rootfs and metadata to the task", func() {
-		err := ioutil.WriteFile(
+		err := os.WriteFile(
 			filepath.Join(fixture, "task.yml"),
 			[]byte(`---
 platform: linux
@@ -65,7 +64,7 @@ run:
 	})
 
 	It("allows a version to be specified", func() {
-		err := ioutil.WriteFile(
+		err := os.WriteFile(
 			filepath.Join(fixture, "task.yml"),
 			[]byte(`---
 platform: linux

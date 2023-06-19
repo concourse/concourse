@@ -2,7 +2,7 @@ package api_test
 
 import (
 	"compress/gzip"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -95,7 +95,7 @@ var _ = Describe("CLI Downloads API", func() {
 		})
 
 		It("returns the file binary", func() {
-			Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("soi soi soi")))
+			Expect(io.ReadAll(response.Body)).To(Equal([]byte("soi soi soi")))
 		})
 	})
 
@@ -123,7 +123,7 @@ var _ = Describe("CLI Downloads API", func() {
 		})
 
 		It("returns the file binary", func() {
-			Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("soi soi soi.notavirus.bat")))
+			Expect(io.ReadAll(response.Body)).To(Equal([]byte("soi soi soi.notavirus.bat")))
 		})
 	})
 
@@ -141,7 +141,7 @@ var _ = Describe("CLI Downloads API", func() {
 		})
 
 		It("returns the file binary", func() {
-			Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("soi soi soi")))
+			Expect(io.ReadAll(response.Body)).To(Equal([]byte("soi soi soi")))
 		})
 	})
 
@@ -159,7 +159,7 @@ var _ = Describe("CLI Downloads API", func() {
 		})
 
 		It("returns the file binary", func() {
-			Expect(ioutil.ReadAll(response.Body)).To(Equal([]byte("soi soi soi.notavirus.bat")))
+			Expect(io.ReadAll(response.Body)).To(Equal([]byte("soi soi soi.notavirus.bat")))
 		})
 	})
 

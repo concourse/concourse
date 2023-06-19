@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"strings"
 
@@ -149,7 +149,7 @@ func (step *LoadVarStep) fetchVars(
 
 	defer stream.Close()
 
-	fileContent, err := ioutil.ReadAll(stream)
+	fileContent, err := io.ReadAll(stream)
 	if err != nil {
 		return nil, err
 	}

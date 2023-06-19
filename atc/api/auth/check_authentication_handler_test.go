@@ -3,7 +3,6 @@ package auth_test
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 
@@ -92,7 +91,7 @@ var _ = Describe("AuthenticationHandler", func() {
 				})
 
 				It("proxies to the handler", func() {
-					responseBody, err := ioutil.ReadAll(response.Body)
+					responseBody, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(responseBody)).To(Equal("simple hello"))
 				})
@@ -108,7 +107,7 @@ var _ = Describe("AuthenticationHandler", func() {
 				})
 
 				It("rejects the request", func() {
-					responseBody, err := ioutil.ReadAll(response.Body)
+					responseBody, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(responseBody)).To(Equal("nope\n"))
 				})
@@ -155,7 +154,7 @@ var _ = Describe("AuthenticationHandler", func() {
 					})
 
 					It("rejects the request", func() {
-						responseBody, err := ioutil.ReadAll(response.Body)
+						responseBody, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(string(responseBody)).To(Equal("nope\n"))
 					})
@@ -171,7 +170,7 @@ var _ = Describe("AuthenticationHandler", func() {
 					})
 
 					It("proxies to the handler", func() {
-						responseBody, err := ioutil.ReadAll(response.Body)
+						responseBody, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(string(responseBody)).To(Equal("simple hello"))
 					})
@@ -188,7 +187,7 @@ var _ = Describe("AuthenticationHandler", func() {
 				})
 
 				It("proxies to the handler", func() {
-					responseBody, err := ioutil.ReadAll(response.Body)
+					responseBody, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(responseBody)).To(Equal("simple hello"))
 				})
