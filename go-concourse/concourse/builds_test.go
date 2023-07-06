@@ -1,7 +1,6 @@
 package concourse_test
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -403,7 +402,7 @@ var _ = Describe("ATC Handler Builds", func() {
 		Context("pagination data", func() {
 			Context("with a link header", func() {
 				BeforeEach(func() {
-					expectedURL = fmt.Sprint("/api/v1/builds")
+					expectedURL = "/api/v1/builds"
 
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -428,7 +427,7 @@ var _ = Describe("ATC Handler Builds", func() {
 
 		Context("without a link header", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/builds")
+				expectedURL = "/api/v1/builds"
 
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(

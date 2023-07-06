@@ -128,7 +128,7 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not find version matching {\"some\":\"value\"}\n")))
+					Eventually(sess.Err).Should(gbytes.Say("could not find version matching {\"some\":\"value\"}\n"))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
@@ -188,7 +188,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("saves the pin comment", func() {
-					Eventually(sess.Out).Should(gbytes.Say(fmt.Sprintf("pin comment 'some pin message' is saved\n")))
+					Eventually(sess.Out).Should(gbytes.Say("pin comment 'some pin message' is saved\n"))
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(0))
 				})
@@ -202,7 +202,7 @@ var _ = Describe("Fly CLI", func() {
 				})
 
 				It("errors", func() {
-					Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not find version matching")))
+					Eventually(sess.Err).Should(gbytes.Say("could not find version matching"))
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
 				})
