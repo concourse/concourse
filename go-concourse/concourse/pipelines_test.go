@@ -1,7 +1,6 @@
 package concourse_test
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -647,7 +646,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				},
 			}
 
-			expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/builds")
+			expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/builds"
 			expectedQuery = []string{"vars.branch=%22master%22"}
 			pipelineRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
 		})
@@ -675,7 +674,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when from is specified", func() {
 			BeforeEach(func() {
-				expectedQuery = append(expectedQuery, fmt.Sprint("from=24"))
+				expectedQuery = append(expectedQuery, "from=24")
 			})
 
 			It("calls to get all builds from that id", func() {
@@ -687,7 +686,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = append(expectedQuery, fmt.Sprint("limit=5"))
+					expectedQuery = append(expectedQuery, "limit=5")
 				})
 
 				It("appends limit to the url", func() {
@@ -701,7 +700,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when to is specified", func() {
 			BeforeEach(func() {
-				expectedQuery = append(expectedQuery, fmt.Sprint("to=26"))
+				expectedQuery = append(expectedQuery, "to=26")
 			})
 
 			It("calls to get all builds to that id", func() {
@@ -713,7 +712,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 			Context("and limit is specified", func() {
 				BeforeEach(func() {
-					expectedQuery = append(expectedQuery, fmt.Sprint("limit=15"))
+					expectedQuery = append(expectedQuery, "limit=15")
 				})
 
 				It("appends limit to the url", func() {
@@ -727,7 +726,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 		Context("when from and to are both specified", func() {
 			BeforeEach(func() {
-				expectedQuery = append(expectedQuery, fmt.Sprint("to=26"), fmt.Sprint("from=24"))
+				expectedQuery = append(expectedQuery, "to=26", "from=24")
 			})
 
 			It("sends both from and to", func() {

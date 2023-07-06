@@ -128,7 +128,7 @@ var _ = Describe("Fly CLI", func() {
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not find version matching {\"some\":\"value\"}\n")))
+							Eventually(sess.Err).Should(gbytes.Say("could not find version matching {\"some\":\"value\"}\n"))
 
 							<-sess.Exited
 							Expect(sess.ExitCode()).To(Equal(1))
