@@ -56,8 +56,8 @@ type ContainerdRuntime struct {
 		AllowHostAccess    bool      `long:"allow-host-access" description:"Allow containers to reach the host's network. This is turned off by default."`
 		///*
 		IPv6 struct {
-			Disable       bool   `long:"disable" description:"Disable IPv6 networking"`
-			Pool          string `long:"pool" default:"fd9c:31a6:c759::/64" description:"IPv6 network range to user for dynamically allocated container addresses."`
+			Enable        bool   `long:"enable" description:"Enable IPv6 networking"`
+			Pool          string `long:"pool" default:"fd9c:31a6:c759::/64" description:"IPv6 network range to use for dynamically allocated container addresses."`
 			DisableIPMasq bool   `long:"disable-masquerade" description:"Masquerade container traffic with worker address."`
 		} `group:"IPv6 Configuration" namespace:"v6"`
 		//*/

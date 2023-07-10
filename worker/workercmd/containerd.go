@@ -121,7 +121,7 @@ func (cmd *WorkerCommand) buildUpNetworkOpts(logger lager.Logger, dnsServers []s
 	}
 
 	networkConfig.IPv6 = runtime.CNIv6NetworkConfig{
-		Enabled: !cmd.Containerd.Network.IPv6.Disable,
+		Enabled: cmd.Containerd.Network.IPv6.Enable,
 		Subnet:  cmd.Containerd.Network.IPv6.Pool,
 		IPMasq:  !cmd.Containerd.Network.IPv6.DisableIPMasq,
 	}
