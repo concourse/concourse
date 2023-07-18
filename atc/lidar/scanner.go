@@ -103,3 +103,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 		metric.Metrics.ChecksEnqueued.Inc()
 	}
 }
+
+func (s *scanner) Drain(ctx context.Context) {
+	s.checkFactory.Drain()
+}
