@@ -30,6 +30,7 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		caCertFile, err = os.CreateTemp("", "ca")
+		Expect(err).NotTo(HaveOccurred())
 		caCertFile.Write(CACertBytes)
 		caCertFile.Close()
 
