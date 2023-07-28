@@ -108,7 +108,7 @@ var _ = Describe("Pipelines API", func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAdminReturns(true)
 
-				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, nil)
+				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, nil, "")
 				ssmManager := &ssm.SsmManager{
 					AwsAccessKeyID:         "",
 					AwsSecretAccessKey:     "",
@@ -140,6 +140,7 @@ var _ = Describe("Pipelines API", func() {
 							"method": "GetParameter"
 						},
 						"pipeline_secret_template": "pipeline-secret-template",
+            "shared_path": "",
 						"team_secret_template": "team-secret-template"
           }
         }`))
@@ -165,6 +166,7 @@ var _ = Describe("Pipelines API", func() {
 							"method": "GetParameter"
 						},
 						"pipeline_secret_template": "pipeline-secret-template",
+            "shared_path": "",
 						"team_secret_template": "team-secret-template"
           }
         }`))
