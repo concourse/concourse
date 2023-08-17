@@ -80,8 +80,8 @@ support such common functionality the "Concoursey way!" 🙏
 [rfc-38]: https://github.com/concourse/rfcs/blob/master/038-resource-prototypes/proposal.md
 [rfc-39]: https://github.com/concourse/rfcs/blob/master/039-var-sources/proposal.md
 
-[v10]: https://blog.concourse-ci.org/core-roadmap-towards-v10/
-[prototypes]: https://blog.concourse-ci.org/reinventing-resource-types/
+[v10]: https://blog.concourse-ci.org/2019/07/17/core-roadmap-towards-v10.html
+[prototypes]: https://blog.concourse-ci.org/2019/10/15/reinventing-resource-types.html
 
 ## Installation
 
