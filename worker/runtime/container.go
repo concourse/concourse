@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -402,9 +403,17 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, ociC
 		fmt.Printf("Using %+v (%+v) instead of %+v\n", procSpec.User, gdnProcSpec.User, ociContainerSpec.Process.User)
 
 		for idx, mount := range ociContainerSpec.Mounts {
-			if contains(mount.Options, "bind") {
-				// ociContainerSpec.Mounts[idx].Options = append(mount.Options, fmt.Sprintf("UID=%v", userId))
-				fmt.Printf("mount OPTIONS SHAIUT: %+v\n\n", ociContainerSpec.Mounts[idx].Options)
+			if contains(mount.Options, "bind") && strings.HasPrefix(mount.Destination, "/tmp") {
+				var opts []string = mount.Options
+				opts = append(opts, fmt.Sprintf("uid=%v", procSpec.User.UID))
+				opts = append(opts, fmt.Sprintf("gid=%v", procSpec.User.GID))
+				if procSpec.User.Umask != nil {
+					opts = append(opts, fmt.Sprintf("umask=%v", procSpec.User.Umask))
+				} else {
+					opts = append(opts, "umask=0755")
+				}
+				ociContainerSpec.Mounts[idx].Options = opts
+				fmt.Printf("mount OPTIONS SHAIUT: %+v\n\n", ociContainerSpec.Mounts[idx])
 			}
 		}
 		setUserEnv := fmt.Sprintf("USER=%s", gdnProcSpec.User)
