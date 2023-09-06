@@ -89,7 +89,7 @@ func (cmd *ExtractInternalConfigCommand) Execute(args []string) error {
 	var dest = cmd.FilePath
 	if cmd.Seccomp {
 		seccompfilter := bespec.GetDefaultSeccompProfile()
-		bytes, err := json.Marshal(seccompfilter)
+		bytes, err := json.MarshalIndent(seccompfilter, "", "    ")
 		if err != nil {
 			return fmt.Errorf("failed to serialize key file: %s", err)
 		}
