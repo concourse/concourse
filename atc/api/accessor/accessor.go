@@ -94,6 +94,11 @@ func contains(arr []string, val string) bool {
 
 func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 	connectorID := a.connectorID()
+
+	if connectorID == "cloudfoundry" {
+		connectorID = "cf"
+	}
+
 	userID := a.userID()
 	if userID != "" {
 		userID = fmt.Sprintf("%v:%v", connectorID, userID)

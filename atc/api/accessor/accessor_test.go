@@ -818,6 +818,44 @@ var _ = Describe("Accessor", func() {
 				})
 			})
 
+			Context("when the user is granted a role from a group by connector cloudfoundry", func() {
+				BeforeEach(func() {
+					verification.RawClaims = map[string]interface{}{
+						"sub":                "some-sub",
+						"name":               "some-name",
+						"preferred_username": "some-user-name",
+						"email":              "some-email",
+						"federated_claims": map[string]interface{}{
+							"connector_id": "cloudfoundry",
+							"user_id":      "some-user-id",
+						},
+						"groups": []interface{}{"some-group", "some-other-group"},
+					}
+
+					fakeTeam1.AuthReturns(atc.TeamAuth{
+						"owner": map[string][]string{
+							"users": {"cf:some-user-id"},
+						},
+					})
+					fakeTeam2.AuthReturns(atc.TeamAuth{
+						"member": map[string][]string{
+							"groups": {"cf:some-group"},
+						},
+					})
+					fakeTeam3.AuthReturns(atc.TeamAuth{
+						"viewer": map[string][]string{
+							"groups": {"cf:some-other-group"},
+						},
+					})
+				})
+
+				It("returns result with teams", func() {
+					Expect(result["some-team-1"]).To(ContainElement("owner"))
+					Expect(result["some-team-2"]).To(ContainElement("member"))
+					Expect(result["some-team-3"]).To(ContainElement("viewer"))
+				})
+			})
+
 			Context("when the user is granted a role from a group", func() {
 				BeforeEach(func() {
 					fakeTeam1.AuthReturns(atc.TeamAuth{
