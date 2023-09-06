@@ -49,7 +49,7 @@ func (worker *Worker) LookupContainer(ctx context.Context, handle string) (runti
 	return Container{GardenContainer: gardenContainer, DBContainer_: createdContainer}, true, nil
 }
 
-func (c Container) Run(_ context.Context, spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
+func (c Container) Run(_ context.Context, process_spec runtime.ProcessSpec, io runtime.ProcessIO) (runtime.Process, error) {
 	properties, err := c.GardenContainer.Properties()
 	if err != nil {
 		return nil, fmt.Errorf("get properties: %w", err)
@@ -58,7 +58,7 @@ func (c Container) Run(_ context.Context, spec runtime.ProcessSpec, io runtime.P
 	// ctx to stream the process output. Since we send a SIGTERM on ctx
 	// cancellation, using the same ctx for streaming results in those logs not
 	// showing up.
-	process, err := c.GardenContainer.Run(context.Background(), toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
+	process, err := c.GardenContainer.Run(context.Background(), toGardenProcessSpec(process_spec, properties), toGardenProcessIO(io))
 	if err != nil {
 		var exeNotFound garden.ExecutableNotFoundError
 		if errors.As(err, &exeNotFound) {

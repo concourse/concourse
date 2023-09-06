@@ -103,12 +103,14 @@ func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err
 			return
 		}
 
-		mounts = append(mounts, specs.Mount{
+		var mount specs.Mount = specs.Mount{
 			Source:      bindMount.SrcPath,
 			Destination: bindMount.DstPath,
 			Type:        "bind",
-			Options:     []string{"bind", mode},
-		})
+			Options:     []string{"bind", mode}, // ADD UID HERE, but not here, but later, where the user is known
+		}
+		fmt.Printf("Adding another mount: %+v\n", mount)
+		mounts = append(mounts, mount)
 	}
 
 	return

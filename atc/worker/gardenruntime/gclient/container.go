@@ -184,8 +184,8 @@ func (container *container) CurrentMemoryLimits() (garden.MemoryLimits, error) {
 	return container.connection.CurrentMemoryLimits(container.handle)
 }
 
-func (container *container) Run(ctx context.Context, spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-	return container.connection.Run(ctx, container.handle, spec, io)
+func (container *container) Run(ctx context.Context, process_spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+	return container.connection.Run(ctx, container.handle, process_spec, io)
 }
 
 func (container *container) Attach(ctx context.Context, processID string, io garden.ProcessIO) (garden.Process, error) {
