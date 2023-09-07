@@ -12,7 +12,7 @@ import (
 
 func init() {
 	RegisterConnector(&Connector{
-		id:         "cloudfoundry",
+		id:         "cf",
 		config:     &CFFlags{},
 		teamConfig: &CFTeamFlags{},
 	})

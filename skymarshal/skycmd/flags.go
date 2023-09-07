@@ -212,10 +212,6 @@ type Connector struct {
 }
 
 func (con *Connector) ID() string {
-	if con.id == "cloudfoundry" {
-		return "cf"
-	}
-
 	return con.id
 }
 
