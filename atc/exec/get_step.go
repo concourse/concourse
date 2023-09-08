@@ -185,6 +185,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		JobID:    step.metadata.JobID,
 
 		ImageSpec: imageSpec,
+		User:      step.containerMetadata.User,
 
 		Env:  step.metadata.Env(),
 		Type: db.ContainerTypeGet,

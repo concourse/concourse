@@ -421,6 +421,7 @@ func (step *TaskStep) containerSpec(logger lager.Logger, state RunState, imageSp
 		StepName: step.plan.Name,
 
 		ImageSpec: imageSpec,
+		User:      step.containerMetadata.User,
 		Env:       env,
 		Type:      metadata.Type,
 
