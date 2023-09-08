@@ -278,6 +278,8 @@ func (b *GardenBackend) Ping() (err error) {
 func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error) {
 	ctx := context.Background()
 
+	fmt.Printf("PPPPPPPPPPPPPPPPP %+v YYYYYYYYYYYYYYYYYYYYYYYY\n\n", gdnSpec)
+
 	cont, err := b.createContainer(ctx, gdnSpec)
 	if err != nil {
 		return nil, fmt.Errorf("new container: %w", err)
@@ -296,11 +298,46 @@ func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, 
 }
 
 func (b *GardenBackend) isHermetic(gdnSpec garden.ContainerSpec) bool {
-	if len(gdnSpec.NetOut) != 0 {
-		return false
+	return len(gdnSpec.NetOut) == 0
+}
+
+// Resolves the user given by the gdn process spec, or falls back to the container provided user
+func extractCanonicalUserIdFromRootfs(rootfsManager RootfsManager, metadataUser string, ociContainerSpec specs.Spec) (specs.User, error) {
+	var user specs.User
+
+	if metadataUser != "" {
+		var ok bool
+		var err error
+		user, ok, err = rootfsManager.LookupUser(ociContainerSpec.Root.Path, metadataUser)
+
+		if err != nil {
+			return specs.User{}, fmt.Errorf("lookup user: %w", err)
+		}
+		if !ok {
+			return specs.User{}, UserNotFoundError{User: metadataUser}
+		}
+		fmt.Printf("[1A] Using %+v (derived from %v) instead of %+v\n", user, metadataUser, ociContainerSpec.Process.User)
+	} else {
+		user = ociContainerSpec.Process.User
+		fmt.Printf("[1B] Using oci spec set value %+v \n", user)
 	}
 
-	return true
+	// for idx, mount := range ociContainerSpec.Mounts {
+	// 	if contains(mount.Options, "bind") && strings.HasPrefix(mount.Destination, "/tmp/build") {
+	// 		var opts []string = mount.Options
+	// 		opts = append(opts, fmt.Sprintf("uid=%v", procSpec.User.UID))
+	// 		opts = append(opts, fmt.Sprintf("gid=%v", procSpec.User.GID))
+	// 		if procSpec.User.Umask != nil {
+	// 			opts = append(opts, fmt.Sprintf("umask=%v", procSpec.User.Umask))
+	// 		} else {
+	// 			opts = append(opts, "umask=0777")
+	// 		}
+	// 		ociContainerSpec.Mounts[idx].Options = opts
+	// 		fmt.Printf("[2] mount[%v]: %+v\n\n", idx, ociContainerSpec.Mounts[idx])
+	// 	}
+	// }
+
+	return user, nil
 }
 
 func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.ContainerSpec) (containerd.Container, error) {
@@ -325,6 +362,21 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}
+
+	fmt.Printf("\n\n\n 7777777777777777777 GARDEN_BACKEND::CREATE 7777777777777777777  \n\n\n")
+
+	var task_given_username string = "" // FIXME TODO
+	user, err := extractCanonicalUserIdFromRootfs(b.rootfsManager, task_given_username, *oci)
+	if err != nil {
+		return nil, fmt.Errorf("username to uid:gid lookup: %w", err)
+	}
+
+	var mounts []specs.Mount
+	mounts, err = bespec.OciSpecBindMounts(gdnSpec.BindMounts, user)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bind mounts: %w", err)
+	}
+	oci.Mounts = append(oci.Mounts, mounts...)
 
 	netMounts, err := b.network.SetupMounts(gdnSpec.Handle)
 	if err != nil {

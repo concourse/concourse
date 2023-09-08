@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -93,17 +92,25 @@ func (c *Container) Run(
 ) (garden.Process, error) {
 	ctx := context.Background()
 
+	fmt.Printf("\n\n\n :::::::::::::::::::CONTAINER::RUN::::::::::::::::::: \n\n\n")
 	ociContainerSpec, err := c.container.Spec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("container spec: %w", err)
 	}
 
-	procSpec, err := c.setupContainerdProcSpec(spec, *ociContainerSpec)
-
-	fmt.Printf("containerdSpec %+v\n", procSpec)
+	var user specs.User
+	user, err = extractCanonicalUserIdFromRootfs(c.rootfsManager, spec.User, *ociContainerSpec)
 	if err != nil {
 		return nil, err
 	}
+
+	ociContainerSpec.Process.User
+	procSpec, err := c.setupContainerdProcSpec(spec, *ociContainerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("::::::::process spec %+v\n", procSpec)
 
 	err = c.rootfsManager.SetupCwd(ociContainerSpec.Root.Path, procSpec.Cwd)
 	if err != nil {
@@ -389,33 +396,9 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, ociC
 		}
 	}
 
+	fmt.Printf("[0] gdn Process Spec: %+v\n", procSpec)
 	if gdnProcSpec.User != "" {
-		var ok bool
-		var err error
-		procSpec.User, ok, err = c.rootfsManager.LookupUser(ociContainerSpec.Root.Path, gdnProcSpec.User)
-
-		if err != nil {
-			return specs.Process{}, fmt.Errorf("lookup user: %w", err)
-		}
-		if !ok {
-			return specs.Process{}, UserNotFoundError{User: gdnProcSpec.User}
-		}
-		fmt.Printf("Using %+v (%+v) instead of %+v\n", procSpec.User, gdnProcSpec.User, ociContainerSpec.Process.User)
-
-		for idx, mount := range ociContainerSpec.Mounts {
-			if contains(mount.Options, "bind") && strings.HasPrefix(mount.Destination, "/tmp") {
-				var opts []string = mount.Options
-				opts = append(opts, fmt.Sprintf("uid=%v", procSpec.User.UID))
-				opts = append(opts, fmt.Sprintf("gid=%v", procSpec.User.GID))
-				if procSpec.User.Umask != nil {
-					opts = append(opts, fmt.Sprintf("umask=%v", procSpec.User.Umask))
-				} else {
-					opts = append(opts, "umask=0755")
-				}
-				ociContainerSpec.Mounts[idx].Options = opts
-				fmt.Printf("mount OPTIONS SHAIUT: %+v\n\n", ociContainerSpec.Mounts[idx])
-			}
-		}
+		// user exists, was already checked before
 		setUserEnv := fmt.Sprintf("USER=%s", gdnProcSpec.User)
 		procSpec.Env = append(procSpec.Env, setUserEnv)
 	}

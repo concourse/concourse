@@ -27,6 +27,7 @@ func swapLimitEnabled() bool {
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
 //
+// The binds mounts are not mounted by container spec just yet.
 func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
@@ -43,17 +44,11 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, 
 		return
 	}
 
-	var mounts []specs.Mount
-	mounts, err = OciSpecBindMounts(gdn.BindMounts)
-	if err != nil {
-		return
-	}
-
 	resources := OciResources(gdn.Limits, isSwapLimitEnabled)
 	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, gdn.Privileged)
 
 	oci = merge(
-		defaultGardenOciSpec(initBinPath, seccomp, gdn.Privileged, maxUid, maxGid),
+		baselineGardenOciSpec(initBinPath, seccomp, gdn.Privileged, maxUid, maxGid),
 		&specs.Spec{
 			Version:  specs.Version,
 			Hostname: gdn.Handle,
@@ -62,7 +57,6 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, 
 			},
 			Hooks:       &hooks,
 			Root:        &specs.Root{Path: rootfs},
-			Mounts:      mounts,
 			Annotations: map[string]string(gdn.Properties),
 			Linux: &specs.Linux{
 				Resources:   resources,
@@ -76,7 +70,8 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, 
 
 // OciSpecBindMounts converts garden bindmounts to oci spec mounts.
 //
-func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err error) {
+// Creates all bind mounts _without_ uid= or gid= since at this point, that is not known just yet.
+func OciSpecBindMounts(bindMounts []garden.BindMount, user specs.User) (mounts []specs.Mount, err error) {
 	for _, bindMount := range bindMounts {
 		if bindMount.SrcPath == "" || bindMount.DstPath == "" {
 			err = fmt.Errorf("src and dst must not be empty")
@@ -107,9 +102,24 @@ func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err
 			Source:      bindMount.SrcPath,
 			Destination: bindMount.DstPath,
 			Type:        "bind",
-			Options:     []string{"bind", mode}, // ADD UID HERE, but not here, but later, where the user is known
+			Options:     []string{"bind", mode}, // not here, do it elsewhere XXXX
 		}
-		fmt.Printf("Adding another mount: %+v\n", mount)
+
+		if strings.HasPrefix(mount.Destination, "/tmp") {
+			if user.UID != 0 || user.GID != 0 {
+				mount.Options = append(mount.Options, fmt.Sprintf("uid=%v", user.UID), fmt.Sprintf("gid=%v", user.GID))
+			}
+
+			// var umask uint32
+			// if user.Umask == nil {
+			// 	umask = 0777
+			// } else {
+			// 	umask = *user.Umask
+			// }
+			mount.Options = append(mount.Options, "umask=0777")
+		}
+
+		fmt.Printf("88888888888888 Adding another mount: %+v\n", mount)
 		mounts = append(mounts, mount)
 	}
 
@@ -189,13 +199,12 @@ func OciCgroupsPath(basePath, handle string, privileged bool) string {
 	return filepath.Join(basePath, handle)
 }
 
-// defaultGardenOciSpec represents a default set of properties necessary in
+// baselineGardenOciSpec represents a default set of properties necessary in
 // order to satisfy the garden interface.
 //
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
-//
-func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privileged bool, maxUid, maxGid uint32) *specs.Spec {
+func baselineGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privileged bool, maxUid, maxGid uint32) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privileged)
 		capabilities = OciCapabilities(privileged)
@@ -227,7 +236,6 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privil
 }
 
 // merge merges an OCI spec `dst` into `src`.
-//
 func merge(dst, src *specs.Spec) *specs.Spec {
 	err := mergo.Merge(dst, src, mergo.WithAppendSlice)
 	if err != nil {
