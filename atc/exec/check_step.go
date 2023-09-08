@@ -262,7 +262,6 @@ func (step *CheckStep) runCheck(
 		JobID:    step.metadata.JobID,
 
 		ImageSpec: imageSpec,
-		User: step.containerMetadata.User,
 		Env:       step.metadata.Env(),
 		Type:      db.ContainerTypeCheck,
 

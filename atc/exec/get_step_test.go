@@ -246,7 +246,6 @@ var _ = Describe("GetStep", func() {
 				TeamID:         stepMetadata.TeamID,
 				TeamName:       stepMetadata.TeamName,
 				Type:           containerMetadata.Type,
-				User:           containerMetadata.User,
 				Env:            stepMetadata.Env(),
 				Dir:            resource.ResourcesDir("get"),
 				CertsBindMount: true,

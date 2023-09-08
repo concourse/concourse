@@ -168,7 +168,6 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		JobID:    step.metadata.JobID,
 
 		ImageSpec: imageSpec,
-		User:      step.containerMetadata.User,
 
 		Env:  step.metadata.Env(),
 		Type: db.ContainerTypePut,

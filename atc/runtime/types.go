@@ -94,12 +94,6 @@ type ContainerSpec struct {
 	// for running Processes. These are in addition to, but take precedence
 	// over, those defined in the container image's metdata file.
 	Env []string
-
-	// User as defined in the task, if any.
-	//
-	// Will be used to resolve and mount any bind mounts.
-	User string `default:""`
-
 	// Type is the type of step the Container is for (e.g. task, get, etc.).
 	Type db.ContainerType
 
