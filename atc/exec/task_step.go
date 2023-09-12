@@ -278,6 +278,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	delegate.SelectedWorker(logger, worker.Name())
 
+	/// XXXXXXXXXXXXXXXXXXX
 	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
 		return false, err

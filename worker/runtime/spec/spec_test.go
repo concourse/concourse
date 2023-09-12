@@ -83,7 +83,7 @@ func (s *SpecSuite) TestContainerSpecValidations() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			_, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), specs.Hooks{}, tc.spec, dummyMaxUid, dummyMaxGid)
+			_, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), specs.Hooks{}, tc.spec, specs.User{}, dummyMaxGid)
 			s.Error(err)
 		})
 	}
@@ -172,7 +172,7 @@ func (s *SpecSuite) TestOciSpecBindMounts() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			actual, err := spec.OciSpecBindMounts(tc.mounts)
+			actual, err := spec.OciSpecBindMounts(tc.mounts, specs.User{})
 			if !tc.succeeds {
 				s.Error(err)
 				return
@@ -520,7 +520,7 @@ func (s *SpecSuite) TestContainerSpec() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			actual, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), specs.Hooks{}, tc.gdn, dummyMaxUid, dummyMaxGid)
+			actual, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), specs.Hooks{}, tc.gdn, nil, dummyMaxUid, dummyMaxGid)
 			s.NoError(err)
 
 			tc.check(actual)

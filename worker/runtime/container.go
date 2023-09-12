@@ -76,25 +76,43 @@ func (c *Container) Stop(kill bool) error {
 	return nil
 }
 
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 // Run a process inside the container.
-//
 func (c *Container) Run(
 	spec garden.ProcessSpec,
 	processIO garden.ProcessIO,
 ) (garden.Process, error) {
 	ctx := context.Background()
 
-	containerSpec, err := c.container.Spec(ctx)
+	fmt.Printf("\n\n\n :::::::::::::::::::CONTAINER::RUN::::::::::::::::::: \n\n\n")
+	ociContainerSpec, err := c.container.Spec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("container spec: %w", err)
 	}
 
-	procSpec, err := c.setupContainerdProcSpec(spec, *containerSpec)
+	var user specs.User
+	user, err = extractCanonicalUserIdFromRootfs(c.rootfsManager, spec.User, *ociContainerSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	err = c.rootfsManager.SetupCwd(containerSpec.Root.Path, procSpec.Cwd)
+	ociContainerSpec.Process.User
+	procSpec, err := c.setupContainerdProcSpec(spec, *ociContainerSpec)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("::::::::process spec %+v\n", procSpec)
+
+	err = c.rootfsManager.SetupCwd(ociContainerSpec.Root.Path, procSpec.Cwd)
 	if err != nil {
 		return nil, fmt.Errorf("setup cwd: %w", err)
 	}
@@ -354,8 +372,8 @@ func procID(gdnProcSpec garden.ProcessSpec) string {
 	return id
 }
 
-func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, containerSpec specs.Spec) (specs.Process, error) {
-	procSpec := containerSpec.Process
+func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, ociContainerSpec specs.Spec) (specs.Process, error) {
+	procSpec := ociContainerSpec.Process
 
 	procSpec.Args = append([]string{gdnProcSpec.Path}, gdnProcSpec.Args...)
 	procSpec.Env = append(procSpec.Env, gdnProcSpec.Env...)
@@ -378,17 +396,9 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 		}
 	}
 
+	fmt.Printf("[0] gdn Process Spec: %+v\n", procSpec)
 	if gdnProcSpec.User != "" {
-		var ok bool
-		var err error
-		procSpec.User, ok, err = c.rootfsManager.LookupUser(containerSpec.Root.Path, gdnProcSpec.User)
-		if err != nil {
-			return specs.Process{}, fmt.Errorf("lookup user: %w", err)
-		}
-		if !ok {
-			return specs.Process{}, UserNotFoundError{User: gdnProcSpec.User}
-		}
-
+		// user exists, was already checked before
 		setUserEnv := fmt.Sprintf("USER=%s", gdnProcSpec.User)
 		procSpec.Env = append(procSpec.Env, setUserEnv)
 	}

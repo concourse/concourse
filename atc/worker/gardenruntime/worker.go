@@ -233,7 +233,10 @@ func (worker *Worker) createGardenContainer(
 		}}
 	}
 
+	fmt.Printf("SSSSSTTAAAAAAART %+v\n\n", gdnSpec)
 	gardenContainer, err := worker.gardenClient.Create(gdnSpec)
+	fmt.Printf("EEEEEEEEEEEEEEEEEEENNNNND %+v\n\n", gdnSpec)
+
 	if err != nil {
 		logger.Error("failed-to-create-container-in-garden", err)
 		markContainerAsFailed(logger, creatingContainer)
