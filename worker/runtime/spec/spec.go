@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -26,7 +26,6 @@ func swapLimitEnabled() bool {
 }
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
-//
 func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
@@ -75,7 +74,6 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, 
 }
 
 // OciSpecBindMounts converts garden bindmounts to oci spec mounts.
-//
 func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err error) {
 	for _, bindMount := range bindMounts {
 		if bindMount.SrcPath == "" || bindMount.DstPath == "" {
@@ -116,7 +114,6 @@ func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err
 
 // OciIDMappings provides the uid/gid mappings for user namespaces (if
 // necessary, based on `privileged`).
-//
 func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
 	if privileged {
 		return []specs.LinuxIDMapping{}
@@ -192,7 +189,6 @@ func OciCgroupsPath(basePath, handle string, privileged bool) string {
 //
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
-//
 func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privileged bool, maxUid, maxGid uint32) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privileged)
@@ -225,7 +221,6 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privil
 }
 
 // merge merges an OCI spec `dst` into `src`.
-//
 func merge(dst, src *specs.Spec) *specs.Spec {
 	err := mergo.Merge(dst, src, mergo.WithAppendSlice)
 	if err != nil {
@@ -240,7 +235,6 @@ func merge(dst, src *specs.Spec) *specs.Spec {
 
 // rootfsDir takes a raw rootfs uri and extracts the directory that it points to,
 // if using a valid scheme (`raw://`)
-//
 func rootfsDir(raw string) (directory string, err error) {
 	if raw == "" {
 		err = fmt.Errorf("rootfs must not be empty")
