@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/clock v1.1.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20230410130651-444cd52cc23d
 	code.cloudfoundry.org/garden v0.0.0-20230418162742-6c127706d54f
-	code.cloudfoundry.org/lager/v3 v3.0.1
+	code.cloudfoundry.org/lager/v3 v3.0.2
 	code.cloudfoundry.org/localip v0.0.0-20230406154131-9ff4293aa842
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	dario.cat/mergo v1.0.0
@@ -21,7 +21,7 @@ require (
 	github.com/concourse/dex v1.6.0
 	github.com/concourse/flag/v2 v2.0.0
 	github.com/concourse/go-archive v1.0.1
-	github.com/concourse/retryhttp v1.2.0
+	github.com/concourse/retryhttp v1.2.4
 	github.com/containerd/containerd v1.7.2
 	github.com/containerd/go-cni v1.1.9
 	github.com/containerd/typeurl/v2 v2.1.1
