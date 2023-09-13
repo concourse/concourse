@@ -19,7 +19,7 @@ require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v1.6.0
-	github.com/concourse/flag/v2 v2.0.0
+	github.com/concourse/flag/v2 v2.0.2
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.2.4
 	github.com/containerd/containerd v1.7.2
