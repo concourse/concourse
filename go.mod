@@ -9,6 +9,7 @@ require (
 	code.cloudfoundry.org/lager/v3 v3.0.1
 	code.cloudfoundry.org/localip v0.0.0-20230406154131-9ff4293aa842
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
+	dario.cat/mergo v1.0.0
 	github.com/DataDog/datadog-go/v5 v5.1.1
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.10.2
 	github.com/Masterminds/squirrel v1.5.3
@@ -32,7 +33,6 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.9.7
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/google/jsonapi v1.0.0
 	github.com/gorilla/websocket v1.5.0
@@ -40,7 +40,6 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/vault/api v1.8.2
-	github.com/imdario/mergo v0.3.13
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/jackpal/gateway v1.0.7
@@ -225,11 +224,13 @@ require (
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/pprof v0.0.0-20230406165453-00490a63f317 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
