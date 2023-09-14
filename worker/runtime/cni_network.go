@@ -142,7 +142,10 @@ type Range struct {
 }
 
 func (c CNINetworkConfig) ToJSONv4() string {
-	_,subnet_v4,_ :=net.ParseCIDR(c.IPv4.Subnet)
+	_, subnet_v4, err :=net.ParseCIDR(c.IPv4.Subnet)
+	if err != nil {
+		_, subnet_v4, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv4.Subnet);
+	}
 	ranges := [][]Range{
 		{{Subnet: types.IPNet(*subnet_v4)}},
 	}
@@ -176,7 +179,10 @@ func (c CNINetworkConfig) ToJSONv4() string {
 }
 
 func (c CNINetworkConfig) ToJSONv6() string {
-	_,subnet_v6,_ := net.ParseCIDR(c.IPv6.Subnet)
+	_,subnet_v6, err := net.ParseCIDR(c.IPv6.Subnet)
+	if err != nil {
+		_, subnet_v6, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv6.Subnet);
+	}
 	ranges := [][]Range{
 		{{Subnet:types.IPNet(*subnet_v6)}},
 	}
