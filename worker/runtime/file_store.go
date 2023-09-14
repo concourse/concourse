@@ -93,7 +93,7 @@ func (f fileStore) ContainerIpLookup(handle string) (string, error) {
 		return "", fmt.Errorf("error reading hosts file: %w", err)
 	}
 
-	found, ip, _ := hosts.HostAddressLookup(handle)
+	found, ip, _ := hosts.HostAddressLookup(handle, txeh.IPFamilyV4)
 	if !found {
 		return "", fmt.Errorf("ip not found for container handle: %s", handle)
 	}
