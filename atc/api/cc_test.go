@@ -357,8 +357,86 @@ var _ = Describe("cc.xml", func() {
 				fakeAccess.IsAuthenticatedReturns(false)
 			})
 
-			It("returns 401", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			Context("when there are public pipelines", func() {
+				BeforeEach(func() {
+					var fakeTeam *dbfakes.FakeTeam
+					fakeTeam = new(dbfakes.FakeTeam)
+					fakeTeam.NameReturns("a-public-team")
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					fakeNonPublicPipeline := new(dbfakes.FakePipeline)
+					fakeTeam.PipelinesReturns([]db.Pipeline{
+						fakeNonPublicPipeline,
+					}, nil)
+
+					fakePublicPipeline := new(dbfakes.FakePipeline)
+					fakeTeam.PublicPipelinesReturns([]db.Pipeline{
+						fakePublicPipeline,
+					}, nil)
+					endTime, _ := time.Parse(time.RFC3339, "2018-11-04T21:26:38Z")
+					fakePublicPipeline.DashboardReturns([]atc.JobSummary{
+						{
+							Name:         "a-public-job",
+							PipelineName: "exposed-pipeline",
+							TeamName:     "a-public-team",
+							FinishedBuild: &atc.BuildSummary{
+								Name:    "43",
+								Status:  "succeeded",
+								EndTime: endTime.Unix(),
+							},
+						},
+					}, nil)
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("lists public pipelines", func() {
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchXML(`
+<Projects>
+	<Project activity="Sleeping" lastBuildLabel="43" lastBuildStatus="Success" lastBuildTime="2018-11-04T21:26:38Z" name="exposed-pipeline/a-public-job" webUrl="https://example.com/teams/a-public-team/pipelines/exposed-pipeline/jobs/a-public-job"></Project>
+</Projects>
+`))
+				})
+			})
+
+			Context("when there are no public pipelines", func() {
+				BeforeEach(func() {
+					var fakeTeam *dbfakes.FakeTeam
+					fakeTeam = new(dbfakes.FakeTeam)
+					fakeTeam.NameReturns("a-private-team")
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+					fakeNonPublicPipeline := new(dbfakes.FakePipeline)
+					fakeTeam.PipelinesReturns([]db.Pipeline{
+						fakeNonPublicPipeline,
+					}, nil)
+
+					fakeTeam.PublicPipelinesReturns([]db.Pipeline{}, nil)
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns an empty project list", func() {
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(body).To(MatchXML(`<Projects></Projects>`))
+				})
+			})
+		})
+
+		Context("when the team is not found", func() {
+			BeforeEach(func() {
+				dbTeamFactory.FindTeamReturns(nil, false, nil)
+			})
+
+			It("returns 404", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
 	})
