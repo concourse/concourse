@@ -1,5 +1,5 @@
 - type: replace
-  path: /instance_groups/name=web/jobs/name=web/properties/gc_interval?
+  path: /instance_groups/name=web/jobs/name=web/properties/gc?/interval?
   value: 1s
 
 - type: replace
