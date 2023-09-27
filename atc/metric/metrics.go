@@ -11,6 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+type JobStatusLabels struct {
+	JobName      string
+	TeamName     string
+	PipelineName string
+}
+
 type StepsWaitingLabels struct {
 	Platform   string
 	TeamId     string

@@ -179,23 +179,20 @@ var _ = Describe("PrometheusEmitter", func() {
 		err               error
 	)
 
-	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("test")
-		prometheusConfig = &emitter.PrometheusConfig{
-			BindIP:   "localhost",
-			BindPort: "9090",
-		}
-	})
+	prometheusConfig = &emitter.PrometheusConfig{
+		BindIP:   "localhost",
+		BindPort: "9090",
+	}
 
-	JustBeforeEach(func() {
-		prometheusEmitter, err = prometheusConfig.NewEmitter(map[string]string{
-			// Ensure invalid labels are sanitized.
-			"invalid-label":     "foo",
-			"__prefix__test__":  "bar",
-			"_prefix_testtwo__": "baz",
-		})
-		Expect(err).To(BeNil())
+	prometheusEmitter, err = prometheusConfig.NewEmitter(map[string]string{
+		// Ensure invalid labels are sanitized.
+		"invalid-label":     "foo",
+		"__prefix__test__":  "bar",
+		"_prefix_testtwo__": "baz",
 	})
+	Expect(err).To(BeNil())
+
+	logger = lagertest.NewTestLogger("test")
 
 	It("emits step waiting metric", func() {
 		prometheusEmitter.Emit(logger, metric.Event{
@@ -215,6 +212,25 @@ var _ = Describe("PrometheusEmitter", func() {
 		defer res.Body.Close()
 		Expect(res.StatusCode).To(Equal(http.StatusOK))
 		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{invalid_label=\"foo\",platform=\"darwin\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
+		Expect(err).To(BeNil())
+	})
+
+	It("emits job status metric", func() {
+		prometheusEmitter.Emit(logger, metric.Event{
+			Name:  "job status",
+			Value: 0,
+			Attributes: map[string]string{
+				"jobName":      "job1",
+				"pipelineName": "pipeline1",
+				"teamName":     "team1",
+			},
+		})
+
+		res, _ := http.Get(fmt.Sprintf("http://%s:%s/metrics", prometheusConfig.BindIP, prometheusConfig.BindPort))
+		body, _ := io.ReadAll(res.Body)
+		defer res.Body.Close()
+		Expect(res.StatusCode).To(Equal(http.StatusOK))
+		Expect(string(body)).To(ContainSubstring("concourse_job_status{invalid_label=\"foo\",jobName=\"job1\",pipelineName=\"pipeline1\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamName=\"team1\"} 0"))
 		Expect(err).To(BeNil())
 	})
 })

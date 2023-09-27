@@ -45,6 +45,8 @@ type PrometheusEmitter struct {
 	buildsFinishedVec *prometheus.CounterVec
 	buildsSucceeded   prometheus.Counter
 
+	jobStatus *prometheus.GaugeVec
+
 	gcBuildCollectorDuration                      prometheus.Histogram
 	gcWorkerCollectorDuration                     prometheus.Histogram
 	gcResourceCacheUseCollectorDuration           prometheus.Histogram
@@ -132,10 +134,11 @@ func serializeLabels(labels *prometheus.Labels) string {
 // emitted labels.
 //
 // Prometheus format:
-//   > Label names may contain ASCII letters, numbers, as well as underscores.
-//   > They must match the regex [a-zA-Z_][a-zA-Z0-9_]*. Label names beginning
-//   > with __ are reserved for internal use.
-//   Link: https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+//
+//	> Label names may contain ASCII letters, numbers, as well as underscores.
+//	> They must match the regex [a-zA-Z_][a-zA-Z0-9_]*. Label names beginning
+//	> with __ are reserved for internal use.
+//	Link: https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
 var rePrometheusLabelInvalid = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
 
 // rePrometheusLabelClean ensures we clean any duplicate underscores.
@@ -278,6 +281,15 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
 
+	jobStatus := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace:   "concourse",
+		Subsystem:   "job",
+		Name:        "status",
+		Help:        "Status of Concourse job",
+		ConstLabels: attributes,
+	}, []string{"jobName", "pipelineName", "teamName"})
+	prometheus.MustRegister(jobStatus)
+	
 	stepsWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   "concourse",
 		Subsystem:   "steps",
@@ -815,6 +827,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
 		concurrentRequests:         concurrentRequests,
 
+		jobStatus:            jobStatus,
 		stepsWaiting:         stepsWaiting,
 		stepsWaitingDuration: stepsWaitingDuration,
 
@@ -923,6 +936,13 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "concurrent requests":
 		emitter.concurrentRequests.
 			WithLabelValues(event.Attributes["action"]).Set(event.Value)
+	case "job status":
+		emitter.jobStatus.
+			WithLabelValues(
+				event.Attributes["jobName"],
+				event.Attributes["pipelineName"],
+				event.Attributes["teamName"],
+			).Set(event.Value)
 	case "steps waiting":
 		emitter.stepsWaiting.
 			WithLabelValues(
@@ -1306,7 +1326,7 @@ func (emitter *PrometheusEmitter) updateLastSeen(event metric.Event) {
 	}
 }
 
-//periodically remove stale metrics for workers
+// periodically remove stale metrics for workers
 func (emitter *PrometheusEmitter) periodicMetricGC() {
 	for {
 		emitter.mu.Lock()
