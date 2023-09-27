@@ -15,7 +15,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b
-	github.com/aws/aws-sdk-go v1.45.16
+	github.com/aws/aws-sdk-go v1.45.17
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/caarlos0/env/v9 v9.0.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -64,7 +64,7 @@ require (
 	github.com/peterhellberg/link v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
-	github.com/prometheus/client_golang v1.16.0
+	github.com/prometheus/client_golang v1.17.0
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/sirupsen/logrus v1.9.3
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -164,9 +164,9 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc2.0.20221005185240-3a7f492d3f1b // indirect
 	github.com/opencontainers/selinux v1.11.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.3.0 // indirect
-	github.com/prometheus/common v0.42.0 // indirect
-	github.com/prometheus/procfs v0.10.1 // indirect
+	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
+	github.com/prometheus/common v0.44.0 // indirect
+	github.com/prometheus/procfs v0.11.1 // indirect
 	github.com/russellhaering/goxmldsig v1.4.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
