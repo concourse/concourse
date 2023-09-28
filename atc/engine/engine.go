@@ -273,12 +273,15 @@ func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 		logger.Info("job-not-found")
 	}
 
-	if job.LatestCompletedBuildId() <= b.build.ID() {
+	id, err := job.LatestCompletedBuildId()
+	if err != nil {
+		logger.Error("failed-to-get-latest-completed-build-id", err)
+	} else if b.build.ID() >= id {
 		metric.JobStatus{
-			Status: status.String(),
-			JobName: job.Name(),
+			Status:       status.String(),
+			JobName:      job.Name(),
 			PipelineName: job.PipelineName(),
-			TeamName: job.TeamName(),
+			TeamName:     job.TeamName(),
 		}.Emit(logger)
 	}
 
