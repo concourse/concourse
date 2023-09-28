@@ -433,6 +433,39 @@ func (event FailedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 	)
 }
 
+type JobStatus struct {
+	Status       string
+	JobName      string
+	PipelineName string
+	TeamName     string
+}
+
+func (event JobStatus) Emit(logger lager.Logger) {
+	value := -1
+	switch event.Status {
+	case "succeeded":
+		value = 0
+	case "failed":
+		value = 1
+	case "aborted":
+		value = 2
+	case "errored":
+		value = 3
+	}
+	Metrics.emit(
+		logger.Session("job-status"),
+		Event{
+			Name:  "job status",
+			Value: float64(value),
+			Attributes: map[string]string{
+				"jobName":      event.JobName,
+				"pipelineName": event.PipelineName,
+				"teamName":     event.TeamName,
+			},
+		},
+	)
+}
+
 type BuildStarted struct {
 	Build db.Build
 }

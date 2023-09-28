@@ -94,6 +94,7 @@ type Job interface {
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
 	EnsurePendingBuildExists(context.Context) error
 	GetPendingBuilds() ([]Build, error)
+	LatestCompletedBuildId() int
 
 	GetNextBuildInputs() ([]BuildInput, error)
 	GetFullNextBuildInputs() ([]BuildInput, bool, error)
@@ -221,6 +222,30 @@ func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
 func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
 func (j *job) MaxInFlight() int                 { return j.maxInFlight }
 func (j *job) DisableManualTrigger() bool       { return j.disableManualTrigger }
+
+func (j *job) LatestCompletedBuildId() int {
+	row := psql.Select(
+		"j.id",
+		"j.name",
+		"j.config",
+		"j.paused",
+		"j.public",
+		"j.first_logged_build_id",
+		"j.pipeline_id",
+		"j.nonce",
+		"j.tags",
+		"j.has_new_inputs",
+		"j.schedule_requested",
+		"j.max_in_flight",
+		"j.disable_manual_trigger",
+		"j.paused_by",
+		"j.paused_at").
+		Where(sq.Eq{"j.id": j.id}).
+		RunWith(j.conn).
+		QueryRow()
+
+	return 42
+}
 
 func (j *job) Config() (atc.JobConfig, error) {
 	if j.config != nil {
