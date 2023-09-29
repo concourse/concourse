@@ -15,7 +15,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b
-	github.com/aws/aws-sdk-go v1.45.17
+	github.com/aws/aws-sdk-go v1.45.19
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/caarlos0/env/v9 v9.0.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -57,7 +57,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo/v2 v2.12.1
-	github.com/onsi/gomega v1.27.10
+	github.com/onsi/gomega v1.28.0
 	github.com/opencontainers/runc v1.1.9
 	github.com/opencontainers/runtime-spec v1.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -79,13 +79,13 @@ require (
 	github.com/vito/go-sse v1.0.0
 	github.com/vito/houdini v1.1.3
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
-	go.opentelemetry.io/otel v1.18.0
+	go.opentelemetry.io/otel v1.19.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.18.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.18.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.19.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.19.0
 	go.opentelemetry.io/otel/oteltest v1.0.0-RC3
-	go.opentelemetry.io/otel/sdk v1.18.0
-	go.opentelemetry.io/otel/trace v1.18.0
+	go.opentelemetry.io/otel/sdk v1.19.0
+	go.opentelemetry.io/otel/trace v1.19.0
 	golang.org/x/crypto v0.13.0
 	golang.org/x/oauth2 v0.12.0
 	golang.org/x/sync v0.3.0
@@ -231,7 +231,7 @@ require (
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/zalando/go-keyring v0.2.3-0.20230503081219-17db2e5354bd // indirect
-	go.opentelemetry.io/otel/metric v1.18.0 // indirect
+	go.opentelemetry.io/otel/metric v1.19.0 // indirect
 	go.step.sm/crypto v0.16.2 // indirect
 	golang.org/x/exp v0.0.0-20221004215720-b9f4876ce741 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230726155614-23370e0ffb3e // indirect
