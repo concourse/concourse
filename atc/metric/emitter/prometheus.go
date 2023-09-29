@@ -289,7 +289,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		ConstLabels: attributes,
 	}, []string{"jobName", "pipelineName", "teamName"})
 	prometheus.MustRegister(jobStatus)
-	
+
 	stepsWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   "concourse",
 		Subsystem:   "steps",
