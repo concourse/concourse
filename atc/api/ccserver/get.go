@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
@@ -45,8 +46,14 @@ func (s *Server) GetCC(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	var pipelines []db.Pipeline
+	acc := accessor.GetAccessor(r)
 
-	pipelines, err := team.Pipelines()
+	if acc.IsAuthorized(teamName) {
+		pipelines, err = team.Pipelines()
+	} else {
+		pipelines, err = team.PublicPipelines()
+	}
 
 	if err != nil {
 		logger.Error("failed-to-get-all-active-pipelines", err)
