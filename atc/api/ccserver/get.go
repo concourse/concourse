@@ -1,12 +1,13 @@
 package ccserver
 
 import (
-	"code.cloudfoundry.org/lager/v3"
 	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/url"
 	"time"
+
+	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
