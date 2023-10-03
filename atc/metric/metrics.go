@@ -441,7 +441,7 @@ type JobStatus struct {
 }
 
 func (event JobStatus) Emit(logger lager.Logger) {
-	value := -1
+	var value int
 	switch event.Status {
 	case "succeeded":
 		value = 0
@@ -451,11 +451,14 @@ func (event JobStatus) Emit(logger lager.Logger) {
 		value = 2
 	case "errored":
 		value = 3
+	default:
+		return
 	}
+
 	Metrics.emit(
-		logger.Session("job-status"),
+		logger.Session("latest-completed-build-status"),
 		Event{
-			Name:  "job status",
+			Name:  "latest completed build status",
 			Value: float64(value),
 			Attributes: map[string]string{
 				"jobName":      event.JobName,

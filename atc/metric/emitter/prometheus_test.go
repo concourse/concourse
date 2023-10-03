@@ -211,7 +211,7 @@ var _ = Describe("PrometheusEmitter", func() {
 		})
 
 		prometheusEmitter.Emit(logger, metric.Event{
-			Name:  "job status",
+			Name:  "latest completed build status",
 			Value: 0,
 			Attributes: map[string]string{
 				"jobName":      "job1",
@@ -230,6 +230,6 @@ var _ = Describe("PrometheusEmitter", func() {
 		}
 
 		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_steps_waiting{invalid_label=\"foo\",platform=\"darwin\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
-		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_job_status{invalid_label=\"foo\",jobName=\"job1\",pipelineName=\"pipeline1\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamName=\"team1\"} 0"))
+		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_builds_latest_completed_build_status{invalid_label=\"foo\",jobName=\"job1\",pipelineName=\"pipeline1\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamName=\"team1\"} 0"))
 	})
 })

@@ -45,7 +45,7 @@ type PrometheusEmitter struct {
 	buildsFinishedVec *prometheus.CounterVec
 	buildsSucceeded   prometheus.Counter
 
-	jobStatus *prometheus.GaugeVec
+	latestCompletedBuildStatus *prometheus.GaugeVec
 
 	gcBuildCollectorDuration                      prometheus.Histogram
 	gcWorkerCollectorDuration                     prometheus.Histogram
@@ -281,14 +281,14 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	}, []string{"action"})
 	prometheus.MustRegister(concurrentRequests)
 
-	jobStatus := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	latestCompletedBuildStatus := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   "concourse",
-		Subsystem:   "job",
-		Name:        "status",
-		Help:        "Status of Concourse job",
+		Subsystem:   "builds",
+		Name:        "latest_completed_build_status",
+		Help:        "Status of Latest Completed Build",
 		ConstLabels: attributes,
 	}, []string{"jobName", "pipelineName", "teamName"})
-	prometheus.MustRegister(jobStatus)
+	prometheus.MustRegister(latestCompletedBuildStatus)
 
 	stepsWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace:   "concourse",
@@ -827,7 +827,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
 		concurrentRequests:         concurrentRequests,
 
-		jobStatus:            jobStatus,
+		latestCompletedBuildStatus:            latestCompletedBuildStatus,
 		stepsWaiting:         stepsWaiting,
 		stepsWaitingDuration: stepsWaitingDuration,
 
@@ -936,8 +936,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 	case "concurrent requests":
 		emitter.concurrentRequests.
 			WithLabelValues(event.Attributes["action"]).Set(event.Value)
-	case "job status":
-		emitter.jobStatus.
+	case "latest completed build status":
+		emitter.latestCompletedBuildStatus.
 			WithLabelValues(
 				event.Attributes["jobName"],
 				event.Attributes["pipelineName"],
