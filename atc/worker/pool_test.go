@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -18,12 +19,13 @@ import (
 var _ = Describe("Pool", func() {
 	Describe("FindOrSelectWorker", func() {
 		Test("find a worker with an existing container", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1"),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithDBContainersInState(grt.Creating, "my-container"),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
 
@@ -37,15 +39,16 @@ var _ = Describe("Pool", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(worker.Name()).To(Equal("worker2"))
+			Expect(worker.Name()).To(Equal(fmt.Sprintf("worker2-%d", concurrentId)))
 		})
 
 		Test("selects a worker when container owner has no worker", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1"),
-					grt.NewWorker("worker2"),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
 
@@ -59,19 +62,20 @@ var _ = Describe("Pool", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(worker.Name()).To(BeOneOf("worker1", "worker2", "worker3"))
+			Expect(worker.Name()).To(BeOneOf(fmt.Sprintf("worker1-%d", concurrentId), fmt.Sprintf("worker2-%d", concurrentId), fmt.Sprintf("worker3-%d", concurrentId)))
 		})
 
 		Test("follows the strategy for selecting a worker", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithBasicJob(),
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
 						WithJobBuildContainerCreatedInDBAndGarden().
 						WithJobBuildContainerCreatedInDBAndGarden(),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithJobBuildContainerCreatedInDBAndGarden(),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
 
@@ -90,14 +94,15 @@ var _ = Describe("Pool", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(worker.Name()).To(Equal("worker3"))
+			Expect(worker.Name()).To(Equal(fmt.Sprintf("worker3-%d", concurrentId)))
 		})
 
 		Test("selects a new worker when owning worker is incompatible", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1"),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithContainersCreatedInDBAndGarden(
 							grt.NewContainer("my-container"),
 						).
@@ -115,14 +120,15 @@ var _ = Describe("Pool", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(worker.Name()).To(Equal("worker1"))
+			Expect(worker.Name()).To(Equal(fmt.Sprintf("worker1-%d", concurrentId)))
 		})
 
 		Test("selects a new worker when owning worker is not running", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1"),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithContainersCreatedInDBAndGarden(
 							grt.NewContainer("my-container"),
 						).
@@ -140,14 +146,15 @@ var _ = Describe("Pool", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(worker.Name()).To(Equal("worker1"))
+			Expect(worker.Name()).To(Equal(fmt.Sprintf("worker1-%d", concurrentId)))
 		})
 
 		Test("filters out incompatible workers by resource type", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1"),
-					grt.NewWorker("worker2"),
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)),
 				),
 			)
 
@@ -165,10 +172,11 @@ var _ = Describe("Pool", func() {
 		})
 
 		Test("filters out incompatible workers by platform", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1"),
-					grt.NewWorker("worker2"),
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)),
 				),
 			)
 
@@ -186,11 +194,12 @@ var _ = Describe("Pool", func() {
 		})
 
 		Test("filters out incompatible workers by tags", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").WithTags("A", "C"),
-					grt.NewWorker("worker2").WithTags("B", "C"),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).WithTags("A", "C"),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).WithTags("B", "C"),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
 
@@ -208,12 +217,13 @@ var _ = Describe("Pool", func() {
 		})
 
 		Test("only considers team workers when any team worker is compatible", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithTeam("team"),
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").WithTeam("team"),
-					grt.NewWorker("worker2"),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).WithTeam("team"),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
 
@@ -229,16 +239,17 @@ var _ = Describe("Pool", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(worker.Name()).To(Equal("worker1"))
+			Expect(worker.Name()).To(Equal(fmt.Sprintf("worker1-%d", concurrentId)))
 		})
 
 		Test("considers general workers when all team workers are incompatible", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithTeam("team"),
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").WithTeam("team").WithPlatform("dummy"),
-					grt.NewWorker("worker2"),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).WithTeam("team").WithPlatform("dummy"),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
 
@@ -255,15 +266,16 @@ var _ = Describe("Pool", func() {
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(worker.Name()).To(BeOneOf("worker2", "worker3"))
+			Expect(worker.Name()).To(BeOneOf(fmt.Sprintf("worker2-%d", concurrentId), fmt.Sprintf("worker3-%d", concurrentId)))
 		})
 
 		Test("no worker satisfies strategy", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
 						WithActiveTasks(1),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithActiveTasks(1),
 				),
 			)
@@ -322,34 +334,35 @@ var _ = Describe("Pool", func() {
 			})
 
 			By("freeing up a worker", func() {
-				strategy.Release(logger, scenario.Worker("worker1").DBWorker(), taskSpec)
+				strategy.Release(logger, scenario.Worker(fmt.Sprintf("worker1-%d", concurrentId)).DBWorker(), taskSpec)
 				worker := <-workerCh
-				Expect(worker.Name()).To(Equal("worker1"))
+				Expect(worker.Name()).To(Equal(fmt.Sprintf("worker1-%d", concurrentId)))
 			})
 		})
 	})
 
 	Describe("FindResourceCacheVolume", func() {
 		Test("finds a resource cache volume among multiple workers", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-2"),
 						),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1")
+			resourceCache := scenario.FindOrCreateResourceCache(fmt.Sprintf("worker1-%d", concurrentId))
 
-			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume(fmt.Sprintf("worker1-%d", concurrentId), "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
+			_, err = scenario.WorkerVolume(fmt.Sprintf("worker2-%d", concurrentId), "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolume(ctx, 0, resourceCache, worker.Spec{}, time.Now())
@@ -359,29 +372,30 @@ var _ = Describe("Pool", func() {
 		})
 
 		Test("skips over workers with volume missing", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-2"),
 						),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1")
+			resourceCache := scenario.FindOrCreateResourceCache(fmt.Sprintf("worker1-%d", concurrentId))
 
-			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume(fmt.Sprintf("worker1-%d", concurrentId), "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
+			_, err = scenario.WorkerVolume(fmt.Sprintf("worker2-%d", concurrentId), "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("destroying one of the worker's resource cache volumes", func() {
-				_, err := scenario.WorkerVolume("worker1", "resource-cache-1").DBVolume().Destroying()
+				_, err := scenario.WorkerVolume(fmt.Sprintf("worker1-%d", concurrentId), "resource-cache-1").DBVolume().Destroying()
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -392,18 +406,19 @@ var _ = Describe("Pool", func() {
 		})
 
 		Test("skips over stalled workers", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						).
 						WithState(db.WorkerStateStalled),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1")
+			resourceCache := scenario.FindOrCreateResourceCache(fmt.Sprintf("worker1-%d", concurrentId))
 
-			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume(fmt.Sprintf("worker1-%d", concurrentId), "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err := scenario.Pool.FindResourceCacheVolume(ctx, 0, resourceCache, worker.Spec{}, time.Now())
@@ -414,46 +429,48 @@ var _ = Describe("Pool", func() {
 
 	Describe("FindResourceCacheVolumeOnWorker", func() {
 		Test("finds a resource cache volume on a worker", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
-					grt.NewWorker("worker2").
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-2"),
 						),
-					grt.NewWorker("worker3"),
+					grt.NewWorker(fmt.Sprintf("worker3-%d", concurrentId)),
 				),
 			)
-			resourceCache := scenario.FindOrCreateResourceCache("worker1")
+			resourceCache := scenario.FindOrCreateResourceCache(fmt.Sprintf("worker1-%d", concurrentId))
 
-			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume(fmt.Sprintf("worker1-%d", concurrentId), "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = scenario.WorkerVolume("worker2", "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
+			_, err = scenario.WorkerVolume(fmt.Sprintf("worker2-%d", concurrentId), "resource-cache-2").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
-			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, worker.Spec{}, "worker1", time.Now())
+			cacheVolume, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, worker.Spec{}, fmt.Sprintf("worker1-%d", concurrentId), time.Now())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(cacheVolume.Handle()).To(Equal("resource-cache-1"))
 		})
 
 		Test("ignores invalid worker names", func() {
+			concurrentId := GinkgoParallelProcess()
 			scenario := Setup(
 				workertest.WithWorkers(
-					grt.NewWorker("worker1").
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
 						WithVolumesCreatedInDBAndBaggageclaim(
 							grt.NewVolume("resource-cache-1"),
 						),
 				),
 			)
 
-			resourceCache := scenario.FindOrCreateResourceCache("worker1")
+			resourceCache := scenario.FindOrCreateResourceCache(fmt.Sprintf("worker1-%d", concurrentId))
 
-			_, err := scenario.WorkerVolume("worker1", "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
+			_, err := scenario.WorkerVolume(fmt.Sprintf("worker1-%d", concurrentId), "resource-cache-1").InitializeResourceCache(ctx, resourceCache)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err := scenario.Pool.FindResourceCacheVolumeOnWorker(ctx, resourceCache, worker.Spec{}, "invalid-worker", time.Now())
