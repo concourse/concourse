@@ -20,11 +20,10 @@ import (
 var _ = Describe("NewRelicEmitter", func() {
 
 	var (
-		testEmitter emitter.NewRelicEmitter
-		server      *Server
-		client      *http.Client
-		testEvent   metric.Event
-		testLogger  lager.Logger
+		server     *Server
+		client     *http.Client
+		testEvent  metric.Event
+		testLogger lager.Logger
 	)
 
 	BeforeEach(func() {
@@ -49,6 +48,7 @@ var _ = Describe("NewRelicEmitter", func() {
 
 	Context("Emits metrics", func() {
 		Context("when batch size is 2", func() {
+			var testEmitter emitter.NewRelicEmitter
 			BeforeEach(func() {
 				testEmitter = emitter.NewRelicEmitter{
 					NewRelicBatch: make([]emitter.NewRelicEvent, 0),
@@ -85,6 +85,7 @@ var _ = Describe("NewRelicEmitter", func() {
 			})
 		})
 		Context("when batch duration is 1 millisecond", func() {
+			var testEmitter emitter.NewRelicEmitter
 			BeforeEach(func() {
 				testEmitter = emitter.NewRelicEmitter{
 					NewRelicBatch: make([]emitter.NewRelicEvent, 0),
@@ -121,7 +122,7 @@ var _ = Describe("NewRelicEmitter", func() {
 		})
 
 		DescribeTable("Compression", func(compressionState bool, expectedEncoding string) {
-			testEmitter = emitter.NewRelicEmitter{
+			testEmitter := emitter.NewRelicEmitter{
 				NewRelicBatch:      make([]emitter.NewRelicEvent, 0),
 				BatchDuration:      100 * time.Second,
 				BatchSize:          1,
