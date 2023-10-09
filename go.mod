@@ -23,7 +23,7 @@ require (
 	github.com/concourse/flag/v2 v2.0.2
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.2.4
-	github.com/containerd/containerd v1.7.6
+	github.com/containerd/containerd v1.7.7
 	github.com/containerd/go-cni v1.1.9
 	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/coreos/go-iptables v0.7.0
@@ -56,7 +56,7 @@ require (
 	github.com/miekg/dns v1.1.56
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
-	github.com/onsi/ginkgo/v2 v2.12.1
+	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.28.0
 	github.com/opencontainers/runc v1.1.9
 	github.com/opencontainers/runtime-spec v1.1.0
@@ -104,7 +104,7 @@ require (
 	cloud.google.com/go/compute v1.23.0 // indirect
 	cloud.google.com/go/trace v1.10.1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/Microsoft/hcsshim v0.11.0 // indirect
+	github.com/Microsoft/hcsshim v0.11.1 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/beevik/etree v1.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -204,6 +204,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
+	github.com/containerd/log v0.1.0 // indirect
 	github.com/coreos/go-oidc/v3 v3.6.0 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
