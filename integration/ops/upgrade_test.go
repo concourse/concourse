@@ -7,9 +7,7 @@ import (
 	"github.com/concourse/concourse/integration/internal/flytest"
 )
 
-func TestUpgrade(t *testing.T) {
-	t.Parallel()
-
+func TestUpgradeOps(t *testing.T) {
 	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/latest.yml", "overrides/fast-gc.yml")
 
 	t.Run("deploy latest", func(t *testing.T) {

@@ -8,9 +8,7 @@ import (
 	"github.com/concourse/concourse/integration/internal/flytest"
 )
 
-func TestDowngrade(t *testing.T) {
-	t.Parallel()
-
+func TestDowngradeOps(t *testing.T) {
 	devDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/fast-gc.yml")
 
 	t.Run("deploy dev", func(t *testing.T) {
