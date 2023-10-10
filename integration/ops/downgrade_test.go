@@ -8,10 +8,8 @@ import (
 	"github.com/concourse/concourse/integration/internal/flytest"
 )
 
-func TestDowngrade(t *testing.T) {
-	t.Parallel()
-
-	devDC := dctest.Init(t, "../docker-compose.yml", "overrides/named-downgrade.yml", "overrides/fast-gc.yml")
+func TestDowngradeOps(t *testing.T) {
+	devDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/fast-gc.yml")
 
 	t.Run("deploy dev", func(t *testing.T) {
 		devDC.Run(t, "up", "-d")
@@ -20,7 +18,7 @@ func TestDowngrade(t *testing.T) {
 	fly := flytest.Init(t, devDC)
 	setupUpgradeDowngrade(t, fly)
 
-	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named-downgrade.yml", "overrides/latest.yml", "overrides/fast-gc.yml")
+	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/latest.yml", "overrides/fast-gc.yml")
 
 	t.Run("migrate down to latest from clean deploy", func(t *testing.T) {
 		// just to see what it was before

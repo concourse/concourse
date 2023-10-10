@@ -3,4 +3,4 @@ version: '3'
 services:
   worker:
     environment:
-      CONCOURSE_NAME: ops-worker-upgrade
+      CONCOURSE_NAME: ops-worker
