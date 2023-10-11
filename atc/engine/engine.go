@@ -267,6 +267,35 @@ func (b *engineBuild) finish(logger lager.Logger, err error, succeeded bool) {
 func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 	if err := b.build.Finish(db.BuildStatus(status)); err != nil {
 		logger.Error("failed-to-finish-build", err)
+		return
+	}
+
+	if b.build.JobID() == 0 {
+		return
+	}
+
+	job, found, err := b.build.Job()
+	if err != nil {
+		logger.Error("failed-to-get-job", err)
+		return
+	}
+	if !found {
+		logger.Info("build-job-not-found")
+		return
+	}
+
+	id, err := job.LatestCompletedBuildId()
+	if err != nil {
+		logger.Error("failed-to-get-latest-completed-build-id", err)
+		return
+	}
+	if b.build.ID() >= id {
+		metric.JobStatus{
+			Status:       status.String(),
+			JobName:      job.Name(),
+			PipelineName: job.PipelineName(),
+			TeamName:     job.TeamName(),
+		}.Emit(logger)
 	}
 }
 

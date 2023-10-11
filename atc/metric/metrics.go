@@ -11,6 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+type JobStatusLabels struct {
+	JobName      string
+	TeamName     string
+	PipelineName string
+}
+
 type StepsWaitingLabels struct {
 	Platform   string
 	TeamId     string
@@ -423,6 +429,42 @@ func (event FailedVolumesToBeGarbageCollected) Emit(logger lager.Logger) {
 			Name:       "failed volumes to be garbage collected",
 			Value:      float64(event.Volumes),
 			Attributes: map[string]string{},
+		},
+	)
+}
+
+type JobStatus struct {
+	Status       string
+	JobName      string
+	PipelineName string
+	TeamName     string
+}
+
+func (event JobStatus) Emit(logger lager.Logger) {
+	var value int
+	switch event.Status {
+	case "succeeded":
+		value = 0
+	case "failed":
+		value = 1
+	case "aborted":
+		value = 2
+	case "errored":
+		value = 3
+	default:
+		return
+	}
+
+	Metrics.emit(
+		logger.Session("latest-completed-build-status"),
+		Event{
+			Name:  "latest completed build status",
+			Value: float64(value),
+			Attributes: map[string]string{
+				"jobName":      event.JobName,
+				"pipelineName": event.PipelineName,
+				"teamName":     event.TeamName,
+			},
 		},
 	)
 }

@@ -355,6 +355,34 @@ var _ = Describe("Job", func() {
 		})
 	})
 
+	Describe("LatestCompletedBuildId", func() {
+		var (
+			someJob db.Job
+			build   db.Build
+			err     error
+		)
+
+		BeforeEach(func() {
+			var found bool
+			someJob, found, err = pipeline.Job("some-job")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+
+			build, err = someJob.CreateBuild(defaultBuildCreatedBy)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("fetches latest completed build id on a job", func() {
+			By("finishing the build")
+			err = build.Finish(db.BuildStatusFailed)
+			Expect(err).NotTo(HaveOccurred())
+
+			latestCompletedBuildId, err := someJob.LatestCompletedBuildId()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(latestCompletedBuildId).To(Equal(build.ID()))
+		})
+	})
+
 	Describe("ChronoBuilds", func() {
 		var (
 			someJob                     db.Job

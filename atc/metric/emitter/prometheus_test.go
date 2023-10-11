@@ -197,7 +197,7 @@ var _ = Describe("PrometheusEmitter", func() {
 		Expect(err).To(BeNil())
 	})
 
-	It("emits step waiting metric", func() {
+	It("emits metric", func() {
 		prometheusEmitter.Emit(logger, metric.Event{
 			Name:  "steps waiting",
 			Value: 4,
@@ -210,11 +210,26 @@ var _ = Describe("PrometheusEmitter", func() {
 			},
 		})
 
-		res, _ := http.Get(fmt.Sprintf("http://%s:%s/metrics", prometheusConfig.BindIP, prometheusConfig.BindPort))
-		body, _ := io.ReadAll(res.Body)
-		defer res.Body.Close()
-		Expect(res.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(body)).To(ContainSubstring("concourse_steps_waiting{invalid_label=\"foo\",platform=\"darwin\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
-		Expect(err).To(BeNil())
+		prometheusEmitter.Emit(logger, metric.Event{
+			Name:  "latest completed build status",
+			Value: 0,
+			Attributes: map[string]string{
+				"jobName":      "job1",
+				"pipelineName": "pipeline1",
+				"teamName":     "team1",
+			},
+		})
+
+		getPrometheusMetrics := func() string {
+			res, _ := http.Get(fmt.Sprintf("http://%s:%s/metrics", prometheusConfig.BindIP, prometheusConfig.BindPort))
+			body, _ := io.ReadAll(res.Body)
+			defer res.Body.Close()
+
+			Expect(res.StatusCode).To(Equal(http.StatusOK))
+			return string(body)
+		}
+
+		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_steps_waiting{invalid_label=\"foo\",platform=\"darwin\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
+		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_builds_latest_completed_build_status{invalid_label=\"foo\",jobName=\"job1\",pipelineName=\"pipeline1\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamName=\"team1\"} 0"))
 	})
 })

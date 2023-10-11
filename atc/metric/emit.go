@@ -61,6 +61,7 @@ type Monitor struct {
 	CheckBuildsStarted Counter
 	CheckBuildsRunning Gauge
 
+	JobStatuses  map[JobStatusLabels]*Gauge
 	StepsWaiting map[StepsWaitingLabels]*Gauge
 
 	// When global resource is not enabled, ChecksStarted should equal to CheckBuildsStarted.
