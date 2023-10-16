@@ -73,37 +73,57 @@ func (command *BuildsCommand) Execute([]string) error {
 
 func (command *BuildsCommand) getBuilds(builds []atc.Build, currentTeam concourse.Team, page concourse.Page, client concourse.Client, teams []concourse.Team) ([]atc.Build, error) {
 	var err error
-	if command.pipelineFlag() {
-		builds, err = command.validatePipelineBuilds(builds, currentTeam, page)
-		if err != nil {
-			return nil, err
-		}
-	} else if command.jobFlag() {
-		builds, err = command.validateJobBuilds(builds, currentTeam, page)
-		if err != nil {
-			return nil, err
-		}
-	} else if command.AllTeams {
+
+	if command.AllTeams {
 		teams, err = command.getAllTeams(client, teams)
 		if err != nil {
 			return nil, err
 		}
 	} else if len(command.Teams) > 0 || command.CurrentTeam {
 		teams = command.validateCurrentTeam(teams, currentTeam, client)
-	} else {
-		builds, _, err = client.Builds(page)
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	for _, team := range teams {
-		teamBuilds, _, err := team.Builds(page)
-		if err != nil {
-			return nil, err
+	if len(teams) > 0 {
+		for _, team := range teams {
+			var teamBuilds []atc.Build
+			if command.pipelineFlag() {
+				teamBuilds, err = command.validatePipelineBuilds(builds, team, page)
+				if err != nil {
+					return nil, err
+				}
+			} else if command.jobFlag() {
+				teamBuilds, err = command.validateJobBuilds(builds, team, page)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				teamBuilds, _, err = team.Builds(page)
+				if err != nil {
+					return nil, err
+				}
+
+			}
+
+			builds = append(builds, teamBuilds...)
+		}
+	} else {
+		if command.pipelineFlag() {
+			builds, err = command.validatePipelineBuilds(builds, currentTeam, page)
+			if err != nil {
+				return nil, err
+			}
+		} else if command.jobFlag() {
+			builds, err = command.validateJobBuilds(builds, currentTeam, page)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			builds, _, err = client.Builds(page)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		builds = append(builds, teamBuilds...)
 	}
 
 	return builds, err
