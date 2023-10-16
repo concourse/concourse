@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caarlos0/env/v6"
+	"github.com/caarlos0/env/v9"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	corev1 "k8s.io/api/core/v1"
