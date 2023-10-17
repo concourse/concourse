@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 )
 
 type Template struct {
@@ -72,17 +72,6 @@ var (
 
 func (i interpolator) Interpolate(node interface{}, tracker varsTracker) (interface{}, error) {
 	switch typedNode := node.(type) {
-	case map[string]interface{}:
-		for k, v := range typedNode {
-			evaluatedValue, err := i.Interpolate(v, tracker)
-			if err != nil {
-				return nil, err
-			}
-
-			delete(typedNode, k) // delete in case key has changed
-			typedNode[k] = evaluatedValue
-		}
-
 	case map[interface{}]interface{}:
 		for k, v := range typedNode {
 			evaluatedValue, err := i.Interpolate(v, tracker)

@@ -22,9 +22,9 @@ func New() *Progress {
 }
 
 func (prog *Progress) Go(name string, f func(*mpb.Bar) error) {
-	bar := prog.progress.AddSpinner(
+	bar := prog.progress.New(
 		0,
-		mpb.SpinnerOnLeft,
+		mpb.SpinnerStyle().PositionLeft(),
 		mpb.PrependDecorators(
 			decor.Name(
 				name,
@@ -33,11 +33,11 @@ func (prog *Progress) Go(name string, f func(*mpb.Bar) error) {
 		),
 		mpb.AppendDecorators(
 			decor.OnComplete(
-				decor.AverageSpeed(decor.UnitKiB, "(%.1f)"),
+				decor.AverageSpeed(decor.SizeB1024(0), "(%.1f)"),
 				" "+ui.Embolden("done"),
 			),
 		),
-		mpb.BarClearOnComplete(),
+		mpb.BarFillerClearOnComplete(),
 	)
 
 	prog.errs.Go(func() error {

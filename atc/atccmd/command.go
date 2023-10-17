@@ -72,7 +72,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/oauth2"
 	"golang.org/x/time/rate"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 
 	// dynamically registered metric emitters
 	_ "github.com/concourse/concourse/atc/metric/emitter"

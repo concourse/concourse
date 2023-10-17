@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	yaml "gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v2"
 
 	"os/signal"
 	"syscall"
