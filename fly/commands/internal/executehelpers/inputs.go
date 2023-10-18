@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/ui/progress"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/vbauerster/mpb/v4"
+	"github.com/vbauerster/mpb/v8"
 )
 
 type Input struct {
