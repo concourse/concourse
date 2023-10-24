@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -50,7 +49,7 @@ func (f fileStore) Create(name string, content []byte) (string, error) {
 		return "", fmt.Errorf("mkdirall: %w", err)
 	}
 
-	err = ioutil.WriteFile(absPath, content, 0755)
+	err = os.WriteFile(absPath, content, 0755)
 	if err != nil {
 		return "", fmt.Errorf("write file: %w", err)
 	}
@@ -94,7 +93,7 @@ func (f fileStore) ContainerIpLookup(handle string) (string, error) {
 		return "", fmt.Errorf("error reading hosts file: %w", err)
 	}
 
-	found, ip, _ := hosts.HostAddressLookup(handle)
+	found, ip, _ := hosts.HostAddressLookup(handle, txeh.IPFamilyV4)
 	if !found {
 		return "", fmt.Errorf("ip not found for container handle: %s", handle)
 	}

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -218,27 +218,30 @@ var _ = Describe("Baggage Claim Client", func() {
 
 			It("streams the volume", func() {
 				bodyChan := make(chan []byte, 1)
+				limitChan := make(chan string, 1)
 
 				bcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/volumes/some-handle/stream-in"),
 						func(w http.ResponseWriter, r *http.Request) {
-							str, _ := ioutil.ReadAll(r.Body)
+							str, _ := io.ReadAll(r.Body)
 							bodyChan <- str
+							limitChan <- r.URL.Query().Get("limit")
 						},
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					),
 				)
-				err := vol.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, strings.NewReader("some tar content"))
+				err := vol.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, 1024, strings.NewReader("some tar content"))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(bodyChan).To(Receive(Equal([]byte("some tar content"))))
+				Expect(limitChan).To(Receive(Equal(fmt.Sprintf("%f", float64(1024)))))
 			})
 
 			Context("when unexpected error occurs", func() {
 				It("returns error code and useful message", func() {
 					mockErrorResponse("PUT", "/volumes/some-handle/stream-in", "lost baggage", http.StatusInternalServerError)
-					err := vol.StreamIn(context.TODO(), "./some/path/", baggageclaim.GzipEncoding, strings.NewReader("even more tar"))
+					err := vol.StreamIn(context.TODO(), "./some/path/", baggageclaim.GzipEncoding, 0, strings.NewReader("even more tar"))
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(Equal("lost baggage"))
 				})
@@ -285,7 +288,7 @@ var _ = Describe("Baggage Claim Client", func() {
 				out, err := vol.StreamOut(context.TODO(), ".", baggageclaim.GzipEncoding)
 				Expect(err).NotTo(HaveOccurred())
 
-				b, err := ioutil.ReadAll(out)
+				b, err := io.ReadAll(out)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(string(b)).To(Equal("some tar content"))

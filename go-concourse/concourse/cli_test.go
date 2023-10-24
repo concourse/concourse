@@ -1,7 +1,7 @@
 package concourse_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -39,7 +39,7 @@ var _ = Describe("ATC Handler CLI", func() {
 		It("returns an unclosed io.ReaderCloser", func() {
 			readerCloser, _, err := client.GetCLIReader(expectedArch, expectedPlatform)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(ioutil.ReadAll(readerCloser)).To(Equal([]byte("sup")))
+			Expect(io.ReadAll(readerCloser)).To(Equal([]byte("sup")))
 		})
 
 		It("returns response Headers", func() {

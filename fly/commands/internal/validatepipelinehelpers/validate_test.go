@@ -1,7 +1,6 @@
 package validatepipelinehelpers_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -25,10 +24,10 @@ var _ = Describe("Validate Pipeline", func() {
 		BeforeEach(func() {
 			var err error
 
-			tmpdir, err = ioutil.TempDir("", "validate-test")
+			tmpdir, err = os.MkdirTemp("", "validate-test")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(
+			err = os.WriteFile(
 				filepath.Join(tmpdir, "good-pipeline.yml"),
 				[]byte(`---
 resource_types:
@@ -57,7 +56,7 @@ jobs:
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(
+			err = os.WriteFile(
 				filepath.Join(tmpdir, "dupkey-pipeline.yml"),
 				[]byte(`---
 resource_types:
@@ -91,7 +90,7 @@ resource_types:
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(
+			err = os.WriteFile(
 				filepath.Join(tmpdir, "good-across-pipeline.yml"),
 				[]byte(`---
 resource_types:

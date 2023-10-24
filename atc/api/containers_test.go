@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -133,7 +132,7 @@ var _ = Describe("Containers API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`
@@ -184,7 +183,7 @@ var _ = Describe("Containers API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`
@@ -473,7 +472,7 @@ var _ = Describe("Containers API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`
@@ -1047,7 +1046,7 @@ var _ = Describe("Containers API", func() {
 						response, err := client.Do(req)
 						Expect(err).NotTo(HaveOccurred())
 
-						body, err := ioutil.ReadAll(response.Body)
+						body, err := io.ReadAll(response.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(body).To(MatchJSON(`
@@ -1066,7 +1065,7 @@ var _ = Describe("Containers API", func() {
 							response, err := client.Do(req)
 							Expect(err).NotTo(HaveOccurred())
 
-							body, err := ioutil.ReadAll(response.Body)
+							body, err := io.ReadAll(response.Body)
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(body).To(MatchJSON(`

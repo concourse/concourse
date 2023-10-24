@@ -5,7 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/clock/fakeclock"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	sq "github.com/Masterminds/squirrel"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -50,6 +51,9 @@ var (
 	userFactory                         db.UserFactory
 	dbWall                              db.Wall
 	fakeClock                           dbfakes.FakeClock
+	fakeRander                          *dbfakes.FakeComponentRand
+	fakeGoroutineCounter                *dbfakes.FakeGoroutineCounter
+	fakeCompClock                       *fakeclock.FakeClock
 
 	builder dbtest.Builder
 
@@ -120,9 +124,13 @@ var _ = BeforeEach(func() {
 	checkBuildChan = make(chan db.Build, 10)
 	seqGenerator = util.NewSequenceGenerator(1)
 
+	fakeRander = new(dbfakes.FakeComponentRand)
+	fakeGoroutineCounter = new(dbfakes.FakeGoroutineCounter)
+	fakeCompClock = fakeclock.NewFakeClock(time.Now())
+
 	fakeSecrets = new(credsfakes.FakeSecrets)
 	fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
-	componentFactory = db.NewComponentFactory(dbConn)
+	componentFactory = db.NewComponentFactory(dbConn, 0, fakeRander, fakeCompClock, fakeGoroutineCounter)
 	buildFactory = db.NewBuildFactory(dbConn, lockFactory, 5*time.Minute, 5*time.Minute)
 	volumeRepository = db.NewVolumeRepository(dbConn)
 	containerRepository = db.NewContainerRepository(dbConn)

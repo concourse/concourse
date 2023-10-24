@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	awssecretsmanager "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
@@ -63,7 +63,7 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		It("contains the version", func() {
-			body, err := ioutil.ReadAll(response.Body)
+			body, err := io.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(body).To(MatchJSON(fmt.Sprintf(`{
@@ -97,7 +97,7 @@ var _ = Describe("Pipelines API", func() {
 			}
 			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 
-			body, err = ioutil.ReadAll(response.Body)
+			body, err = io.ReadAll(response.Body)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

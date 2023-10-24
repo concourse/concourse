@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -68,10 +68,10 @@ func (team *team) OrderingPipelines(pipelineNames []string) error {
 	case http.StatusForbidden:
 		return fmt.Errorf("you do not have a role on team '%s'", team.Name())
 	case http.StatusBadRequest:
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf(string(body))
 	default:
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return internal.UnexpectedResponseError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,
@@ -112,10 +112,10 @@ func (team *team) OrderingPipelinesWithinGroup(groupName string, instanceVars []
 	case http.StatusForbidden:
 		return fmt.Errorf("you do not have a role on team '%s'", team.Name())
 	case http.StatusBadRequest:
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf(string(body))
 	default:
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return internal.UnexpectedResponseError{
 			StatusCode: resp.StatusCode,
 			Status:     resp.Status,

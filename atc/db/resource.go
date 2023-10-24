@@ -491,7 +491,9 @@ func (r *resource) ClearVersions() (int64, error) {
 		}).
 		RunWith(r.conn).
 		Exec()
-
+	if err != nil {
+		return 0, err
+	}
 	rowsDeleted, err := results.RowsAffected()
 	if err != nil {
 		return 0, err

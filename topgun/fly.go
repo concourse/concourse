@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -171,7 +170,7 @@ func RequestCredsInfo(webUrl, token string) ([]byte, error) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(resp.StatusCode).To(Equal(200))
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	Expect(err).NotTo(HaveOccurred())
 
 	return body, err

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,11 +16,11 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/go-jose/go-jose/v3/jwt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 var flyPath string
@@ -122,7 +121,7 @@ func createFlyRc(targets rc.Targets) {
 		panic(err)
 	}
 
-	err = ioutil.WriteFile(flyrc, flyrcBytes, 0600)
+	err = os.WriteFile(flyrc, flyrcBytes, 0600)
 	if err != nil {
 		panic(err)
 	}
@@ -140,7 +139,7 @@ var _ = BeforeEach(func() {
 
 	var err error
 
-	homeDir, err = ioutil.TempDir("", "fly-test")
+	homeDir, err = os.MkdirTemp("", "fly-test")
 	Expect(err).NotTo(HaveOccurred())
 
 	os.Setenv("HOME", homeDir)

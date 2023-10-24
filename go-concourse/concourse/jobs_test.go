@@ -565,7 +565,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when job step exists", func() {
 			JustBeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/tasks/mystep/cache")
+				expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/tasks/mystep/cache"
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest(requestMethod, expectedURL, strings.Join(expectedQuery, "&")),
@@ -608,7 +608,7 @@ var _ = Describe("ATC Handler Jobs", func() {
 
 		Context("when job step does not exist", func() {
 			BeforeEach(func() {
-				expectedURL = fmt.Sprint("/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/tasks/my-nonexistent-step/cache")
+				expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/jobs/myjob/tasks/my-nonexistent-step/cache"
 				expectedQuery = append(expectedQuery, "cache_path=mycachepath")
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(

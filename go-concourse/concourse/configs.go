@@ -3,7 +3,7 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -81,7 +81,7 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 	}
 
 	defer response.Body.Close()
-	body, _ := ioutil.ReadAll(response.Body)
+	body, _ := io.ReadAll(response.Body)
 
 	switch response.StatusCode {
 	case http.StatusOK, http.StatusCreated:

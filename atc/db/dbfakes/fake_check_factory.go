@@ -10,6 +10,10 @@ import (
 )
 
 type FakeCheckFactory struct {
+	DrainStub        func()
+	drainMutex       sync.RWMutex
+	drainArgsForCall []struct {
+	}
 	ResourceTypesByPipelineStub        func() (map[int]db.ResourceTypes, error)
 	resourceTypesByPipelineMutex       sync.RWMutex
 	resourceTypesByPipelineArgsForCall []struct {
@@ -57,6 +61,30 @@ type FakeCheckFactory struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCheckFactory) Drain() {
+	fake.drainMutex.Lock()
+	fake.drainArgsForCall = append(fake.drainArgsForCall, struct {
+	}{})
+	stub := fake.DrainStub
+	fake.recordInvocation("Drain", []interface{}{})
+	fake.drainMutex.Unlock()
+	if stub != nil {
+		fake.DrainStub()
+	}
+}
+
+func (fake *FakeCheckFactory) DrainCallCount() int {
+	fake.drainMutex.RLock()
+	defer fake.drainMutex.RUnlock()
+	return len(fake.drainArgsForCall)
+}
+
+func (fake *FakeCheckFactory) DrainCalls(stub func()) {
+	fake.drainMutex.Lock()
+	defer fake.drainMutex.Unlock()
+	fake.DrainStub = stub
 }
 
 func (fake *FakeCheckFactory) ResourceTypesByPipeline() (map[int]db.ResourceTypes, error) {
@@ -247,6 +275,8 @@ func (fake *FakeCheckFactory) TryCreateCheckReturnsOnCall(i int, result1 db.Buil
 func (fake *FakeCheckFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.drainMutex.RLock()
+	defer fake.drainMutex.RUnlock()
 	fake.resourceTypesByPipelineMutex.RLock()
 	defer fake.resourceTypesByPipelineMutex.RUnlock()
 	fake.resourcesMutex.RLock()

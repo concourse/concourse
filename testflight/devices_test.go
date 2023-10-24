@@ -18,7 +18,7 @@ var _ = Describe("Devices", func() {
 		setAndUnpausePipeline("fixtures/devices.yml")
 
 		watch := flyUnsafe("trigger-job", "-j", inPipeline("check-fuse-unprivileged"), "-w")
-		Expect(watch.ExitCode()).To(Equal(1))
+		Expect(watch.ExitCode()).ToNot(Equal(0))
 		Expect(watch).To(gbytes.Say("No such file or directory"))
 	})
 })

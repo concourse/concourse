@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	update "github.com/inconshreveable/go-update"
-	"github.com/vbauerster/mpb/v4"
-	"github.com/vbauerster/mpb/v4/decor"
+	"github.com/vbauerster/mpb/v8"
+	"github.com/vbauerster/mpb/v8/decor"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"

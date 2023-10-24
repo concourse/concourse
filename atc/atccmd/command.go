@@ -7,7 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api"
@@ -58,10 +58,9 @@ import (
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/web"
-	"github.com/concourse/flag"
-	"gopkg.in/square/go-jose.v2/jwt"
-
+	"github.com/concourse/flag/v2"
 	"github.com/cppforlife/go-semi-semantic/version"
+	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jessevdk/go-flags"
 	gocache "github.com/patrickmn/go-cache"
@@ -159,6 +158,7 @@ type RunCommand struct {
 
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" choice:"raw" description:"Compression algorithm for internal streaming."`
+	StreamingSizeLimitationInMB       float64       `long:"streaming-size-limitation" default:"0.0" description:"Internal volume streaming size limitation in MB. In case of small limitation needed, float can be used like 0.01."`
 
 	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
 
@@ -265,6 +265,10 @@ type RunCommand struct {
 	DefaultGetTimeout  time.Duration `long:"default-get-timeout" description:"Default timeout of get steps"`
 	DefaultPutTimeout  time.Duration `long:"default-put-timeout" description:"Default timeout of put steps"`
 	DefaultTaskTimeout time.Duration `long:"default-task-timeout" description:"Default timeout of task steps"`
+
+	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
+
+	DBNotificationBusQueueSize int `long:"db-notification-bus-queue-size" default:"10000" description:"DB notification bus queue size, default is 10000. If UI often misses loading running build logs, then consider to increase the queue size."`
 }
 
 type Migration struct {
@@ -539,7 +543,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.DefaultResourceTypeInterval = cmd.ResourceTypeCheckingInterval
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
-		content, err := ioutil.ReadFile(cmd.BaseResourceTypeDefaults.Path())
+		content, err := os.ReadFile(cmd.BaseResourceTypeDefaults.Path())
 		if err != nil {
 			return nil, err
 		}
@@ -551,6 +555,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		}
 
 		atc.LoadBaseResourceTypeDefaults(defaults)
+	}
+
+	err = db.SetNotificationBusQueueSize(cmd.DBNotificationBusQueueSize)
+	if err != nil {
+		return nil, err
 	}
 
 	//FIXME: These only need to run once for the entire binary. At the moment,
@@ -730,7 +739,12 @@ func (cmd *RunCommand) constructMembers(
 
 	// use backendConn so that the Component objects created by the factory uses
 	// the backend connection pool when reloading.
-	componentFactory := db.NewComponentFactory(backendConn)
+	componentFactory := db.NewComponentFactory(
+		backendConn,
+		cmd.NumGoroutineThreshold,
+		rander{},
+		clock.NewClock(),
+		db.RealGoroutineCounter{})
 	bus := backendConn.Bus()
 
 	members := apiMembers
@@ -1073,6 +1087,11 @@ func (cmd *RunCommand) backendComponents(
 		policyChecker,
 	)
 
+	buildEventWatcher, err := db.NewBuildBeingWatchedMarker(logger, dbConn, db.DefaultBuildBeingWatchedMarkDuration, clock.NewClock())
+	if err != nil {
+		return nil, err
+	}
+
 	// In case that a user configures resource-checking-interval, but forgets to
 	// configure resource-with-webhook-checking-interval, keep both checking-
 	// intervals consistent. Even if both intervals are configured, there is no
@@ -1159,6 +1178,13 @@ func (cmd *RunCommand) backendComponents(
 				syslogDrainConfigured,
 			),
 		},
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentBeingWatchedBuildMarker,
+				Interval: 10 * time.Minute,
+			},
+			Runnable: buildEventWatcher,
+		},
 	}
 
 	if syslogDrainConfigured {
@@ -1191,10 +1217,14 @@ func (cmd *RunCommand) compression() compression.Compression {
 }
 
 func (cmd *RunCommand) streamer(cacheFactory db.ResourceCacheFactory) worker.Streamer {
-	return worker.NewStreamer(cacheFactory, cmd.compression(), worker.P2PConfig{
-		Enabled: cmd.FeatureFlags.EnableP2PVolumeStreaming,
-		Timeout: cmd.P2pVolumeStreamingTimeout,
-	})
+	return worker.NewStreamer(cacheFactory,
+		cmd.compression(),
+		cmd.StreamingSizeLimitationInMB,
+		worker.P2PConfig{
+			Enabled: cmd.FeatureFlags.EnableP2PVolumeStreaming,
+			Timeout: cmd.P2pVolumeStreamingTimeout,
+		},
+	)
 }
 
 func (cmd *RunCommand) constructPool(dbConn db.Conn, lockFactory lock.LockFactory, workerCache *db.WorkerCache) (worker.Pool, error) {
@@ -1299,7 +1329,7 @@ func (cmd *RunCommand) validateCustomRoles() error {
 		return nil
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to open RBAC config file (%s): %w", cmd.ConfigRBAC, err)
 	}
@@ -1337,7 +1367,7 @@ func (cmd *RunCommand) parseCustomRoles() (map[string]string, error) {
 		return mapping, nil
 	}
 
-	content, err := ioutil.ReadFile(path)
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -1485,7 +1515,7 @@ func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Conf
 
 		if cmd.isMTLSEnabled() {
 			tlsLogger.Debug("mTLS-Enabled")
-			clientCACert, err := ioutil.ReadFile(string(cmd.TLSCaCert))
+			clientCACert, err := os.ReadFile(string(cmd.TLSCaCert))
 			if err != nil {
 				return nil, err
 			}
@@ -2070,4 +2100,11 @@ type RunnableComponent struct {
 
 func (cmd *RunCommand) isMTLSEnabled() bool {
 	return string(cmd.TLSCaCert) != ""
+}
+
+type rander struct{}
+
+func (r rander) Int() int {
+	// The global rand is thread-safe.
+	return rand.Int()
 }

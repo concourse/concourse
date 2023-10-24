@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
 
@@ -250,7 +250,7 @@ func (c *client) newVolume(apiVolume baggageclaim.VolumeResponse) baggageclaim.V
 	return volume
 }
 
-func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, tarContent io.Reader) error {
+func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, limitInMB float64, tarContent io.Reader) error {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamIn", tracing.Attrs{
 		"volume":   destHandle,
 		"encoding": string(encoding),
@@ -261,7 +261,10 @@ func (c *client) streamIn(ctx context.Context, destHandle string, path string, e
 		"handle": destHandle,
 	}, tarContent)
 
-	request.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
+	request.URL.RawQuery = url.Values{
+		"path":  []string{path},
+		"limit": []string{fmt.Sprintf("%f", limitInMB)},
+	}.Encode()
 	if err != nil {
 		return err
 	}
@@ -389,7 +392,7 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 	var result string
 	buf := make([]byte, 1024)
 	for {
-		len, err := response.Body.Read(buf);
+		len, err := response.Body.Read(buf)
 		if len > 0 {
 			result += strings.TrimSpace(string(buf[:len]))
 		}

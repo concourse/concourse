@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/worker"
 	"github.com/concourse/concourse/worker/baggageclaim/baggageclaimcmd"
 	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"

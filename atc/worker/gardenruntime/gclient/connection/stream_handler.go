@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/garden/transport"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type streamHandler struct {

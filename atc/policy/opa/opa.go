@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc/policy"
 )
@@ -69,7 +69,7 @@ func (c opa) Check(input policy.PolicyCheckInput) (policy.PolicyCheckResult, err
 		return nil, fmt.Errorf("opa returned status: %d", statusCode)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("opa returned no response: %s", err.Error())
 	}

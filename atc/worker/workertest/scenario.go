@@ -3,7 +3,7 @@ package workertest
 import (
 	"context"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/compression"
@@ -155,5 +155,5 @@ func (s *Scenario) ContainerVolume(workerName string, containerHandle string, mo
 }
 
 func (s *Scenario) Streamer(p2p worker.P2PConfig) worker.Streamer {
-	return worker.NewStreamer(s.Factory.DB.ResourceCacheFactory, compression.NewGzipCompression(), p2p)
+	return worker.NewStreamer(s.Factory.DB.ResourceCacheFactory, compression.NewGzipCompression(), 0, p2p)
 }

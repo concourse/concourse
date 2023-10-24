@@ -1,7 +1,6 @@
 package volume
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -137,7 +136,7 @@ func (fs *filesystem) LookupVolume(handle string) (FilesystemLiveVolume, bool, e
 }
 
 func (fs *filesystem) ListVolumes() ([]FilesystemLiveVolume, error) {
-	liveDirs, err := ioutil.ReadDir(fs.liveDir)
+	liveDirs, err := os.ReadDir(fs.liveDir)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,6 @@
 package runtime_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -24,9 +23,9 @@ nameserver something 9.9.9.9
 search something
 `
 
-	tmpDir, _ := ioutil.TempDir("", "test-resolv")
+	tmpDir, _ := os.MkdirTemp("", "test-resolv")
 	defer os.RemoveAll(tmpDir)
-	ioutil.WriteFile(path.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
+	os.WriteFile(path.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
 
 	entries, err := runtime.ParseHostResolveConf(path.Join(tmpDir, "resolv.conf"))
 	s.NoError(err)
@@ -37,9 +36,9 @@ search something
 func (s *ResolveconfParserSuite) TestParseHostResolvConfWithLoopback() {
 	file := `nameserver 127.0.0.1`
 
-	tmpDir, _ := ioutil.TempDir("", "test-resolv-noloopback")
+	tmpDir, _ := os.MkdirTemp("", "test-resolv-noloopback")
 	defer os.RemoveAll(tmpDir)
-	ioutil.WriteFile(path.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
+	os.WriteFile(path.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
 
 	entries, err := runtime.ParseHostResolveConf(path.Join(tmpDir, "resolv.conf"))
 	s.NoError(err)

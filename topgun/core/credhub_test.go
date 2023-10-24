@@ -9,7 +9,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -48,7 +47,7 @@ var _ = Describe("Credhub", func() {
 			credhubInstance = Instance("credhub")
 			postgresInstance := JobInstance("postgres")
 
-			varsDir, err := ioutil.TempDir("", "vars")
+			varsDir, err := os.MkdirTemp("", "vars")
 			Expect(err).ToNot(HaveOccurred())
 
 			defer os.RemoveAll(varsDir)
@@ -65,7 +64,7 @@ var _ = Describe("Credhub", func() {
 				"-v", "postgres_ip="+postgresInstance.IP,
 			)
 
-			varsBytes, err := ioutil.ReadFile(varsStore)
+			varsBytes, err := os.ReadFile(varsStore)
 			Expect(err).ToNot(HaveOccurred())
 
 			var vars struct {
@@ -80,11 +79,11 @@ var _ = Describe("Credhub", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			clientCert := filepath.Join(varsDir, "client.cert")
-			err = ioutil.WriteFile(clientCert, []byte(vars.CredHubClient.Certificate), 0644)
+			err = os.WriteFile(clientCert, []byte(vars.CredHubClient.Certificate), 0644)
 			Expect(err).ToNot(HaveOccurred())
 
 			clientKey := filepath.Join(varsDir, "client.key")
-			err = ioutil.WriteFile(clientKey, []byte(vars.CredHubClient.PrivateKey), 0644)
+			err = os.WriteFile(clientKey, []byte(vars.CredHubClient.PrivateKey), 0644)
 			Expect(err).ToNot(HaveOccurred())
 
 			credhubClient, err = credhub.New(
@@ -243,7 +242,7 @@ func generateCredhubCerts(filepath string) (err error) {
 	vars.CredHubClientAtc.PrivateKey = rootCaKey
 
 	varsYaml, _ := yaml.Marshal(&vars)
-	ioutil.WriteFile(filepath, varsYaml, 0644)
+	os.WriteFile(filepath, varsYaml, 0644)
 	return nil
 }
 

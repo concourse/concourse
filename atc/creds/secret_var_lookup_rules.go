@@ -3,7 +3,7 @@ package creds
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"io"
 	"text/template"
 	"text/template/parse"
 )
@@ -53,7 +53,7 @@ func BuildSecretTemplate(name, tmpl string) (*SecretTemplate, error) {
 
 	// Validate that the template only consumes the expected keys
 	dummy := struct{ Team, Pipeline, Secret string }{"team", "pipeline", "secret"}
-	if err = t.Execute(ioutil.Discard, &dummy); err != nil {
+	if err = t.Execute(io.Discard, &dummy); err != nil {
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func BuildSecretTemplate(name, tmpl string) (*SecretTemplate, error) {
 	// should only be expanded when there is a pipeline context
 	pipelineDependent := false
 	dummyNoPipeline := struct{ Team, Secret string }{"team", "secret"}
-	if t.Execute(ioutil.Discard, &dummyNoPipeline) != nil {
+	if t.Execute(io.Discard, &dummyNoPipeline) != nil {
 		pipelineDependent = true
 	}
 

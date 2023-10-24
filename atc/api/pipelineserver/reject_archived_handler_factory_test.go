@@ -2,7 +2,7 @@ package pipelineserver_test
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 
@@ -67,7 +67,7 @@ var _ = Describe("Rejected Archived Handler", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusConflict))
 				})
 				It("returns an error in the body", func() {
-					body, err := ioutil.ReadAll(response.Body)
+					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(body).To(ContainSubstring("action not allowed for an archived pipeline"))
 				})

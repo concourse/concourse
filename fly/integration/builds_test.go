@@ -673,7 +673,88 @@ var _ = Describe("Fly CLI", func() {
 					}))
 					Eventually(session).Should(gexec.Exit(0))
 				})
+			})
 
+			Context("when passing one team filter with pipeline flag", func() {
+				BeforeEach(func() {
+					cmdArgs = append(cmdArgs, "--team", "team1", "-p", "some-pipeline")
+
+					expectedURL = "/api/v1/teams/team1/pipelines/some-pipeline/builds"
+					queryParams = []string{"limit=50"}
+					returnedStatusCode = http.StatusOK
+					returnedBuilds = []atc.Build{
+						{
+							ID:           3,
+							PipelineName: "some-pipeline",
+							JobName:      "some-job",
+							Name:         "63",
+							Status:       "succeeded",
+							StartTime:    succeededBuildStartTime.Unix(),
+							EndTime:      succeededBuildEndTime.Unix(),
+							TeamName:     "team1",
+						},
+					}
+				})
+
+				It("returns the builds correctly", func() {
+					Eventually(session.Out).Should(PrintTable(ui.Table{
+						Headers: expectedHeaders,
+						Data: []ui.TableRow{
+							{
+								{Contents: "3"},
+								{Contents: "some-pipeline/some-job/63"},
+								{Contents: "succeeded"},
+								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+								{Contents: "1h15m0s"},
+								{Contents: "team1"},
+								{Contents: "system"},
+							},
+						},
+					}))
+					Eventually(session).Should(gexec.Exit(0))
+				})
+			})
+
+			Context("when passing one team filter with job flag", func() {
+				BeforeEach(func() {
+					cmdArgs = append(cmdArgs, "--team", "team1", "-j", "some-pipeline/some-job")
+
+					expectedURL = "/api/v1/teams/team1/pipelines/some-pipeline/jobs/some-job/builds"
+					queryParams = []string{"limit=50"}
+					returnedStatusCode = http.StatusOK
+					returnedBuilds = []atc.Build{
+						{
+							ID:           3,
+							PipelineName: "some-pipeline",
+							JobName:      "some-job",
+							Name:         "63",
+							Status:       "succeeded",
+							StartTime:    succeededBuildStartTime.Unix(),
+							EndTime:      succeededBuildEndTime.Unix(),
+							TeamName:     "team1",
+						},
+					}
+				})
+
+				It("returns the builds correctly", func() {
+					Eventually(session.Out).Should(PrintTable(ui.Table{
+						Headers: expectedHeaders,
+						Data: []ui.TableRow{
+							{
+								{Contents: "3"},
+								{Contents: "some-pipeline/some-job/63"},
+								{Contents: "succeeded"},
+								{Contents: succeededBuildStartTime.Local().Format(timeDateLayout)},
+								{Contents: succeededBuildEndTime.Local().Format(timeDateLayout)},
+								{Contents: "1h15m0s"},
+								{Contents: "team1"},
+								{Contents: "system"},
+							},
+						},
+					}))
+					Eventually(session).Should(gexec.Exit(0))
+				})
 			})
 
 			Context("when passing multiple team filters", func() {

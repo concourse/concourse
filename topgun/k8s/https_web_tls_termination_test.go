@@ -1,7 +1,6 @@
 package k8s_test
 
 import (
-	"io/ioutil"
 	"net"
 	"os"
 	"time"
@@ -30,7 +29,8 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 		CACertBytes, err := CACert.Export()
 		Expect(err).NotTo(HaveOccurred())
 
-		caCertFile, err = ioutil.TempFile("", "ca")
+		caCertFile, err = os.CreateTemp("", "ca")
+		Expect(err).NotTo(HaveOccurred())
 		caCertFile.Write(CACertBytes)
 		caCertFile.Close()
 

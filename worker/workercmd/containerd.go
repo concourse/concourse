@@ -5,7 +5,6 @@ package workercmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -13,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/localip"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/worker/network"
@@ -44,7 +43,7 @@ version = 2
 oom_score = -999
 disabled_plugins = ["io.containerd.grpc.v1.cri", "io.containerd.snapshotter.v1.aufs", "io.containerd.snapshotter.v1.btrfs", "io.containerd.snapshotter.v1.zfs"]
 `
-	err := ioutil.WriteFile(dest, []byte(config), 0755)
+	err := os.WriteFile(dest, []byte(config), 0755)
 	if err != nil {
 		return fmt.Errorf("write file %s: %w", dest, err)
 	}

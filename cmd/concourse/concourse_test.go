@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/postgresrunner"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
+	ginkgomon "github.com/tedsuo/ifrit/ginkgomon_v2"
 	"golang.org/x/crypto/ssh"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -166,7 +165,7 @@ var _ = Describe("Web Command", func() {
 })
 
 func generateSSHKeypair() (string, string, *rsa.PrivateKey, ssh.PublicKey) {
-	path, err := ioutil.TempDir("", "tsa-key")
+	path, err := os.MkdirTemp("", "tsa-key")
 	Expect(err).NotTo(HaveOccurred())
 
 	privateKeyPath := filepath.Join(path, "id_rsa")
@@ -186,10 +185,10 @@ func generateSSHKeypair() (string, string, *rsa.PrivateKey, ssh.PublicKey) {
 
 	publicKeyBytes := ssh.MarshalAuthorizedKey(publicKeyRsa)
 
-	err = ioutil.WriteFile(privateKeyPath, privateKeyBytes, 0600)
+	err = os.WriteFile(privateKeyPath, privateKeyBytes, 0600)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = ioutil.WriteFile(publicKeyPath, publicKeyBytes, 0600)
+	err = os.WriteFile(publicKeyPath, publicKeyBytes, 0600)
 	Expect(err).NotTo(HaveOccurred())
 
 	return privateKeyPath, publicKeyPath, privateKey, publicKeyRsa

@@ -2,9 +2,10 @@
 package pipelineserverfakes
 
 import (
+	"net/http"
 	"sync"
 
-	"code.cloudfoundry.org/lager"
+	lager "code.cloudfoundry.org/lager/v3"
 )
 
 type FakeLogger struct {
@@ -70,6 +71,17 @@ type FakeLogger struct {
 		result1 lager.Logger
 	}
 	withDataReturnsOnCall map[int]struct {
+		result1 lager.Logger
+	}
+	WithTraceInfoStub        func(*http.Request) lager.Logger
+	withTraceInfoMutex       sync.RWMutex
+	withTraceInfoArgsForCall []struct {
+		arg1 *http.Request
+	}
+	withTraceInfoReturns struct {
+		result1 lager.Logger
+	}
+	withTraceInfoReturnsOnCall map[int]struct {
 		result1 lager.Logger
 	}
 	invocations      map[string][][]interface{}
@@ -418,6 +430,67 @@ func (fake *FakeLogger) WithDataReturnsOnCall(i int, result1 lager.Logger) {
 	}{result1}
 }
 
+func (fake *FakeLogger) WithTraceInfo(arg1 *http.Request) lager.Logger {
+	fake.withTraceInfoMutex.Lock()
+	ret, specificReturn := fake.withTraceInfoReturnsOnCall[len(fake.withTraceInfoArgsForCall)]
+	fake.withTraceInfoArgsForCall = append(fake.withTraceInfoArgsForCall, struct {
+		arg1 *http.Request
+	}{arg1})
+	stub := fake.WithTraceInfoStub
+	fakeReturns := fake.withTraceInfoReturns
+	fake.recordInvocation("WithTraceInfo", []interface{}{arg1})
+	fake.withTraceInfoMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeLogger) WithTraceInfoCallCount() int {
+	fake.withTraceInfoMutex.RLock()
+	defer fake.withTraceInfoMutex.RUnlock()
+	return len(fake.withTraceInfoArgsForCall)
+}
+
+func (fake *FakeLogger) WithTraceInfoCalls(stub func(*http.Request) lager.Logger) {
+	fake.withTraceInfoMutex.Lock()
+	defer fake.withTraceInfoMutex.Unlock()
+	fake.WithTraceInfoStub = stub
+}
+
+func (fake *FakeLogger) WithTraceInfoArgsForCall(i int) *http.Request {
+	fake.withTraceInfoMutex.RLock()
+	defer fake.withTraceInfoMutex.RUnlock()
+	argsForCall := fake.withTraceInfoArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeLogger) WithTraceInfoReturns(result1 lager.Logger) {
+	fake.withTraceInfoMutex.Lock()
+	defer fake.withTraceInfoMutex.Unlock()
+	fake.WithTraceInfoStub = nil
+	fake.withTraceInfoReturns = struct {
+		result1 lager.Logger
+	}{result1}
+}
+
+func (fake *FakeLogger) WithTraceInfoReturnsOnCall(i int, result1 lager.Logger) {
+	fake.withTraceInfoMutex.Lock()
+	defer fake.withTraceInfoMutex.Unlock()
+	fake.WithTraceInfoStub = nil
+	if fake.withTraceInfoReturnsOnCall == nil {
+		fake.withTraceInfoReturnsOnCall = make(map[int]struct {
+			result1 lager.Logger
+		})
+	}
+	fake.withTraceInfoReturnsOnCall[i] = struct {
+		result1 lager.Logger
+	}{result1}
+}
+
 func (fake *FakeLogger) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -437,6 +510,8 @@ func (fake *FakeLogger) Invocations() map[string][][]interface{} {
 	defer fake.sessionNameMutex.RUnlock()
 	fake.withDataMutex.RLock()
 	defer fake.withDataMutex.RUnlock()
+	fake.withTraceInfoMutex.RLock()
+	defer fake.withTraceInfoMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

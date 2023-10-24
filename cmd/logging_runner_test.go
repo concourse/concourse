@@ -4,12 +4,12 @@ import (
 	"errors"
 	"os"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/concourse/concourse/cmd"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
-	ifritFakes "github.com/tedsuo/ifrit/fake_runner"
+	ifritFakes "github.com/tedsuo/ifrit/fake_runner_v2"
 )
 
 var _ = Describe("LoggingRunner", func() {

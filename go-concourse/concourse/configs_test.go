@@ -1,7 +1,7 @@
 package concourse_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"sigs.k8s.io/yaml"
@@ -194,7 +194,7 @@ var _ = Describe("ATC Handler Configs", func() {
 					ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 					func(w http.ResponseWriter, r *http.Request) {
 						defer r.Body.Close()
-						bodyConfig, err := ioutil.ReadAll(r.Body)
+						bodyConfig, err := io.ReadAll(r.Body)
 						Expect(err).NotTo(HaveOccurred())
 
 						receivedConfig := []byte("")

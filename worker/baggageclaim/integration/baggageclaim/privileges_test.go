@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -42,14 +41,14 @@ var _ = Describe("Privileges", func() {
 		filename := randSeq(10)
 		newFilePath := filepath.Join(volumePath, filename)
 
-		err := ioutil.WriteFile(newFilePath, []byte(filename), mode)
+		err := os.WriteFile(newFilePath, []byte(filename), mode)
 		Expect(err).NotTo(HaveOccurred())
 
 		return filename
 	}
 
 	makeSentinel := func(volumePath string) string {
-		sentinel, err := ioutil.TempFile("",
+		sentinel, err := os.CreateTemp("",
 			fmt.Sprintf("baggageclaim_link_sentinel_%d", GinkgoParallelProcess()))
 
 		Expect(err).NotTo(HaveOccurred())
@@ -171,7 +170,7 @@ var _ = Describe("Privileges", func() {
 				})
 
 				It("maps uid 0 to uid 0", func() {
-					err := privilegedVolume.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, tgzStream)
+					err := privilegedVolume.StreamIn(context.TODO(), ".", baggageclaim.GzipEncoding, 0, tgzStream)
 					Expect(err).ToNot(HaveOccurred())
 
 					stat, err := os.Stat(filepath.Join(privilegedVolume.Path(), dataFilename))
@@ -332,7 +331,7 @@ var _ = Describe("Privileges", func() {
 				})
 
 				It("maps uid 0 to (MAX_UID)", func() {
-					err := unprivilegedVolume.StreamIn(ctx, ".", baggageclaim.GzipEncoding, tgzStream)
+					err := unprivilegedVolume.StreamIn(ctx, ".", baggageclaim.GzipEncoding, 0, tgzStream)
 					Expect(err).ToNot(HaveOccurred())
 
 					stat, err := os.Stat(filepath.Join(unprivilegedVolume.Path(), dataFilename))

@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,8 +11,8 @@ import (
 	"github.com/concourse/concourse/atc"
 
 	"code.cloudfoundry.org/clock/fakeclock"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/concourse/concourse/atc/api"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -154,7 +153,7 @@ var _ = BeforeEach(func() {
 	fakeClock = fakeclock.NewFakeClock(time.Unix(123, 456))
 
 	var err error
-	cliDownloadsDir, err = ioutil.TempDir("", "cli-downloads")
+	cliDownloadsDir, err = os.MkdirTemp("", "cli-downloads")
 	Expect(err).NotTo(HaveOccurred())
 
 	constructedEventHandler = &fakeEventHandlerFactory{}

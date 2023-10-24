@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/pkg/errors"

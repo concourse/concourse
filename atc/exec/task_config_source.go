@@ -3,11 +3,11 @@ package exec
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/vars"
@@ -88,7 +88,7 @@ func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lag
 
 	defer stream.Close()
 
-	byteConfig, err := ioutil.ReadAll(stream)
+	byteConfig, err := io.ReadAll(stream)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}

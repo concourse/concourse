@@ -6,13 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
@@ -481,7 +481,18 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 		subPath = queryPath[0]
 	}
 
-	badStream, err := vs.volumeRepo.StreamIn(ctx, handle, subPath, baggageclaim.Encoding(req.Header.Get("Content-Encoding")), req.Body)
+	// Parsing limit as a float value which allows to use a small limit less than MB in tests.
+	var limitInMB float64
+	if queryLimit, ok := req.URL.Query()["limit"]; ok {
+		var err error
+		limitInMB, err = strconv.ParseFloat(queryLimit[0], 64)
+		if err != nil || limitInMB < 0 {
+			RespondWithError(w, fmt.Errorf("invalid limit %s", queryLimit[0]), http.StatusBadRequest)
+			return
+		}
+	}
+
+	badStream, err := vs.volumeRepo.StreamIn(ctx, handle, subPath, baggageclaim.Encoding(req.Header.Get("Content-Encoding")), limitInMB, req.Body)
 	if err != nil {
 		if err == volume.ErrVolumeDoesNotExist {
 			hLog.Info("volume-not-found")
@@ -492,6 +503,13 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 		if err == volume.ErrUnsupportedStreamEncoding {
 			hLog.Info("unsupported-stream-encoding")
 			RespondWithError(w, ErrStreamInFailed, http.StatusBadRequest)
+			return
+		}
+
+		var errExceedStreamLimit volume.ErrExceedStreamLimit
+		if errors.As(err, &errExceedStreamLimit) {
+			hLog.Error("exceeded-stream-limit", err)
+			RespondWithError(w, err, http.StatusForbidden)
 			return
 		}
 
@@ -591,13 +609,6 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
 		return
 	}
-
-	rawUrl, err := url.Parse(streamInURL)
-	if err != nil {
-		hLog.Info("bad-param-streamInURL")
-		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
-	}
-	streamInURL = rawUrl.String()
 
 	w.Header().Set("Content-Type", "plain/text")
 	w.Header().Set("X-Content-Type-Options", "nosniff")

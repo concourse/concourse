@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -15,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caarlos0/env/v6"
+	"github.com/caarlos0/env/v9"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	corev1 "k8s.io/api/core/v1"
@@ -86,7 +85,7 @@ var _ = BeforeEach(func() {
 	SetDefaultEventuallyTimeout(90 * time.Second)
 	SetDefaultConsistentlyDuration(30 * time.Second)
 
-	tmp, err := ioutil.TempDir("", "topgun-tmp")
+	tmp, err := os.MkdirTemp("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
 	fly = FlyCli{

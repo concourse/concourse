@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -212,7 +212,7 @@ var _ = Describe("Sky Server API", func() {
 				response, err = skyServer.Client().Do(request)
 				Expect(err).NotTo(HaveOccurred())
 
-				body, err = ioutil.ReadAll(response.Body)
+				body, err = io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 			})
 

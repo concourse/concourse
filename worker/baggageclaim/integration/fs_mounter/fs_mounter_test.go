@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -63,7 +62,7 @@ var _ = Describe("FS Mounter", func() {
 
 	BeforeEach(func() {
 		var err error
-		tempDir, err = ioutil.TempDir("", "fs_mounter_test")
+		tempDir, err = os.MkdirTemp("", "fs_mounter_test")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -107,12 +106,12 @@ var _ = Describe("FS Mounter", func() {
 
 		It("is idempotent", func() {
 			path := filepath.Join(mountPath, "filez")
-			err := ioutil.WriteFile(path, []byte("contents"), 0755)
+			err := os.WriteFile(path, []byte("contents"), 0755)
 			Expect(err).NotTo(HaveOccurred())
 
 			mountPath = mountAtPath(tempDir)
 
-			contents, err := ioutil.ReadFile(path)
+			contents, err := os.ReadFile(path)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(contents)).To(Equal("contents"))

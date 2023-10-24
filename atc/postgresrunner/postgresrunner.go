@@ -3,7 +3,6 @@ package postgresrunner
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -11,14 +10,14 @@ import (
 	"strconv"
 	"syscall"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/migration"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/tedsuo/ifrit/ginkgomon"
+	"github.com/tedsuo/ifrit/ginkgomon_v2"
 )
 
 type Runner struct {
@@ -33,7 +32,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 	err := os.MkdirAll(pgBase, 0755)
 	Expect(err).NotTo(HaveOccurred())
 
-	tmpdir, err := ioutil.TempDir(pgBase, "postgres")
+	tmpdir, err := os.MkdirTemp(pgBase, "postgres")
 	Expect(err).NotTo(HaveOccurred())
 
 	currentUser, err := user.Current()
@@ -89,7 +88,7 @@ synchronous_commit = off
 full_page_writes = off
 `)
 
-	ginkgoRunner := &ginkgomon.Runner{
+	ginkgoRunner := &ginkgomon_v2.Runner{
 		Name:          "postgres",
 		Command:       startCmd,
 		AnsiColorCode: "90m",

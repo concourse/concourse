@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type CredHubAtc struct {

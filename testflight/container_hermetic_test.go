@@ -4,7 +4,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("A job with a task that has hermetic set to true", func() {
@@ -16,12 +15,13 @@ var _ = Describe("A job with a task that has hermetic set to true", func() {
 		<-watch.Exited
 
 		if config.Runtime == "containerd" {
-			By("containerd runtime it should failed on installing curl")
-			Expect(watch).To(gbytes.Say("error"))
-			Expect(watch).To(gexec.Exit(5)) // can't download libs for installing curl
+			By("containerd runtime it should failed on establish network connection")
+			Expect(watch).To(gbytes.Say("timed out"))
+			Expect(watch.ExitCode()).ToNot(Equal(0))
 		} else {
-			By("guardian runtime it should success on curl")
-			Expect(watch).To(gbytes.Say("200"))
+			By("guardian runtime it should success establish network connection")
+			Expect(watch).To(gbytes.Say("saved"))
+			Expect(watch.ExitCode()).To(Equal(0))
 		}
 	})
 })

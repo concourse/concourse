@@ -116,7 +116,7 @@ var _ = Describe("Worker landing", func() {
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("getting identifier for check container")
-					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "cat", "/proc/sys/kernel/hostname")
 					<-hijackSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
@@ -136,7 +136,7 @@ var _ = Describe("Worker landing", func() {
 					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("retaining check containers")
-					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "hostname")
+					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "cat", "/proc/sys/kernel/hostname")
 					<-hijackSession.Exited
 					Expect(buildSession.ExitCode()).To(Equal(0))
 

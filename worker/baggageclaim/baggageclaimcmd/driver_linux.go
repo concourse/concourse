@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/worker/baggageclaim/fs"
 	"github.com/concourse/concourse/worker/baggageclaim/kernel"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"

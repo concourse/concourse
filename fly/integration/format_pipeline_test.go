@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -21,13 +20,13 @@ var _ = Describe("Fly CLI", func() {
 
 		BeforeEach(func() {
 			var err error
-			configFile, err = ioutil.TempFile("", "format-pipeline-test-*.yml")
+			configFile, err = os.CreateTemp("", "format-pipeline-test-*.yml")
 			Expect(err).NotTo(HaveOccurred())
 
-			inputYaml, err = ioutil.ReadFile("fixtures/format-input.yml")
+			inputYaml, err = os.ReadFile("fixtures/format-input.yml")
 			Expect(err).NotTo(HaveOccurred())
 
-			expectedYaml, err = ioutil.ReadFile("fixtures/format-expected.yml")
+			expectedYaml, err = os.ReadFile("fixtures/format-expected.yml")
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = configFile.Write(inputYaml)
@@ -78,7 +77,7 @@ var _ = Describe("Fly CLI", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newFileInfo.ModTime()).To(Equal(oldFileInfo.ModTime()))
 
-			newYaml, err := ioutil.ReadFile(configFile.Name())
+			newYaml, err := os.ReadFile(configFile.Name())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(newYaml).To(Equal(inputYaml))
 		})
@@ -98,7 +97,7 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				newYaml, err := ioutil.ReadFile(configFile.Name())
+				newYaml, err := os.ReadFile(configFile.Name())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(newYaml).To(MatchYAML(expectedYaml))
 			})
@@ -117,7 +116,7 @@ var _ = Describe("Fly CLI", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(0))
 
-				firstPassYaml, err := ioutil.ReadFile(configFile.Name())
+				firstPassYaml, err := os.ReadFile(configFile.Name())
 				Expect(err).NotTo(HaveOccurred())
 
 				flyCmd2 := exec.Command(
@@ -133,7 +132,7 @@ var _ = Describe("Fly CLI", func() {
 				<-sess2.Exited
 				Expect(sess2.ExitCode()).To(Equal(0))
 
-				secondPassYaml, err := ioutil.ReadFile(configFile.Name())
+				secondPassYaml, err := os.ReadFile(configFile.Name())
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(firstPassYaml).To(MatchYAML(secondPassYaml))

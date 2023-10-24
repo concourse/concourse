@@ -4,7 +4,7 @@ package dbfakes
 import (
 	"sync"
 
-	"code.cloudfoundry.org/lager"
+	lager "code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/db"
 )
 

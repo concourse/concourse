@@ -8,23 +8,23 @@
     "request": "^2.86.0"
   },
   "devDependencies": {
-    "@babel/core": "7.21.3",
+    "@babel/core": "7.23.0",
     "@babel/plugin-syntax-dynamic-import": "7.8.3",
-    "@babel/preset-env": "7.20.2",
-    "@mdi/svg": "7.1.96",
-    "babel-loader": "9.1.2",
+    "@babel/preset-env": "7.22.20",
+    "@mdi/svg": "7.2.96",
+    "babel-loader": "9.1.3",
     "child-process-promise": "2.2.1",
     "clean-css-cli": "5.6.2",
     "elm": "0.19.1",
     "elm-analyse": "0.16.5",
-    "elm-format": "0.8.6",
+    "elm-format": "0.8.7",
     "elm-test": "0.19.1-revision9",
-    "less": "4.1.3",
+    "less": "4.2.0",
     "less-plugin-autoprefix": "2.0.0",
-    "puppeteer": "19.7.5",
+    "puppeteer": "21.3.6",
     "uglify-js": "3.17.4",
-    "webpack": "5.76.1",
-    "webpack-cli": "5.0.1"
+    "webpack": "5.88.2",
+    "webpack-cli": "5.1.4"
   },
   "resolutions": {
     "less/request": "^2.86.0"

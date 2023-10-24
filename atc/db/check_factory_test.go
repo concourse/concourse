@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -491,7 +491,7 @@ var _ = Describe("CheckFactory", func() {
 		})
 
 		Context("when a put-only resource", func() {
-			Context(fmt.Sprintf("has failed to check last time"), func() {
+			Context("has failed to check last time", func() {
 				BeforeEach(func() {
 					found, err := putOnlyResourceConfigScope.UpdateLastCheckStartTime(99, nil)
 					Expect(err).NotTo(HaveOccurred())

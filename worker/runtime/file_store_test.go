@@ -1,7 +1,6 @@
 package runtime_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -21,7 +20,7 @@ type FileStoreSuite struct {
 func (s *FileStoreSuite) SetupTest() {
 	var err error
 
-	s.rootfs, err = ioutil.TempDir("", "bcknd-filestore")
+	s.rootfs, err = os.MkdirTemp("", "bcknd-filestore")
 	s.NoError(err)
 
 	s.store = runtime.NewFileStore(s.rootfs)
@@ -35,7 +34,7 @@ func (s *FileStoreSuite) TestCreateFile() {
 	fpath, err := s.store.Create("name", []byte("hey"))
 	s.NoError(err)
 
-	content, err := ioutil.ReadFile(fpath)
+	content, err := os.ReadFile(fpath)
 	s.NoError(err)
 	s.Equal("hey", string(content))
 }
@@ -44,7 +43,7 @@ func (s *FileStoreSuite) TestCreateFileInDir() {
 	fpath, err := s.store.Create("dir/name", []byte("hey"))
 	s.NoError(err)
 
-	content, err := ioutil.ReadFile(fpath)
+	content, err := os.ReadFile(fpath)
 	s.NoError(err)
 	s.Equal("hey", string(content))
 }
@@ -55,7 +54,7 @@ func (s *FileStoreSuite) TestAppendFile() {
 
 	err = s.store.Append("dir/name", []byte(" there"))
 	s.NoError(err)
-	content, err := ioutil.ReadFile(fpath)
+	content, err := os.ReadFile(fpath)
 	s.NoError(err)
 	s.Equal("hey there", string(content))
 }

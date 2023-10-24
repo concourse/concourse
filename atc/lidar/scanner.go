@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
@@ -102,4 +102,8 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	} else {
 		metric.Metrics.ChecksEnqueued.Inc()
 	}
+}
+
+func (s *scanner) Drain(ctx context.Context) {
+	s.checkFactory.Drain()
 }

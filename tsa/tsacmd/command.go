@@ -9,17 +9,15 @@ import (
 	"sync"
 	"time"
 
-	"io/ioutil"
-
 	yaml "gopkg.in/yaml.v2"
 
 	"os/signal"
 	"syscall"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -211,7 +209,7 @@ func (cmd *TSACommand) loadTeamAuthorizedKeys() ([]TeamAuthKeys, error) {
 		logger, _ := cmd.constructLogger()
 		var rawTeamAuthorizedKeys []yamlTeamAuthorizedKey
 
-		authorizedKeysBytes, err := ioutil.ReadFile(cmd.TeamAuthorizedKeysFile.Path())
+		authorizedKeysBytes, err := os.ReadFile(cmd.TeamAuthorizedKeysFile.Path())
 		if err != nil {
 			return nil, fmt.Errorf("failed to read yaml authorized keys file: %s", err)
 		}

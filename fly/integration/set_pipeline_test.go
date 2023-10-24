@@ -3,7 +3,6 @@ package integration_test
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -784,7 +783,7 @@ this is super secure
 			BeforeEach(func() {
 				var err error
 
-				configFile, err = ioutil.TempFile("", "fly-config-file")
+				configFile, err = os.CreateTemp("", "fly-config-file")
 				Expect(err).NotTo(HaveOccurred())
 
 				changedConfig = config
@@ -1533,7 +1532,7 @@ this is super secure
 
 func getConfig(r *http.Request) []byte {
 	defer r.Body.Close()
-	payload, err := ioutil.ReadAll(r.Body)
+	payload, err := io.ReadAll(r.Body)
 	Expect(err).NotTo(HaveOccurred())
 
 	return payload

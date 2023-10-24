@@ -97,7 +97,7 @@ type Volume interface {
 
 	// StreamIn calls BaggageClaim API endpoint in order to initialize tarStream
 	// to stream the contents of the Reader into this volume at the specified path.
-	StreamIn(ctx context.Context, path string, encoding Encoding, tarStream io.Reader) error
+	StreamIn(ctx context.Context, path string, encoding Encoding, limitInMB float64, tarStream io.Reader) error
 
 	StreamOut(ctx context.Context, path string, encoding Encoding) (io.ReadCloser, error)
 

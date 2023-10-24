@@ -376,7 +376,7 @@ var _ = Describe("V1.0 Renderer", func() {
 		})
 
 		It("prints the event", func() {
-			Expect(out.Contents()).To(ContainSubstring("\x1b[1mwaiting for volume\u001B[0m some-volume \x1b[1mto be streamed by another step\n"))
+			Expect(out.Contents()).To(ContainSubstring("\x1b[1mwaiting for volume\u001B[0m some-volume \x1b[1mto be streamed by another step\u001B[0m\n"))
 		})
 
 		Context("and time configuration enabled", func() {

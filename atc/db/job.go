@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -94,6 +94,7 @@ type Job interface {
 	UpdateFirstLoggedBuildID(newFirstLoggedBuildID int) error
 	EnsurePendingBuildExists(context.Context) error
 	GetPendingBuilds() ([]Build, error)
+	LatestCompletedBuildId() (int, error)
 
 	GetNextBuildInputs() ([]BuildInput, error)
 	GetFullNextBuildInputs() ([]BuildInput, bool, error)
@@ -221,6 +222,18 @@ func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
 func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
 func (j *job) MaxInFlight() int                 { return j.maxInFlight }
 func (j *job) DisableManualTrigger() bool       { return j.disableManualTrigger }
+
+func (j *job) LatestCompletedBuildId() (int, error) {
+	var id int
+	err := psql.Select("latest_completed_build_id").
+		Where(sq.Eq{"id": j.id}).
+		From("jobs").
+		RunWith(j.conn).
+		QueryRow().
+		Scan(&id)
+
+	return id, err
+}
 
 func (j *job) Config() (atc.JobConfig, error) {
 	if j.config != nil {

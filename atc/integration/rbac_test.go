@@ -2,13 +2,12 @@ package integration_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -151,7 +150,7 @@ jobs:
 
 		BeforeEach(func() {
 			var err error
-			tmp, err = ioutil.TempDir("", fmt.Sprintf("tmp-%d", GinkgoParallelProcess()))
+			tmp, err = os.MkdirTemp("", fmt.Sprintf("tmp-%d", GinkgoParallelProcess()))
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -171,7 +170,7 @@ viewer:
 
 			It("errors", func() {
 				file := filepath.Join(tmp, "rbac-not-action.yml")
-				err := ioutil.WriteFile(file, []byte(rbac), 0755)
+				err := os.WriteFile(file, []byte(rbac), 0755)
 				Expect(err).ToNot(HaveOccurred())
 
 				cmd.ConfigRBAC = flag.File(file)
@@ -195,7 +194,7 @@ not-viewer:
 
 			It("errors", func() {
 				file := filepath.Join(tmp, "rbac-not-role.yml")
-				err := ioutil.WriteFile(file, []byte(rbac), 0755)
+				err := os.WriteFile(file, []byte(rbac), 0755)
 				Expect(err).ToNot(HaveOccurred())
 
 				cmd.ConfigRBAC = flag.File(file)
@@ -216,7 +215,7 @@ viewer:
 - SaveConfig
 `
 				file := filepath.Join(tmp, "rbac.yml")
-				err := ioutil.WriteFile(file, []byte(rbac), 0755)
+				err := os.WriteFile(file, []byte(rbac), 0755)
 				Expect(err).ToNot(HaveOccurred())
 
 				cmd.ConfigRBAC = flag.File(file)

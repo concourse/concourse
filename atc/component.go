@@ -22,6 +22,7 @@ const (
 	ComponentCollectorWorkers           = "collector_workers"
 	ComponentCollectorPipelines         = "collector_pipelines"
 	ComponentPipelinePauser             = "pipeline_pauser"
+	ComponentBeingWatchedBuildMarker    = "being_watched_build_marker"
 )
 
 type Component struct {

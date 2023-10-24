@@ -2,7 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/lib/pq"
 )
@@ -40,6 +43,27 @@ type notificationsBus struct {
 	executor Executor
 
 	notifications *notificationsMap
+
+	notifyChan      chan string
+	notifyCache     map[string]struct{}
+	notifyCacheLock sync.Mutex
+	notifyDoneChan  chan struct{}
+	watchedMap      *beingWatchedBuildEventChannelMap
+
+	wg *sync.WaitGroup
+}
+
+var notificationBusQueueSize = 10000
+
+func SetNotificationBusQueueSize(size int) error {
+	if size <= 0 {
+		return nil
+	}
+	if size < 1000 || size > 1000000 {
+		return fmt.Errorf("db notification bus size out of range of [1000, 1000000]")
+	}
+	notificationBusQueueSize = size
+	return nil
 }
 
 func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus {
@@ -47,18 +71,51 @@ func NewNotificationsBus(listener Listener, executor Executor) *notificationsBus
 		listener:      listener,
 		executor:      executor,
 		notifications: newNotificationsMap(),
+
+		notifyChan:     make(chan string, notificationBusQueueSize),
+		notifyDoneChan: make(chan struct{}, 1),
+		notifyCache:    map[string]struct{}{},
+		watchedMap:     NewBeingWatchedBuildEventChannelMap(),
+
+		wg: new(sync.WaitGroup),
 	}
 
+	// DO NOT use bus.wg to wait for bus.wait().
 	go bus.wait()
+
+	bus.wg.Add(1)
+	go bus.cacheNotify()
+
+	bus.asyncNotify()
 
 	return bus
 }
 
 func (bus *notificationsBus) Close() error {
+	close(bus.notifyChan)
+	close(bus.notifyDoneChan)
+
+	bus.wg.Wait()
+	bus.notifyChan = nil
+	bus.notifyDoneChan = nil
+
 	return bus.listener.Close()
 }
 
 func (bus *notificationsBus) Notify(channel string) error {
+	if !strings.HasPrefix(channel, buildEventChannelPrefix) {
+		return bus.notify(channel)
+	}
+
+	// non-blocking push
+	select {
+	case bus.notifyChan <- channel:
+	default:
+	}
+	return nil
+}
+
+func (bus *notificationsBus) notify(channel string) error {
 	_, err := bus.executor.Exec("NOTIFY " + channel)
 	return err
 }
@@ -105,6 +162,51 @@ func (bus *notificationsBus) wait() {
 			bus.handleReconnect()
 		}
 	}
+}
+
+func (bus *notificationsBus) cacheNotify() {
+	defer bus.wg.Done()
+
+	for {
+		channel, ok := <-bus.notifyChan
+		if !ok {
+			return
+		}
+
+		bus.notifyCacheLock.Lock()
+		if _, ok := bus.notifyCache[channel]; ok {
+			bus.notifyCacheLock.Unlock()
+			continue
+		}
+		bus.notifyCache[channel] = struct{}{}
+		bus.notifyCacheLock.Unlock()
+	}
+}
+
+func (bus *notificationsBus) asyncNotify() {
+	ticker := time.NewTicker(500 * time.Millisecond)
+	bus.wg.Add(1)
+
+	go func() {
+		defer bus.wg.Done()
+
+		for {
+			select {
+			case <-ticker.C:
+				bus.notifyCacheLock.Lock()
+				for channel, _ := range bus.notifyCache {
+					if bus.watchedMap.BeingWatched(channel) {
+						bus.notify(channel)
+					}
+				}
+				bus.notifyCache = map[string]struct{}{}
+				bus.notifyCacheLock.Unlock()
+			case <-bus.notifyDoneChan:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }
 
 func (bus *notificationsBus) handleNotification(notification *pq.Notification) {

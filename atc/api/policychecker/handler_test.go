@@ -2,11 +2,11 @@ package policychecker_test
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/concourse/concourse/atc/api/policychecker"
 	"github.com/concourse/concourse/atc/api/policychecker/policycheckerfakes"
@@ -79,7 +79,7 @@ var _ = Describe("Handler", func() {
 			It("return http forbidden", func() {
 				Expect(responseWriter.Code).To(Equal(http.StatusForbidden))
 
-				msg, err := ioutil.ReadAll(responseWriter.Body)
+				msg, err := io.ReadAll(responseWriter.Body)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(msg)).To(ContainSubstring("a policy says you can't do that"))
 				Expect(string(msg)).To(ContainSubstring("another policy also says you can't do that"))
@@ -115,7 +115,7 @@ var _ = Describe("Handler", func() {
 		It("return http bad request", func() {
 			Expect(responseWriter.Code).To(Equal(http.StatusBadRequest))
 
-			msg, err := ioutil.ReadAll(responseWriter.Body)
+			msg, err := io.ReadAll(responseWriter.Body)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(msg)).To(Equal("policy check error: some-error"))
 		})

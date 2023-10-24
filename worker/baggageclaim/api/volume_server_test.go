@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,7 +21,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/go-archive/tgzfs"
 
 	"github.com/concourse/concourse/worker/baggageclaim"
@@ -43,10 +42,10 @@ var _ = Describe("Volume Server", func() {
 	BeforeEach(func() {
 		var err error
 
-		tempDir, err = ioutil.TempDir("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
+		tempDir, err = os.MkdirTemp("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
 		Expect(err).NotTo(HaveOccurred())
 
-		// ioutil.TempDir creates it 0700; we need public readability for
+		// os.MkdirTemp creates it 0700; we need public readability for
 		// unprivileged StreamIn
 		err = os.Chmod(tempDir, 0755)
 		Expect(err).NotTo(HaveOccurred())
@@ -233,9 +232,21 @@ var _ = Describe("Volume Server", func() {
 					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
 					Expect(tarContentsPath).To(BeAnExistingFile())
 
-					Expect(ioutil.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+					Expect(os.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
 				})
 
+				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
+					// Set streaming limit to 9-byte
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.GzipEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(403))
+					Expect(recorder.Body.String()).To(ContainSubstring("exceeded volume streaming limit of 9B"))
+
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).ToNot(BeAnExistingFile())
+				})
 			})
 
 			Context("when using zstd encoding", func() {
@@ -259,6 +270,7 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("extracts the tar stream into the volume's DataPath", func() {
+					// Set streaming limit to 9-byte
 					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
 					request.Header.Set("Content-Encoding", string(baggageclaim.ZstdEncoding))
 					recorder := httptest.NewRecorder()
@@ -268,7 +280,61 @@ var _ = Describe("Volume Server", func() {
 					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
 					Expect(tarContentsPath).To(BeAnExistingFile())
 
-					Expect(ioutil.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+					Expect(os.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+				})
+
+				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.ZstdEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(403))
+					Expect(recorder.Body.String()).To(ContainSubstring("exceeded volume streaming limit of 9B"))
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).ToNot(BeAnExistingFile())
+				})
+			})
+
+			Context("when using raw encoding", func() {
+				var tarBuffer *bytes.Buffer
+				BeforeEach(func() {
+					tarBuffer = new(bytes.Buffer)
+					tarWriter := tar.NewWriter(tarBuffer)
+					defer tarWriter.Close()
+
+					err := tarWriter.WriteHeader(&tar.Header{
+						Name: "some-file",
+						Mode: 0600,
+						Size: int64(len("file-content")),
+					})
+					Expect(err).NotTo(HaveOccurred())
+					_, err = tarWriter.Write([]byte("file-content"))
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("extracts the tar stream into the volume's DataPath", func() {
+					// Set streaming limit to 9-byte
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.RawEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(204))
+
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).To(BeAnExistingFile())
+
+					Expect(os.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+				})
+
+				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
+					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					request.Header.Set("Content-Encoding", string(baggageclaim.RawEncoding))
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, request)
+					Expect(recorder.Code).To(Equal(403))
+					Expect(recorder.Body.String()).To(ContainSubstring("exceeded volume streaming limit of 9B"))
+					tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+					Expect(tarContentsPath).ToNot(BeAnExistingFile())
 				})
 			})
 		})
@@ -381,7 +447,7 @@ var _ = Describe("Volume Server", func() {
 				tarContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
 				Expect(tarContentsPath).To(BeAnExistingFile())
 
-				Expect(ioutil.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
+				Expect(os.ReadFile(tarContentsPath)).To(Equal([]byte("file-content")))
 			})
 
 			Context("when using gzip encoding", func() {
@@ -423,7 +489,7 @@ var _ = Describe("Volume Server", func() {
 					Expect(fileInfo.IsDir()).To(BeFalse())
 					Expect(fileInfo.Size()).To(Equal(int64(len("file-content"))))
 
-					contents, err := ioutil.ReadFile(filepath.Join(unpackedDir, "./some-file"))
+					contents, err := os.ReadFile(filepath.Join(unpackedDir, "./some-file"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(contents)).To(Equal("file-content"))
 				})
@@ -472,7 +538,7 @@ var _ = Describe("Volume Server", func() {
 					Expect(fileInfo.IsDir()).To(BeFalse())
 					Expect(fileInfo.Size()).To(Equal(int64(len("file-content"))))
 
-					contents, err := ioutil.ReadFile(filepath.Join(unpackedDir, "./some-file"))
+					contents, err := os.ReadFile(filepath.Join(unpackedDir, "./some-file"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(contents)).To(Equal("file-content"))
 				})
@@ -488,10 +554,10 @@ var _ = Describe("Volume Server", func() {
 				err := os.MkdirAll(filepath.Join(tarDir, "sub"), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = ioutil.WriteFile(filepath.Join(tarDir, "sub", "some-file"), []byte("some-file-content"), os.ModePerm)
+				err = os.WriteFile(filepath.Join(tarDir, "sub", "some-file"), []byte("some-file-content"), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = ioutil.WriteFile(filepath.Join(tarDir, "other-file"), []byte("other-file-content"), os.ModePerm)
+				err = os.WriteFile(filepath.Join(tarDir, "other-file"), []byte("other-file-content"), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
 				tarBuffer = new(bytes.Buffer)
@@ -535,7 +601,7 @@ var _ = Describe("Volume Server", func() {
 					Expect(fileInfo.IsDir()).To(BeFalse())
 					Expect(fileInfo.Size()).To(Equal(int64(len("other-file-content"))))
 
-					contents, err := ioutil.ReadFile(filepath.Join(unpackedDir, "other-file"))
+					contents, err := os.ReadFile(filepath.Join(unpackedDir, "other-file"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(contents)).To(Equal("other-file-content"))
 
@@ -548,7 +614,7 @@ var _ = Describe("Volume Server", func() {
 					Expect(fileInfo.IsDir()).To(BeFalse())
 					Expect(fileInfo.Size()).To(Equal(int64(len("some-file-content"))))
 
-					contents, err = ioutil.ReadFile(filepath.Join(unpackedDir, "sub/some-file"))
+					contents, err = os.ReadFile(filepath.Join(unpackedDir, "sub/some-file"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(contents)).To(Equal("some-file-content"))
 				})
@@ -586,7 +652,7 @@ var _ = Describe("Volume Server", func() {
 					Expect(fileInfo.IsDir()).To(BeFalse())
 					Expect(fileInfo.Size()).To(Equal(int64(len("other-file-content"))))
 
-					contents, err := ioutil.ReadFile(filepath.Join(unpackedDir, "other-file"))
+					contents, err := os.ReadFile(filepath.Join(unpackedDir, "other-file"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(contents)).To(Equal("other-file-content"))
 
@@ -599,7 +665,7 @@ var _ = Describe("Volume Server", func() {
 					Expect(fileInfo.IsDir()).To(BeFalse())
 					Expect(fileInfo.Size()).To(Equal(int64(len("some-file-content"))))
 
-					contents, err = ioutil.ReadFile(filepath.Join(unpackedDir, "sub/some-file"))
+					contents, err = os.ReadFile(filepath.Join(unpackedDir, "sub/some-file"))
 					Expect(err).NotTo(HaveOccurred())
 					Expect(string(contents)).To(Equal("some-file-content"))
 				})
@@ -808,7 +874,7 @@ var _ = Describe("Volume Server", func() {
 					propertiesPath := filepath.Join(volumeDir, "live", response.Handle, "properties.json")
 					Expect(propertiesPath).To(BeAnExistingFile())
 
-					propertiesContents, err := ioutil.ReadFile(propertiesPath)
+					propertiesContents, err := os.ReadFile(propertiesPath)
 					Expect(err).NotTo(HaveOccurred())
 
 					var storedProperties baggageclaim.VolumeProperties
@@ -1146,7 +1212,7 @@ var _ = Describe("Volume Server", func() {
 			JustBeforeEach(func() {
 				// Create a file in the volume.
 				filePath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "some-file")
-				err := ioutil.WriteFile(filePath, []byte("some-file-content"), os.ModePerm)
+				err := os.WriteFile(filePath, []byte("some-file-content"), os.ModePerm)
 				Expect(err).ToNot(HaveOccurred())
 
 				streamInP2pURL := fmt.Sprintf("%s/volumes/%s/stream-in?path=dest-path", otherWorker.URL, myVolume.Handle)
@@ -1162,7 +1228,7 @@ var _ = Describe("Volume Server", func() {
 
 				destContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
 				Expect(destContentsPath).To(BeAnExistingFile())
-				Expect(ioutil.ReadFile(destContentsPath)).To(Equal([]byte("some-file-content")))
+				Expect(os.ReadFile(destContentsPath)).To(Equal([]byte("some-file-content")))
 			})
 
 			Context("when using gzip encoding", func() {
@@ -1192,9 +1258,9 @@ var _ = Describe("Volume Server", func() {
 				path := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "some-dir")
 				err := os.MkdirAll(filepath.Join(path, "sub"), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
-				err = ioutil.WriteFile(filepath.Join(path, "sub", "some-file"), []byte("some-file-content"), os.ModePerm)
+				err = os.WriteFile(filepath.Join(path, "sub", "some-file"), []byte("some-file-content"), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
-				err = ioutil.WriteFile(filepath.Join(path, "other-file"), []byte("other-file-content"), os.ModePerm)
+				err = os.WriteFile(filepath.Join(path, "other-file"), []byte("other-file-content"), os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
 				streamInP2pURL := fmt.Sprintf("%s/volumes/%s/stream-in?path=dest-path", otherWorker.URL, myVolume.Handle)
@@ -1206,11 +1272,11 @@ var _ = Describe("Volume Server", func() {
 
 				someContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "sub", "some-file")
 				Expect(someContentsPath).To(BeAnExistingFile())
-				Expect(ioutil.ReadFile(someContentsPath)).To(Equal([]byte("some-file-content")))
+				Expect(os.ReadFile(someContentsPath)).To(Equal([]byte("some-file-content")))
 
 				otherContentsPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "other-file")
 				Expect(otherContentsPath).To(BeAnExistingFile())
-				Expect(ioutil.ReadFile(otherContentsPath)).To(Equal([]byte("other-file-content")))
+				Expect(os.ReadFile(otherContentsPath)).To(Equal([]byte("other-file-content")))
 			})
 
 			Context("when using gzip encoding", func() {

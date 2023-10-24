@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v3/jwt"
 )
 
 func TestToken(t *testing.T) {

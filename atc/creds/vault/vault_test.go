@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/vault"
 	"github.com/concourse/concourse/vars"

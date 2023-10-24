@@ -4,11 +4,11 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/metric/emitter"
 
@@ -20,11 +20,10 @@ import (
 var _ = Describe("NewRelicEmitter", func() {
 
 	var (
-		testEmitter emitter.NewRelicEmitter
-		server      *Server
-		client      *http.Client
-		testEvent   metric.Event
-		testLogger  lager.Logger
+		server     *Server
+		client     *http.Client
+		testEvent  metric.Event
+		testLogger lager.Logger
 	)
 
 	BeforeEach(func() {
@@ -49,6 +48,7 @@ var _ = Describe("NewRelicEmitter", func() {
 
 	Context("Emits metrics", func() {
 		Context("when batch size is 2", func() {
+			var testEmitter emitter.NewRelicEmitter
 			BeforeEach(func() {
 				testEmitter = emitter.NewRelicEmitter{
 					NewRelicBatch: make([]emitter.NewRelicEvent, 0),
@@ -85,6 +85,7 @@ var _ = Describe("NewRelicEmitter", func() {
 			})
 		})
 		Context("when batch duration is 1 millisecond", func() {
+			var testEmitter emitter.NewRelicEmitter
 			BeforeEach(func() {
 				testEmitter = emitter.NewRelicEmitter{
 					NewRelicBatch: make([]emitter.NewRelicEvent, 0),
@@ -121,7 +122,7 @@ var _ = Describe("NewRelicEmitter", func() {
 		})
 
 		DescribeTable("Compression", func(compressionState bool, expectedEncoding string) {
-			testEmitter = emitter.NewRelicEmitter{
+			testEmitter := emitter.NewRelicEmitter{
 				NewRelicBatch:      make([]emitter.NewRelicEvent, 0),
 				BatchDuration:      100 * time.Second,
 				BatchSize:          1,
@@ -173,10 +174,10 @@ func verifyEvents(expectedEvents int) http.HandlerFunc {
 		if request.Header.Get("Content-Encoding") == "gzip" {
 			reader, err := gzip.NewReader(request.Body)
 			Expect(err).To(Not(HaveOccurred()))
-			givenBody, err = ioutil.ReadAll(reader)
+			givenBody, err = io.ReadAll(reader)
 			Expect(err).To(Not(HaveOccurred()))
 		} else {
-			givenBody, err = ioutil.ReadAll(request.Body)
+			givenBody, err = io.ReadAll(request.Body)
 			Expect(err).To(Not(HaveOccurred()))
 		}
 

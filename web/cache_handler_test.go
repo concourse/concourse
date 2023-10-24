@@ -3,7 +3,7 @@ package web_test
 import (
 	"compress/gzip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,7 +49,7 @@ var _ = Describe("CacheNearlyForever", func() {
 
 			reader, err := gzip.NewReader(recorder.Body)
 			Expect(err).ToNot(HaveOccurred())
-			body, err := ioutil.ReadAll(reader)
+			body, err := io.ReadAll(reader)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(string(body)).To(Equal(strings.Repeat("abc123", 1000)))

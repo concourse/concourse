@@ -1,15 +1,15 @@
 package logger
 
 import (
-	"io/ioutil"
+	"io"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/sirupsen/logrus"
 )
 
 func New(logger lager.Logger) *logrus.Logger {
 	var log = &logrus.Logger{
-		Out:       ioutil.Discard,
+		Out:       io.Discard,
 		Hooks:     make(logrus.LevelHooks),
 		Formatter: new(logrus.JSONFormatter),
 		Level:     logrus.DebugLevel,

@@ -8,7 +8,7 @@ import (
 
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/worker/workercmd"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"

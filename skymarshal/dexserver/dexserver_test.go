@@ -6,13 +6,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	store "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 

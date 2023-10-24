@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
@@ -333,7 +332,7 @@ func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
 	}
 	defer stream.Close()
 
-	byteConfig, err := ioutil.ReadAll(stream)
+	byteConfig, err := io.ReadAll(stream)
 	if err != nil {
 		return nil, err
 	}

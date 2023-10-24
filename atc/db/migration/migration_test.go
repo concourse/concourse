@@ -3,7 +3,6 @@ package migration_test
 import (
 	"database/sql"
 	"io/fs"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -13,7 +12,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
@@ -561,7 +560,7 @@ func SetupSchemaMigrationsTable(db *sql.DB, version int, dirty bool) {
 }
 
 func SetupSchemaFromFile(db *sql.DB, path string) {
-	migrations, err := ioutil.ReadFile(path)
+	migrations, err := os.ReadFile(path)
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, migration := range strings.Split(string(migrations), ";") {

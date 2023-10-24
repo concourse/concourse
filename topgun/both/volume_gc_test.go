@@ -158,7 +158,7 @@ var _ = Describe("Garbage-collecting volumes", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				if resourceCacheNum == 1 {
-					By(fmt.Sprintf("not expiring volume so long as its resource cache is there"))
+					By("not expiring volume so long as its resource cache is there")
 					Expect(volumeNum).To(Equal(1))
 				}
 

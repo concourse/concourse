@@ -1,6 +1,6 @@
 package db
 
-import "code.cloudfoundry.org/lager"
+import "code.cloudfoundry.org/lager/v3"
 
 var CheckDeleteBatchSize = 500
 

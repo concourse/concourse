@@ -2,12 +2,12 @@ package volumeserver
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/concourse/concourse/atc/metric"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 // ReportWorkerVolumes provides an API endpoint for workers to report their current volumes
@@ -25,7 +25,7 @@ func (s *Server) ReportWorkerVolumes(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		logger.Error("failed-to-read-body", err)
 		w.WriteHeader(http.StatusInternalServerError)

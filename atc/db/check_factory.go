@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.cloudfoundry.org/lager/lagerctx"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -41,6 +41,7 @@ type CheckFactory interface {
 	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool, bool) (Build, bool, error)
 	Resources() ([]Resource, error)
 	ResourceTypesByPipeline() (map[int]ResourceTypes, error)
+	Drain()
 }
 
 type checkFactory struct {
@@ -216,4 +217,8 @@ func (c *checkFactory) ResourceTypesByPipeline() (map[int]ResourceTypes, error) 
 	}
 
 	return resourceTypes, nil
+}
+
+func (c *checkFactory) Drain() {
+	close(c.checkBuildChan)
 }

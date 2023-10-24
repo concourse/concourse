@@ -8,7 +8,7 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/containers"
 	"github.com/containerd/containerd/oci"
-	prototypes "github.com/gogo/protobuf/types"
+	"github.com/containerd/typeurl/v2"
 )
 
 var _ containerd.Container = (*container)(nil)
@@ -64,7 +64,7 @@ func (c *container) SetLabels(ctx context.Context, labels map[string]string) (ma
 
 }
 
-func (c *container) Extensions(ctx context.Context) (map[string]prototypes.Any, error) {
+func (c *container) Extensions(ctx context.Context) (map[string]typeurl.Any, error) {
 	return c.container.Extensions(ctx)
 
 }

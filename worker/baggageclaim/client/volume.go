@@ -35,8 +35,8 @@ func (cv *clientVolume) Properties(ctx context.Context) (baggageclaim.VolumeProp
 	return vr.Properties, nil
 }
 
-func (cv *clientVolume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, tarStream io.Reader) error {
-	return cv.bcClient.streamIn(ctx, cv.handle, path, encoding, tarStream)
+func (cv *clientVolume) StreamIn(ctx context.Context, path string, encoding baggageclaim.Encoding, limitInMB float64, tarStream io.Reader) error {
+	return cv.bcClient.streamIn(ctx, cv.handle, path, encoding, limitInMB, tarStream)
 }
 
 func (cv *clientVolume) StreamOut(ctx context.Context, path string, encoding baggageclaim.Encoding) (io.ReadCloser, error) {

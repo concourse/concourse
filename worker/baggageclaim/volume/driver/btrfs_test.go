@@ -2,7 +2,6 @@ package driver_test
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +12,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 
 	"github.com/concourse/concourse/worker/baggageclaim/fs"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
@@ -35,7 +34,7 @@ var _ = Describe("BtrFS", func() {
 
 	BeforeEach(func() {
 		var err error
-		tempDir, err = ioutil.TempDir("", "baggageclaim_driver_test")
+		tempDir, err = os.MkdirTemp("", "baggageclaim_driver_test")
 		Expect(err).NotTo(HaveOccurred())
 
 		logger := lagertest.NewTestLogger("fs")

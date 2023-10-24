@@ -1,15 +1,15 @@
 package loglevelserver
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 )
 
 func (s *Server) SetMinLevel(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

@@ -3,7 +3,7 @@ package skycmd
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/flag"
+	"github.com/concourse/flag/v2"
 )
 
 var connectors []*Connector
@@ -77,7 +77,7 @@ func (flag *AuthTeamFlags) Format() (atc.TeamAuth, error) {
 
 func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 
-	content, err := ioutil.ReadFile(flag.Config.Path())
+	content, err := os.ReadFile(flag.Config.Path())
 	if err != nil {
 		return nil, err
 	}
@@ -212,10 +212,6 @@ type Connector struct {
 }
 
 func (con *Connector) ID() string {
-	if con.id == "cloudfoundry" {
-		return "cf"
-	}
-
 	return con.id
 }
 

@@ -3,7 +3,7 @@ package policychecker_test
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 
@@ -185,7 +185,7 @@ var _ = Describe("PolicyChecker", func() {
 				})
 
 				It("request body should still be readable", func() {
-					body, err := ioutil.ReadAll(fakeRequest.Body)
+					body, err := io.ReadAll(fakeRequest.Body)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(body).To(Equal([]byte("a: b")))
 				})

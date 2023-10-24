@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc/db"
 	flags "github.com/jessevdk/go-flags"
@@ -61,6 +61,7 @@ type Monitor struct {
 	CheckBuildsStarted Counter
 	CheckBuildsRunning Gauge
 
+	JobStatuses  map[JobStatusLabels]*Gauge
 	StepsWaiting map[StepsWaitingLabels]*Gauge
 
 	// When global resource is not enabled, ChecksStarted should equal to CheckBuildsStarted.

@@ -1,7 +1,6 @@
 package runtime_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -20,7 +19,7 @@ type RootfsManagerSuite struct {
 func (s *RootfsManagerSuite) SetupTest() {
 	var err error
 
-	s.rootfsPath, err = ioutil.TempDir("", "rootfs-mgr")
+	s.rootfsPath, err = os.MkdirTemp("", "rootfs-mgr")
 	s.NoError(err)
 }
 

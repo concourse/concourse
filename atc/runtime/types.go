@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
 	"go.opentelemetry.io/otel/propagation"
@@ -314,7 +314,7 @@ type Volume interface {
 	// result of a StreamOut call for another Volume.
 	//
 	// path is a relative path - "." indicates using the root of the Volume.
-	StreamIn(ctx context.Context, path string, compression compression.Compression, reader io.Reader) error
+	StreamIn(ctx context.Context, path string, compression compression.Compression, limitInMB float64, reader io.Reader) error
 
 	// InitializeResourceCache is called upon a successful run of the get step
 	// to register this Volume as a resource cache.

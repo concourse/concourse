@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"strings"
 	"time"
@@ -163,7 +163,7 @@ var _ = Describe("Container", func() {
 				Ω(spec.Path).Should(Equal("to"))
 				Ω(spec.User).Should(Equal("frank"))
 
-				content, err := ioutil.ReadAll(spec.TarStream)
+				content, err := io.ReadAll(spec.TarStream)
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(string(content)).Should(Equal("stuff"))
 
@@ -197,14 +197,14 @@ var _ = Describe("Container", func() {
 
 	Describe("StreamOut", func() {
 		It("sends a stream out request", func() {
-			fakeConnection.StreamOutReturns(ioutil.NopCloser(strings.NewReader("kewl")), nil)
+			fakeConnection.StreamOutReturns(io.NopCloser(strings.NewReader("kewl")), nil)
 
 			reader, err := container.StreamOut(garden.StreamOutSpec{
 				User: "deandra",
 				Path: "from",
 			})
 			Ω(err).ShouldNot(HaveOccurred())
-			bytes, err := ioutil.ReadAll(reader)
+			bytes, err := io.ReadAll(reader)
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(string(bytes)).Should(Equal("kewl"))
 

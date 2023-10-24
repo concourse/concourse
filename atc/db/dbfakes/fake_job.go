@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"code.cloudfoundry.org/lager"
+	lager "code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -252,6 +252,18 @@ type FakeJob struct {
 	}
 	inputsReturnsOnCall map[int]struct {
 		result1 []atc.JobInput
+		result2 error
+	}
+	LatestCompletedBuildIdStub        func() (int, error)
+	latestCompletedBuildIdMutex       sync.RWMutex
+	latestCompletedBuildIdArgsForCall []struct {
+	}
+	latestCompletedBuildIdReturns struct {
+		result1 int
+		result2 error
+	}
+	latestCompletedBuildIdReturnsOnCall map[int]struct {
+		result1 int
 		result2 error
 	}
 	MaxInFlightStub        func() int
@@ -1670,6 +1682,62 @@ func (fake *FakeJob) InputsReturnsOnCall(i int, result1 []atc.JobInput, result2 
 	}
 	fake.inputsReturnsOnCall[i] = struct {
 		result1 []atc.JobInput
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJob) LatestCompletedBuildId() (int, error) {
+	fake.latestCompletedBuildIdMutex.Lock()
+	ret, specificReturn := fake.latestCompletedBuildIdReturnsOnCall[len(fake.latestCompletedBuildIdArgsForCall)]
+	fake.latestCompletedBuildIdArgsForCall = append(fake.latestCompletedBuildIdArgsForCall, struct {
+	}{})
+	stub := fake.LatestCompletedBuildIdStub
+	fakeReturns := fake.latestCompletedBuildIdReturns
+	fake.recordInvocation("LatestCompletedBuildId", []interface{}{})
+	fake.latestCompletedBuildIdMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeJob) LatestCompletedBuildIdCallCount() int {
+	fake.latestCompletedBuildIdMutex.RLock()
+	defer fake.latestCompletedBuildIdMutex.RUnlock()
+	return len(fake.latestCompletedBuildIdArgsForCall)
+}
+
+func (fake *FakeJob) LatestCompletedBuildIdCalls(stub func() (int, error)) {
+	fake.latestCompletedBuildIdMutex.Lock()
+	defer fake.latestCompletedBuildIdMutex.Unlock()
+	fake.LatestCompletedBuildIdStub = stub
+}
+
+func (fake *FakeJob) LatestCompletedBuildIdReturns(result1 int, result2 error) {
+	fake.latestCompletedBuildIdMutex.Lock()
+	defer fake.latestCompletedBuildIdMutex.Unlock()
+	fake.LatestCompletedBuildIdStub = nil
+	fake.latestCompletedBuildIdReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeJob) LatestCompletedBuildIdReturnsOnCall(i int, result1 int, result2 error) {
+	fake.latestCompletedBuildIdMutex.Lock()
+	defer fake.latestCompletedBuildIdMutex.Unlock()
+	fake.LatestCompletedBuildIdStub = nil
+	if fake.latestCompletedBuildIdReturnsOnCall == nil {
+		fake.latestCompletedBuildIdReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.latestCompletedBuildIdReturnsOnCall[i] = struct {
+		result1 int
 		result2 error
 	}{result1, result2}
 }
@@ -3169,6 +3237,8 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.inputsMutex.RLock()
 	defer fake.inputsMutex.RUnlock()
+	fake.latestCompletedBuildIdMutex.RLock()
+	defer fake.latestCompletedBuildIdMutex.RUnlock()
 	fake.maxInFlightMutex.RLock()
 	defer fake.maxInFlightMutex.RUnlock()
 	fake.nameMutex.RLock()

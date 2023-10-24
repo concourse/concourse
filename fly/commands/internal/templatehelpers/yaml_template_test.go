@@ -1,7 +1,6 @@
 package templatehelpers_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -23,10 +22,10 @@ var _ = Describe("YAML Template With Params", func() {
 		BeforeEach(func() {
 			var err error
 
-			tmpdir, err = ioutil.TempDir("", "yaml-template-test")
+			tmpdir, err = os.MkdirTemp("", "yaml-template-test")
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ioutil.WriteFile(
+			err = os.WriteFile(
 				filepath.Join(tmpdir, "sample.yml"),
 				[]byte(`section:
 - param1: ((param1))

@@ -1,6 +1,6 @@
 package loglevelserver
 
-import "code.cloudfoundry.org/lager"
+import "code.cloudfoundry.org/lager/v3"
 
 type Server struct {
 	logger lager.Logger
