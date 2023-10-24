@@ -321,7 +321,7 @@ var _ = Describe("CheckFactory", func() {
 					Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
 					_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
-					Expect(interval.Interval).To(Equal(defaultCheckInterval))
+					Expect(interval.Interval).To(Equal(defaultResourceTypeInterval))
 					Expect(types).To(Equal(rts))
 					Expect(defaults).To(Equal(atc.Source{}))
 				})
