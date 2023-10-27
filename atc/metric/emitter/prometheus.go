@@ -285,7 +285,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		Namespace:   "concourse",
 		Subsystem:   "builds",
 		Name:        "latest_completed_build_status",
-		Help:        "Status of Latest Completed Build",
+		Help:        "Status of Latest Completed Build. 0=Success, 1=Failed, 2=Aborted, 3=Errored.",
 		ConstLabels: attributes,
 	}, []string{"jobName", "pipelineName", "teamName"})
 	prometheus.MustRegister(latestCompletedBuildStatus)

@@ -9,7 +9,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/go-archive/tgzfs"
-	"github.com/vbauerster/mpb/v4"
+	"github.com/vbauerster/mpb/v8"
 )
 
 func Upload(bar *mpb.Bar, team concourse.Team, path string, includeIgnored bool, platform string, tags []string) (atc.WorkerArtifact, error) {

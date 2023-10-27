@@ -18,6 +18,11 @@
     {
       "matchPackageNames": ["k8s.io/client-go"],
       "allowedVersions": "!/1\\.(4\\.0|5\\.0|5\\.1|5\\.2)$/"
+    },
+    {
+      "matchPackageNames": ["gopkg.in/yaml.v2"],
+      "allowedVersions": "<3.0.0",
+      "_context": "v3 will cause indent problem when marshalling, which requires test updates and we dont know the full impact. See https://github.com/go-yaml/yaml/issues/661."
     }
   ],
   "ignoreDeps": ["elm", "client-go"],
