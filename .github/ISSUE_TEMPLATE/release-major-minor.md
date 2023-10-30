@@ -21,7 +21,10 @@ Steps for a new major/minor release:
 
 * [ ] Create the release branch on `concourse/concourse-bosh-deployment` repository.
 
-* [ ] Create the release branch on `concourse/concourse-chart` repository from the `dev` branch. Make any missing changes to `values.yaml` or `templates/web-deployment.yaml` for changes to flags on web or `templates/worker-deployment.yaml` for changes to flags on the worker.
+* [ ] Update the `concourse/concourse-chart` repository
+  * [ ] Rebase `master` onto `dev` branch
+  * [ ] Create the release branch from the `dev` branch with the same format as above
+  * [ ] Make any missing changes to `values.yaml` or `templates/web-deployment.yaml` for changes to flags on web or `templates/worker-deployment.yaml` for changes to flags on the worker.
 
 * [ ] Bump the appropriate versions for resource types. Go to the releases page `https://project.concourse-ci.org/releases` and take a look at which resource type repositories have had new commits or PRs. Take a look at what those changes entail and bump the version in their respective pipeline in `ci.concourse-ci.org`.
 
@@ -31,6 +34,7 @@ Steps for a new major/minor release:
   * If the changes involve a breaking changes, that should be a major version bump
 
 * [ ] Add your release pipeline to the `reconfigure-pipeline`
+  * If this release is a major or minor bump, then update the appropriate values for `concourse-chart-branch` in `pipelines/reconfigure.yml`  
 
 * [ ] Go through all the `needs-documentation` PRs in the release page for your milestone `https://project.concourse-ci.org/releases/concourse?milestone=v<M.m.p>` and make sure that everything has proper documentation within `concourse/docs` (if needed). You can organize which PRs by clicking on the button to add whichever label best fits that PR.
 
@@ -52,9 +56,8 @@ Steps for a new major/minor release:
 * [ ] Once everything is ready, the `shipit` job can be triggered. The `publish-binaries` job will convert your draft release into a final release including the body of your draft release (which will persist any changes you made to the draft release body). Subsequently, the [promote concourse job](https://ci.concourse-ci.org/teams/main/pipelines/promote) will run automatically. The `publish-docs` job runs automatically.
 
 * [ ] The [helm-chart pipeline](https://ci.concourse-ci.org/teams/main/pipelines/helm-chart?group=dependencies&group=publish) is used to bump & then publish the chart.
-  * First, run the `merge-dev-into-master` job
-  * Next, run the `concourse-app-bump` job (bumps the app version and image to point to the latest release)
-  * Finally, run the `publish-chart-{major|minor|patch}` job, depending on what has changed in the chart
+  * Run the `concourse-app-bump` job (bumps the app version and image to point to the latest release)
+  * Run the `publish-chart-{major|minor|patch}` job, depending on what has changed in the chart
   * If you make a major bump, be sure to update the `CHANGELOG.md` in the concourse-chart repo
 
 * [ ] Once the Concourse release is shipped, Concourse should be deployed to Hush-House
