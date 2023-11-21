@@ -24,6 +24,7 @@ import (
 )
 
 type ExecuteCommand struct {
+	Background     bool                               `short:"b" long:"background"                            description:"Create the build and exit, i.e. neither watch logs nor retrieve outputs."`
 	TaskConfig     atc.PathFlag                       `short:"c" long:"config" required:"true"                description:"The task config to execute"`
 	Privileged     bool                               `short:"p" long:"privileged"                            description:"Run the task with full privileges"`
 	IncludeIgnored bool                               `          long:"include-ignored"                       description:"Including .gitignored paths. Disregards .gitignore entries and uploads everything"`
@@ -85,6 +86,10 @@ func (command *ExecuteCommand) Execute(args []string) error {
 		return err
 	}
 
+	if len(outputs) > 0 && command.Background {
+		return fmt.Errorf("background execution cannot withstand outputs")
+	}
+
 	plan, err := executehelpers.CreateBuildPlan(
 		planFactory,
 		target,
@@ -125,6 +130,13 @@ func (command *ExecuteCommand) Execute(args []string) error {
 	buildURL, err = url.Parse(fmt.Sprintf("/builds/%d", build.ID))
 	if err != nil {
 		return err
+	}
+
+	if command.Background {
+		fmt.Printf("%d", build.ID)
+
+		os.Exit(0)
+		return nil
 	}
 
 	fmt.Printf("executing build %d at %s\n", build.ID, clientURL.ResolveReference(buildURL))
