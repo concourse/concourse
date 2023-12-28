@@ -30,7 +30,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/fatih/color v1.15.0
 	github.com/felixge/httpsnoop v1.0.3
-	github.com/go-jose/go-jose/v3 v3.0.0
+	github.com/go-jose/go-jose/v3 v3.0.1
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.11.2
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
