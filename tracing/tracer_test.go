@@ -5,7 +5,8 @@ import (
 
 	"github.com/concourse/concourse/tracing"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/oteltest"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -14,13 +15,13 @@ import (
 
 var _ = Describe("Tracer", func() {
 	var (
-		spanRecorder *oteltest.SpanRecorder
+		spanRecorder *tracetest.SpanRecorder
 	)
 
 	BeforeEach(func() {
-		spanRecorder = new(oteltest.SpanRecorder)
+		spanRecorder = new(tracetest.SpanRecorder)
+		provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder))
 
-		provider := oteltest.NewTracerProvider(oteltest.WithSpanRecorder(spanRecorder))
 		tracing.ConfigureTraceProvider(provider)
 	})
 
@@ -51,9 +52,15 @@ var _ = Describe("Tracer", func() {
 			It("sets the attributes passed in", func() {
 				spans := spanRecorder.Started()
 				Expect(spans).To(HaveLen(1))
-				Expect(spans[0].Attributes()).To(Equal(map[attribute.Key]attribute.Value{
-					"foo": attribute.StringValue("bar"),
-					"zaz": attribute.StringValue("caz"),
+				Expect(spans[0].Attributes()).To(Equal([]attribute.KeyValue{
+					{
+						Key:   "foo",
+						Value: attribute.StringValue("bar"),
+					},
+					{
+						Key:   "zaz",
+						Value: attribute.StringValue("caz"),
+					},
 				}))
 			})
 		})

@@ -21,7 +21,8 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"go.opentelemetry.io/otel/oteltest"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -142,7 +143,7 @@ var _ = Describe("CheckStep", func() {
 		var err error
 		_, noInputStrategy, checkStrategy, err = worker.NewPlacementStrategy(worker.PlacementOptions{
 			NoInputStrategies: []string{},
-			CheckStrategies: []string{},
+			CheckStrategies:   []string{},
 		})
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -566,7 +567,9 @@ var _ = Describe("CheckStep", func() {
 
 					Context("when tracing is enabled", func() {
 						BeforeEach(func() {
-							tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
+							exporter := tracetest.NewInMemoryExporter()
+							tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+							tracing.ConfigureTraceProvider(tp)
 
 							spanCtx, buildSpan := tracing.StartSpan(ctx, "build", nil)
 							fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
@@ -594,7 +597,9 @@ var _ = Describe("CheckStep", func() {
 				var buildSpan trace.Span
 
 				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
+					exporter := tracetest.NewInMemoryExporter()
+					tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+					tracing.ConfigureTraceProvider(tp)
 
 					spanCtx, buildSpan = tracing.StartSpan(context.Background(), "fake-operation", nil)
 					fakeDelegate.StartSpanReturns(spanCtx, buildSpan)
