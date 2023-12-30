@@ -11,7 +11,8 @@ import (
 	"github.com/concourse/concourse/tracing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 var _ = Describe("Job", func() {
@@ -2028,7 +2029,9 @@ var _ = Describe("Job", func() {
 
 			Context("when tracing is configured", func() {
 				BeforeEach(func() {
-					tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
+					exporter := tracetest.NewInMemoryExporter()
+					tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
+					tracing.ConfigureTraceProvider(tp)
 				})
 
 				AfterEach(func() {
