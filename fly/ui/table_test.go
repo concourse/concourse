@@ -136,7 +136,7 @@ var _ = Describe("Table", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				expectedOutput := "" +
-					"\x1b[1mcolumn1\x1b[0m  \x1b[1mcolumn2\x1b[0m\r\n" +
+					"\x1b[1mcolumn1\x1b[22m  \x1b[1mcolumn2\x1b[22m\r\n" +
 					"r1c1     r1c2   \r\n" +
 					"r2c1     r2c2   \r\n" +
 					"r3c1     r3c2   \r\n"
