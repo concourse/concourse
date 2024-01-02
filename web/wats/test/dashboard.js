@@ -20,13 +20,16 @@ test.afterEach.always(async t => {
 });
 
 test('does not show team name when unauthenticated and team has no exposed pipelines', async t => {
-  t.context.web = await Web.build(t.context.url)
-  await t.context.web.page.goto(t.context.web.route('/'));
+  let web = await Web.build(t.context.url);
+  await web.page.goto(web.route('/'));
 
   const group = `.dashboard-team-group[data-team-name="main"]`;
-  const element = await t.context.web.page.$(group);
-
+  const element = await web.page.$(group);
   t.falsy(element);
+
+  if (web.browser) {
+    await web.browser.close();
+  }
 })
 
 test('does not show team name when user is logged in another non-main team and has no exposed pipelines', async t => {
@@ -42,6 +45,10 @@ test('does not show team name when user is logged in another non-main team and h
   await web.page.waitForSelector(myGroup);
   const element = await web.page.$(otherGroup);
   t.falsy(element);
+
+  if (web.browser) {
+    await web.browser.close();
+  }
 })
 
 test('shows pipelines in their correct order', async t => {
