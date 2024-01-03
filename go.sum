@@ -610,8 +610,12 @@ code.cloudfoundry.org/credhub-cli v0.0.0-20231225140539-156833ebfe07 h1:16aVFMw0
 code.cloudfoundry.org/credhub-cli v0.0.0-20231225140539-156833ebfe07/go.mod h1:sQnRM+OsGJGd4PM5NKmALCV1gvAv2yHGSAyAuWLB28E=
 code.cloudfoundry.org/credhub-cli v0.0.0-20240101140310-42ad78294d0d h1:ha1Yyu07i3N3fHESMdWwgCQ/se97JUEqxC2WT8OZ1Hk=
 code.cloudfoundry.org/credhub-cli v0.0.0-20240101140310-42ad78294d0d/go.mod h1:GMs8TX3anGtYCmp/k5GMuloIvQHBDDYSvfzat2tfr/I=
+code.cloudfoundry.org/credhub-cli v0.0.0-20240102230713-fa64581dbbe1 h1:HVHGbVjMyLeZm4CeZkjo0RDvU7NP+b9vPjklQOh91CE=
+code.cloudfoundry.org/credhub-cli v0.0.0-20240102230713-fa64581dbbe1/go.mod h1:f0575RUjiNl2lBGrH9ci8cIKWvma6ZSYHmfFf/+kMIc=
 code.cloudfoundry.org/garden v0.0.0-20231226182342-f6a5ba9c581c h1:Nq6uL1Xqv1y7NLAB4yHwhMsAOkktsKRgzxjIsrXQyH8=
 code.cloudfoundry.org/garden v0.0.0-20231226182342-f6a5ba9c581c/go.mod h1:SMNnXeLOtuB7AMkXZa76u1uQaPTBtzpa9Ud+AWaX4kk=
+code.cloudfoundry.org/garden v0.0.0-20240102182338-a0cd1ff97764 h1:GjWy1ax/uw61cwxGt3Kf472dWQeDfZUspOt2Z5LLf+o=
+code.cloudfoundry.org/garden v0.0.0-20240102182338-a0cd1ff97764/go.mod h1:u/0E/j3FCDT7CtquAzHnFgxNpsKELYmEgj0byUQpoGw=
 code.cloudfoundry.org/lager/v3 v3.0.3 h1:/UTmadZfIaKuT/whEinSxK1mzRfNu1uPfvjFfGqiwzM=
 code.cloudfoundry.org/lager/v3 v3.0.3/go.mod h1:Zn5q1SrIuuHjEUE7xerMKt3ztunrJQCZETAo7rV0CH8=
 code.cloudfoundry.org/localip v0.0.0-20231206170541-8d74d8ef21ec h1:mTPIoMd/X/XbfranPdhK092UPIDKb0on3pQoPmL8SvE=
