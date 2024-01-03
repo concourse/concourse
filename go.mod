@@ -1,11 +1,11 @@
 module github.com/concourse/concourse
 
-go 1.21
+go 1.21.5
 
 require (
 	code.cloudfoundry.org/clock v1.1.0
-	code.cloudfoundry.org/credhub-cli v0.0.0-20240101140310-42ad78294d0d
-	code.cloudfoundry.org/garden v0.0.0-20231226182342-f6a5ba9c581c
+	code.cloudfoundry.org/credhub-cli v0.0.0-20240102230713-fa64581dbbe1
+	code.cloudfoundry.org/garden v0.0.0-20240102182338-a0cd1ff97764
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	code.cloudfoundry.org/localip v0.0.0-20231206170541-8d74d8ef21ec
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
