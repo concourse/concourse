@@ -618,6 +618,8 @@ code.cloudfoundry.org/garden v0.0.0-20231226182342-f6a5ba9c581c h1:Nq6uL1Xqv1y7N
 code.cloudfoundry.org/garden v0.0.0-20231226182342-f6a5ba9c581c/go.mod h1:SMNnXeLOtuB7AMkXZa76u1uQaPTBtzpa9Ud+AWaX4kk=
 code.cloudfoundry.org/garden v0.0.0-20240102182338-a0cd1ff97764 h1:GjWy1ax/uw61cwxGt3Kf472dWQeDfZUspOt2Z5LLf+o=
 code.cloudfoundry.org/garden v0.0.0-20240102182338-a0cd1ff97764/go.mod h1:u/0E/j3FCDT7CtquAzHnFgxNpsKELYmEgj0byUQpoGw=
+code.cloudfoundry.org/garden v0.0.0-20240109143915-5f67362569bd h1:9Ar+YmzyDUuJL20qIbtyR+4oHbQiDX+j9i0xVBZeyEM=
+code.cloudfoundry.org/garden v0.0.0-20240109143915-5f67362569bd/go.mod h1:SYt2weiCU5DVMmQ/LUHkT5nCu/TWnsMxvDC0NA7Ig6c=
 code.cloudfoundry.org/lager/v3 v3.0.3 h1:/UTmadZfIaKuT/whEinSxK1mzRfNu1uPfvjFfGqiwzM=
 code.cloudfoundry.org/lager/v3 v3.0.3/go.mod h1:Zn5q1SrIuuHjEUE7xerMKt3ztunrJQCZETAo7rV0CH8=
 code.cloudfoundry.org/localip v0.0.0-20231206170541-8d74d8ef21ec h1:mTPIoMd/X/XbfranPdhK092UPIDKb0on3pQoPmL8SvE=
