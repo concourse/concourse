@@ -614,6 +614,8 @@ code.cloudfoundry.org/credhub-cli v0.0.0-20240102230713-fa64581dbbe1 h1:HVHGbVjM
 code.cloudfoundry.org/credhub-cli v0.0.0-20240102230713-fa64581dbbe1/go.mod h1:f0575RUjiNl2lBGrH9ci8cIKWvma6ZSYHmfFf/+kMIc=
 code.cloudfoundry.org/credhub-cli v0.0.0-20240108140754-d707dba8358d h1:Mi7lD6ovbbTOZuViAjlK8JZfiLg2bQ53mPNmO8iIedM=
 code.cloudfoundry.org/credhub-cli v0.0.0-20240108140754-d707dba8358d/go.mod h1:QgFjt0rEeMJ05GX+yvg0YXGh9MxIfPXbSmZzWPPtckY=
+code.cloudfoundry.org/credhub-cli v0.0.0-20240111014531-6181ecde5039 h1:dPzHdHYXFgp5SqsaIdWoLAxC8A4/U/MFTVlFouD811c=
+code.cloudfoundry.org/credhub-cli v0.0.0-20240111014531-6181ecde5039/go.mod h1:zqPgon0HFYyU/mdEUPs87pQ9njYxHDDsUdLJ9hgP12g=
 code.cloudfoundry.org/garden v0.0.0-20231226182342-f6a5ba9c581c h1:Nq6uL1Xqv1y7NLAB4yHwhMsAOkktsKRgzxjIsrXQyH8=
 code.cloudfoundry.org/garden v0.0.0-20231226182342-f6a5ba9c581c/go.mod h1:SMNnXeLOtuB7AMkXZa76u1uQaPTBtzpa9Ud+AWaX4kk=
 code.cloudfoundry.org/garden v0.0.0-20240102182338-a0cd1ff97764 h1:GjWy1ax/uw61cwxGt3Kf472dWQeDfZUspOt2Z5LLf+o=
@@ -694,6 +696,8 @@ github.com/aws/aws-sdk-go v1.49.13 h1:f4mGztsgnx2dR9r8FQYa9YW/RsKb+N7bgef4UGrOW1
 github.com/aws/aws-sdk-go v1.49.13/go.mod h1:LF8svs817+Nz+DmiMQKTO3ubZ/6IaTpq3TjupRn3Eqk=
 github.com/aws/aws-sdk-go v1.49.17 h1:Cc+7LgPjKeJkF2SdNo1IkpQ5Dfl9HCZEVw9OP3CPuEI=
 github.com/aws/aws-sdk-go v1.49.17/go.mod h1:LF8svs817+Nz+DmiMQKTO3ubZ/6IaTpq3TjupRn3Eqk=
+github.com/aws/aws-sdk-go v1.49.19 h1:oZryiqeQpeJsIcAmZlp86duMu/s/DJ43qyfwa51qmLg=
+github.com/aws/aws-sdk-go v1.49.19/go.mod h1:LF8svs817+Nz+DmiMQKTO3ubZ/6IaTpq3TjupRn3Eqk=
 github.com/beevik/etree v1.1.0/go.mod h1:r8Aw8JqVegEf0w2fDnATrX9VpkMcyFeM0FhwO62wh+A=
 github.com/beevik/etree v1.2.0 h1:l7WETslUG/T+xOPs47dtd6jov2Ii/8/OjCldk5fYfQw=
 github.com/beevik/etree v1.2.0/go.mod h1:aiPf89g/1k3AShMVAzriilpcE4R/Vuor90y83zVZWFc=
