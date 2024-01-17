@@ -4,7 +4,7 @@ go 1.21.6
 
 require (
 	code.cloudfoundry.org/clock v1.1.0
-	code.cloudfoundry.org/credhub-cli v0.0.0-20240108140754-d707dba8358d
+	code.cloudfoundry.org/credhub-cli v0.0.0-20240111014531-6181ecde5039
 	code.cloudfoundry.org/garden v0.0.0-20240109143915-5f67362569bd
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	code.cloudfoundry.org/localip v0.0.0-20231206170541-8d74d8ef21ec
@@ -15,9 +15,8 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b
-	github.com/aws/aws-sdk-go v1.49.17
+	github.com/aws/aws-sdk-go v1.49.19
 	github.com/caarlos0/env/v10 v10.0.0
-	github.com/caarlos0/env/v9 v9.0.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v1.8.0
 	github.com/concourse/flag/v2 v2.0.2
