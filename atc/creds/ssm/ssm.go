@@ -17,13 +17,15 @@ type Ssm struct {
 	log             lager.Logger
 	api             ssmiface.SSMAPI
 	secretTemplates []*creds.SecretTemplate
+	sharedPath      string
 }
 
-func NewSsm(log lager.Logger, api ssmiface.SSMAPI, secretTemplates []*creds.SecretTemplate) *Ssm {
+func NewSsm(log lager.Logger, api ssmiface.SSMAPI, secretTemplates []*creds.SecretTemplate, sharedPath string) *Ssm {
 	return &Ssm{
 		log:             log,
 		api:             api,
 		secretTemplates: secretTemplates,
+		sharedPath:      sharedPath,
 	}
 }
 
@@ -34,6 +36,9 @@ func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRo
 		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
+	}
+	if s.sharedPath != "" {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(s.sharedPath+"/"))
 	}
 	return lookupPaths
 }

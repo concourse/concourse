@@ -132,7 +132,7 @@ func createPVC(name string, scName string) {
 			Spec: corev1.PersistentVolumeClaimSpec{
 				StorageClassName: &scName,
 				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.ResourceRequirements{Requests: corev1.ResourceList{
+				Resources: corev1.VolumeResourceRequirements{Requests: corev1.ResourceList{
 					corev1.ResourceStorage: resource.MustParse("1Gi")}},
 			}}, metav1.CreateOptions{})
 	Expect(err).To(BeNil(), "failed to create persistent volume claim "+name)

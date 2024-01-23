@@ -98,7 +98,7 @@ var _ = Describe("Ssm", func() {
 		t2, err := creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), &mockService, []*creds.SecretTemplate{t1, t2})
+		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), &mockService, []*creds.SecretTemplate{t1, t2}, "/concourse/shared")
 		variables = creds.NewVariables(ssmAccess, "alpha", "bogus", false)
 		Expect(ssmAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) (string, error) {
@@ -120,7 +120,7 @@ var _ = Describe("Ssm", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should get complex paramter", func() {
+		It("should get complex parameter", func() {
 			mockService.stubGetParametersByPathPages = func(path string) []mockPathResultPage {
 				return []mockPathResultPage{
 					{
@@ -160,6 +160,19 @@ var _ = Describe("Ssm", func() {
 			}
 			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("team decrypted value"))
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should get shared parameter if exists", func() {
+			mockService.stubGetParameter = func(input string) (string, error) {
+				if input != "/concourse/shared/cheery" {
+					return "", awserr.New(ssm.ErrCodeParameterNotFound, "", nil)
+				}
+				return "shared decrypted value", nil
+			}
+			value, found, err := variables.Get(varRef)
+			Expect(value).To(BeEquivalentTo("shared decrypted value"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
 		})

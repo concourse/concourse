@@ -21,8 +21,7 @@
     },
     {
       "matchPackageNames": ["gopkg.in/yaml.v2"],
-      "allowedVersions": "<3.0.0",
-      "_context": "v3 will cause indent problem when marshalling, which requires test updates and we dont know the full impact. See https://github.com/go-yaml/yaml/issues/661."
+      "allowedVersions": "<3.0.0"
     }
   ],
   "ignoreDeps": ["elm", "client-go"],

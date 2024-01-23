@@ -11,7 +11,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"go.opentelemetry.io/otel/oteltest"
+	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -566,7 +567,9 @@ var _ = Describe("PutStep", func() {
 
 	Context("when tracing is enabled", func() {
 		BeforeEach(func() {
-			tracing.ConfigureTraceProvider(oteltest.NewTracerProvider())
+			exporter := tracetest.NewInMemoryExporter()
+			tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
+			tracing.ConfigureTraceProvider(tp)
 
 			spanCtx, buildSpan := tracing.StartSpan(ctx, "build", nil)
 			fakeDelegate.StartSpanReturns(spanCtx, buildSpan)

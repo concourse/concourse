@@ -24,6 +24,7 @@ type SsmManager struct {
 	AwsRegion              string `mapstructure:"region" long:"region" description:"AWS region to send requests to"`
 	PipelineSecretTemplate string `mapstructure:"pipeline_secret_template" long:"pipeline-secret-template" description:"AWS SSM parameter name template used for pipeline specific parameter" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `mapstructure:"team_secret_template" long:"team-secret-template" description:"AWS SSM parameter name template used for team specific parameter" default:"/concourse/{{.Team}}/{{.Secret}}"`
+	SharedPath             string `mapstructure:"shared_path" long:"shared-path" description:"AWS SSM parameter path used for shared parameters"`
 	Ssm                    *Ssm
 }
 
@@ -37,6 +38,7 @@ func (manager *SsmManager) MarshalJSON() ([]byte, error) {
 		"aws_region":               manager.AwsRegion,
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,
+		"shared_path":              manager.SharedPath,
 		"health":                   health,
 	})
 }
@@ -139,7 +141,7 @@ func (manager *SsmManager) NewSecretsFactory(log lager.Logger) (creds.SecretsFac
 		return nil, err
 	}
 
-	return NewSsmFactory(log, session, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate}), nil
+	return NewSsmFactory(log, session, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate}, manager.SharedPath), nil
 }
 
 func (manager *SsmManager) Close(logger lager.Logger) {

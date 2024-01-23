@@ -12,4 +12,4 @@ jobs:
 
       run:
         path: wget
-        args: [https://example.com]
+        args: [https://google.com]
