@@ -157,6 +157,10 @@ func (manager VaultManager) Validate() error {
 		return nil
 	}
 
+	if manager.Auth.ClientTokenPath != "" {
+		return nil
+	}
+
 	if manager.Auth.Backend != "" {
 		return nil
 	}
