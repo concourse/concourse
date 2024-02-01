@@ -1,0 +1,2 @@
+extendedKeyUsage = serverAuth,clientAuth
+keyUsage = digitalSignature,keyEncipherment,dataEncipherment,keyAgreement
