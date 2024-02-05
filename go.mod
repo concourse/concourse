@@ -22,7 +22,7 @@ require (
 	github.com/concourse/flag/v2 v2.0.2
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.2.4
-	github.com/containerd/containerd v1.7.12
+	github.com/containerd/containerd v1.7.13
 	github.com/containerd/go-cni v1.1.9
 	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/coreos/go-iptables v0.7.0
