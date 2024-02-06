@@ -22,7 +22,7 @@ require (
 	github.com/concourse/flag/v2 v2.0.2
 	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.2.4
-	github.com/containerd/containerd v1.7.12
+	github.com/containerd/containerd v1.7.13
 	github.com/containerd/go-cni v1.1.9
 	github.com/containerd/typeurl/v2 v2.1.1
 	github.com/coreos/go-iptables v0.7.0
@@ -57,7 +57,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.31.1
-	github.com/opencontainers/runc v1.1.11
+	github.com/opencontainers/runc v1.1.12
 	github.com/opencontainers/runtime-spec v1.1.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/peterhellberg/link v1.2.0
