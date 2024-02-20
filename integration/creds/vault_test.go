@@ -42,6 +42,37 @@ func TestVault(t *testing.T) {
 	)
 }
 
+func TestVaultTokenPath(t *testing.T) {
+	t.Parallel()
+
+	dc := dctest.Init(t, "../docker-compose.yml", "overrides/vault-token.yml")
+	dc.Run(t, "up", "-d")
+
+	vault := vaulttest.Init(t, dc)
+
+	fly := flytest.Init(t, dc)
+
+	// set up kv v1 store for Concourse
+	vault.Run(t, "secrets", "enable", "-version=1", "-path", "concourse/main", "kv")
+
+	setupVaultAuth(t, vault)
+
+	testCredentialManagement(t, fly, dc,
+		func(team, key string, val interface{}) {
+			vault.Write(t,
+				fmt.Sprintf("concourse/%s/%s", team, key),
+				val,
+			)
+		},
+		func(team, pipeline, key string, val interface{}) {
+			vault.Write(t,
+				fmt.Sprintf("concourse/%s/%s/%s", team, pipeline, key),
+				val,
+			)
+		},
+	)
+}
+
 func TestVaultV2WithUnmountPath(t *testing.T) {
 	t.Parallel()
 
