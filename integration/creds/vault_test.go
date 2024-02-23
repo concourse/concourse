@@ -3,6 +3,7 @@ package creds_test
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/concourse/concourse/integration/internal/dctest"
@@ -10,6 +11,10 @@ import (
 	"github.com/concourse/concourse/integration/internal/vaulttest"
 	"github.com/stretchr/testify/require"
 )
+
+type tokenSummary struct {
+	Token string `json:"token"`
+}
 
 func TestVault(t *testing.T) {
 	t.Parallel()
@@ -54,8 +59,12 @@ func TestVaultTokenPath(t *testing.T) {
 
 	// set up kv v1 store for Concourse
 	vault.Run(t, "secrets", "enable", "-version=1", "-path", "concourse/main", "kv")
-
 	setupVaultAuth(t, vault)
+
+	// write the token as a file in the web container
+	summary := tokenSummary{}
+	vault.OutputJSON(t, summary, "token", "create", "--policy=concourse", "--format=json")
+	dc.WithInput(strings.NewReader(summary.Token)).Run(t, "exec", "web", "dd", "of=/vault/token")
 
 	testCredentialManagement(t, fly, dc,
 		func(team, key string, val interface{}) {
