@@ -44,7 +44,6 @@ type CNINetworkConfig struct {
 
 type CNIv4NetworkConfig struct {
 
-
 	// The subnet (in CIDR notation) which the veths should be
 	// added to.
 	//
@@ -62,7 +61,7 @@ type CNIv6NetworkConfig struct {
 	Subnet string
 
 	// Masquerade the traffic from the container using the worker address
-	// 
+	//
 	IPMasq bool
 }
 
@@ -88,29 +87,29 @@ var (
 		IPv6: CNIv6NetworkConfig{
 			Enabled: true,
 			Subnet:  "fd9c:31a6:c759::/64",
-			IPMasq: true,
+			IPMasq:  true,
 		},
 	}
 	// Default firewall plugin configuration
 	//
 	defaultFirewallPlugin = FirewallPlugin{
-		Plugin: Plugin{"firewall"},
+		Plugin:            Plugin{"firewall"},
 		IPTablesChainName: ipTablesAdminChainName,
 	}
 
 	// Default IPv4 route
 	//
-	_,default_route_v4,_ = net.ParseCIDR("0.0.0.0/0")
+	_, defaultRouteV4, _ = net.ParseCIDR("0.0.0.0/0")
 
 	// Default IPv6 route
 	//
-	_,default_route_v6,_ = net.ParseCIDR("::/0")
+	_, defaultRouteV6, _ = net.ParseCIDR("::/0")
 )
 
 type CNINetworkConfiguration struct {
-	Name string `json:"name"`
-	CNIVersion string `json:"cniVersion"`
-	Plugins []interface{} `json:"plugins"`
+	Name       string        `json:"name"`
+	CNIVersion string        `json:"cniVersion"`
+	Plugins    []interface{} `json:"plugins"`
 }
 
 type Plugin struct {
@@ -119,11 +118,11 @@ type Plugin struct {
 
 type BridgePlugin struct {
 	Plugin
-	Bridge string `json:"bridge"`
-	IsGateway bool `json:"isGateway"`
-	IPMasq bool `json:"ipMasq"`
-	IPAM IPAM `json:"ipam"`
-	MTU int `json:"mtu,omitempty"`
+	Bridge    string `json:"bridge"`
+	IsGateway bool   `json:"isGateway"`
+	IPMasq    bool   `json:"ipMasq"`
+	IPAM      IPAM   `json:"ipam"`
+	MTU       int    `json:"mtu,omitempty"`
 }
 
 type FirewallPlugin struct {
@@ -132,8 +131,8 @@ type FirewallPlugin struct {
 }
 
 type IPAM struct {
-	Type string `json:"type"`
-	Ranges [][]Range `json:"ranges"`
+	Type   string        `json:"type"`
+	Ranges [][]Range     `json:"ranges"`
 	Routes []types.Route `json:"routes"`
 }
 
@@ -142,76 +141,87 @@ type Range struct {
 }
 
 func (c CNINetworkConfig) ToJSONv4() string {
-	_, subnet_v4, err :=net.ParseCIDR(c.IPv4.Subnet)
+	_, subnet, err := net.ParseCIDR(c.IPv4.Subnet)
 	if err != nil {
-		_, subnet_v4, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv4.Subnet);
-	}
-	ranges := [][]Range{
-		{{Subnet: types.IPNet(*subnet_v4)}},
-	}
-	routes  := []types.Route{
-		{Dst: *subnet_v4},
-		{Dst: *default_route_v4},
+		_, subnet, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv4.Subnet)
 	}
 
-	bridge_plugin := BridgePlugin{
-		Plugin: Plugin{"bridge"},
-		Bridge: c.BridgeName,
+	ranges := [][]Range{
+		{{Subnet: types.IPNet(*subnet)}},
+	}
+
+	routes := []types.Route{
+		{Dst: *subnet},
+		{Dst: *defaultRouteV4},
+	}
+
+	bridgePlugin := BridgePlugin{
+		Plugin:    Plugin{"bridge"},
+		Bridge:    c.BridgeName,
 		IsGateway: true,
-		IPMasq: true,
-		MTU: c.MTU,
+		IPMasq:    true,
+		MTU:       c.MTU,
 		IPAM: IPAM{
-			Type:"host-local",
+			Type:   "host-local",
 			Ranges: ranges,
 			Routes: routes,
 		},
 	}
-	
-	net_config := CNINetworkConfiguration{
-		Name :c.NetworkName,
+
+	netConfig := CNINetworkConfiguration{
+		Name:       c.NetworkName,
 		CNIVersion: "0.4.0",
-		Plugins: []interface{}{bridge_plugin, defaultFirewallPlugin},
+		Plugins: []interface{}{
+			bridgePlugin,
+			defaultFirewallPlugin,
+		},
 	}
 
-	config_json, _ :=json.Marshal(net_config)
-	
-	return string(config_json)
+	config, _ := json.Marshal(netConfig)
+
+	return string(config)
 }
 
 func (c CNINetworkConfig) ToJSONv6() string {
-	_,subnet_v6, err := net.ParseCIDR(c.IPv6.Subnet)
+	_, subnet, err := net.ParseCIDR(c.IPv6.Subnet)
 	if err != nil {
-		_, subnet_v6, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv6.Subnet);
-	}
-	ranges := [][]Range{
-		{{Subnet:types.IPNet(*subnet_v6)}},
-	}
-	routes  := []types.Route{
-		{Dst: *subnet_v6},
-		{Dst: *default_route_v6},
+		_, subnet, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv6.Subnet)
 	}
 
-	bridge_plugin := BridgePlugin{
-		Plugin: Plugin{"bridge"},
-		Bridge: c.BridgeName,
+	ranges := [][]Range{
+		{{Subnet: types.IPNet(*subnet)}},
+	}
+
+	routes := []types.Route{
+		{Dst: *subnet},
+		{Dst: *defaultRouteV6},
+	}
+
+	bridgePlugin := BridgePlugin{
+		Plugin:    Plugin{"bridge"},
+		Bridge:    c.BridgeName,
 		IsGateway: true,
-		IPMasq: c.IPv6.IPMasq,
-		MTU: c.MTU,
+		IPMasq:    c.IPv6.IPMasq,
+		MTU:       c.MTU,
 		IPAM: IPAM{
-			Type:"host-local",
+			Type:   "host-local",
 			Ranges: ranges,
 			Routes: routes,
 		},
 	}
 
-	net_config := CNINetworkConfiguration{
-		Name :c.NetworkName,
+	netConfig := CNINetworkConfiguration{
+		Name:       c.NetworkName,
 		CNIVersion: "0.4.0",
-		Plugins: []interface{}{bridge_plugin, defaultFirewallPlugin},
+		Plugins: []interface{}{
+			bridgePlugin,
+			defaultFirewallPlugin,
+		},
 	}
-	config_json,_ :=json.Marshal(net_config)
-	
-	return string(config_json)
+
+	config, _ := json.Marshal(netConfig)
+
+	return string(config)
 }
 
 // CNINetworkOpt defines a functional option that when applied, modifies the
@@ -338,8 +348,8 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 		if err != nil {
 			return nil, fmt.Errorf("cni init: %w", err)
 		}
-		
-		opts := []cni.Opt {
+
+		opts := []cni.Opt{
 			cni.WithConfListBytes([]byte(n.config.ToJSONv4())),
 			cni.WithLoNetwork,
 		}
