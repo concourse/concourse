@@ -117,8 +117,15 @@ func (cmd *WorkerCommand) buildUpNetworkOpts(logger lager.Logger, dnsServers []s
 
 	networkConfig := runtime.DefaultCNINetworkConfig
 	if cmd.Containerd.Network.Pool != "" {
-		networkConfig.Subnet = cmd.Containerd.Network.Pool
+		networkConfig.IPv4.Subnet = cmd.Containerd.Network.Pool
 	}
+
+	networkConfig.IPv6 = runtime.CNIv6NetworkConfig{
+		Enabled: cmd.Containerd.Network.IPv6.Enable,
+		Subnet:  cmd.Containerd.Network.IPv6.Pool,
+		IPMasq:  !cmd.Containerd.Network.IPv6.DisableIPMasq,
+	}
+
 	var err error
 	networkConfig.MTU, err = cmd.Containerd.mtu()
 	if err != nil {

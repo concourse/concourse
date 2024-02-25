@@ -54,6 +54,11 @@ type ContainerdRuntime struct {
 		Pool               string    `long:"network-pool" default:"10.80.0.0/16" description:"Network range to use for dynamically allocated container subnets."`
 		MTU                int       `long:"mtu" description:"MTU size for container network interfaces. Defaults to the MTU of the interface used for outbound access by the host."`
 		AllowHostAccess    bool      `long:"allow-host-access" description:"Allow containers to reach the host's network. This is turned off by default."`
+		IPv6               struct {
+			Enable        bool   `long:"enable" description:"Enable IPv6 networking"`
+			Pool          string `long:"pool" default:"fd9c:31a6:c759::/64" description:"IPv6 network range to use for dynamically allocated container addresses."`
+			DisableIPMasq bool   `long:"disable-masquerade" description:"Masquerade container traffic with worker address."`
+		} `group:"IPv6 Configuration" namespace:"v6"`
 	} `group:"Container Networking"`
 
 	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`

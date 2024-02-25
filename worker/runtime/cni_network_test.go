@@ -44,14 +44,22 @@ func (s *CNINetworkSuite) SetupTest() {
 	s.NoError(err)
 }
 
-func (s *CNINetworkSuite) TestNewCNINetworkWithInvalidConfigDoesntFail() {
-	// CNI defers the actual interpretation of the network configuration to
-	// the plugins.
-	//
+func (s *CNINetworkSuite) TestNewCNINetworkWithInvalidIPv4ConfigDoesntFail() {
 	_, err := runtime.NewCNINetwork(
 		runtime.WithDefaultsForTesting(),
 		runtime.WithCNINetworkConfig(runtime.CNINetworkConfig{
-			Subnet: "_____________",
+			IPv4: runtime.CNIv4NetworkConfig{Subnet: "_____________"},
+		}),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+}
+
+func (s *CNINetworkSuite) TestNewCNINetworkWithInvalidIPv6ConfigDoesntFail() {
+	_, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNINetworkConfig(runtime.CNINetworkConfig{
+			IPv6: runtime.CNIv6NetworkConfig{Enabled: true, Subnet: "______"},
 		}),
 		runtime.WithIptables(s.iptables),
 	)
