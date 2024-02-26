@@ -63,7 +63,7 @@ func TestVaultTokenPath(t *testing.T) {
 
 	// write the token as a file in the web container
 	summary := tokenSummary{}
-	vault.OutputJSON(t, summary, "token", "create", "--policy=concourse", "--format=json")
+	vault.OutputJSON(t, &summary, "token", "create", "--policy=concourse", "--format=json")
 	dc.WithInput(strings.NewReader(summary.Token)).Run(t, "exec", "web", "dd", "of=/vault/token")
 
 	testCredentialManagement(t, fly, dc,
