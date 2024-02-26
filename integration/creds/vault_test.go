@@ -24,7 +24,7 @@ func TestVault(t *testing.T) {
 
 	vault := vaulttest.Init(t, dc)
 
-	fly := flytest.Init(t, dc)
+	fly := flytest.InitOverrideCredentials(t, dc)
 
 	// set up kv v1 store for Concourse
 	vault.Run(t, "secrets", "enable", "-version=1", "-path", "concourse/main", "kv")
