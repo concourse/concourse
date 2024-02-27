@@ -8,10 +8,10 @@ services:
       CONCOURSE_VAULT_URL: https://vault:8200
       CONCOURSE_VAULT_SHARED_PATH: shared
       CONCOURSE_VAULT_CA_CERT: /vault-certs/vault-ca.crt
-      CONCOURSE_VAULT_CLIENT_TOKEN_PATH: /vault/token
+      CONCOURSE_VAULT_CLIENT_TOKEN_PATH: /vault-token
 
   vault:
-    image: ${TEST_VAULT_IMAGE:-vault:latest}
+    image: ${TEST_VAULT_IMAGE:-hashicorp/vault:latest}
     cap_add: [IPC_LOCK]
     ports: [8200]
     volumes:

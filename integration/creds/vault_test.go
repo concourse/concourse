@@ -3,7 +3,8 @@ package creds_test
 import (
 	"bytes"
 	"fmt"
-	"strings"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/concourse/concourse/integration/internal/dctest"
@@ -64,7 +65,10 @@ func TestVaultTokenPath(t *testing.T) {
 	// write the token as a file in the web container
 	summary := tokenSummary{}
 	vault.OutputJSON(t, &summary, "token", "create", "--policy=concourse", "--format=json")
-	dc.WithInput(strings.NewReader(summary.Token)).Run(t, "exec", "web", "dd", "of=/vault/token")
+	tmp := t.TempDir()
+	err := os.WriteFile(filepath.Join(tmp, "token"), []byte(summary.Token), 0666)
+	require.NoError(t, err)
+	dc.Run(t, "exec", "web", "cp", filepath.Join(tmp, "token"), "web:/vault-token")
 
 	testCredentialManagement(t, fly, dc,
 		func(team, key string, val interface{}) {
