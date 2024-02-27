@@ -68,7 +68,7 @@ func TestVaultTokenPath(t *testing.T) {
 	tmp := t.TempDir()
 	err := os.WriteFile(filepath.Join(tmp, "token"), []byte(summary.Token), 0666)
 	require.NoError(t, err)
-	dc.Run(t, "exec", "web", "cp", filepath.Join(tmp, "token"), "web:/vault-token")
+	dc.Run(t, "cp", filepath.Join(tmp, "token"), "web:/vault-token")
 
 	testCredentialManagement(t, fly, dc,
 		func(team, key string, val interface{}) {
