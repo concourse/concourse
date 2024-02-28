@@ -4,11 +4,12 @@ services:
   web:
     volumes:
     - ../hack/vault/certs:/vault-certs
+    - ../hack/vault/token:/vault/token
     environment:
       CONCOURSE_VAULT_URL: https://vault:8200
       CONCOURSE_VAULT_SHARED_PATH: shared
       CONCOURSE_VAULT_CA_CERT: /vault-certs/vault-ca.crt
-      CONCOURSE_VAULT_CLIENT_TOKEN_PATH: /vault-token
+      CONCOURSE_VAULT_CLIENT_TOKEN_PATH: /vault/token
 
   vault:
     image: ${TEST_VAULT_IMAGE:-hashicorp/vault:latest}

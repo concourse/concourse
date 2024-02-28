@@ -14,7 +14,9 @@ import (
 )
 
 type tokenSummary struct {
-	Token string `json:"token"`
+	Auth struct {
+		ClientToken string `json:"client_token"`
+	} `json:"auth"`
 }
 
 func TestVault(t *testing.T) {
@@ -52,23 +54,23 @@ func TestVaultTokenPath(t *testing.T) {
 	t.Parallel()
 
 	dc := dctest.Init(t, "../docker-compose.yml", "overrides/vault-token.yml")
-	dc.Run(t, "up", "-d")
-
-	vault := vaulttest.Init(t, dc)
-
-	fly := flytest.InitOverrideCredentials(t, dc)
 
 	// set up kv v1 store for Concourse
+	dc.Run(t, "up", "-d", "vault")
+	vault := vaulttest.Init(t, dc)
 	vault.Run(t, "secrets", "enable", "-version=1", "-path", "concourse/main", "kv")
 	setupVaultAuth(t, vault)
 
-	// write the token as a file in the web container
+	// create and mount the client token as a file in the web container
 	summary := tokenSummary{}
 	vault.OutputJSON(t, &summary, "token", "create", "--policy=concourse", "--format=json")
-	tmp := t.TempDir()
-	err := os.WriteFile(filepath.Join(tmp, "token"), []byte(summary.Token), 0666)
+	dir := "../../hack/vault"
+	err := os.WriteFile(filepath.Join(dir, "token"), []byte(summary.Auth.ClientToken), 0666)
 	require.NoError(t, err)
-	dc.Run(t, "cp", filepath.Join(tmp, "token"), "web:/vault-token")
+
+	// start concourse and run the test
+	dc.Run(t, "up", "-d")
+	fly := flytest.InitOverrideCredentials(t, dc)
 
 	testCredentialManagement(t, fly, dc,
 		func(team, key string, val interface{}) {
