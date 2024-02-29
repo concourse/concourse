@@ -1,8 +1,11 @@
 package vault
 
 import (
+	"code.cloudfoundry.org/lager/v3"
 	"crypto/tls"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-rootcerts"
 	"net/http"
 	"os"
 	"path"
@@ -10,9 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
@@ -103,25 +103,36 @@ func (ac *APIClient) loginParams() map[string]interface{} {
 	return loginParams
 }
 
+// setClientToken Create a client with the given token and trigger an immediate renewal.
+func (ac *APIClient) setClientToken(token string, logger lager.Logger) (time.Duration, error) {
+	newClient, err := ac.clientWithToken(token)
+	if err != nil {
+		logger.Error("failed-to-create-client", err)
+		return time.Second, err
+	}
+
+	ac.setClient(newClient)
+
+	logger.Info("token-set")
+
+	return time.Second, nil
+}
+
 // Login the APIClient using the credentials passed at
 // construction. Returns a duration after which renew must be called.
 func (ac *APIClient) Login() (time.Duration, error) {
 	logger := ac.logger.Session("login")
-
-	// If we are configured with a client token return right away
-	// and trigger a renewal.
 	if ac.authConfig.ClientToken != "" {
-		newClient, err := ac.clientWithToken(ac.authConfig.ClientToken)
+		return ac.setClientToken(ac.authConfig.ClientToken, logger)
+	}
+
+	if ac.authConfig.ClientTokenPath != "" {
+		bytes, err := os.ReadFile(ac.authConfig.ClientTokenPath)
 		if err != nil {
-			logger.Error("failed-to-create-client", err)
+			logger.Error("failed-to-read-token", err)
 			return time.Second, err
 		}
-
-		ac.setClient(newClient)
-
-		logger.Info("token-set")
-
-		return time.Second, nil
+		return ac.setClientToken(string(bytes), logger)
 	}
 
 	client := ac.client()
@@ -158,6 +169,7 @@ func (ac *APIClient) Login() (time.Duration, error) {
 	ac.setClient(newClient)
 
 	return time.Duration(secret.Auth.LeaseDuration) * time.Second, nil
+
 }
 
 // Renew the APIClient login using the credentials passed at

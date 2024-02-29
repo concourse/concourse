@@ -53,7 +53,8 @@ type TLSConfig struct {
 }
 
 type AuthConfig struct {
-	ClientToken string `mapstructure:"client_token" long:"client-token" description:"Client token for accessing secrets within the Vault server."`
+	ClientToken     string `mapstructure:"client_token" long:"client-token" description:"Client token for accessing secrets within the Vault server."`
+	ClientTokenPath string `mapstructure:"client_token_path" long:"client-token-path" description:"Absolute path to a file containing the Vault client token."`
 
 	Backend       string        `mapstructure:"auth_backend" long:"auth-backend"               description:"Auth backend to use for logging in to Vault."`
 	BackendMaxTTL time.Duration `mapstructure:"auth_backend_max_ttl" long:"auth-backend-max-ttl"       description:"Time after which to force a re-login. If not set, the token will just be continuously renewed."`
@@ -153,6 +154,10 @@ func (manager VaultManager) Validate() error {
 	}
 
 	if manager.Auth.ClientToken != "" {
+		return nil
+	}
+
+	if manager.Auth.ClientTokenPath != "" {
 		return nil
 	}
 

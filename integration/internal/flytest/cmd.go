@@ -72,6 +72,18 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 	return fly
 }
 
+func InitOverrideCredentials(t *testing.T, dc dctest.Cmd) Cmd {
+	fly, webURL := InitUnauthenticated(t, dc)
+
+	fly.WithEnv("CONCOURSE_VAULT_CLIENT_CERT=/vault-certs/concourse.crt")
+	fly.WithEnv("CONCOURSE_VAULT_CLIENT_KEY=/vault-certs/concourse.key")
+	fly.Run(t, "login", "-c", webURL, "-u", "test", "-p", "test")
+
+	fly.WaitForRunningWorker(t)
+
+	return fly
+}
+
 func (cmd Cmd) WaitForRunningWorker(t *testing.T) {
 	require.Eventually(t, func() bool {
 		for _, w := range cmd.Table(t, "workers") {

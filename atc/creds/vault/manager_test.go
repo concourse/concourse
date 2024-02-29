@@ -56,13 +56,16 @@ var _ = Describe("VaultManager", func() {
 		})
 
 		DescribeTable("passes if all vault credentials are specified",
-			func(backend, clientToken string) {
+			func(backend, clientToken string, tokenPath string) {
 				manager.Auth.Backend = backend
 				manager.Auth.ClientToken = clientToken
+				manager.Auth.ClientTokenPath = tokenPath
 				Expect(manager.Validate()).To(BeNil())
 			},
-			Entry("all values", "backend", "clientToken"),
-			Entry("only clientToken", "", "clientToken"),
+			Entry("all values", "backend", "clientToken", "clientTokenPath"),
+			Entry("only clientToken", "", "clientToken", ""),
+			Entry("only clientTokenPath", "", "", "clientTokenPath"),
+			Entry("only backend", "backend", "", ""),
 		)
 
 		It("fails on missing vault auth credentials", func() {
