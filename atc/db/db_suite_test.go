@@ -76,6 +76,7 @@ var (
 
 	defaultCheckInterval        = time.Minute
 	defaultWebhookCheckInterval = time.Hour
+	defaultResourceTypeInterval = time.Hour
 	defaultCheckTimeout         = 5 * time.Minute
 
 	defaultBuildCreatedBy string

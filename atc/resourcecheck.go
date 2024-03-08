@@ -5,6 +5,7 @@ import "time"
 var (
 	DefaultCheckInterval   time.Duration
 	DefaultWebhookInterval time.Duration
+	DefaultResourceTypeInterval time.Duration
 )
 
 type CheckRequestBody struct {
