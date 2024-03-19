@@ -48,13 +48,13 @@ func (p *Process) Wait() (int, error) {
 		return 0, fmt.Errorf("proc closeio: %w", err)
 	}
 
-	p.process.IO().Wait()
-
 	_, err = p.process.Delete(context.Background())
 	// ignore "not found" errors - the process was already deleted
 	if err != nil && !errors.Is(err, errdefs.ErrNotFound) {
 		return 0, fmt.Errorf("delete process: %w", err)
 	}
+
+	p.process.IO().Wait()
 
 	return int(status.ExitCode()), nil
 }
