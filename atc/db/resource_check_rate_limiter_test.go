@@ -138,7 +138,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			case <-time.After(100 * time.Millisecond):
 			}
 
-			By("unblocking after the the new rate limit elapses")
+			By("unblocking after the new rate limit elapses")
 			fakeClock.Increment(checkInterval / time.Duration(checkableCount))
 			Expect(<-done).To(Succeed())
 
