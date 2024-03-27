@@ -97,14 +97,14 @@ run:
 			})
 		})
 
-		Context("when required vars are passed from from command line using -v", func() {
+		Context("when required vars are passed from command line using -v", func() {
 			It("successfully runs external task via fly execute", func() {
 				execS := flyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock", "-v", "echo_text=Hello World From Command Line")
 				Expect(execS).To(gbytes.Say("Hello World From Command Line"))
 			})
 		})
 
-		Context("when required vars are passed from from command line using -v", func() {
+		Context("when required vars are passed from command line using -v", func() {
 			It("successfully runs external task via fly execute", func() {
 				varsContents := `
 image_resource_type: mock
@@ -121,7 +121,7 @@ echo_text: Hello World From Command Line
 			})
 		})
 
-		Context("when not all required vars are passed from from command line", func() {
+		Context("when not all required vars are passed from command line", func() {
 			It("fails external task via fly execute due to an uninterpolated variable", func() {
 				execS := spawnFlyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock")
 				<-execS.Exited

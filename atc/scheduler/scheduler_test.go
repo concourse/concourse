@@ -403,7 +403,7 @@ var _ = Describe("Scheduler", func() {
 						fakeJob.HasNewInputsReturns(false)
 					})
 
-					It("doesn't mark the the job as not having new inputs again", func() {
+					It("doesn't mark the job as not having new inputs again", func() {
 						Expect(fakeJob.SetHasNewInputsCallCount()).To(Equal(0))
 					})
 				})

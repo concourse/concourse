@@ -27,7 +27,7 @@ type SAMLFlags struct {
 	EmailAttr          string    `long:"email-attr" default:"email" description:"The email indicates which claim to use to map an external user email to a Concourse user email."`
 	GroupsAttr         string    `long:"groups-attr" default:"groups" description:"The groups key indicates which attribute to use to map external groups to Concourse teams."`
 	GroupsDelim        string    `long:"groups-delim" description:"If specified, groups are returned as string, this delimiter will be used to split the group string."`
-	NameIDPolicyFormat string    `long:"name-id-policy-format" description:"Requested format of the NameID. The NameID value is is mapped to the ID Token 'sub' claim."`
+	NameIDPolicyFormat string    `long:"name-id-policy-format" description:"Requested format of the NameID. The NameID value is mapped to the ID Token 'sub' claim."`
 	InsecureSkipVerify bool      `long:"skip-ssl-validation" description:"Skip SSL validation"`
 }
 
