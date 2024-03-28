@@ -267,6 +267,129 @@ var _ = Describe("Pipelines API", func() {
           "vault": {
             "url": "` + credServer.URL() + `",
             "path_prefix": "testpath",
+			"path_prefixes": null,
+            "lookup_templates": ["/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"],
+			"shared_path": "",
+			"namespace": "testnamespace",
+            "ca_cert": "",
+            "server_name": "server-name",
+						"auth_backend": "backend-server",
+						"auth_max_ttl": 20,
+						"auth_retry_max": 5,
+						"auth_retry_initial": 2,
+						"health": {
+							"response": {
+                  "initialized": true,
+                  "sealed": false,
+                  "standby": false,
+				  "performance_standby": false,
+                  "replication_performance_mode": "foo",
+                  "replication_dr_mode": "blah",
+                  "server_time_utc": 0,
+                  "version": "1.0.0"
+                },
+                "method": "/v1/sys/health"
+						}
+          }
+        }`))
+				})
+			})
+		})
+
+		Context("vault with multiple path prefixes", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(true)
+
+				authConfig := vault.AuthConfig{
+					Backend:       "backend-server",
+					BackendMaxTTL: 20,
+					RetryMax:      5,
+					RetryInitial:  2,
+				}
+
+				tls := vault.TLSConfig{
+					CACert:     "",
+					ServerName: "server-name",
+				}
+
+				credServer = ghttp.NewServer()
+				vaultManager := &vault.VaultManager{
+					URL:             credServer.URL(),
+					Namespace:       "testnamespace",
+					PathPrefix:      "",
+					PathPrefixes:    []string{"/kv1", "/kv2"},
+					LookupTemplates: []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"},
+					TLS:             tls,
+					Auth:            authConfig,
+				}
+
+				err := vaultManager.Init(lager.NewLogger("test"))
+				Expect(err).ToNot(HaveOccurred())
+
+				credsManagers["vault"] = vaultManager
+
+				credServer.RouteToHandler("GET", "/v1/sys/health", ghttp.RespondWithJSONEncoded(
+					http.StatusOK,
+					&vaultapi.HealthResponse{
+						Initialized:                true,
+						Sealed:                     false,
+						Standby:                    false,
+						ReplicationPerformanceMode: "foo",
+						ReplicationDRMode:          "blah",
+						ServerTimeUTC:              0,
+						Version:                    "1.0.0",
+					},
+				))
+			})
+
+			Context("get vault health info returns error", func() {
+				BeforeEach(func() {
+					credServer.RouteToHandler("GET", "/v1/sys/health", ghttp.RespondWithJSONEncoded(
+						http.StatusInternalServerError,
+						"some error occurred",
+					))
+				})
+
+				It("returns configured creds manager with error", func() {
+					var errorBody struct {
+						Vault struct {
+							Health struct {
+								Error  string `json:"error"`
+								Method string `json:"method"`
+							} `json:"health"`
+						} `json:"vault"`
+					}
+
+					err := json.Unmarshal(body, &errorBody)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(errorBody.Vault.Health.Error).To(ContainSubstring("some error occurred"))
+				})
+			})
+
+			Context("get vault health info", func() {
+				BeforeEach(func() {
+					credServer.RouteToHandler("GET", "/v1/sys/health", ghttp.RespondWithJSONEncoded(
+						http.StatusOK,
+						&vaultapi.HealthResponse{
+							Initialized:                true,
+							Sealed:                     false,
+							Standby:                    false,
+							ReplicationPerformanceMode: "foo",
+							ReplicationDRMode:          "blah",
+							ServerTimeUTC:              0,
+							Version:                    "1.0.0",
+						},
+					))
+				})
+
+				It("returns configured creds manager", func() {
+					Expect(body).To(MatchJSON(`{
+          "vault": {
+            "url": "` + credServer.URL() + `",
+            "path_prefix": "",
+			"path_prefixes": ["/kv1","/kv2"],
             "lookup_templates": ["/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"],
 			"shared_path": "",
 			"namespace": "testnamespace",
@@ -346,6 +469,7 @@ var _ = Describe("Pipelines API", func() {
 							"method": "/health"
 						},
 						"path_prefix": "some-prefix",
+						"path_prefixes": null,
 						"uaa_client_id": "client-id"
 						}
 					}`))
@@ -364,18 +488,20 @@ var _ = Describe("Pipelines API", func() {
 							} `json:"response"`
 							Method string `json:"method"`
 						} `json:"health"`
-						PathPrefix  string `json:"path_prefix"`
-						UAAClientId string `json:"uaa_client_id"`
+						PathPrefix   string   `json:"path_prefix"`
+						PathPrefixes []string `json:"path_prefixes"`
+						UAAClientId  string   `json:"uaa_client_id"`
 					} `json:"credhub"`
 				}
 
 				BeforeEach(func() {
 					credhubManager := &credhub.CredHubManager{
-						URL:        "http://wrong.inexistent.tld",
-						PathPrefix: "some-prefix",
-						TLS:        tls,
-						UAA:        uaa,
-						Client:     &credhub.LazyCredhub{},
+						URL:          "http://wrong.inexistent.tld",
+						PathPrefix:   "some-prefix",
+						PathPrefixes: []string{},
+						TLS:          tls,
+						UAA:          uaa,
+						Client:       &credhub.LazyCredhub{},
 					}
 
 					credsManagers["credhub"] = credhubManager
