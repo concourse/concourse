@@ -47,7 +47,7 @@ type CheckDelegate interface {
 	UpdateScopeLastCheckStartTime(db.ResourceConfigScope, bool) (bool, int, error)
 	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
 
-	StreamingVolume(lager.Logger, string, string, string)
+	StreamingVolume(lager.Logger, string, string, string, int)
 }
 
 func NewCheckStep(
