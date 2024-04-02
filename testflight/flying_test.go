@@ -80,6 +80,11 @@ run:
 		Expect(execS).To(gbytes.Say("ARGS are SOME ARGS"))
 	})
 
+	It("works in background", func() {
+		execS := flyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "--background", "--", "SOME", "ARGS",)
+		Eventually(execS).Should(gbytes.Say("executing build"))
+	})
+
 	Describe("hijacking", func() {
 		It("executes an interactive command in a running task's container", func() {
 			err := os.WriteFile(
