@@ -9,10 +9,11 @@ import (
 )
 
 type ClearTaskCacheCommand struct {
-	Job             flaghelpers.JobFlag `short:"j" long:"job"  required:"true"  description:"Job to clear cache from"`
-	StepName        string              `short:"s" long:"step"  required:"true" description:"Step name to clear cache from"`
-	CachePath       string              `short:"c" long:"cache-path"  default:"" description:"Cache directory to clear out"`
-	SkipInteractive bool                `short:"n"  long:"non-interactive"          description:"Destroy the task cache(s) without confirmation"`
+	Job             flaghelpers.JobFlag  `short:"j" long:"job"  required:"true"  description:"Job to clear cache from"`
+	StepName        string               `short:"s" long:"step"  required:"true" description:"Step name to clear cache from"`
+	CachePath       string               `short:"c" long:"cache-path"  default:"" description:"Cache directory to clear out"`
+	SkipInteractive bool                 `short:"n"  long:"non-interactive"          description:"Destroy the task cache(s) without confirmation"`
+	Team            flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *ClearTaskCacheCommand) Execute([]string) error {
@@ -24,6 +25,14 @@ func (command *ClearTaskCacheCommand) Execute([]string) error {
 	err = target.Validate()
 	if err != nil {
 		return err
+	}
+
+	team := target.Team()
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team.Name())
+		if err != nil {
+			return err
+		}
 	}
 
 	warningMsg := fmt.Sprintf("!!! this will remove the task cache(s) for `%s/%s`, task step `%s`",
@@ -43,7 +52,7 @@ func (command *ClearTaskCacheCommand) Execute([]string) error {
 		}
 	}
 
-	numRemoved, err := target.Team().ClearTaskCache(command.Job.PipelineRef, command.Job.JobName, command.StepName, command.CachePath)
+	numRemoved, err := team.ClearTaskCache(command.Job.PipelineRef, command.Job.JobName, command.StepName, command.CachePath)
 
 	if err != nil {
 		fmt.Println(err.Error())
