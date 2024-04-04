@@ -153,6 +153,35 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("and a non-default team is specified", func() {
+				var expectedURLOther = "/api/v1/teams/other-team/pipelines/some-pipeline/jobs/some-job/tasks/some-step-name/cache"
+
+				BeforeEach(func() {
+					args = append(args, "--team", "other-team")
+				})
+
+				JustBeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: "other-team",
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", expectedURLOther, strings.Join(expectedQueryParams, "&")),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearTaskCacheResponse{CachesRemoved: 1}),
+						),
+					)
+				})
+
+				It("succeeds if the user says yes", func() {
+					yes()
+					Eventually(sess).Should(gbytes.Say("1 caches removed"))
+					Eventually(sess).Should(gexec.Exit(0))
+				})
+			})
+
 			Context("and the task step does not exist", func() {
 				JustBeforeEach(func() {
 					atcServer.AppendHandlers(

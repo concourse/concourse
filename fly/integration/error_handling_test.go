@@ -148,6 +148,8 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo", "--team", nonExistentTeam)),
 			Entry("watch command returns an error",
 				exec.Command(flyPath, "-t", targetName, "watch", "-j", "pipeline/job", "--team", nonExistentTeam)),
+			Entry("clear-task-cache command returns an error",
+				exec.Command(flyPath, "-t", targetName, "clear-task-cache", "-j", "pipeline/job", "-s", "some-task-step", "--team", nonExistentTeam)),
 		)
 
 		DescribeTable("and you are NOT authorized to view the team",
@@ -204,6 +206,8 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "resource-versions", "-r", "pipeline/branch:master/foo", "--team", otherTeam)),
 			Entry("watch command returns an error",
 				exec.Command(flyPath, "-t", targetName, "watch", "-j", "pipeline/job", "--team", otherTeam)),
+			Entry("clear-task-cache command returns an error",
+				exec.Command(flyPath, "-t", targetName, "clear-task-cache", "-j", "pipeline/job", "-s", "some-task-step", "--team", otherTeam)),
 		)
 	})
 })
