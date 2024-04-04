@@ -1875,6 +1875,7 @@ var factoryTests = []PlannerTest{
 func (test PlannerTest) Run(s *PlannerSuite) {
 	atc.DefaultCheckInterval = 1 * time.Minute
 	atc.DefaultWebhookInterval = 2 * time.Minute
+	atc.DefaultResourceTypeInterval = 3 * time.Minute
 
 	factory := builds.NewPlanner(atc.NewPlanFactory(0))
 
@@ -1913,6 +1914,7 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 
 	atc.DefaultCheckInterval = 0
 	atc.DefaultWebhookInterval = 0
+	atc.DefaultResourceTypeInterval = 0
 }
 
 func (s *PlannerSuite) TestFactory() {
