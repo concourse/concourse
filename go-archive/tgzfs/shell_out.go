@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"syscall"
 )
@@ -38,7 +39,11 @@ func tarExtract(tarPath string, src io.Reader, dest string) error {
 func tarCompress(tarPath string, dest io.Writer, workDir string, paths ...string) error {
 	out := new(bytes.Buffer)
 
-	tarCmd := exec.Command(tarPath, "-czf", "-", "--null", "-T", "-")
+	args := []string{"-czf", "-", "--null", "-T", "-"}
+	if runtime.GOOS == "darwin" {
+		args = append([]string{"--no-mac-metadata"}, args...)
+	}
+	tarCmd := exec.Command(tarPath, args...)
 	tarCmd.Dir = workDir
 	tarCmd.Stderr = out
 	tarCmd.Stdout = dest
