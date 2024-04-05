@@ -20,7 +20,6 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v1.8.0
 	github.com/concourse/flag/v2 v2.0.2
-	github.com/concourse/go-archive v1.0.1
 	github.com/concourse/retryhttp v1.2.4
 	github.com/containerd/containerd v1.7.13
 	github.com/containerd/go-cni v1.1.9

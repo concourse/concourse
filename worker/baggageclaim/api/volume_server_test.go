@@ -16,13 +16,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/go-archive/tarfs"
+	"github.com/concourse/concourse/go-archive/tarfs"
 	"github.com/klauspost/compress/zstd"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/go-archive/tgzfs"
 
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/api"

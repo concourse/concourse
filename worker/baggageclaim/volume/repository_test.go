@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/go-archive/tgzfs"
 
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid/uidgidfakes"
