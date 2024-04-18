@@ -266,7 +266,7 @@ func (s setPipelineSource) Validate() error {
 	return nil
 }
 
-// FetchConfig streams pipeline config file and var files from other resources
+// FetchPipelineConfig streams pipeline config file and var files from other resources
 // and construct an atc.Config object
 func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 	config, err := s.fetchPipelineBits(s.step.plan.File)

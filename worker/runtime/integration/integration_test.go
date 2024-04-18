@@ -168,7 +168,7 @@ func (s *IntegrationSuite) TestPing() {
 	s.NoError(s.gardenBackend.Ping())
 }
 
-// TestContainerCreateRunStopDestroy validates that we're able to go through the
+// TestContainerCreateRunStopedDestroy validates that we're able to go through the
 // whole lifecycle of:
 //
 // 1. creating the container
@@ -532,7 +532,7 @@ func (s *IntegrationSuite) TestRunPrivileged() {
 	s.runToCompletion(true)
 }
 
-// TestRunPrivileged tests whether we're able to run a process in an
+// TestRunUnprivileged tests whether we're able to run a process in an
 // unprivileged container.
 //
 // Differently from the privileged counterpart, we first need to change the
