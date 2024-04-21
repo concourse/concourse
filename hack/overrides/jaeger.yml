@@ -5,8 +5,6 @@
 # ref: https://www.jaegertracing.io/
 # ref: https://docs.docker.com/compose/extends/
 #
-version: "3"
-
 volumes:
   elasticsearch-data:
 services:

@@ -2,8 +2,6 @@
 # a container runtime
 #
 #
-version: '3'
-
 services:
   worker:
     environment:

@@ -3,8 +3,6 @@
 # ref: https://www.openpolicyagent.org/
 # ref: https://docs.docker.com/compose/extends/
 #
-version: '3'
-
 services:
   web:
     environment:

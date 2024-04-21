@@ -9,8 +9,6 @@
 # ref: https://github.com/dexidp/dex/blob/33e13c2aad9bb8a91abea6a2870dc178e3bd00de/examples/ldap/
 # ref: https://docs.docker.com/compose/extends/
 #
-version: '3'
-
 services:
   web:
     environment:
