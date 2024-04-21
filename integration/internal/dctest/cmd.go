@@ -24,7 +24,8 @@ func Init(t *testing.T, composeFile string, overrides ...string) Cmd {
 	files := append([]string{composeFile}, overrides...)
 
 	dc := cmdtest.Cmd{
-		Path: "docker-compose",
+		Path: "docker",
+		Args: []string{"compose"},
 		Env: []string{
 			"COMPOSE_FILE=" + strings.Join(files, ":"),
 			"COMPOSE_PROJECT_NAME=" + name,
