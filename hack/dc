@@ -11,4 +11,4 @@ for f in "${core[@]}"; do
   args+=(-f "hack/overrides/$f.yml")
 done
 
-docker-compose ${args[@]} "$@"
+docker compose ${args[@]} "$@"
