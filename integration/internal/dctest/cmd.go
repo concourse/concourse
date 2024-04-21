@@ -19,7 +19,7 @@ type Cmd struct {
 }
 
 func Init(t *testing.T, composeFile string, overrides ...string) Cmd {
-	name := filepath.Base(t.Name())
+	name := strings.ToLower(filepath.Base(t.Name()))
 
 	files := append([]string{composeFile}, overrides...)
 
