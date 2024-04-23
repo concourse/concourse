@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   db:
     image: ${TEST_POSTGRES_IMAGE:-postgres}

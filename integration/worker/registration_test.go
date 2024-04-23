@@ -20,7 +20,7 @@ func TestRegistration_GardenServerFails(t *testing.T) {
 
 	t.Run("worker container exits", func(t *testing.T) {
 		require.Eventually(t, func() bool {
-			services := dc.Output(t, "ps", "--services", "--filter", "status=stopped")
+			services := dc.Output(t, "ps", "-a", "--services", "--status=exited")
 			return strings.Contains(services, "worker")
 		}, 30*time.Second, 1*time.Second, "worker process never exited, but should have")
 	})
