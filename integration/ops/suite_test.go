@@ -40,7 +40,7 @@ func verifyUpgradeDowngrade(t *testing.T, fly flytest.Cmd) {
 	})
 }
 
-func waitForVolumesGC(t *testing.T, fly flytest.Cmd, beforeVolumes []string, waitTime time.Duration) {
+func waitForVolumesGC(t *testing.T, fly flytest.Cmd, beforeVolumes []string) {
 	require.Eventually(t, func() bool {
 		volumes := fly.Table(t, "volumes")
 		currentVolumes := getColumnValues(volumes, "handle")
@@ -52,7 +52,7 @@ func waitForVolumesGC(t *testing.T, fly flytest.Cmd, beforeVolumes []string, wai
 		}
 
 		return true
-	}, waitTime, 5*time.Second)
+	}, 2*time.Minute, 5*time.Second)
 }
 
 func getColumnValues(table flytest.Table, columnName string) []string {

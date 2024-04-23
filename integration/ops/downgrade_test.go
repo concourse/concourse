@@ -3,7 +3,6 @@ package ops_test
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/concourse/concourse/integration/internal/dctest"
 	"github.com/concourse/concourse/integration/internal/flytest"
@@ -38,7 +37,7 @@ func TestDowngradeOps(t *testing.T) {
 	})
 
 	fly = flytest.Init(t, latestDC)
-	waitForVolumesGC(t, fly, beforeVolumes, 2*time.Minute)
+	waitForVolumesGC(t, fly, beforeVolumes)
 
 	verifyUpgradeDowngrade(t, fly)
 
@@ -50,7 +49,7 @@ func TestDowngradeOps(t *testing.T) {
 	})
 
 	fly = flytest.Init(t, devDC)
-	waitForVolumesGC(t, fly, beforeVolumes, 10*time.Minute)
+	waitForVolumesGC(t, fly, beforeVolumes)
 
 	verifyUpgradeDowngrade(t, fly)
 }

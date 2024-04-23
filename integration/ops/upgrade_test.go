@@ -2,7 +2,6 @@ package ops_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/concourse/concourse/integration/internal/dctest"
 	"github.com/concourse/concourse/integration/internal/flytest"
@@ -27,7 +26,7 @@ func TestUpgradeOps(t *testing.T) {
 		devDC.Run(t, "up", "-d")
 	})
 	fly = flytest.Init(t, devDC)
-	waitForVolumesGC(t, fly, beforeVolumes, 2*time.Minute)
+	waitForVolumesGC(t, fly, beforeVolumes)
 
 	verifyUpgradeDowngrade(t, fly)
 }
