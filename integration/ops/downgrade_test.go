@@ -17,6 +17,8 @@ func TestDowngradeOps(t *testing.T) {
 
 	fly := flytest.Init(t, devDC)
 	setupUpgradeDowngrade(t, fly)
+	volumes := fly.Table(t, "volumes")
+	beforeVolumes := getColumnValues(volumes, "handle")
 
 	latestDC := dctest.Init(t, "../docker-compose.yml", "overrides/named.yml", "overrides/latest.yml", "overrides/fast-gc.yml")
 
@@ -35,16 +37,19 @@ func TestDowngradeOps(t *testing.T) {
 	})
 
 	fly = flytest.Init(t, latestDC)
-	waitForVolumesGC(t, fly)
+	waitForVolumesGC(t, fly, beforeVolumes)
 
 	verifyUpgradeDowngrade(t, fly)
+
+	volumes = fly.Table(t, "volumes")
+	beforeVolumes = getColumnValues(volumes, "handle")
 
 	t.Run("migrate up to dev and deploy dev", func(t *testing.T) {
 		devDC.Run(t, "up", "-d")
 	})
 
 	fly = flytest.Init(t, devDC)
-	waitForVolumesGC(t, fly)
+	waitForVolumesGC(t, fly, beforeVolumes)
 
 	verifyUpgradeDowngrade(t, fly)
 }

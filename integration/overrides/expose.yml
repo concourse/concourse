@@ -1,8 +1,6 @@
 # add this override to a failing test if you want to investigate it in the web
 # UI
 
-version: '3'
-
 services:
   web:
     ports: [8080:8080]
