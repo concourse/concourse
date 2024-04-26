@@ -1,6 +1,7 @@
 package ops_test
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -39,9 +40,27 @@ func verifyUpgradeDowngrade(t *testing.T, fly flytest.Cmd) {
 	})
 }
 
-func waitForVolumesGC(t *testing.T, fly flytest.Cmd) {
+func waitForVolumesGC(t *testing.T, fly flytest.Cmd, beforeVolumes []string) {
 	require.Eventually(t, func() bool {
 		volumes := fly.Table(t, "volumes")
-		return len(volumes) == 0
+		currentVolumes := getColumnValues(volumes, "handle")
+
+		for _, cv := range currentVolumes {
+			if slices.Contains(beforeVolumes, cv) {
+				return false
+			}
+		}
+
+		return true
 	}, 2*time.Minute, 5*time.Second)
+}
+
+func getColumnValues(table flytest.Table, columnName string) []string {
+	var values []string
+
+	for _, row := range table {
+		values = append(values, row[columnName])
+	}
+
+	return values
 }

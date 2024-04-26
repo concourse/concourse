@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   db:
     # we need to persist the db between restarts

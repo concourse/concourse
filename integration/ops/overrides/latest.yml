@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   web:
     image: ${TEST_CONCOURSE_LATEST_IMAGE:-concourse/concourse:latest}

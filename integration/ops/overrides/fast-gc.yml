@@ -1,10 +1,9 @@
-version: '3'
-
 services:
   web:
     environment:
       CONCOURSE_GC_MISSING_GRACE_PERIOD: "0"
       CONCOURSE_GC_INTERVAL: 10s
+      CONCOURSE_GC_ONE_OFF_GRACE_PERIOD: 10s
 
   worker:
     environment:
