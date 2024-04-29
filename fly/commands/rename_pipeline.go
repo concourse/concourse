@@ -7,11 +7,13 @@ import (
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 )
 
 type RenamePipelineCommand struct {
-	OldName string `short:"o"  long:"old-name" required:"true"  description:"Existing pipeline or instance group to rename"`
-	NewName string `short:"n"  long:"new-name" required:"true"  description:"New name for the pipeline or instance group"`
+	OldName string               `short:"o"  long:"old-name" required:"true"  description:"Existing pipeline or instance group to rename"`
+	NewName string               `short:"n"    long:"new-name" required:"true"  description:"New name for the pipeline or instance group"`
+	Team    flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *RenamePipelineCommand) Validate() error {
@@ -40,7 +42,15 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 		return err
 	}
 
-	found, warnings, err := target.Team().RenamePipeline(command.OldName, command.NewName)
+	team := target.Team()
+	if command.Team != "" {
+		team, err = target.FindTeam(command.Team.Name())
+		if err != nil {
+			return err
+		}
+	}
+
+	found, warnings, err := team.RenamePipeline(command.OldName, command.NewName)
 	if err != nil {
 		return err
 	}
