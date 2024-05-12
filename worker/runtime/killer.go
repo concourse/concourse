@@ -52,7 +52,7 @@ type Killer interface {
 
 // killer terminates the processes exec'ed in a task.
 //
-// Only processes created through `task.Exec` are targetted to receive the the
+// Only processes created through `task.Exec` are targeted to receive the
 // first signals it delivers.
 type killer struct {
 	gracePeriod   time.Duration
