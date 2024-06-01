@@ -164,7 +164,7 @@ Concourse instance to the next.
 * See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [GitHub discussions](https://github.com/concourse/concourse/discussions) or in
   [Discord](https://discord.gg/MeRxXKW).
-* See what we're working on on the [project board](https://github.com/orgs/concourse/projects). 
+* See what we're working on the [project board](https://github.com/orgs/concourse/projects). 
 
 
 ## Contributing
