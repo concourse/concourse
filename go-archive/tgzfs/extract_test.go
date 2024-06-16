@@ -11,7 +11,7 @@ import (
 	"github.com/concourse/concourse/go-archive/archivetest"
 	"github.com/concourse/concourse/go-archive/tgzfs"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
