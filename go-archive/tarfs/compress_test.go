@@ -3,7 +3,7 @@ package tarfs_test
 import (
 	"archive/tar"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,7 +22,7 @@ var _ = Describe("Compress", func() {
 	var compressErr error
 
 	BeforeEach(func() {
-		dir, err := ioutil.TempDir("", "archive-dir")
+		dir, err := os.MkdirTemp("", "archive-dir")
 		Expect(err).NotTo(HaveOccurred())
 
 		err = os.Mkdir(filepath.Join(dir, "outer-dir"), 0755)
@@ -61,14 +61,14 @@ var _ = Describe("Compress", func() {
 			It("archives the directory's contents", func() {
 				Expect(compressErr).NotTo(HaveOccurred())
 
-				dest, err := ioutil.TempDir("", "extracted")
+				dest, err := os.MkdirTemp("", "extracted")
 				Expect(err).NotTo(HaveOccurred())
 
 				defer os.RemoveAll(dest)
 
 				tarfs.Extract(buffer, dest)
 
-				Expect(ioutil.ReadFile(filepath.Join(dest, "inner-dir", "some-file"))).To(Equal([]byte("sup")))
+				Expect(os.ReadFile(filepath.Join(dest, "inner-dir", "some-file"))).To(Equal([]byte("sup")))
 
 				Expect(os.Readlink(filepath.Join(dest, "inner-dir", "some-symlink"))).To(Equal("some-file"))
 			})
@@ -89,7 +89,7 @@ var _ = Describe("Compress", func() {
 				Expect(header.Name).To(Equal("inner-dir/some-file"))
 				Expect(header.FileInfo().IsDir()).To(BeFalse())
 
-				contents, err := ioutil.ReadAll(reader)
+				contents, err := io.ReadAll(reader)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(contents)).To(Equal("sup"))
 

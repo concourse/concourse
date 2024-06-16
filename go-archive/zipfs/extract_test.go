@@ -1,7 +1,6 @@
 package zipfs_test
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,7 +53,7 @@ var _ = Describe("Extract", func() {
 	BeforeEach(func() {
 		var err error
 
-		extractionDest, err = ioutil.TempDir("", "extracted")
+		extractionDest, err = os.MkdirTemp("", "extracted")
 		Expect(err).NotTo(HaveOccurred())
 
 		extractionSrc, err = archiveFiles.ZipFile("")
@@ -72,11 +71,11 @@ var _ = Describe("Extract", func() {
 	})
 
 	extractionTest := func() {
-		fileContents, err := ioutil.ReadFile(filepath.Join(extractionDest, "some-file"))
+		fileContents, err := os.ReadFile(filepath.Join(extractionDest, "some-file"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(fileContents)).To(Equal("some-file-contents"))
 
-		fileContents, err = ioutil.ReadFile(filepath.Join(extractionDest, "nonempty-dir", "file-in-dir"))
+		fileContents, err = os.ReadFile(filepath.Join(extractionDest, "nonempty-dir", "file-in-dir"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(fileContents)).To(Equal("file-in-dir-contents"))
 

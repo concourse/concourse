@@ -2,7 +2,6 @@ package tarfs_test
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,7 +57,7 @@ var _ = Describe("Extract", func() {
 	BeforeEach(func() {
 		var err error
 
-		extractionDest, err = ioutil.TempDir("", "extracted")
+		extractionDest, err = os.MkdirTemp("", "extracted")
 		Expect(err).NotTo(HaveOccurred())
 
 		extractionSrc, err = archiveFiles.TarStream()
@@ -77,7 +76,7 @@ var _ = Describe("Extract", func() {
 	extractionTest := func() {
 		someFile := filepath.Join(extractionDest, "some-file")
 
-		fileContents, err := ioutil.ReadFile(someFile)
+		fileContents, err := os.ReadFile(someFile)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(fileContents)).To(Equal("some-file-contents"))
 
@@ -86,7 +85,7 @@ var _ = Describe("Extract", func() {
 		// can't really assert access time...
 		Expect(stat.ModTime()).To(Equal(time.Unix(98765, 0)))
 
-		fileContents, err = ioutil.ReadFile(filepath.Join(extractionDest, "nonempty-dir", "file-in-dir"))
+		fileContents, err = os.ReadFile(filepath.Join(extractionDest, "nonempty-dir", "file-in-dir"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(fileContents)).To(Equal("file-in-dir-contents"))
 
