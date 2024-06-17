@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/go-archive/tarfs"
-	"github.com/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/go-archive/tarfs"
+	"github.com/concourse/concourse/go-archive/tgzfs"
 	"github.com/klauspost/compress/zstd"
 )
 

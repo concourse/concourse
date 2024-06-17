@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/go-archive/tgzfs"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
