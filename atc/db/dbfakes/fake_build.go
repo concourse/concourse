@@ -627,7 +627,7 @@ type FakeBuild struct {
 	saveOutputReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SavePipelineStub        func(atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)
+	SavePipelineStub        func(atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool, bool) (db.Pipeline, bool, error)
 	savePipelineMutex       sync.RWMutex
 	savePipelineArgsForCall []struct {
 		arg1 atc.PipelineRef
@@ -635,6 +635,7 @@ type FakeBuild struct {
 		arg3 atc.Config
 		arg4 db.ConfigVersion
 		arg5 bool
+		arg6 bool
 	}
 	savePipelineReturns struct {
 		result1 db.Pipeline
@@ -3844,7 +3845,7 @@ func (fake *FakeBuild) SaveOutputReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBuild) SavePipeline(arg1 atc.PipelineRef, arg2 int, arg3 atc.Config, arg4 db.ConfigVersion, arg5 bool) (db.Pipeline, bool, error) {
+func (fake *FakeBuild) SavePipeline(arg1 atc.PipelineRef, arg2 int, arg3 atc.Config, arg4 db.ConfigVersion, arg5 bool, arg6 bool) (db.Pipeline, bool, error) {
 	fake.savePipelineMutex.Lock()
 	ret, specificReturn := fake.savePipelineReturnsOnCall[len(fake.savePipelineArgsForCall)]
 	fake.savePipelineArgsForCall = append(fake.savePipelineArgsForCall, struct {
@@ -3853,13 +3854,14 @@ func (fake *FakeBuild) SavePipeline(arg1 atc.PipelineRef, arg2 int, arg3 atc.Con
 		arg3 atc.Config
 		arg4 db.ConfigVersion
 		arg5 bool
-	}{arg1, arg2, arg3, arg4, arg5})
+		arg6 bool
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	stub := fake.SavePipelineStub
 	fakeReturns := fake.savePipelineReturns
-	fake.recordInvocation("SavePipeline", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("SavePipeline", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.savePipelineMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4, arg5)
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -3873,17 +3875,17 @@ func (fake *FakeBuild) SavePipelineCallCount() int {
 	return len(fake.savePipelineArgsForCall)
 }
 
-func (fake *FakeBuild) SavePipelineCalls(stub func(atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool) (db.Pipeline, bool, error)) {
+func (fake *FakeBuild) SavePipelineCalls(stub func(atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool, bool) (db.Pipeline, bool, error)) {
 	fake.savePipelineMutex.Lock()
 	defer fake.savePipelineMutex.Unlock()
 	fake.SavePipelineStub = stub
 }
 
-func (fake *FakeBuild) SavePipelineArgsForCall(i int) (atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool) {
+func (fake *FakeBuild) SavePipelineArgsForCall(i int) (atc.PipelineRef, int, atc.Config, db.ConfigVersion, bool, bool) {
 	fake.savePipelineMutex.RLock()
 	defer fake.savePipelineMutex.RUnlock()
 	argsForCall := fake.savePipelineArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
 }
 
 func (fake *FakeBuild) SavePipelineReturns(result1 db.Pipeline, result2 bool, result3 error) {

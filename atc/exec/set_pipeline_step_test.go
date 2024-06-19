@@ -296,12 +296,13 @@ jobs:
 
 				It("should save the pipeline", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					ref, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					ref, _, _, _, paused, detach := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(ref).To(Equal(atc.PipelineRef{
 						Name:         "some-pipeline",
 						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 					}))
 					Expect(paused).To(BeFalse())
+					Expect(detach).To(BeFalse())
 				})
 
 				It("should stdout have message", func() {
@@ -393,12 +394,13 @@ jobs:
 
 				It("should save the pipeline un-paused", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					ref, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
+					ref, _, _, _, paused, detach := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(ref).To(Equal(atc.PipelineRef{
 						Name:         "some-pipeline",
 						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 					}))
 					Expect(paused).To(BeFalse())
+					Expect(detach).To(BeFalse())
 				})
 
 				It("should stdout have message", func() {
@@ -426,17 +428,19 @@ jobs:
 
 				It("should save the pipeline itself", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					pipelineRef, _, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					pipelineRef, _, _, _, _, detach := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(pipelineRef).To(Equal(atc.PipelineRef{
 						Name:         "some-pipeline",
 						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 					}))
+					Expect(detach).To(BeFalse())
 				})
 
 				It("should save to the current team", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
-					_, teamId, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					_, teamId, _, _, _, detach := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(teamId).To(Equal(fakeTeam.ID()))
+					Expect(detach).To(BeFalse())
 				})
 
 				It("should print an experimental message", func() {
@@ -508,11 +512,12 @@ jobs:
 						})
 
 						It("should finish successfully", func() {
-							_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+							_, teamID, _, _, _, detach := fakeBuild.SavePipelineArgsForCall(0)
 							Expect(teamID).To(Equal(fakeUserCurrentTeam.ID()))
 							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 							_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 							Expect(succeeded).To(BeTrue())
+							Expect(detach).To(BeFalse())
 						})
 
 						It("should print an experimental message", func() {
@@ -540,11 +545,12 @@ jobs:
 							})
 
 							It("should finish successfully", func() {
-								_, teamID, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+								_, teamID, _, _, _, detach := fakeBuild.SavePipelineArgsForCall(0)
 								Expect(teamID).To(Equal(fakeTeam.ID()))
 								Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 								_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 								Expect(succeeded).To(BeTrue())
+								Expect(detach).To(BeFalse())
 							})
 						})
 
@@ -556,6 +562,126 @@ jobs:
 									"only main team can set another team's pipeline",
 								))
 							})
+						})
+					})
+				})
+			})
+
+			Context("when detach is configured", func() {
+				var fakeTargetTeam *dbfakes.FakeTeam
+				BeforeEach(func() {
+					fakeTargetTeam = new(dbfakes.FakeTeam)
+					fakeTargetTeam.IDReturns(211)
+					fakeTargetTeam.NameReturns("some-team")
+					fakeTargetTeam.AdminReturns(false)
+					fakeTargetTeam.PipelineReturns(fakePipeline, true, nil)
+
+					fakePipeline.DetachParentReturns(nil)
+					fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
+
+					spPlan.Detach = true
+				})
+
+				Context("when team is not specified", func() {
+					BeforeEach(func() {
+						fakeTeamFactory.GetByIDReturnsOnCall(0, fakeTargetTeam)
+					})
+
+					Context("when target team is not main", func() {
+						It("should return error", func() {
+							Expect(stepErr).To(HaveOccurred())
+							Expect(stepErr.Error()).To(Equal(
+								"only main team can set detached pipeline",
+							))
+						})
+					})
+
+					Context("when target team is main", func() {
+						BeforeEach(func() {
+							fakeTargetTeam.NameReturns("main")
+							fakeTargetTeam.AdminReturns(true)
+						})
+
+						Context("when no diff", func() {
+							BeforeEach(func() {
+								fakePipeline.ConfigReturns(pipelineObject, nil)
+							})
+
+							It("should not error", func() {
+								Expect(stepErr).ToNot(HaveOccurred())
+							})
+
+							It("should detach parent", func() {
+								Expect(fakePipeline.DetachParentCallCount()).To(Equal(1))
+							})
+						})
+
+						Context("when there are some diff", func() {
+							BeforeEach(func() {
+								pipelineObject.Jobs[0].PlanSequence[0].Config.(*atc.TaskStep).Config.Run.Args = []string{"hello world"}
+								fakePipeline.ConfigReturns(pipelineObject, nil)
+							})
+
+							It("should not error", func() {
+								Expect(stepErr).ToNot(HaveOccurred())
+							})
+
+							It("should save pipeline", func() {
+								Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+								_, _, _, _, _, detach := fakeBuild.SavePipelineArgsForCall(0)
+								Expect(detach).To(BeTrue())
+							})
+						})
+					})
+				})
+
+				Context("when team is specified", func() {
+					var fakeCurrentUserTeam *dbfakes.FakeTeam
+
+					BeforeEach(func() {
+						// If current user is not from the main team, then it should hit
+						// error "only main team can set another team's pipeline" first,
+						// which should have been covered by other test cases, thus here
+						// we only test when current user is from the main team.
+						fakeCurrentUserTeam = new(dbfakes.FakeTeam)
+						fakeCurrentUserTeam.IDReturns(111)
+						fakeCurrentUserTeam.NameReturns("main")
+						fakeCurrentUserTeam.AdminReturns(true)
+
+						fakeTeamFactory.FindTeamReturnsOnCall(0, fakeCurrentUserTeam, true, nil)
+						fakeTeamFactory.FindTeamReturnsOnCall(1, fakeTargetTeam, true, nil)
+
+						spPlan.Team = "some-team"
+					})
+
+					Context("when no diff", func() {
+						BeforeEach(func() {
+							fakePipeline.ConfigReturns(pipelineObject, nil)
+						})
+
+						It("should not error", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+						})
+
+						It("should detach parent", func() {
+							Expect(fakePipeline.DetachParentCallCount()).To(Equal(1))
+						})
+					})
+
+					Context("when there are some diff", func() {
+						BeforeEach(func() {
+							pipelineObject.Jobs[0].PlanSequence[0].Config.(*atc.TaskStep).Config.Run.Args = []string{"hello world"}
+							fakePipeline.ConfigReturns(pipelineObject, nil)
+						})
+
+						It("should not error", func() {
+							Expect(stepErr).ToNot(HaveOccurred())
+						})
+
+						It("should save pipeline", func() {
+							Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+							_, _, _, _, _, detach := fakeBuild.SavePipelineArgsForCall(0)
+							Expect(detach).To(BeTrue())
 						})
 					})
 				})

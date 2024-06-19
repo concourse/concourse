@@ -270,6 +270,7 @@ func (visitor *planVisitor) VisitSetPipeline(step *atc.SetPipelineStep) error {
 		Vars:         step.Vars,
 		VarFiles:     step.VarFiles,
 		InstanceVars: step.InstanceVars,
+		Detach:       step.Detach,
 	})
 
 	return nil
