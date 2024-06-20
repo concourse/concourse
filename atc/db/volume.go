@@ -71,6 +71,7 @@ type creatingVolume struct {
 	workerName               string
 	handle                   string
 	path                     string
+	size                     int
 	teamID                   int
 	typ                      VolumeType
 	containerHandle          string
@@ -150,6 +151,7 @@ func (volume *creatingVolume) InitializeArtifact() (WorkerArtifact, error) {
 type CreatedVolume interface {
 	Handle() string
 	Path() string
+	Size() int
 	Type() VolumeType
 	TeamID() int
 	WorkerArtifactID() int
@@ -176,6 +178,7 @@ type createdVolume struct {
 	workerName               string
 	handle                   string
 	path                     string
+	size                     int
 	teamID                   int
 	typ                      VolumeType
 	containerHandle          string
@@ -197,6 +200,7 @@ type VolumeResourceType struct {
 
 func (volume *createdVolume) Handle() string             { return volume.handle }
 func (volume *createdVolume) Path() string               { return volume.path }
+func (volume *createdVolume) Size() int                  { return volume.size }
 func (volume *createdVolume) WorkerName() string         { return volume.workerName }
 func (volume *createdVolume) Type() VolumeType           { return volume.typ }
 func (volume *createdVolume) TeamID() int                { return volume.teamID }
