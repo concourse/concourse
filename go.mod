@@ -36,7 +36,7 @@ require (
 	github.com/google/jsonapi v1.0.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-retryablehttp v0.7.5
+	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/vault/api v1.10.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
@@ -86,7 +86,7 @@ require (
 	golang.org/x/crypto v0.19.0
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/sync v0.6.0
-	golang.org/x/sys v0.17.0
+	golang.org/x/sys v0.20.0
 	golang.org/x/time v0.5.0
 	google.golang.org/grpc v1.60.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -135,7 +135,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-hclog v1.0.0 // indirect
+	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.6 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
