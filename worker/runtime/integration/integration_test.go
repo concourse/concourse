@@ -126,6 +126,7 @@ func (s *IntegrationSuite) BeforeTest(suiteName, testName string) {
 			requestTimeout,
 		),
 		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
 	)
 	s.NoError(err)
 	s.NoError(s.gardenBackend.Start())
@@ -298,14 +299,14 @@ func (s *IntegrationSuite) TestContainerNetworkEgressWithRestrictedNetworks() {
 
 	s.NoError(err)
 
-	networkOpt := runtime.WithNetwork(network)
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
-		networkOpt,
+		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
 	)
 	s.NoError(err)
 
@@ -429,14 +430,14 @@ func (s *IntegrationSuite) TestContainerAllowsHostAccess() {
 
 	s.NoError(err)
 
-	networkOpt := runtime.WithNetwork(network)
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
-		networkOpt,
+		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
 	)
 	s.NoError(err)
 
@@ -757,6 +758,10 @@ func (s *IntegrationSuite) TestAttach() {
 // TestCustomDNS verfies that when a network is setup with custom NameServers
 // those NameServers should appear in the container's etc/resolv.conf
 func (s *IntegrationSuite) TestCustomDNS() {
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
+
 	namespace := "test-custom-dns"
 	requestTimeout := 3 * time.Second
 
@@ -768,14 +773,14 @@ func (s *IntegrationSuite) TestCustomDNS() {
 	)
 	s.NoError(err)
 
-	networkOpt := runtime.WithNetwork(network)
 	customBackend, err := runtime.NewGardenBackend(
 		libcontainerd.New(
 			s.containerdSocket(),
 			namespace,
 			requestTimeout,
 		),
-		networkOpt,
+		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
 	)
 	s.NoError(err)
 
@@ -864,10 +869,12 @@ func (s *IntegrationSuite) testStop(kill bool) {
 // TestMaxContainers aims at making sure that when the max container count is
 // reached, any additional Create calls will fail
 func (s *IntegrationSuite) TestMaxContainers() {
-	namespace := "test-max-containers"
-	requestTimeout := 1 * time.Second
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
 
-	limit := runtime.WithMaxContainers(1)
+	namespace := "test-max-containers"
+	requestTimeout := 3 * time.Second
 
 	network, err := runtime.NewCNINetwork(
 		runtime.WithDefaultsForTesting(),
@@ -880,8 +887,9 @@ func (s *IntegrationSuite) TestMaxContainers() {
 			namespace,
 			requestTimeout,
 		),
-		limit,
+		runtime.WithMaxContainers(1),
 		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
 	)
 	s.NoError(err)
 
@@ -913,6 +921,10 @@ func (s *IntegrationSuite) TestMaxContainers() {
 }
 
 func (s *IntegrationSuite) TestRequestTimeoutZero() {
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
+
 	namespace := "test-requesTimeout-zero"
 	requestTimeout := time.Duration(0)
 
@@ -928,6 +940,7 @@ func (s *IntegrationSuite) TestRequestTimeoutZero() {
 			requestTimeout,
 		),
 		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
 	)
 	s.NoError(err)
 
@@ -1019,6 +1032,7 @@ func (s *IntegrationSuite) TestNetworkMountsAreRemoved() {
 			requestTimeout,
 		),
 		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
 	)
 	s.NoError(err)
 
