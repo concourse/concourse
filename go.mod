@@ -6,10 +6,10 @@ toolchain go1.22.5
 
 require (
 	code.cloudfoundry.org/clock v1.2.0
-	code.cloudfoundry.org/credhub-cli v0.0.0-20240708130444-3f2fc7fd8c29
-	code.cloudfoundry.org/garden v0.0.0-20240705200726-e508adf1e306
+	code.cloudfoundry.org/credhub-cli v0.0.0-20240715130405-9c80ae1950dd
+	code.cloudfoundry.org/garden v0.0.0-20240711201323-3e0daa304ebb
 	code.cloudfoundry.org/lager/v3 v3.0.3
-	code.cloudfoundry.org/localip v0.0.0-20240705175206-721695fced14
+	code.cloudfoundry.org/localip v0.0.0-20240711175824-a1a2d50a2164
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	dario.cat/mergo v1.0.0
 	github.com/DataDog/datadog-go/v5 v5.5.0
@@ -17,7 +17,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b
-	github.com/aws/aws-sdk-go v1.54.15
+	github.com/aws/aws-sdk-go v1.54.19
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/caarlos0/env/v11 v11.1.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
@@ -27,14 +27,14 @@ require (
 	github.com/containerd/containerd v1.7.19
 	github.com/containerd/containerd/api v1.7.19
 	github.com/containerd/go-cni v1.1.10
-	github.com/containerd/typeurl/v2 v2.1.1
+	github.com/containerd/typeurl/v2 v2.2.0
 	github.com/coreos/go-iptables v0.7.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 	github.com/cyberark/conjur-api-go v0.12.0
 	github.com/fatih/color v1.17.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/go-jose/go-jose/v3 v3.0.3
-	github.com/go-jose/go-jose/v4 v4.0.2
+	github.com/go-jose/go-jose/v4 v4.0.3
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.11.3
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
@@ -115,7 +115,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.119 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.120 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/continuity v0.4.2 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
@@ -223,7 +223,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0-rc.1 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
-	github.com/google/pprof v0.0.0-20240625030939-27f56978b8b0 // indirect
+	github.com/google/pprof v0.0.0-20240711041743-f6c9dda6c6da // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
