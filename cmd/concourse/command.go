@@ -21,6 +21,8 @@ type ConcourseCommand struct {
 	RetireWorker retire.RetireWorkerCommand `command:"retire-worker" description:"Safely remove a worker from the cluster permanently."`
 
 	GenerateKey GenerateKeyCommand `command:"generate-key" description:"Generate RSA key for use with Concourse components."`
+
+	ExtractInternalConfig ExtractInternalConfigCommand `command:"dump-internal-config" description:"Extract internal built in configuration as files that can be modified."`
 }
 
 func (cmd ConcourseCommand) LessenRequirements(parser *flags.Parser) {
