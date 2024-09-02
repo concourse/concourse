@@ -32,6 +32,7 @@ type LoginCommand struct {
 	ClientCertPath atc.PathFlag `long:"client-cert" description:"Path to a PEM-encoded client certificate file."`
 	ClientKeyPath  atc.PathFlag `long:"client-key" description:"Path to a PEM-encoded client key file."`
 	OpenBrowser    bool         `short:"b" long:"open-browser" description:"Open browser to the auth endpoint"`
+	TokenListener  string       `long:"token-listener" description:"local listen address for the token callback" default:"127.0.0.1:0"`
 
 	BrowserOnly bool
 }
@@ -203,9 +204,14 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool, i
 	errorChannel := make(chan error)
 	portChannel := make(chan string)
 
-	go listenForTokenCallback(tokenChannel, errorChannel, portChannel, targetUrl)
+	go listenForTokenCallback(tokenChannel, errorChannel, command.TokenListener, portChannel, targetUrl)
 
-	port := <-portChannel
+	var port string
+	select {
+	case port = <-portChannel:
+	case err := <-errorChannel:
+		return "", "", fmt.Errorf("Failed to create callback listener: %s", err)
+	}
 
 	var openURL string
 
@@ -244,9 +250,9 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool, i
 	}
 }
 
-func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, portChannel chan string, targetUrl string) {
+func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, listenAddr string, portChannel chan string, targetUrl string) {
 	s := &http.Server{
-		Addr: "127.0.0.1:0",
+		Addr: listenAddr,
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", targetUrl)
 			tokenChannel <- r.FormValue("token")
@@ -409,7 +415,7 @@ func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool, isRa
 		errorChannel := make(chan error)
 		portChannel := make(chan string)
 
-		go listenForTokenCallback(tokenChannel, errorChannel, portChannel, target.Client().URL())
+		go listenForTokenCallback(tokenChannel, errorChannel, "127.0.0.1:0", portChannel, target.Client().URL())
 
 		port := <-portChannel
 
