@@ -8,6 +8,7 @@ var seccomp = &specs.LinuxSeccomp{
 		specs.ArchX86_64,
 		specs.ArchX86,
 		specs.ArchX32,
+		specs.ArchAARCH64,
 	},
 	Syscalls: []specs.LinuxSyscall{
 		AllowSyscall("accept"),
