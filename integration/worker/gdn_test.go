@@ -9,6 +9,7 @@ import (
 )
 
 func TestGuardianConfig_ConfigFile(t *testing.T) {
+	t.Skip("Skipping guardian tests because our OSS workers use cgroups v2 which guardian does not work on")
 	t.Parallel()
 
 	dc := dctest.Init(t, "../docker-compose.yml", "overrides/guardian.yml", "overrides/garden_config.yml")
