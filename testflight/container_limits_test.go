@@ -46,23 +46,25 @@ var _ = Describe("A job with a task that has container limits", func() {
 		Expect(watch).To(gbytes.Say("failed"))
 		Expect(watch).To(gexec.Exit(1))
 
-		interceptS := fly(
+		interceptS := flyUnsafe(
 			"intercept",
 			"-j", inPipeline("container-limits-failing-job"),
 			"-s", "task-with-container-limits",
 			"--",
 			"cat",
 			"/sys/fs/cgroup/memory/memory.limit_in_bytes",
+			"/sys/fs/cgroup/memory.max", // When cgroupsv1 is disabled this file will be present
 		)
 		Expect(interceptS).To(gbytes.Say("1073741824"))
 
-		interceptS = fly(
+		interceptS = flyUnsafe(
 			"intercept",
 			"-j", inPipeline("container-limits-failing-job"),
 			"-s", "task-with-container-limits",
 			"--",
 			"cat",
 			"/sys/fs/cgroup/cpu/cpu.shares",
+			"/sys/fs/cgroup/cpu.weight", // When cgroupsv1 is disabled this file will be present
 		)
 		Expect(interceptS).To(gbytes.Say("512"))
 	})
