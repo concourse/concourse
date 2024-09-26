@@ -53,6 +53,7 @@ services:
     image: concourse/concourse:local
     command: worker
     privileged: true
+    cgroup: host
     networks:
       - default
     sysctls:
