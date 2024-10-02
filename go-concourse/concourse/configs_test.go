@@ -204,6 +204,8 @@ var _ = Describe("ATC Handler Configs", func() {
 
 						Expect(receivedConfig).To(Equal(expectedConfig))
 
+						w.Header().Set("Content-Type", "application/json")
+
 						w.WriteHeader(returnHeader)
 						w.Write(returnBody)
 					},
@@ -235,17 +237,6 @@ var _ = Describe("ATC Handler Configs", func() {
 						Message: "fake-warning1",
 					},
 				}))
-			})
-
-			Context("when response contains bad JSON", func() {
-				BeforeEach(func() {
-					returnBody = []byte(`bad-json`)
-				})
-
-				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
-					Expect(err).To(HaveOccurred())
-				})
 			})
 
 			Context("when instance vars are specified", func() {
@@ -282,6 +273,26 @@ var _ = Describe("ATC Handler Configs", func() {
 					Expect(atcServer.ReceivedRequests()[0].URL.RawQuery).To(Equal("check_creds="))
 				})
 			})
+
+			Context("when response does not contain application/json header", func() {
+				BeforeEach(func() {
+					atcServer.RouteToHandler("PUT", "/api/v1/teams/some-team/pipelines/mypipeline/config",
+						ghttp.CombineHandlers(
+							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+							func(w http.ResponseWriter, r *http.Request) {
+								w.WriteHeader(http.StatusOK)
+								w.Write([]byte(`server error`))
+							},
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("server error"))
+				})
+			})
 		})
 
 		Context("when updating a config", func() {
@@ -308,17 +319,6 @@ var _ = Describe("ATC Handler Configs", func() {
 						Message: "fake-warning1",
 					},
 				}))
-			})
-
-			Context("when response contains bad JSON", func() {
-				BeforeEach(func() {
-					returnBody = []byte(`bad-json`)
-				})
-
-				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
-					Expect(err).To(HaveOccurred())
-				})
 			})
 
 			Context("when instance vars are specified", func() {
@@ -369,17 +369,6 @@ var _ = Describe("ATC Handler Configs", func() {
 				Expect(err.Error()).To(ContainSubstring("invalid pipeline config:\n"))
 				Expect(err.Error()).To(ContainSubstring("fake-error1\nfake-error2"))
 			})
-
-			Context("when response contains bad JSON", func() {
-				BeforeEach(func() {
-					returnBody = []byte(`bad-json`)
-				})
-
-				It("returns an error", func() {
-					_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
-					Expect(err).To(HaveOccurred())
-				})
-			})
 		})
 
 		Context("when setting config returns forbidden", func() {
@@ -392,6 +381,26 @@ var _ = Describe("ATC Handler Configs", func() {
 				_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("forbidden: policy check failed: you can't do that"))
+			})
+		})
+
+		Context("when response does not contain application/json header", func() {
+			BeforeEach(func() {
+				atcServer.RouteToHandler("PUT", "/api/v1/teams/some-team/pipelines/mypipeline/config",
+					ghttp.CombineHandlers(
+						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
+						func(w http.ResponseWriter, r *http.Request) {
+							w.WriteHeader(http.StatusBadRequest)
+							w.Write([]byte(`server error`))
+						},
+					),
+				)
+			})
+
+			It("returns an error", func() {
+				_, _, _, err := team.CreateOrUpdatePipelineConfig(pipelineRef, expectedVersion, expectedConfig, checkCredentials)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("server error"))
 			})
 		})
 	})

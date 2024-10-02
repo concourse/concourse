@@ -55,6 +55,7 @@ var _ = Describe("Fly CLI", func() {
 
 						Expect(receivedConfig).To(Equal(config))
 
+						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(http.StatusOK)
 						w.Write([]byte(`{}`))
 					},
@@ -341,6 +342,7 @@ var _ = Describe("Fly CLI", func() {
 									Expect(err).NotTo(HaveOccurred())
 
 									Expect(receivedConfig).To(Equal(config))
+									w.Header().Set("Content-Type", "application/json")
 
 									w.WriteHeader(http.StatusOK)
 									w.Write([]byte(`{}`))
@@ -885,6 +887,7 @@ this is super secure
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
+								w.Header().Set("Content-Type", "application/json")
 								config := getConfig(r)
 								Expect(config).To(MatchYAML(payload))
 							},
@@ -961,6 +964,7 @@ this is super secure
 						ghttp.CombineHandlers(
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
+								w.Header().Set("Content-Type", "application/json")
 								config := getConfig(r)
 								Expect(config).To(MatchYAML(payload))
 							},
@@ -1268,6 +1272,7 @@ this is super secure
 					atcServer.RouteToHandler("PUT", path, ghttp.CombineHandlers(
 						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 						func(w http.ResponseWriter, r *http.Request) {
+							w.Header().Set("Content-Type", "application/json")
 							config := getConfig(r)
 							Expect(config).To(MatchYAML(payload))
 						},
@@ -1393,8 +1398,10 @@ this is super secure
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config := getConfig(r)
+								w.Header().Set("Content-Type", "application/json")
 								Expect(config).To(MatchYAML(payload))
 							},
+
 							ghttp.RespondWith(http.StatusOK, "{}"),
 						))
 
@@ -1419,6 +1426,7 @@ this is super secure
 							ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 							func(w http.ResponseWriter, r *http.Request) {
 								config := getConfig(r)
+								w.Header().Set("Content-Type", "application/json")
 								Expect(config).To(MatchYAML(payload))
 							},
 							ghttp.RespondWith(http.StatusCreated, "{}"),
@@ -1443,6 +1451,7 @@ this is super secure
 						ghttp.VerifyHeaderKV(atc.ConfigVersionHeader, "42"),
 						func(w http.ResponseWriter, r *http.Request) {
 							config := getConfig(r)
+							w.Header().Set("Content-Type", "application/json")
 							Expect(config).To(MatchYAML(payload))
 						},
 						ghttp.RespondWith(http.StatusCreated, `{"warnings":[
