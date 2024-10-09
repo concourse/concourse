@@ -117,7 +117,7 @@ var _ = Describe("Handler", func() {
 
 			msg, err := io.ReadAll(responseWriter.Body)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(msg)).To(Equal("policy check error: some-error"))
+			Expect(string(msg)).To(Equal("policy-checker: unreachable or misconfigured"))
 		})
 
 		It("not call the inner handler", func() {

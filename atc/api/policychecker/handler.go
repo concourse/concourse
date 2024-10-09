@@ -34,10 +34,15 @@ type policyCheckingHandler struct {
 func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 
+	logger := h.logger.Session("policy-checker")
 	result, err := h.policyChecker.Check(h.action, acc, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "policy check error: %s", err.Error())
+		userMsg := "policy-checker: unreachable or misconfigured"
+		// error should be logged and meaningful to the Concourse operator/maintainer
+		logger.Error("policy-checker", err, lager.Data{"user-msg": userMsg})
+		// actual error is not useful and can be confusing to Concourse user
+		fmt.Fprint(w, userMsg)
 		return
 	}
 
