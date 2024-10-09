@@ -34,7 +34,7 @@ type policyCheckingHandler struct {
 func (h policyCheckingHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	acc := accessor.GetAccessor(r)
 
-	logger := h.logger.Session("policy-checker")
+	logger := h.logger.Session("handler")
 	result, err := h.policyChecker.Check(h.action, acc, r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
