@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestAccessor(t *testing.T) {
+func TestPolicyChecker(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "API PolicyChecker Suite")
 }
