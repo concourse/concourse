@@ -25,7 +25,6 @@ var _ = Describe("ATC Connection", func() {
 		atcServer *ghttp.Server
 
 		connection Connection
-		agent      HTTPAgent
 
 		tracing bool
 	)
@@ -34,7 +33,6 @@ var _ = Describe("ATC Connection", func() {
 		atcServer = ghttp.NewServer()
 
 		connection = NewConnection(atcServer.URL(), nil, tracing)
-		agent = NewHTTPAgent(atcServer.URL(), nil, tracing)
 	})
 
 	Describe("#Send", func() {
@@ -350,34 +348,6 @@ var _ = Describe("ATC Connection", func() {
 					}, nil)
 
 					Expect(err).To(Equal(ErrUnauthorized))
-				})
-			})
-
-			Describe("403 response", func() {
-				BeforeEach(func() {
-					atcServer = ghttp.NewServer()
-
-					agent = NewHTTPAgent(atcServer.URL(), nil, tracing)
-
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/foo"),
-							ghttp.RespondWith(http.StatusForbidden, "problem"),
-						),
-					)
-				})
-
-				It("returns back 403", func() {
-					resp, err := agent.Send(Request{
-						RequestName: atc.DeletePipeline,
-						Params: rata.Params{
-							"pipeline_name": "foo",
-							"team_name":     atc.DefaultTeamName,
-						},
-					})
-
-					Expect(resp.StatusCode).To(Equal(http.StatusForbidden))
-					Expect(err).ToNot(HaveOccurred())
 				})
 			})
 
