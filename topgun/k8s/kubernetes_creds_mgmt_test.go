@@ -38,6 +38,9 @@ var _ = Describe("Kubernetes credential management", func() {
 
 		BeforeEach(func() {
 			deployConcourseChart(releaseName, "--set=worker.replicas=1")
+			DeferCleanup(func() {
+				helmDestroy(releaseName, namespace)
+			})
 		})
 
 		It("Contains kubernetes config", func() {
@@ -62,6 +65,9 @@ var _ = Describe("Kubernetes credential management", func() {
 				"--set=concourse.web.secretCacheEnabled=true",
 				"--set=concourse.web.secretCacheDuration=600s",
 			)
+			DeferCleanup(func() {
+				helmDestroy(releaseName, namespace)
+			})
 		}
 
 		var disableTeamNamespaces = func() {
@@ -82,6 +88,9 @@ var _ = Describe("Kubernetes credential management", func() {
 				"--set=concourse.web.secretCacheDuration=600s",
 				"--set=concourse.web.kubernetes.createTeamNamespaces=false",
 			)
+			DeferCleanup(func() {
+				helmDestroy(releaseName, namespace)
+			})
 		}
 
 		Context("using per-team credentials", func() {
@@ -94,6 +103,9 @@ var _ = Describe("Kubernetes credential management", func() {
 			Context("using the default namespace created by the chart", func() {
 				BeforeEach(func() {
 					deployConcourseChart(releaseName, "--set=worker.replicas=1")
+					DeferCleanup(func() {
+						helmDestroy(releaseName, namespace)
+					})
 				})
 
 				It("succeeds", func() {
@@ -133,6 +145,9 @@ var _ = Describe("Kubernetes credential management", func() {
 			Context("using the default namespace created by the chart", func() {
 				BeforeEach(func() {
 					deployConcourseChart(releaseName, "--set=worker.replicas=1")
+					DeferCleanup(func() {
+						helmDestroy(releaseName, namespace)
+					})
 				})
 
 				It("succeeds", func() {
@@ -165,6 +180,9 @@ var _ = Describe("Kubernetes credential management", func() {
 	Context("one-off build", func() {
 		BeforeEach(func() {
 			deployConcourseChart(releaseName, "--set=worker.replicas=1")
+			DeferCleanup(func() {
+				helmDestroy(releaseName, namespace)
+			})
 		})
 
 		It("runs the one-off build successfully", func() {
