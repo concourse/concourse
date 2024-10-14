@@ -23,7 +23,6 @@ var _ = Describe("DNS Resolution", func() {
 	}
 
 	const containerdRuntime = "containerd"
-	const guardianRuntime = "guardian"
 
 	DNSShouldWork := func(runtime string) {
 		It("can reach local k8s services", func() {
@@ -40,10 +39,6 @@ var _ = Describe("DNS Resolution", func() {
 			Expect(sess.ExitCode()).To(BeZero())
 		})
 	}
-
-	Context("with gdn backend", func() {
-		DNSShouldWork(guardianRuntime)
-	})
 
 	Context("with containerd backend", func() {
 		DNSShouldWork(containerdRuntime)
