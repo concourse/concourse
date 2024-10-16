@@ -361,6 +361,10 @@ func waitAllPodsInNamespaceToBeReady(namespace string) {
 		expectedPods := getPods(namespace, metav1.ListOptions{})
 		actualPods := getPods(namespace, metav1.ListOptions{FieldSelector: "status.phase==Running"})
 
+		if len(expectedPods) == 0 {
+			return false
+		}
+
 		if len(expectedPods) != len(actualPods) {
 			getNotRunningPodLogs()
 			return false
