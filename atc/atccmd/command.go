@@ -527,9 +527,11 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	startTime := time.Now()
 
 	commandSession.Info("start")
-	defer commandSession.Info("finish", lager.Data{
-		"duration": time.Since(startTime),
-	})
+	defer func() {
+		commandSession.Info("finish", lager.Data{
+			"duration": time.Since(startTime),
+		})
+	}()
 
 	atc.EnableGlobalResources = cmd.FeatureFlags.EnableGlobalResources
 	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
