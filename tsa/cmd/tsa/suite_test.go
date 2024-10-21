@@ -93,7 +93,7 @@ var _ = BeforeEach(func() {
 
 	fakeBackend = new(gfakes.FakeBackend)
 
-	gardenServer = gserver.New("tcp", gardenAddr, 0, fakeBackend, lagertest.NewTestLogger("garden"))
+	gardenServer = gserver.New("tcp", gardenAddr, 0, 0, fakeBackend, lagertest.NewTestLogger("garden"))
 	go func() {
 		defer GinkgoRecover()
 		err := gardenServer.ListenAndServe()
