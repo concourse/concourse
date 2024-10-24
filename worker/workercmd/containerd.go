@@ -154,6 +154,7 @@ func (cmd *WorkerCommand) buildUpBackendOpts(logger lager.Logger, cniNetwork run
 		runtime.WithInitBinPath(cmd.Containerd.InitBin),
 		runtime.WithSeccompProfilePath(cmd.Containerd.SeccompProfilePath),
 		runtime.WithOciHooksDir(cmd.Containerd.OCIHooksDir),
+		runtime.WithPrivilegedMode(cmd.Containerd.PrivilegedMode),
 	}, nil
 }
 

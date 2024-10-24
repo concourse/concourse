@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/worker/network"
+	bespec "github.com/concourse/concourse/worker/runtime/spec"
 	"github.com/concourse/flag/v2"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
@@ -61,7 +62,8 @@ type ContainerdRuntime struct {
 		} `group:"IPv6 Configuration" namespace:"v6"`
 	} `group:"Container Networking"`
 
-	MaxContainers int `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
+	MaxContainers  int                   `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
+	PrivilegedMode bespec.PrivilegedMode `long:"privileged-mode" default:"full" description:"How many privileges privileged containers get. full equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
 }
 
 type DNSConfig struct {
