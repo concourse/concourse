@@ -83,7 +83,7 @@ func (s *SpecSuite) TestContainerSpecValidations() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			_, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), specs.Hooks{}, tc.spec, dummyMaxUid, dummyMaxGid)
+			_, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), spec.GetDefaultSeccompProfileFuse(), specs.Hooks{}, spec.FullPrivilegedMode, tc.spec, dummyMaxUid, dummyMaxGid)
 			s.Error(err)
 		})
 	}
@@ -186,37 +186,66 @@ func (s *SpecSuite) TestOciSpecBindMounts() {
 
 func (s *SpecSuite) TestOciNamespaces() {
 	for _, tc := range []struct {
-		desc       string
-		privileged bool
-		expected   []specs.LinuxNamespace
+		desc           string
+		privilegedMode spec.PrivilegedMode
+		privileged     bool
+		expected       []specs.LinuxNamespace
 	}{
 		{
-			desc:       "privileged",
-			privileged: true,
-			expected:   spec.PrivilegedContainerNamespaces,
+			desc:           "privileged - full",
+			privilegedMode: spec.FullPrivilegedMode,
+			privileged:     true,
+			expected:       spec.PrivilegedContainerNamespaces,
 		},
 		{
-			desc:       "unprivileged",
-			privileged: false,
-			expected:   spec.UnprivilegedContainerNamespaces,
+			desc:           "unprivileged - full",
+			privilegedMode: spec.FullPrivilegedMode,
+			privileged:     false,
+			expected:       spec.UnprivilegedContainerNamespaces,
+		},
+		{
+			desc:           "privileged - FUSE-only",
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			privileged:     true,
+			expected:       spec.UnprivilegedContainerNamespaces,
+		},
+		{
+			desc:           "privileged - ignore",
+			privilegedMode: spec.IgnorePrivilegedMode,
+			privileged:     true,
+			expected:       spec.UnprivilegedContainerNamespaces,
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			s.Equal(tc.expected, spec.OciNamespaces(tc.privileged))
+			s.Equal(tc.expected, spec.OciNamespaces(tc.privilegedMode, tc.privileged))
 		})
 	}
 }
 
 func (s *SpecSuite) TestOciCapabilities() {
 	for _, tc := range []struct {
-		desc       string
-		privileged bool
-		expected   specs.LinuxCapabilities
+		desc           string
+		privileged     bool
+		privilegedMode spec.PrivilegedMode
+		expected       specs.LinuxCapabilities
 	}{
 		{
-			desc:       "privileged",
-			privileged: true,
-			expected:   spec.PrivilegedContainerCapabilities,
+			desc:           "privileged FullPrivilegedMode",
+			privileged:     true,
+			privilegedMode: spec.FullPrivilegedMode,
+			expected:       spec.PrivilegedContainerCapabilities,
+		},
+		{
+			desc:           "privileged FUSEOnlyPrivilegedMode",
+			privileged:     true,
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			expected:       spec.FUSEOnlyContainerCapabilities,
+		},
+		{
+			desc:           "privileged IgnorePrivilegedMode",
+			privileged:     true,
+			privilegedMode: spec.IgnorePrivilegedMode,
+			expected:       spec.UnprivilegedContainerCapabilities,
 		},
 		{
 			desc:       "unprivileged",
@@ -225,7 +254,7 @@ func (s *SpecSuite) TestOciCapabilities() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			s.Equal(tc.expected, spec.OciCapabilities(tc.privileged))
+			s.Equal(tc.expected, spec.OciCapabilities(tc.privilegedMode, tc.privileged))
 		})
 	}
 }
@@ -337,29 +366,48 @@ func (s *SpecSuite) TestOciResourceLimits() {
 
 func (s *SpecSuite) TestOciCgroupsPath() {
 	for _, tc := range []struct {
-		desc       string
-		basePath   string
-		handle     string
-		privileged bool
-		expected   string
+		desc           string
+		basePath       string
+		handle         string
+		privilegedMode spec.PrivilegedMode
+		privileged     bool
+		expected       string
 	}{
 		{
-			desc:       "not privileged",
-			basePath:   "garden",
-			handle:     "1234",
-			privileged: false,
-			expected:   "garden/1234",
+			desc:           "not privileged",
+			basePath:       "garden",
+			handle:         "1234",
+			privilegedMode: spec.FullPrivilegedMode,
+			privileged:     false,
+			expected:       "garden/1234",
 		},
 		{
-			desc:       "privileged",
-			basePath:   "garden",
-			handle:     "1234",
-			privileged: true,
-			expected:   "",
+			desc:           "privileged - full",
+			basePath:       "garden",
+			handle:         "1234",
+			privilegedMode: spec.FullPrivilegedMode,
+			privileged:     true,
+			expected:       "",
+		},
+		{
+			desc:           "privileged - FUSE-only",
+			basePath:       "garden",
+			handle:         "1234",
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			privileged:     true,
+			expected:       "garden/1234",
+		},
+		{
+			desc:           "privileged - ignore",
+			basePath:       "garden",
+			handle:         "1234",
+			privilegedMode: spec.IgnorePrivilegedMode,
+			privileged:     true,
+			expected:       "garden/1234",
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			s.Equal(tc.expected, spec.OciCgroupsPath(tc.basePath, tc.handle, tc.privileged))
+			s.Equal(tc.expected, spec.OciCgroupsPath(tc.basePath, tc.handle, tc.privilegedMode, tc.privileged))
 		})
 	}
 }
@@ -370,9 +418,10 @@ func (s *SpecSuite) TestContainerSpec() {
 	}
 
 	for _, tc := range []struct {
-		desc  string
-		gdn   garden.ContainerSpec
-		check func(*specs.Spec)
+		desc           string
+		gdn            garden.ContainerSpec
+		privilegedMode spec.PrivilegedMode
+		check          func(*specs.Spec)
 	}{
 		{
 			desc: "defaults",
@@ -380,7 +429,7 @@ func (s *SpecSuite) TestContainerSpec() {
 			check: func(oci *specs.Spec) {
 				s.Equal("/", oci.Process.Cwd)
 				s.Equal([]string{"/tmp/gdn-init"}, oci.Process.Args)
-				s.Equal(oci.Mounts, spec.ContainerMounts(false, spec.DefaultInitBinPath))
+				s.Equal(oci.Mounts, spec.ContainerMounts(spec.FullPrivilegedMode, false, spec.DefaultInitBinPath))
 
 				s.Equal("/tmp/gdn-init", oci.Mounts[len(oci.Mounts)-1].Destination,
 					"gdn-init mount should be mounted after all the other default mounts")
@@ -413,6 +462,35 @@ func (s *SpecSuite) TestContainerSpec() {
 						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
 					} else if ociMount.Type == "cgroup" {
 						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
+					}
+				}
+			},
+		},
+		{
+			desc: "privileged mounts with IgnorePrivilegedMode",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.IgnorePrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.NotContains(oci.Mounts, specs.Mount{
+					Destination: "/sys",
+					Type:        "sysfs",
+					Source:      "sysfs",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				s.NotContains(oci.Mounts, specs.Mount{
+					Destination: "/sys/fs/cgroup",
+					Type:        "cgroup",
+					Source:      "cgroup",
+					Options:     []string{"nosuid", "noexec", "nodev"},
+				})
+				for _, ociMount := range oci.Mounts {
+					if ociMount.Destination == "/sys" {
+						s.Contains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
+					} else if ociMount.Type == "cgroup" {
+						s.Contains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
 					}
 				}
 			},
@@ -469,6 +547,18 @@ func (s *SpecSuite) TestContainerSpec() {
 			},
 			check: func(oci *specs.Spec) {
 				s.NotEmpty(oci.Linux.Seccomp)
+				s.NotContains(oci.Linux.Seccomp.Syscalls, spec.AllowSyscall("unshare"))
+			},
+		},
+		{
+			desc: "seccomp allows unshare loading for FUSE-only",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.Contains(oci.Linux.Seccomp.Syscalls, spec.AllowSyscall("unshare"))
 			},
 		},
 		{
@@ -520,7 +610,7 @@ func (s *SpecSuite) TestContainerSpec() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			actual, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), specs.Hooks{}, tc.gdn, dummyMaxUid, dummyMaxGid)
+			actual, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), spec.GetDefaultSeccompProfileFuse(), specs.Hooks{}, tc.privilegedMode, tc.gdn, dummyMaxUid, dummyMaxGid)
 			s.NoError(err)
 
 			tc.check(actual)
