@@ -53,11 +53,7 @@ func (cmd *BaggageclaimCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
-	logger, _ := cmd.constructLogger()
-
-	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
-
+func (cmd *BaggageclaimCommand) SelectNamespacers(logger lager.Logger) (uidgid.Namespacer, uidgid.Namespacer) {
 	var privilegedNamespacer, unprivilegedNamespacer uidgid.Namespacer
 
 	if !cmd.DisableUserNamespaces && uidgid.Supported() {
@@ -78,6 +74,16 @@ func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
 	if cmd.PrivilegedMode != bespec.FullPrivilegedMode {
 		privilegedNamespacer = unprivilegedNamespacer
 	}
+
+	return privilegedNamespacer, unprivilegedNamespacer
+}
+
+func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
+	logger, _ := cmd.constructLogger()
+
+	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
+
+	privilegedNamespacer, unprivilegedNamespacer := cmd.SelectNamespacers(logger)
 
 	locker := volume.NewLockManager()
 
