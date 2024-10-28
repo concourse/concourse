@@ -107,8 +107,9 @@ type PrometheusEmitter struct {
 }
 
 type PrometheusConfig struct {
-	BindIP   string `long:"prometheus-bind-ip" description:"IP to listen on to expose Prometheus metrics."`
-	BindPort string `long:"prometheus-bind-port" description:"Port to listen on to expose Prometheus metrics."`
+	BindIP    string `long:"prometheus-bind-ip" description:"IP to listen on to expose Prometheus metrics."`
+	BindPort  string `long:"prometheus-bind-port" description:"Port to listen on to expose Prometheus metrics."`
+	Namespace string `long:"prometheus-namespace" default:"concourse" description:"Namespace for all metrics to easily find them in Prometheus"`
 }
 
 // The most natural data type to hold the labels is a set because each worker can have multiple but
@@ -178,7 +179,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	// error log metrics
 	errorLogs := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "error",
 			Name:        "logs",
 			Help:        "Number of error logged",
@@ -189,7 +190,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	// lock metrics
 	locksHeld := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "locks",
 		Name:        "held",
 		Help:        "Database locks held",
@@ -199,7 +200,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	// job metrics
 	jobsScheduled := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "jobs",
 		Name:        "scheduled_total",
 		Help:        "Total number of Concourse jobs scheduled.",
@@ -208,7 +209,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(jobsScheduled)
 
 	jobsScheduling := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "jobs",
 		Name:        "scheduling",
 		Help:        "Number of Concourse jobs currently being scheduled.",
@@ -217,7 +218,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(jobsScheduling)
 
 	jobsSchedulingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "jobs",
 		Name:        "schedulingDuration",
 		Help:        "Duration of jobs being scheduled in milliseconds",
@@ -229,7 +230,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	// build metrics
 	buildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "started_total",
 		Help:        "Total number of Concourse builds started.",
@@ -238,7 +239,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(buildsStarted)
 
 	buildsRunning := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "running",
 		Help:        "Number of Concourse builds currently running.",
@@ -247,7 +248,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(buildsRunning)
 
 	checkBuildsStarted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "check_started_total",
 		Help:        "Total number of Concourse check builds started.",
@@ -256,7 +257,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(checkBuildsStarted)
 
 	checkBuildsRunning := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "check_running",
 		Help:        "Number of Concourse check builds currently running.",
@@ -265,7 +266,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(checkBuildsRunning)
 
 	concurrentRequestsLimitHit := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "concurrent_requests",
 		Name:        "limit_hit_total",
 		Help:        "Total number of requests rejected because the server was already serving too many concurrent requests.",
@@ -274,7 +275,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(concurrentRequestsLimitHit)
 
 	concurrentRequests := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Name:        "concurrent_requests",
 		Help:        "Number of concurrent requests being served by endpoints that have a specified limit of concurrent requests.",
 		ConstLabels: attributes,
@@ -282,7 +283,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(concurrentRequests)
 
 	latestCompletedBuildStatus := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "latest_completed_build_status",
 		Help:        "Status of Latest Completed Build. 0=Success, 1=Failed, 2=Aborted, 3=Errored.",
@@ -291,7 +292,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(latestCompletedBuildStatus)
 
 	stepsWaiting := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "steps",
 		Name:        "waiting",
 		Help:        "Number of Concourse build steps currently waiting.",
@@ -300,7 +301,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(stepsWaiting)
 
 	stepsWaitingDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "steps",
 		Name:        "wait_duration",
 		Help:        "Elapsed time waiting for execution",
@@ -310,7 +311,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(stepsWaitingDuration)
 
 	buildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "finished_total",
 		Help:        "Total number of Concourse builds finished.",
@@ -319,7 +320,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(buildsFinished)
 
 	buildsSucceeded := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "succeeded_total",
 		Help:        "Total number of Concourse builds succeeded.",
@@ -328,7 +329,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(buildsSucceeded)
 
 	buildsErrored := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "errored_total",
 		Help:        "Total number of Concourse builds errored.",
@@ -337,7 +338,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(buildsErrored)
 
 	buildsFailed := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "failed_total",
 		Help:        "Total number of Concourse builds failed.",
@@ -346,7 +347,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(buildsFailed)
 
 	buildsAborted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "aborted_total",
 		Help:        "Total number of Concourse builds aborted.",
@@ -356,7 +357,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	buildsFinishedVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "builds",
 			Name:        "finished",
 			Help:        "Count of builds finished across various dimensions.",
@@ -368,7 +369,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	buildDurationsVec := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "builds",
 			Name:        "duration_seconds",
 			Help:        "Build time in seconds",
@@ -380,7 +381,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(buildDurationsVec)
 
 	checkBuildsFinished := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "check_finished_total",
 		Help:        "Total number of Concourse check builds finished.",
@@ -389,7 +390,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(checkBuildsFinished)
 
 	checkBuildsSucceeded := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "check_succeeded_total",
 		Help:        "Total number of Concourse check builds succeeded.",
@@ -398,7 +399,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(checkBuildsSucceeded)
 
 	checkBuildsErrored := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "check_errored_total",
 		Help:        "Total number of Concourse check builds errored.",
@@ -407,7 +408,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(checkBuildsErrored)
 
 	checkBuildsFailed := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "check_failed_total",
 		Help:        "Total number of Concourse check builds failed.",
@@ -416,7 +417,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(checkBuildsFailed)
 
 	checkBuildsAborted := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "builds",
 		Name:        "check_aborted_total",
 		Help:        "Total number of Concourse check builds aborted.",
@@ -427,7 +428,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	// worker metrics
 	workerContainers := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "workers",
 			Name:        "containers",
 			Help:        "Number of containers per worker",
@@ -439,7 +440,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	workerUnknownContainers := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "workers",
 			Name:        "unknown_containers",
 			Help:        "Number of unknown containers found on worker",
@@ -451,7 +452,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	workerVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "workers",
 			Name:        "volumes",
 			Help:        "Number of volumes per worker",
@@ -463,7 +464,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	workerUnknownVolumes := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "workers",
 			Name:        "unknown_volumes",
 			Help:        "Number of unknown volumes found on worker",
@@ -475,7 +476,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	workerTasks := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "workers",
 			Name:        "tasks",
 			Help:        "Number of active tasks per worker",
@@ -487,7 +488,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	workersRegistered := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "workers",
 			Name:        "registered",
 			Help:        "Number of workers per state as seen by the database",
@@ -500,7 +501,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	// http metrics
 	httpRequestsDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "http_responses",
 			Name:        "duration_seconds",
 			Help:        "Response time in seconds",
@@ -511,7 +512,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	prometheus.MustRegister(httpRequestsDuration)
 
 	dbQueriesTotal := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace:   "concourse",
+		Namespace:   config.Namespace,
 		Subsystem:   "db",
 		Name:        "queries_total",
 		Help:        "Total number of database Concourse database queries",
@@ -521,7 +522,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	dbConnections := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "db",
 			Name:        "connections",
 			Help:        "Current number of concourse database connections",
@@ -533,7 +534,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	checksFinished := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "lidar",
 			Name:        "checks_finished_total",
 			Help:        "Total number of checks finished.",
@@ -545,7 +546,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	checksStarted := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "lidar",
 			Name:        "checks_started_total",
 			Help:        "Total number of checks started. With global resource enabled, a check build may not really run a check, thus total checks started should be less than total check builds started.",
@@ -556,7 +557,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	checksEnqueued := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "lidar",
 			Name:        "checks_enqueued_total",
 			Help:        "Total number of checks enqueued",
@@ -567,7 +568,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	volumesStreamed := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "volumes",
 			Name:        "volumes_streamed",
 			Help:        "Total number of volumes streamed from one worker to the other",
@@ -578,7 +579,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	workerOrphanedVolumesToBeCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "volumes",
 			Name:        "orphaned_volumes_to_be_deleted",
 			Help:        "Number of orphaned volumes to be garbage collected.",
@@ -589,7 +590,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	creatingContainersToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "creating_containers_to_be_garbage_collected",
 			Help:        "Creating Containers being garbage collected",
@@ -600,7 +601,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	createdContainersToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "created_containers_to_be_garbage_collected",
 			Help:        "Created Containers being garbage collected",
@@ -611,7 +612,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	failedContainersToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "failed_containers_to_be_garbage_collected",
 			Help:        "Failed Containers being garbage collected",
@@ -622,7 +623,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	destroyingContainersToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "destroying_containers_to_be_garbage_collected",
 			Help:        "Destorying Containers being garbage collected",
@@ -633,7 +634,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	createdVolumesToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "created_volumes_to_be_garbage_collected",
 			Help:        "Created Volumes being garbage collected",
@@ -644,7 +645,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	destroyingVolumesToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "destroying_volumes_to_be_garbage_collected",
 			Help:        "Destroying Volumes being garbage collected",
@@ -655,7 +656,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	failedVolumesToBeGarbageCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "failed_volumes_to_be_garbage_collected",
 			Help:        "Failed Volumes being garbage collected",
@@ -666,7 +667,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcBuildCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_build_collector_duration",
 			Help:        "Duration of gc build collector (ms)",
@@ -678,7 +679,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcWorkerCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_worker_collector_duration",
 			Help:        "Duration of gc worker collector (ms)",
@@ -690,7 +691,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcResourceCacheUseCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_resource_cache_use_collector_duration",
 			Help:        "Duration of gc resource cache use collector (ms)",
@@ -702,7 +703,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcResourceConfigCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_resource_config_collector_duration",
 			Help:        "Duration of gc resource config collector (ms)",
@@ -714,7 +715,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcResourceCacheCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_resource_cache_collector_duration",
 			Help:        "Duration of gc resource cache collector (ms)",
@@ -726,7 +727,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcResourceTaskCacheCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_task_cache_collector_duration",
 			Help:        "Duration of gc task cache collector (ms)",
@@ -738,7 +739,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcResourceConfigCheckSessionCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_resource_config_check_session_collector_duration",
 			Help:        "Duration of gc resource config check session collector (ms)",
@@ -750,7 +751,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcArtifactCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_artifact_collector_duration",
 			Help:        "Duration of gc artifact collector (ms)",
@@ -762,7 +763,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcContainerCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_container_collector_duration",
 			Help:        "Duration of gc container collector (ms)",
@@ -774,7 +775,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	gcVolumeCollectorDuration := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "gc",
 			Name:        "gc_volume_collector_duration",
 			Help:        "Duration of gc volume collector (ms)",
@@ -786,7 +787,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	getStepCacheHits := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "caches",
 			Name:        "get_step_cache_hits",
 			Help:        "Total number of get steps that hit caches",
@@ -797,7 +798,7 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 
 	streamedResourceCaches := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Namespace:   "concourse",
+			Namespace:   config.Namespace,
 			Subsystem:   "caches",
 			Name:        "streamed_resource_caches",
 			Help:        "Total number of streamed resource caches",
@@ -827,9 +828,9 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
 		concurrentRequests:         concurrentRequests,
 
-		latestCompletedBuildStatus:            latestCompletedBuildStatus,
-		stepsWaiting:         stepsWaiting,
-		stepsWaitingDuration: stepsWaitingDuration,
+		latestCompletedBuildStatus: latestCompletedBuildStatus,
+		stepsWaiting:               stepsWaiting,
+		stepsWaitingDuration:       stepsWaitingDuration,
 
 		creatingContainersToBeGarbageCollected:   creatingContainersToBeGarbageCollected,
 		createdContainersToBeGarbageCollected:    createdContainersToBeGarbageCollected,
