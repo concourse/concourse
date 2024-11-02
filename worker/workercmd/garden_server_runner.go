@@ -25,7 +25,7 @@ func newGardenServerRunner(
 	logger lager.Logger,
 ) gardenServerRunner {
 	return gardenServerRunner{
-		gardenServer:  server.New(listenNetwork, listenAddr, containerGraceTime, backend, logger),
+		gardenServer:  server.New(listenNetwork, listenAddr, containerGraceTime, 0, backend, logger),
 		listenNetwork: listenNetwork,
 		listenAddr:    listenAddr,
 		backend:       backend,

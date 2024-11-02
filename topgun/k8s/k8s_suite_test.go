@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +41,7 @@ type environment struct {
 	ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
 	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
 	FlyPath              string `env:"FLY_PATH"`
-	K8sEngine            string `env:"K8S_ENGINE" envDefault:"GKE"`
+	K8sEngine            string `env:"K8S_ENGINE" envDefault:"LKE"`
 	InCluster            bool   `env:"IN_CLUSTER" envDefault:"false"`
 }
 
@@ -321,6 +321,7 @@ func deployConcourseChart(releaseName string, args ...string) {
 func helmDestroy(releaseName, namespace string) {
 	helmArgs := []string{
 		"delete",
+		"--ignore-not-found",
 		"--namespace",
 		namespace,
 		releaseName,
@@ -358,7 +359,11 @@ func isPodReady(p corev1.Pod) bool {
 func waitAllPodsInNamespaceToBeReady(namespace string) {
 	Eventually(func() bool {
 		expectedPods := getPods(namespace, metav1.ListOptions{})
-		actualPods := getPods(namespace, metav1.ListOptions{FieldSelector: "status.phase=Running"})
+		actualPods := getPods(namespace, metav1.ListOptions{FieldSelector: "status.phase==Running"})
+
+		if len(expectedPods) == 0 {
+			return false
+		}
 
 		if len(expectedPods) != len(actualPods) {
 			getNotRunningPodLogs()
@@ -373,7 +378,7 @@ func waitAllPodsInNamespaceToBeReady(namespace string) {
 		}
 
 		return podsReady == len(expectedPods)
-	}, 15*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
+	}, 8*time.Minute, 10*time.Second).Should(BeTrue(), "expected all pods to be running")
 }
 
 func deletePods(namespace string, flags ...string) []string {
