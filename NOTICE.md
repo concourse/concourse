@@ -1,5 +1,3 @@
-Copyright 2024 Concourse Contributors
-
 Copyright 2023 Broadcom Inc.
 
 Copyright 2019 VMware, Inc.
