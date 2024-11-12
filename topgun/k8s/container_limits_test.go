@@ -60,13 +60,33 @@ func containerLimitsWork(selectorFlags ...string) {
 				"hijack",
 				"-b", "1",
 				"-s", "one-off",
-				"--", "sh", "-c",
-				"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
+				"--",
+				"cat",
+				"/sys/fs/cgroup/memory/memory.limit_in_bytes",
+				"/sys/fs/cgroup/memory.max", // When cgroupsv1 is disabled this file will be present
+			)
+			<-hijackSession.Exited
+			Expect(hijackSession).To(gbytes.Say("1073741824"))
+
+			hijackSession = fly.Start(
+				"hijack",
+				"-b", "1",
+				"-s", "one-off",
+				"--",
+				"cat",
+				"/sys/fs/cgroup/cpu/cpu.shares",
+				"/sys/fs/cgroup/cpu.weight", // When cgroupsv1 is disabled this file will be present
 			)
 			<-hijackSession.Exited
 
-			Expect(hijackSession.ExitCode()).To(Equal(0))
-			Expect(hijackSession).To(gbytes.Say("1073741824\n512"))
+			// Note: todo copied from https://github.com/concourse/concourse/blob/754cc9909e931dd0b0ba7be808a788f96a98a44c/testflight/container_limits_test.go#L70
+			// TODO: This is 20 in cgroups v2. Not sure why this happens though. It
+			// is being set and the value changes if we set CPU to higher or lower
+			// values. Can't figure out how it determines what to change the value
+			// to. Doesn't look like we change it at all, so must be someting in
+			// containerd or runc. Not sure if its related to whatever value is in
+			// the parent cgroup
+			Expect(hijackSession).To(Or(gbytes.Say("512"), gbytes.Say("20")))
 		})
 	})
 }
