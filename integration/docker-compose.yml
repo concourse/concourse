@@ -37,6 +37,7 @@ services:
     image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
     command: worker
     privileged: true
+    cgroup: host
     depends_on: [web]
     ports: [7777, 7788]
     volumes:
