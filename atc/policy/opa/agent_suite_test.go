@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestVault(t *testing.T) {
+func TestPolicyAgent(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Policy Agent Suite")
 }
