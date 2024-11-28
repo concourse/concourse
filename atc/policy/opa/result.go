@@ -30,7 +30,7 @@ func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) 
 	var results vars.StaticVariables
 	err := json.Unmarshal(bytesResult, &results)
 	if err != nil {
-		return opaResult{}, err
+		return opaResult{}, fmt.Errorf("parsing JSON: %w", err)
 	}
 
 	var allowed, shouldBlock, ok bool

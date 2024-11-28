@@ -177,7 +177,7 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should return error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(MatchRegexp("connection refused"))
+			Expect(err.Error()).To(MatchRegexp("OPA server: connecting: .* connection refused"))
 			Expect(result).To(BeNil())
 		})
 	})
@@ -190,7 +190,7 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should return error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("opa returned status: 404"))
+			Expect(err.Error()).To(Equal("OPA server returned status: 404"))
 			Expect(result).To(BeNil())
 		})
 	})
@@ -205,7 +205,7 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should return error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("invalid character 'h' looking for beginning of value"))
+			Expect(err.Error()).To(ContainSubstring("parsing JSON: invalid character 'h' looking for beginning of value"))
 			Expect(result).To(BeNil())
 		})
 	})
