@@ -200,7 +200,8 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 	}
 
 	if response.StatusCode == http.StatusForbidden {
-		return ErrForbidden
+		body, _ := io.ReadAll(response.Body)
+		return ForbiddenError{Reason: string(body)}
 	}
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
