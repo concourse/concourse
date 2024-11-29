@@ -3,7 +3,7 @@ package db_test
 import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -544,19 +544,19 @@ var _ = Describe("Build", func() {
 
 			expectedOutputs = []db.AlgorithmVersion{
 				{
-					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "1"})),
+					Version:    db.ResourceVersion(convertToSHA256(atc.Version{"ver": "1"})),
 					ResourceID: scenario.Resource("some-resource").ID(),
 				},
 				{
-					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
+					Version:    db.ResourceVersion(convertToSHA256(atc.Version{"ver": "3"})),
 					ResourceID: scenario.Resource("some-other-resource").ID(),
 				},
 				{
-					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "2"})),
+					Version:    db.ResourceVersion(convertToSHA256(atc.Version{"ver": "2"})),
 					ResourceID: scenario.Resource("some-resource").ID(),
 				},
 				{
-					Version:    db.ResourceVersion(convertToMD5(atc.Version{"ver": "3"})),
+					Version:    db.ResourceVersion(convertToSHA256(atc.Version{"ver": "3"})),
 					ResourceID: scenario.Resource("some-resource").ID(),
 				},
 			}
@@ -1464,9 +1464,9 @@ var _ = Describe("Build", func() {
 				res, err := psql.Update("build_resource_config_version_inputs").
 					Set("first_occurrence", nil).
 					Where(sq.Eq{
-						"build_id":    build.ID(),
-						"resource_id": inputResource.ID(),
-						"version_md5": convertToMD5(atc.Version{"ver": "1"}),
+						"build_id":       build.ID(),
+						"resource_id":    inputResource.ID(),
+						"version_sha256": convertToSHA256(atc.Version{"ver": "1"}),
 					}).
 					RunWith(dbConn).
 					Exec()
@@ -1509,9 +1509,9 @@ var _ = Describe("Build", func() {
 					res, err := psql.Update("build_resource_config_version_inputs").
 						Set("first_occurrence", nil).
 						Where(sq.Eq{
-							"build_id":    newBuild.ID(),
-							"resource_id": inputResource.ID(),
-							"version_md5": convertToMD5(atc.Version{"ver": "1"}),
+							"build_id":       newBuild.ID(),
+							"resource_id":    inputResource.ID(),
+							"version_sha256": convertToSHA256(atc.Version{"ver": "1"}),
 						}).
 						RunWith(dbConn).
 						Exec()
@@ -2558,11 +2558,11 @@ func envelope(ev atc.Event, eventID string) event.Envelope {
 	}
 }
 
-func convertToMD5(version atc.Version) string {
+func convertToSHA256(version atc.Version) string {
 	versionJSON, err := json.Marshal(version)
 	Expect(err).ToNot(HaveOccurred())
 
-	hasher := md5.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(versionJSON))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
