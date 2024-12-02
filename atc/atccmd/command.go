@@ -84,6 +84,7 @@ import (
 	_ "github.com/concourse/concourse/atc/creds/conjur"
 	_ "github.com/concourse/concourse/atc/creds/credhub"
 	_ "github.com/concourse/concourse/atc/creds/dummy"
+	"github.com/concourse/concourse/atc/creds/idtoken"
 	_ "github.com/concourse/concourse/atc/creds/kubernetes"
 	_ "github.com/concourse/concourse/atc/creds/secretsmanager"
 	_ "github.com/concourse/concourse/atc/creds/ssm"
@@ -485,6 +486,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	for name, p := range creds.ManagerFactories() {
 		managerConfigs[name] = p.AddConfig(credsGroup)
 	}
+
 	cmd.CredentialManagers = managerConfigs
 
 	metric.Metrics.WireEmitters(metricsGroup)
@@ -633,6 +635,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if err != nil {
 		return nil, err
 	}
+
+	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
+		f.SetIssuer(cmd.ExternalURL.String())
+	})
 
 	secretManager, err := cmd.secretManager(logger)
 	if err != nil {
