@@ -155,6 +155,16 @@ type FakePipeline struct {
 	destroyReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DetachParentStub        func() error
+	detachParentMutex       sync.RWMutex
+	detachParentArgsForCall []struct {
+	}
+	detachParentReturns struct {
+		result1 error
+	}
+	detachParentReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DisplayStub        func() *atc.DisplayConfig
 	displayMutex       sync.RWMutex
 	displayArgsForCall []struct {
@@ -1314,6 +1324,59 @@ func (fake *FakePipeline) DestroyReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.destroyReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) DetachParent() error {
+	fake.detachParentMutex.Lock()
+	ret, specificReturn := fake.detachParentReturnsOnCall[len(fake.detachParentArgsForCall)]
+	fake.detachParentArgsForCall = append(fake.detachParentArgsForCall, struct {
+	}{})
+	stub := fake.DetachParentStub
+	fakeReturns := fake.detachParentReturns
+	fake.recordInvocation("DetachParent", []interface{}{})
+	fake.detachParentMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) DetachParentCallCount() int {
+	fake.detachParentMutex.RLock()
+	defer fake.detachParentMutex.RUnlock()
+	return len(fake.detachParentArgsForCall)
+}
+
+func (fake *FakePipeline) DetachParentCalls(stub func() error) {
+	fake.detachParentMutex.Lock()
+	defer fake.detachParentMutex.Unlock()
+	fake.DetachParentStub = stub
+}
+
+func (fake *FakePipeline) DetachParentReturns(result1 error) {
+	fake.detachParentMutex.Lock()
+	defer fake.detachParentMutex.Unlock()
+	fake.DetachParentStub = nil
+	fake.detachParentReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) DetachParentReturnsOnCall(i int, result1 error) {
+	fake.detachParentMutex.Lock()
+	defer fake.detachParentMutex.Unlock()
+	fake.DetachParentStub = nil
+	if fake.detachParentReturnsOnCall == nil {
+		fake.detachParentReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.detachParentReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -3609,6 +3672,8 @@ func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	defer fake.deleteBuildEventsByBuildIDsMutex.RUnlock()
 	fake.destroyMutex.RLock()
 	defer fake.destroyMutex.RUnlock()
+	fake.detachParentMutex.RLock()
+	defer fake.detachParentMutex.RUnlock()
 	fake.displayMutex.RLock()
 	defer fake.displayMutex.RUnlock()
 	fake.exposeMutex.RLock()
