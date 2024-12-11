@@ -623,6 +623,8 @@ code.cloudfoundry.org/credhub-cli v0.0.0-20241209140622-eb4bf81f3916 h1:1GcFs9rc
 code.cloudfoundry.org/credhub-cli v0.0.0-20241209140622-eb4bf81f3916/go.mod h1:bm1yiSmOMiOlihe+BMViPhUsW2eEo2ezYzcvsCEI99Q=
 code.cloudfoundry.org/garden v0.0.0-20241018132925-991b03c78f6c h1:KcYCT2TjVSBGhCpWbNPHIRYsDS1aBIoxD74NuYB8yYE=
 code.cloudfoundry.org/garden v0.0.0-20241018132925-991b03c78f6c/go.mod h1:+w+9UQ7hVLKyYI/fu8Zpi0Jq7gU5w+HlVTZqhCS3h10=
+code.cloudfoundry.org/garden v0.0.0-20241106020650-8b5ced818ad7 h1:sANE1uC3d5BWNhFPutLYypcHEHIWS6op2SKtzuovHiY=
+code.cloudfoundry.org/garden v0.0.0-20241106020650-8b5ced818ad7/go.mod h1:X7WFvQybqJNeDp66N36PeVyqNcmW13ZyYij2tukbBdQ=
 code.cloudfoundry.org/garden v0.0.0-20241204145308-c4f1fc9d4727 h1:WVCCeE87ZviDfdofNt+YVw//CSjW/6QukpBdQXW2+z4=
 code.cloudfoundry.org/garden v0.0.0-20241204145308-c4f1fc9d4727/go.mod h1:Y0wWPmBh7l+FhwRbHEMiyHXG09pZxYW5J7McNWYW5Uo=
 code.cloudfoundry.org/lager/v3 v3.10.0 h1:63K7qjkVFLEU1Yz3BOcMigRyMh5y7T+mWHLBoQzoczA=

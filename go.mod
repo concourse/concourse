@@ -7,7 +7,7 @@ toolchain go1.23.4
 require (
 	code.cloudfoundry.org/clock v1.24.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20241209140622-eb4bf81f3916
-	code.cloudfoundry.org/garden v0.0.0-20241204145308-c4f1fc9d4727
+	code.cloudfoundry.org/garden v0.0.0-20241106020650-8b5ced818ad7
 	code.cloudfoundry.org/lager/v3 v3.18.0
 	code.cloudfoundry.org/localip v0.22.0
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
