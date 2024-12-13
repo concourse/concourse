@@ -22,6 +22,14 @@
     {
       "matchPackageNames": ["gopkg.in/yaml.v2"],
       "allowedVersions": "<3.0.0"
+    },
+    {
+      "matchPackageNames": ["github.com/containerd/containerd"],
+      "allowedVersions": "<2.0.0"
+    },
+    {
+      "matchPackageNames": ["code.cloudfoundry.org/garden"],
+      "allowedVersions": "<=v0.0.0-20241106020650-8b5ced818ad7"
     }
   ],
   "ignoreDeps": ["elm", "client-go"],
