@@ -33,8 +33,8 @@ var (
 
 func intRef(i int64) *int64 { return &i }
 
-func Devices(privileged bool) []specs.LinuxDevice {
-	if !privileged {
+func Devices(privilegedMode PrivilegedMode, privileged bool) []specs.LinuxDevice {
+	if !privileged || privilegedMode == IgnorePrivilegedMode {
 		return nil
 	}
 	return []specs.LinuxDevice{
