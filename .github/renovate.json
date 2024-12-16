@@ -28,8 +28,9 @@
       "allowedVersions": "<2.0.0"
     },
     {
-      "matchPackageNames": ["code.cloudfoundry.org/garden"],
-      "allowedVersions": "<=v0.0.0-20241106020650-8b5ced818ad7"
+      "matchPackageNames": ["/garden/"],
+      "matchManagers": ["gomod"],
+      "enabled": false
     }
   ],
   "ignoreDeps": ["elm", "client-go"],
