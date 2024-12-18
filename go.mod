@@ -5,11 +5,11 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
-	code.cloudfoundry.org/clock v1.24.0
-	code.cloudfoundry.org/credhub-cli v0.0.0-20241212234634-b24ee2a402a0
+	code.cloudfoundry.org/clock v1.25.0
+	code.cloudfoundry.org/credhub-cli v0.0.0-20241217031024-61a24d347517
 	code.cloudfoundry.org/garden v0.0.0-20241106020650-8b5ced818ad7
-	code.cloudfoundry.org/lager/v3 v3.18.0
-	code.cloudfoundry.org/localip v0.22.0
+	code.cloudfoundry.org/lager/v3 v3.19.0
+	code.cloudfoundry.org/localip v0.23.0
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	dario.cat/mergo v1.0.1
 	github.com/DataDog/datadog-go/v5 v5.6.0
@@ -36,7 +36,7 @@ require (
 	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/gobwas/glob v0.2.3
-	github.com/goccy/go-yaml v1.15.10
+	github.com/goccy/go-yaml v1.15.11
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/google/jsonapi v1.0.0
 	github.com/gorilla/websocket v1.5.3
@@ -54,7 +54,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mattn/go-isatty v0.0.20
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.10.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.0
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/miekg/dns v1.1.62
 	github.com/mitchellh/mapstructure v1.5.0
@@ -92,7 +92,7 @@ require (
 	golang.org/x/sync v0.10.0
 	golang.org/x/sys v0.28.0
 	golang.org/x/time v0.8.0
-	google.golang.org/grpc v1.69.0
+	google.golang.org/grpc v1.69.2
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.32.0
 	k8s.io/apimachinery v0.32.0
@@ -113,7 +113,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.134 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.135 // indirect
 	github.com/containerd/continuity v0.4.4 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/ttrpc v1.2.6 // indirect
@@ -175,7 +175,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/api v0.203.0 // indirect
 	google.golang.org/genproto v0.0.0-20241015192408-796eee8c2d53 // indirect
-	google.golang.org/protobuf v1.35.2 // indirect
+	google.golang.org/protobuf v1.36.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
