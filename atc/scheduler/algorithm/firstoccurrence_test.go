@@ -2,7 +2,7 @@ package algorithm_test
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -138,8 +138,8 @@ var _ = Describe("Resolve", func() {
 
 			resourceID := setup.resourceIDs.ID(buildOutput.ResourceName)
 			_, err = setup.psql.Insert("build_resource_config_version_outputs").
-				Columns("build_id", "resource_id", "version_md5", "name").
-				Values(buildOutput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildOutput.ResourceName).
+				Columns("build_id", "resource_id", "version_sha256", "name").
+				Values(buildOutput.BuildID, resourceID, sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON), buildOutput.ResourceName).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 
@@ -151,7 +151,7 @@ var _ = Describe("Resolve", func() {
 
 			key := strconv.Itoa(resourceID)
 
-			outputs[key] = append(outputs[key], convertToMD5(buildOutput.Version))
+			outputs[key] = append(outputs[key], convertToSHA256(buildOutput.Version))
 			buildToJobID[buildOutput.BuildID] = setup.jobIDs.ID(buildOutput.JobName)
 		}
 
@@ -175,8 +175,8 @@ var _ = Describe("Resolve", func() {
 
 			resourceID := setup.resourceIDs.ID(buildInput.ResourceName)
 			_, err = setup.psql.Insert("build_resource_config_version_inputs").
-				Columns("build_id", "resource_id", "version_md5", "name", "first_occurrence").
-				Values(buildInput.BuildID, resourceID, sq.Expr("md5(?)", versionJSON), buildInput.InputName, false).
+				Columns("build_id", "resource_id", "version_sha256", "name", "first_occurrence").
+				Values(buildInput.BuildID, resourceID, sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON), buildInput.InputName, false).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
 
@@ -188,7 +188,7 @@ var _ = Describe("Resolve", func() {
 
 			key := strconv.Itoa(resourceID)
 
-			outputs[key] = append(outputs[key], convertToMD5(buildInput.Version))
+			outputs[key] = append(outputs[key], convertToSHA256(buildInput.Version))
 			buildToJobID[buildInput.BuildID] = setup.jobIDs.ID(buildInput.JobName)
 
 			if buildInput.RerunBuildID != 0 {
@@ -284,7 +284,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v2")),
+							Version:    db.ResourceVersion(convertToSHA256("v2")),
 							ResourceID: 1,
 						},
 						FirstOccurrence: false,
@@ -314,7 +314,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v2")),
+							Version:    db.ResourceVersion(convertToSHA256("v2")),
 							ResourceID: 1},
 						FirstOccurrence: true,
 					},
@@ -343,7 +343,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v2")),
+							Version:    db.ResourceVersion(convertToSHA256("v2")),
 							ResourceID: 1},
 						FirstOccurrence: true,
 					},
@@ -372,7 +372,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v2")),
+							Version:    db.ResourceVersion(convertToSHA256("v2")),
 							ResourceID: 1},
 						FirstOccurrence: true,
 					},
@@ -400,7 +400,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v2")),
+							Version:    db.ResourceVersion(convertToSHA256("v2")),
 							ResourceID: 1},
 						FirstOccurrence: true,
 					},
@@ -446,7 +446,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v2")),
+							Version:    db.ResourceVersion(convertToSHA256("v2")),
 							ResourceID: 1},
 						FirstOccurrence: false,
 					},
@@ -491,7 +491,7 @@ var _ = Describe("Resolve", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5("v3")),
+							Version:    db.ResourceVersion(convertToSHA256("v3")),
 							ResourceID: 1,
 						},
 						FirstOccurrence: false,
@@ -503,11 +503,11 @@ var _ = Describe("Resolve", func() {
 	})
 })
 
-func convertToMD5(version string) string {
+func convertToSHA256(version string) string {
 	versionJSON, err := json.Marshal(atc.Version{"ver": version})
 	Expect(err).ToNot(HaveOccurred())
 
-	hasher := md5.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(versionJSON))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
