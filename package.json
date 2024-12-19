@@ -19,7 +19,7 @@
     "elm-analyse": "0.16.5",
     "elm-format": "0.8.7",
     "elm-test": "0.19.1-revision9",
-    "less": "4.2.0",
+    "less": "4.2.1",
     "less-plugin-autoprefix": "2.0.0",
     "puppeteer": "^23.6.0",
     "uglify-js": "^3.19.3",
