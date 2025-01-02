@@ -867,7 +867,19 @@ func (cmd *RunCommand) constructAPIMembers(
 		displayUserIdGenerator,
 	)
 
-	middleware := token.NewMiddleware(cmd.Auth.AuthFlags.SecureCookies)
+	var sameSite http.SameSite
+	switch strings.ToLower(cmd.Auth.AuthFlags.SameSite) {
+	case "lax":
+		sameSite = http.SameSiteLaxMode
+	case "strict":
+		sameSite = http.SameSiteStrictMode
+	case "none":
+		sameSite = http.SameSiteNoneMode
+	default:
+		sameSite = http.SameSiteDefaultMode
+	}
+
+	middleware := token.NewMiddleware(sameSite, cmd.Auth.AuthFlags.SecureCookies)
 
 	apiHandler, err := cmd.constructAPIHandler(
 		logger,

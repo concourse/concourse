@@ -29,7 +29,7 @@ var _ = Describe("Token Middleware", func() {
 
 		w = httptest.NewRecorder()
 
-		middleware = token.NewMiddleware(false)
+		middleware = token.NewMiddleware(http.SameSiteLaxMode, false)
 	})
 
 	Describe("Auth Tokens", func() {
@@ -61,6 +61,7 @@ var _ = Describe("Token Middleware", func() {
 				Expect(cookies[0].Name).To(Equal("skymarshal_auth"))
 				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
 				Expect(cookies[0].Value).To(Equal("blah"))
+				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})
 		})
 

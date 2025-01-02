@@ -43,6 +43,7 @@ func WireTeamConnectors(group *flags.Group) {
 }
 
 type AuthFlags struct {
+	SameSite          string            `long:"cookie-samesite" default:"lax" choice:"lax" choice:"strict" choice:"none" description:"Set SameSite attribute on http cookies"`
 	SecureCookies     bool              `long:"cookie-secure" description:"Force sending secure flag on http cookies"`
 	Expiration        time.Duration     `long:"auth-duration" default:"24h" description:"Length of time for which tokens are valid. Afterwards, users will have to log back in."`
 	SigningKey        *flag.PrivateKey  `long:"session-signing-key" required:"true" description:"File containing an RSA private key, used to sign auth tokens."`
