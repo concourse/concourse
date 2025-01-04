@@ -807,7 +807,7 @@ var _ = Describe("Build", func() {
 			BeforeEach(func() {
 				By("creating a child pipeline")
 				build, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
-				childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child1-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+				childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child1-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false, false)
 				build.Finish(db.BuildStatusSucceeded)
 
 				childPipeline.Reload()
@@ -832,7 +832,7 @@ var _ = Describe("Build", func() {
 						for i := 0; i < 5; i++ {
 							job, _, _ := childPipeline.Job("some-job")
 							build, _ := job.CreateBuild(defaultBuildCreatedBy)
-							childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline-" + strconv.Itoa(i)}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+							childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline-" + strconv.Itoa(i)}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false, false)
 							build.Finish(db.BuildStatusSucceeded)
 							childPipelines = append(childPipelines, childPipeline)
 						}
@@ -2416,7 +2416,7 @@ var _ = Describe("Build", func() {
 						},
 					},
 				},
-			}, db.ConfigVersion(0), false)
+			}, db.ConfigVersion(0), false, false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline.ParentJobID()).To(Equal(build.JobID()))
 			Expect(pipeline.ParentBuildID()).To(Equal(build.ID()))
@@ -2454,7 +2454,7 @@ var _ = Describe("Build", func() {
 						},
 					},
 				},
-			}, db.ConfigVersion(0), false)
+			}, db.ConfigVersion(0), false, false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipeline.ParentJobID()).To(Equal(buildTwo.JobID()))
 			Expect(pipeline.ParentBuildID()).To(Equal(buildTwo.ID()))
@@ -2484,7 +2484,7 @@ var _ = Describe("Build", func() {
 						},
 					},
 				},
-			}, pipeline.ConfigVersion(), false)
+			}, pipeline.ConfigVersion(), false, false)
 			Expect(err).To(Equal(db.ErrSetByNewerBuild))
 		})
 
@@ -2495,7 +2495,7 @@ var _ = Describe("Build", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("re-saving the default pipeline with the build")
-				pipeline, _, err := build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, db.ConfigVersion(1), false)
+				pipeline, _, err := build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, db.ConfigVersion(1), false, false)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(pipeline.ParentJobID()).To(Equal(build.JobID()))
 				Expect(pipeline.ParentBuildID()).To(Equal(build.ID()))
@@ -2516,7 +2516,7 @@ var _ = Describe("Build", func() {
 			By("setting the pipeline again via a build")
 			build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
-			pipeline, _, err = build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, pipeline.ConfigVersion(), false)
+			pipeline, _, err = build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, pipeline.ConfigVersion(), false, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(pipeline.Paused()).To(BeFalse())
@@ -2536,7 +2536,7 @@ var _ = Describe("Build", func() {
 			By("setting the pipeline again via a build")
 			build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
 			Expect(err).ToNot(HaveOccurred())
-			pipeline, _, err = build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, pipeline.ConfigVersion(), false)
+			pipeline, _, err = build.SavePipeline(defaultPipelineRef, build.TeamID(), defaultPipelineConfig, pipeline.ConfigVersion(), false, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(pipeline.Paused()).To(BeTrue())

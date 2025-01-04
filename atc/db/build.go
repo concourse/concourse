@@ -212,6 +212,7 @@ type Build interface {
 		config atc.Config,
 		from ConfigVersion,
 		initiallyPaused bool,
+		detach bool,
 	) (Pipeline, bool, error)
 
 	ResourceCacheUser() ResourceCacheUser
@@ -1791,6 +1792,7 @@ func (b *build) SavePipeline(
 	config atc.Config,
 	from ConfigVersion,
 	initiallyPaused bool,
+	detach bool,
 ) (Pipeline, bool, error) {
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -1799,8 +1801,14 @@ func (b *build) SavePipeline(
 
 	defer Rollback(tx)
 
-	jobID := newNullInt64(b.jobID)
-	buildID := newNullInt64(b.id)
+	var jobID, buildID sql.NullInt64
+	if detach {
+		jobID = sql.NullInt64{Valid: false}
+		buildID = sql.NullInt64{Valid: false}
+	} else {
+		jobID = newNullInt64(b.jobID)
+		buildID = newNullInt64(b.id)
+	}
 	pipelineID, isNewPipeline, err := savePipeline(tx, pipelineRef, config, from, initiallyPaused, teamID, jobID, buildID)
 	if err != nil {
 		return nil, false, err
