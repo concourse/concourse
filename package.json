@@ -15,7 +15,7 @@
     "babel-loader": "^9.2.1",
     "child-process-promise": "2.2.1",
     "clean-css-cli": "5.6.3",
-    "elm": "0.19.1",
+    "elm": "0.19.1-6",
     "elm-analyse": "0.16.5",
     "elm-format": "0.8.7",
     "elm-test": "0.19.1-revision9",
