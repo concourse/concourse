@@ -458,6 +458,9 @@ var _ = Describe("login Command", func() {
 				It("sets a CORS header for the ATC being logged in to", func() {
 					corsHeader := resp.Header.Get("Access-Control-Allow-Origin")
 					Expect(corsHeader).To(Equal(loginATCServer.URL()))
+
+					corsPrivateNetwork := resp.Header.Get("Access-Control-Allow-Private-Network")
+					Expect(corsPrivateNetwork).To(Equal("true"))
 				})
 
 				It("responds successfully", func() {
