@@ -249,6 +249,15 @@ func listenForTokenCallback(tokenChannel chan string, errorChannel chan error, p
 		Addr: "127.0.0.1:0",
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", targetUrl)
+
+			preflightAccessRequest := r.Header.Get("Access-Control-Request-Private-Network")
+			preflightRequestMethod := r.Header.Get("Access-Control-Request-Method")
+
+			if preflightAccessRequest == "true" && preflightRequestMethod == "GET" {
+				w.Header().Set("Access-Control-Allow-Private-Network", "true")
+				return
+			}
+
 			tokenChannel <- r.FormValue("token")
 			if r.Header.Get("Upgrade-Insecure-Requests") != "" {
 				http.Redirect(w, r, fmt.Sprintf("%s/fly_success?noop=true", targetUrl), http.StatusFound)
