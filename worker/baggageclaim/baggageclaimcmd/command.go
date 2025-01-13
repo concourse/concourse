@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/worker/baggageclaim/api"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	bespec "github.com/concourse/concourse/worker/runtime/spec"
 	"github.com/concourse/flag/v2"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -39,6 +40,8 @@ type BaggageclaimCommand struct {
 	OverlaysDir string `long:"overlays-dir" description:"Path to directory in which to store overlay data"`
 
 	DisableUserNamespaces bool `long:"disable-user-namespaces" description:"Disable remapping of user/group IDs in unprivileged volumes."`
+
+	PrivilegedMode bespec.PrivilegedMode `long:"privileged-mode" description:"How many privileges privileged containers get" choice:"full" choice:"fuse-only" choice:"ignore"`
 }
 
 func (cmd *BaggageclaimCommand) Execute(args []string) error {
@@ -50,11 +53,7 @@ func (cmd *BaggageclaimCommand) Execute(args []string) error {
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
 }
 
-func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
-	logger, _ := cmd.constructLogger()
-
-	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
-
+func (cmd *BaggageclaimCommand) SelectNamespacers(logger lager.Logger) (uidgid.Namespacer, uidgid.Namespacer) {
 	var privilegedNamespacer, unprivilegedNamespacer uidgid.Namespacer
 
 	if !cmd.DisableUserNamespaces && uidgid.Supported() {
@@ -71,6 +70,20 @@ func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
 		privilegedNamespacer = uidgid.NoopNamespacer{}
 		unprivilegedNamespacer = uidgid.NoopNamespacer{}
 	}
+
+	if cmd.PrivilegedMode != bespec.FullPrivilegedMode {
+		privilegedNamespacer = unprivilegedNamespacer
+	}
+
+	return privilegedNamespacer, unprivilegedNamespacer
+}
+
+func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
+	logger, _ := cmd.constructLogger()
+
+	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
+
+	privilegedNamespacer, unprivilegedNamespacer := cmd.SelectNamespacers(logger)
 
 	locker := volume.NewLockManager()
 
