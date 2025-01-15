@@ -265,7 +265,5 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 
 	cmd.Baggageclaim.OverlaysDir = filepath.Join(cmd.WorkDir.Path(), "overlays")
 
-	cmd.Baggageclaim.PrivilegedMode = cmd.Containerd.PrivilegedMode
-
-	return cmd.Baggageclaim.Runner(nil)
+	return cmd.Baggageclaim.Runner(nil, cmd.Containerd.PrivilegedMode)
 }

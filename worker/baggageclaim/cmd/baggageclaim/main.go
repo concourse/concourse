@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/concourse/concourse/worker/baggageclaim/baggageclaimcmd"
+	"github.com/concourse/concourse/worker/runtime/spec"
 	"github.com/jessevdk/go-flags"
 )
 
@@ -19,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = cmd.Execute(args)
+	err = cmd.Execute(args, spec.FullPrivilegedMode)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
