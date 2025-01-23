@@ -26,6 +26,7 @@ type SecretReader interface {
 type Vault struct {
 	SecretReader    SecretReader
 	Prefix          string
+	Prefixes        []string
 	LookupTemplates []*creds.SecretTemplate
 	SharedPath      string
 	LoggedIn        <-chan struct{}
@@ -40,11 +41,13 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowR
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
-	if v.SharedPath != "" {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(v.Prefix, v.SharedPath)+"/"))
-	}
-	if allowRootPath {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(v.Prefix+"/"))
+	for _, prefix := range getPrefixes(v.Prefixes, v.Prefix) {
+		if v.SharedPath != "" {
+			lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(prefix, v.SharedPath)+"/"))
+		}
+		if allowRootPath {
+			lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(prefix+"/"))
+		}
 	}
 	return lookupPaths
 }
