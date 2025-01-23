@@ -3,6 +3,7 @@ package integration_test
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
@@ -473,6 +474,31 @@ var _ = Describe("login Command", func() {
 						Expect(resp.StatusCode).To(Equal(http.StatusFound))
 						locationHeader := resp.Header.Get("Location")
 						Expect(locationHeader).To(Equal(fmt.Sprintf("%s/fly_success?noop=true", loginATCServer.URL())))
+					})
+				})
+
+				Context("when the request comes from a Chromium browser", func() {
+					// Why this test exists: https://developer.chrome.com/blog/private-network-access-preflight/
+					var preflightResp *http.Response
+
+					BeforeEach(func() {
+						preflightReq := req.Clone(context.Background())
+						preflightReq.Header.Add("Access-Control-Request-Method", "GET")
+						preflightReq.Header.Add("Access-Control-Request-Private-Network", "true")
+
+						client := &http.Client{
+							CheckRedirect: func(req *http.Request, via []*http.Request) error {
+								return http.ErrUseLastResponse
+							},
+						}
+						var err error
+						preflightResp, err = client.Do(preflightReq)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("handles the preflight request", func() {
+						Expect(preflightResp.StatusCode).To(Equal(http.StatusOK))
+						Expect(resp.StatusCode).To(Equal(http.StatusOK))
 					})
 				})
 			})

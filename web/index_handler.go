@@ -1,7 +1,7 @@
 package web
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -72,7 +72,7 @@ func (funcs *indexTemplateFuncs) asset(asset string) (string, error) {
 
 	id, found := funcs.assetIDs[asset]
 	if !found {
-		hash := md5.New()
+		hash := sha256.New()
 
 		contents, err := fs.ReadFile(funcs.publicFS, asset)
 		if err != nil {

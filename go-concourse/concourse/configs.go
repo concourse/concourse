@@ -3,6 +3,7 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -85,18 +86,32 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 
 	switch response.StatusCode {
 	case http.StatusOK, http.StatusCreated:
+		if response.Header.Get("Content-Type") != "application/json" {
+			return false, false, []ConfigWarning{}, internal.UnexpectedResponseError{
+				StatusCode: response.StatusCode,
+				Status:     response.Status,
+				Body:       string(body),
+			}
+		}
 		configResponse := setConfigResponse{}
 		err = json.Unmarshal(body, &configResponse)
 		if err != nil {
-			return false, false, []ConfigWarning{}, err
+			return false, false, []ConfigWarning{}, fmt.Errorf("parsing JSON: %w", err)
 		}
 		created := response.StatusCode == http.StatusCreated
 		return created, !created, configResponse.Warnings, nil
 	case http.StatusBadRequest:
+		if response.Header.Get("Content-Type") != "application/json" {
+			return false, false, []ConfigWarning{}, internal.UnexpectedResponseError{
+				StatusCode: response.StatusCode,
+				Status:     response.Status,
+				Body:       string(body),
+			}
+		}
 		var validationErr atc.SaveConfigResponse
 		err = json.Unmarshal(body, &validationErr)
 		if err != nil {
-			return false, false, []ConfigWarning{}, err
+			return false, false, []ConfigWarning{}, fmt.Errorf("parsing JSON: %w", err)
 		}
 		return false, false, []ConfigWarning{}, InvalidConfigError{Errors: validationErr.Errors}
 	case http.StatusForbidden:
