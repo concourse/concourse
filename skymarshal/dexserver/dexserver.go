@@ -6,11 +6,11 @@ import (
 	"embed"
 	"errors"
 	"io/fs"
+	"log/slog"
 	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/skymarshal/logger"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	s "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
@@ -126,7 +126,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		Issuer:                 config.IssuerURL,
 		Storage:                config.Storage,
 		Web:                    webConfig,
-		Logger:                 logger.New(config.Logger),
+		Logger:                 slog.New(lager.NewHandler(config.Logger)),
 	}, nil
 }
 
@@ -144,7 +144,7 @@ func replacePasswords(store s.Storage, passwords []storage.Password) error {
 	}
 
 	for _, newPass := range passwords {
-		err = store.CreatePassword(newPass)
+		err = store.CreatePassword(context.TODO(), newPass)
 		//if this already exists, some other ATC process has created it already
 		//we can assume that both ATCs have the same desired config.
 		if err != nil && err != storage.ErrAlreadyExists {
@@ -169,7 +169,7 @@ func replaceClients(store s.Storage, clients []storage.Client) error {
 	}
 
 	for _, newClient := range clients {
-		err = store.CreateClient(newClient)
+		err = store.CreateClient(context.TODO(), newClient)
 		//if this already exists, some other ATC process has created it already
 		//we can assume that both ATCs have the same desired config.
 		if err != nil && err != storage.ErrAlreadyExists {
@@ -194,7 +194,7 @@ func replaceConnectors(store s.Storage, connectors []storage.Connector) error {
 	}
 
 	for _, newConn := range connectors {
-		err = store.CreateConnector(newConn)
+		err = store.CreateConnector(context.TODO(), newConn)
 		//if this already exists, some other ATC process has created it already
 		//we can assume that both ATCs have the same desired config.
 		if err != nil && err != storage.ErrAlreadyExists {

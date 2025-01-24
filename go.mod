@@ -22,6 +22,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v1.9.0
 	github.com/concourse/flag/v2 v2.1.1
+	github.com/concourse/houdini v1.2.0
 	github.com/concourse/retryhttp v1.2.4
 	github.com/containerd/containerd v1.7.25
 	github.com/containerd/containerd/api v1.8.0
@@ -77,7 +78,6 @@ require (
 	github.com/vbauerster/mpb/v8 v8.9.1
 	github.com/vito/go-interact v1.0.1
 	github.com/vito/go-sse v1.1.2
-	github.com/vito/houdini v1.1.3
 	github.com/vito/twentythousandtonnesofcrudeoil v0.0.0-20180305154709-3b21ad808fcb
 	go.opentelemetry.io/otel v1.34.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
@@ -230,7 +230,6 @@ require (
 	github.com/moby/sys/user v0.3.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/petermattis/goid v0.0.0-20250121172306-05bcfb9a85dc // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

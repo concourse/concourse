@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	store "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
@@ -25,7 +24,7 @@ var _ = Describe("Dex Server", func() {
 	var expectErr bool
 
 	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("dex")
+		logger = lager.NewLogger("dex")
 
 		storage, err = store.NewPostgresStorage(logger, flag.PostgresConfig{
 			Host:     "127.0.0.1",
