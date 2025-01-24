@@ -379,7 +379,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 
 				It("reattaches on use of closed connection", func() {
 					ttySpec := garden.TTYSpec{
-						WindowSize: &garden.WindowSize{Columns: 345678, Rows: 45689},
+						WindowSize: &garden.WindowSize{Columns: uint16(34567), Rows: uint16(45689)},
 					}
 
 					Expect(process.SetTTY(ttySpec)).To(Succeed())
@@ -495,7 +495,7 @@ var _ = Describe("Retryable Garden Connection", func() {
 
 				It("reattaches on use of closed connection", func() {
 					ttySpec := garden.TTYSpec{
-						WindowSize: &garden.WindowSize{Columns: 345678, Rows: 45689},
+						WindowSize: &garden.WindowSize{Columns: uint16(34567), Rows: uint16(45689)},
 					}
 
 					Expect(process.SetTTY(ttySpec)).To(Succeed())

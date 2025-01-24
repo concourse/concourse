@@ -168,8 +168,8 @@ func (h *Hijacker) monitorTTYSize(ctx context.Context, inputs chan<- atc.HijackI
 				inputs <- atc.HijackInput{
 					TTYSpec: &atc.HijackTTYSpec{
 						WindowSize: atc.HijackWindowSize{
-							Columns: cols,
-							Rows:    rows,
+							Columns: uint16(cols),
+							Rows:    uint16(rows),
 						},
 					},
 				}

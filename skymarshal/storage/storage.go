@@ -1,8 +1,9 @@
 package storage
 
 import (
+	"log/slog"
+
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/skymarshal/logger"
 	"github.com/concourse/dex/storage"
 	"github.com/concourse/dex/storage/sql"
 	"github.com/concourse/flag/v2"
@@ -38,5 +39,5 @@ func NewPostgresStorage(log lager.Logger, postgres flag.PostgresConfig) (Storage
 		},
 	}
 
-	return store.Open(logger.New(log))
+	return store.Open(slog.New(lager.NewHandler(log)))
 }
