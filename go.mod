@@ -2,23 +2,23 @@ module github.com/concourse/concourse
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.23.5
 
 require (
 	code.cloudfoundry.org/clock v1.28.0
-	code.cloudfoundry.org/credhub-cli v0.0.0-20250120140441-b4f533288159
+	code.cloudfoundry.org/credhub-cli v0.0.0-20250127140616-09d802d47c27
 	code.cloudfoundry.org/garden v0.0.0-20250122021912-268f66e008f4
-	code.cloudfoundry.org/lager/v3 v3.23.0
-	code.cloudfoundry.org/localip v0.27.0
+	code.cloudfoundry.org/lager/v3 v3.24.0
+	code.cloudfoundry.org/localip v0.28.0
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	dario.cat/mergo v1.0.1
 	github.com/DataDog/datadog-go/v5 v5.6.0
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.25.0
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.26.0
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b
 	github.com/aws/aws-sdk-go v1.55.6
-	github.com/caarlos0/env/v11 v11.3.0
+	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/concourse/dex v1.9.0
 	github.com/concourse/flag/v2 v2.1.1
@@ -34,6 +34,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.15.15
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
@@ -45,7 +46,7 @@ require (
 	github.com/hashicorp/vault/api v1.15.0
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
-	github.com/jackpal/gateway v1.0.15
+	github.com/jackpal/gateway v1.0.16
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.17.11
 	github.com/kr/pty v1.1.8
@@ -111,7 +112,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.138 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.139 // indirect
 	github.com/containerd/continuity v0.4.5 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/ttrpc v1.2.7 // indirect
@@ -191,7 +192,7 @@ require (
 	github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20231105174938-2b5cbb29f3e2 // indirect
 	github.com/AppsFlyer/go-sundheit v0.6.0 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.49.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.50.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
@@ -208,7 +209,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.7 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-ldap/ldap/v3 v3.4.10 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
@@ -218,7 +218,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
-	github.com/google/pprof v0.0.0-20250121033306-997b0b79cac0 // indirect
+	github.com/google/pprof v0.0.0-20250125003558-7fdb3d7e6fa0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
