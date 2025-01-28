@@ -210,8 +210,8 @@ type TTYSpec struct {
 // WindowSize represents the size of the TTY allocated to the Process, measured
 // in characters.
 type WindowSize struct {
-	Columns int
-	Rows    int
+	Columns uint16
+	Rows    uint16
 }
 
 type ProcessIO struct {

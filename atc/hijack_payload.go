@@ -17,8 +17,8 @@ type HijackTTYSpec struct {
 }
 
 type HijackWindowSize struct {
-	Columns int `json:"columns"`
-	Rows    int `json:"rows"`
+	Columns uint16 `json:"columns"`
+	Rows    uint16 `json:"rows"`
 }
 
 type HijackInput struct {

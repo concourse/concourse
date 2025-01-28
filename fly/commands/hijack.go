@@ -160,8 +160,8 @@ func (command *HijackCommand) Execute([]string) error {
 	if err == nil {
 		ttySpec = &atc.HijackTTYSpec{
 			WindowSize: atc.HijackWindowSize{
-				Columns: cols,
-				Rows:    rows,
+				Columns: uint16(cols),
+				Rows:    uint16(rows),
 			},
 		}
 	}

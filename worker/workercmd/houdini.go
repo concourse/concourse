@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/concourse/houdini"
 	"github.com/tedsuo/ifrit"
-	"github.com/vito/houdini"
 )
 
 func (cmd *WorkerCommand) houdiniRunner(logger lager.Logger) (ifrit.Runner, error) {
