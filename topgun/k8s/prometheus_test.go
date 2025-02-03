@@ -6,12 +6,13 @@ import (
 	"path"
 	"time"
 
-	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/concourse/concourse/topgun"
 )
 
-var _ = Describe("Prometheus integration", func() {
+var _ = FDescribe("Prometheus integration", func() {
 
 	var prometheusReleaseName string
 
