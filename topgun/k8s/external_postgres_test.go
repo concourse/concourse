@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = FDescribe("External PostgreSQL", func() {
+var _ = Describe("External PostgreSQL", func() {
 	var pgReleaseName string
 
 	BeforeEach(func() {
