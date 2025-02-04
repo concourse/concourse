@@ -13,17 +13,59 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-func IndexHandler(logger lager.Logger, publicFS fs.FS) http.Handler {
+type assetCache struct {
+	fs      fs.FS
+	cache   map[string]string
+	cacheMu sync.RWMutex
+	dynamic bool // true if using filesystem that can change
+}
+
+func newAssetCache(fs fs.FS, dynamic bool) *assetCache {
+	return &assetCache{
+		fs:      fs,
+		cache:   make(map[string]string),
+		dynamic: dynamic,
+	}
+}
+
+func (ac *assetCache) asset(path string) (string, error) {
+	if !ac.dynamic {
+		// Try reading from cache first for embedded assets
+		ac.cacheMu.RLock()
+		if hash, ok := ac.cache[path]; ok {
+			ac.cacheMu.RUnlock()
+			return fmt.Sprintf("/public/%s?id=%s", path, hash), nil
+		}
+		ac.cacheMu.RUnlock()
+	}
+
+	// Calculate hash
+	contents, err := fs.ReadFile(ac.fs, path)
+	if err != nil {
+		return "", fmt.Errorf("read asset %s: %w", path, err)
+	}
+
+	sum := sha256.Sum256(contents)
+	hash := fmt.Sprintf("%x", sum[:4]) // First 8 hex characters
+
+	// Only cache if not in dynamic mode
+	if !ac.dynamic {
+		ac.cacheMu.Lock()
+		ac.cache[path] = hash
+		ac.cacheMu.Unlock()
+	}
+
+	return fmt.Sprintf("/public/%s?id=%s", path, hash), nil
+}
+
+func IndexHandler(logger lager.Logger, publicFS fs.FS, live bool) http.Handler {
+	assets := newAssetCache(publicFS, live)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log := logger.Session("index")
 
-		tfuncs := &indexTemplateFuncs{
-			publicFS: publicFS,
-			assetIDs: map[string]string{},
-		}
-
 		funcs := template.FuncMap{
-			"asset": tfuncs.asset,
+			"asset": assets.asset,
 			"jsonMarshal": func(v interface{}) (template.JS, error) {
 				payload, err := json.Marshal(v)
 				if err != nil {
@@ -57,35 +99,4 @@ type indexTemplateData struct {
 	CSRFToken    string
 	AuthToken    string
 	FeatureFlags map[string]bool
-}
-
-type indexTemplateFuncs struct {
-	publicFS fs.FS
-
-	assetIDs map[string]string
-	assetsL  sync.Mutex
-}
-
-func (funcs *indexTemplateFuncs) asset(asset string) (string, error) {
-	funcs.assetsL.Lock()
-	defer funcs.assetsL.Unlock()
-
-	id, found := funcs.assetIDs[asset]
-	if !found {
-		hash := sha256.New()
-
-		contents, err := fs.ReadFile(funcs.publicFS, asset)
-		if err != nil {
-			return "", err
-		}
-
-		_, err = hash.Write(contents)
-		if err != nil {
-			return "", err
-		}
-
-		id = fmt.Sprintf("%x", hash.Sum(nil))
-	}
-
-	return fmt.Sprintf("/public/%s?id=%s", asset, id), nil
 }

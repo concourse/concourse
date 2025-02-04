@@ -15,7 +15,9 @@ var publicEmbed embed.FS
 
 func NewHandler(logger lager.Logger, livePublicDir string) (http.Handler, error) {
 	var publicFS fs.FS
-	if livePublicDir != "" {
+	dynamic := livePublicDir != ""
+
+	if dynamic {
 		publicFS = os.DirFS(livePublicDir)
 	} else {
 		var err error
@@ -29,7 +31,7 @@ func NewHandler(logger lager.Logger, livePublicDir string) (http.Handler, error)
 
 	webMux.Handle("/public/", PublicHandler(publicFS))
 	webMux.Handle("/robots.txt", RobotsHandler)
-	webMux.Handle("/", IndexHandler(logger, publicFS))
+	webMux.Handle("/", IndexHandler(logger, publicFS, dynamic))
 
 	return webMux, nil
 }
