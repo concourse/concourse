@@ -404,8 +404,21 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 
 	err = os.MkdirAll(destinationPath, 0755)
 	if err != nil {
-		logger.Error("failed-to-create-destination-path", err)
-		return false, err
+		if os.IsExist(err) {
+			// If path exists, verify it's a directory
+			fi, statErr := os.Stat(destinationPath)
+			if statErr != nil {
+				logger.Error("failed-to-stat-existing-path", statErr)
+				return false, statErr
+			}
+			if !fi.IsDir() {
+				logger.Error("destination-exists-but-not-directory", err)
+				return false, fmt.Errorf("destination exists but is not a directory: %w", err)
+			}
+		} else {
+			logger.Error("failed-to-create-destination-path", err)
+			return false, err
+		}
 	}
 
 	privileged, err := volume.LoadPrivileged()
@@ -563,6 +576,8 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	if err != nil {
 		return err
 	}
+
+	defer resp.Body.Close()
 
 	logger.Debug("p2p-streaming-end", lager.Data{"code": resp.StatusCode})
 
