@@ -998,12 +998,10 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	defer Rollback(tx)
 
-	a := make([]int64, len(buildIDs))
-
 	_, err = tx.Exec(`
    DELETE FROM `+p.eventsTable()+`
 	 WHERE build_id = ANY($1)
-	 `, a)
+	 `, buildIDs)
 	if err != nil {
 		return err
 	}
@@ -1012,7 +1010,7 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 		UPDATE builds
 		SET reap_time = now()
 		WHERE id = ANY($1)
-	`, a)
+	`, buildIDs)
 	if err != nil {
 		return err
 	}
