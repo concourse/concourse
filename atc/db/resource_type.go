@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/util"
-	"github.com/lib/pq"
 )
 
 type ResourceTypeNotFoundError struct {

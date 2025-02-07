@@ -18,7 +18,6 @@ import (
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
 )
 

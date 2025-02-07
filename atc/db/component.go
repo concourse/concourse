@@ -7,7 +7,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/lib/pq"
 )
 
 var componentsQuery = psql.Select("c.id, c.name, c.interval, c.last_ran, c.paused").

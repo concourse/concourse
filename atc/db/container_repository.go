@@ -1,12 +1,12 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 )
 
 //counterfeiter:generate . ContainerRepository

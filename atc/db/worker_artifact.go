@@ -7,7 +7,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 )
 
 //counterfeiter:generate . WorkerArtifact

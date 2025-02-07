@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/concourse/concourse/atc/util"
@@ -9,7 +10,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
