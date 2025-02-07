@@ -160,6 +160,7 @@ func (runner *Runner) OpenDB() *sql.DB {
 	// only allow one connection so that we can detect any code paths that
 	// require more than one, which will deadlock if it's at the limit
 	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
 
 	return dbConn
 }
@@ -171,7 +172,7 @@ func (runner *Runner) OpenConn() db.Conn {
 func (runner *Runner) openConn(dbName string) db.Conn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
-		"postgres",
+		"pgx",
 		runner.dataSourceName(dbName),
 		nil,
 		nil,
@@ -183,6 +184,7 @@ func (runner *Runner) openConn(dbName string) db.Conn {
 	// only allow one connection so that we can detect any code paths that
 	// require more than one, which will deadlock if it's at the limit
 	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
 
 	return joinLimitValidatorConn{dbConn}
 }
