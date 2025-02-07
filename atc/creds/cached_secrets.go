@@ -61,8 +61,9 @@ func (cs *CachedSecrets) Get(secretPath string) (interface{}, *time.Time, bool, 
 		duration := cs.cacheConfig.Duration
 		if expiration != nil {
 			// if secret lease time expires sooner, make duration smaller than default duration
+			// also if the duration is less than or equal to 0, use default duration (it would cache forever)
 			itemDuration := time.Until(*expiration)
-			if itemDuration < duration {
+			if itemDuration < duration && itemDuration > 0 {
 				duration = itemDuration
 			}
 		}
