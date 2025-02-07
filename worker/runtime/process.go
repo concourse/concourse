@@ -28,14 +28,12 @@ func NewProcess(
 var _ garden.Process = (*Process)(nil)
 
 // Id retrieves the ID associated with this process.
-//
 func (p *Process) ID() string {
 	return p.process.ID()
 }
 
 // Wait for the process to terminate (either naturally, or from a signal), and
 // once done, delete it.
-//
 func (p *Process) Wait() (int, error) {
 	status := <-p.exitStatusC
 	err := status.Error()
@@ -48,7 +46,9 @@ func (p *Process) Wait() (int, error) {
 		return 0, fmt.Errorf("proc closeio: %w", err)
 	}
 
+	p.process.IO().Cancel()
 	p.process.IO().Wait()
+	p.process.IO().Close()
 
 	_, err = p.process.Delete(context.Background())
 	// ignore "not found" errors - the process was already deleted
@@ -60,7 +60,6 @@ func (p *Process) Wait() (int, error) {
 }
 
 // SetTTY resizes the process' terminal dimensions.
-//
 func (p *Process) SetTTY(spec garden.TTYSpec) error {
 	if spec.WindowSize == nil {
 		return nil
@@ -78,7 +77,6 @@ func (p *Process) SetTTY(spec garden.TTYSpec) error {
 }
 
 // Signal - Not Implemented
-//
 func (p *Process) Signal(signal garden.Signal) (err error) {
 	err = ErrNotImplemented
 	return
