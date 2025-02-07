@@ -306,7 +306,7 @@ func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedCont
 		id         int
 		handle     string
 		workerName string
-		lastHijack pq.NullTime
+		lastHijack sql.NullTime
 		state      string
 
 		metadata ContainerMetadata

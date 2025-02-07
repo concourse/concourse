@@ -1039,13 +1039,13 @@ func scanResource(r *resource, row scannable) error {
 
 type buildData struct {
 	inMemoryBuildId        sql.NullInt64
-	inMemoryBuildStartTime pq.NullTime
+	inMemoryBuildStartTime sql.NullTime
 	inMemoryBuildPlan      sql.NullString
 	inMemoryBuildStatus    sql.NullString
 
 	lastCheckBuildId   sql.NullInt64
-	lastCheckStartTime pq.NullTime
-	lastCheckEndTime   pq.NullTime
+	lastCheckStartTime sql.NullTime
+	lastCheckEndTime   sql.NullTime
 	lastCheckSucceeded sql.NullBool
 	lastCheckBuildPlan sql.NullString
 }

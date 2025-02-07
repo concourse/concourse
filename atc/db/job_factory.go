@@ -344,8 +344,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 		id        sql.NullInt64
 		name      sql.NullString
 		status    sql.NullString
-		startTime pq.NullTime
-		endTime   pq.NullTime
+		startTime sql.NullTime
+		endTime   sql.NullTime
 	}
 
 	var dashboard []atc.JobSummary

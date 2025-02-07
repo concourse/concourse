@@ -91,7 +91,7 @@ func saveWorkerArtifact(tx Tx, conn Conn, atcArtifact atc.WorkerArtifact) (Worke
 
 func getWorkerArtifact(tx Tx, conn Conn, id int) (WorkerArtifact, bool, error) {
 	var (
-		createdAtTime pq.NullTime
+		createdAtTime sql.NullTime
 		buildID       sql.NullInt64
 	)
 

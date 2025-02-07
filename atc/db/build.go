@@ -1851,7 +1851,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	var (
 		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber               sql.NullInt64
 		schema, privatePlan, jobName, resourceName, pipelineName, publicPlan, rerunOfName sql.NullString
-		createTime, startTime, endTime, reapTime                                          pq.NullTime
+		createTime, startTime, endTime, reapTime                                          sql.NullTime
 		nonce, spanContext, createdBy                                                     sql.NullString
 		drained, aborted, completed                                                       bool
 		status                                                                            string

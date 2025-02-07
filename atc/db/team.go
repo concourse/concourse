@@ -1032,7 +1032,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.Pipeline
 	for rows.Next() {
 		var (
 			id        int
-			expiresAt pq.NullTime
+			expiresAt sql.NullTime
 		)
 
 		err = rows.Scan(&id, &expiresAt)
@@ -1334,7 +1334,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		display       sql.NullString
 		nonce         sql.NullString
 		nonceStr      *string
-		lastUpdated   pq.NullTime
+		lastUpdated   sql.NullTime
 		parentJobID   sql.NullInt64
 		parentBuildID sql.NullInt64
 		instanceVars  sql.NullString

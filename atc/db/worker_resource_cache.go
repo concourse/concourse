@@ -133,7 +133,7 @@ func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int
 func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShouldBeValidBefore *time.Time, forShare bool) (*UsedWorkerResourceCache, bool, error) {
 	var id int
 	var workerBaseResourceTypeID sql.NullInt64
-	var invalidSince pq.NullTime
+	var invalidSince sql.NullTime
 
 	sb := psql.Select("id", "worker_base_resource_type_id", "invalid_since").
 		From("worker_resource_caches").

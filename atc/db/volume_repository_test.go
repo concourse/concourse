@@ -846,7 +846,7 @@ var _ = Describe("VolumeRepository", func() {
 			today        time.Time
 			err          error
 			handles      []string
-			missingSince pq.NullTime
+			missingSince sql.NullTime
 		)
 
 		BeforeEach(func() {

@@ -356,7 +356,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 	var (
 		configJSON                           sql.NullString
 		rcsID, nonce                         sql.NullString
-		lastCheckStartTime, lastCheckEndTime pq.NullTime
+		lastCheckStartTime, lastCheckEndTime sql.NullTime
 		pipelineInstanceVars                 sql.NullString
 		resourceConfigID                     sql.NullInt64
 	)

@@ -164,8 +164,8 @@ func scanWorker(worker *worker, row scannable) error {
 		tags          []byte
 		teamName      sql.NullString
 		teamID        sql.NullInt64
-		startTime     pq.NullTime
-		expiresAt     pq.NullTime
+		startTime     sql.NullTime
+		expiresAt     sql.NullTime
 		ephemeral     sql.NullBool
 	)
 

@@ -138,7 +138,7 @@ func (c *component) computeDrift() time.Duration {
 
 func scanComponent(c *component, row scannable) error {
 	var (
-		lastRan  pq.NullTime
+		lastRan  sql.NullTime
 		interval string
 	)
 

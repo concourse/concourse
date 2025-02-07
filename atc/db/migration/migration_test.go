@@ -157,7 +157,7 @@ var _ = Describe("Migration", func() {
 					var (
 						version   int
 						isDirty   bool
-						timeStamp pq.NullTime
+						timeStamp sql.NullTime
 						status    string
 						direction string
 					)
@@ -178,7 +178,7 @@ var _ = Describe("Migration", func() {
 						err = migrator.Up(nil, nil)
 						Expect(err).NotTo(HaveOccurred())
 
-						var timeStamp pq.NullTime
+						var timeStamp sql.NullTime
 						rows, err := db.Query("SELECT tstamp FROM migrations_history WHERE version=8878")
 						Expect(err).NotTo(HaveOccurred())
 						var numRows = 0

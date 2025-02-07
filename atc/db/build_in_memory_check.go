@@ -183,7 +183,7 @@ func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
 		func(tx Tx, buildID int) (bool, error) {
 			completed := false
 
-			var lastCheckStartTime, lastCheckEndTime pq.NullTime
+			var lastCheckStartTime, lastCheckEndTime sql.NullTime
 			err := psql.Select("rcs.last_check_start_time", "rcs.last_check_end_time").
 				From("resource_config_scopes rcs").
 				Join("resources r ON r.resource_config_scope_id = rcs.id").
