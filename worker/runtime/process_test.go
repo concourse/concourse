@@ -81,9 +81,11 @@ func (s *ProcessSuite) TestProcessWaitBlocksUntilIOFinishes() {
 	_, err := s.process.Wait()
 	s.NoError(err)
 
-	s.Equal(1, s.containerdProcess.DeleteCallCount())
-	s.Equal(1, s.containerdProcess.IOCallCount())
+	s.Equal(3, s.containerdProcess.IOCallCount())
+	s.Equal(1, s.io.CancelCallCount())
 	s.Equal(1, s.io.WaitCallCount())
+	s.Equal(1, s.io.CloseCallCount())
+	s.Equal(1, s.containerdProcess.DeleteCallCount())
 }
 
 func (s *ProcessSuite) TestSetTTYWithNilWindowSize() {
