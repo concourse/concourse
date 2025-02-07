@@ -30,7 +30,7 @@ var _ = Describe("OpenHelper", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
-		openHelper = migration.NewOpenHelper("postgres", postgresRunner.DataSourceName(), lockFactory, nil, nil)
+		openHelper = migration.NewOpenHelper("pgx", postgresRunner.DataSourceName(), lockFactory, nil, nil)
 	})
 
 	AfterEach(func() {

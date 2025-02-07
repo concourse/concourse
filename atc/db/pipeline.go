@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/lib/pq"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -999,7 +998,7 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	defer Rollback(tx)
 
-	a := pq.Array(buildIDs)
+	a := make([]int64, len(buildIDs))
 
 	_, err = tx.Exec(`
    DELETE FROM `+p.eventsTable()+`

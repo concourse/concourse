@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +15,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/vars"
-	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/concourse/concourse/atc"
@@ -934,7 +935,7 @@ func (b *build) SaveImageResourceVersion(rc ResourceCache) error {
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 			return nil
 		}
 

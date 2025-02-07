@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
 )
 
@@ -469,7 +470,7 @@ func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache Resour
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 			// another volume was 'blessed' as the cache volume - leave this one
 			// owned by the container so it just expires when the container is GCed
 			return nil, false, nil
@@ -587,7 +588,7 @@ func (volume *createdVolume) InitializeTaskCache(jobID int, stepName string, pat
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 			// another volume was 'blessed' as the cache volume - leave this one
 			// owned by the container so it just expires when the container is GCed
 			return nil
@@ -691,9 +692,9 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 
 		}
 
-		if pqErr, ok := err.(*pq.Error); ok &&
-			pqErr.Code.Name() == pqFKeyViolationErrCode &&
-			pqErr.Constraint == "volumes_parent_id_fkey" {
+		if pgErr, ok := err.(*pgconn.PgError); ok &&
+			pgErr.Code == pgerrcode.ForeignKeyViolation &&
+			pgErr.ConstraintName == "volumes_parent_id_fkey" {
 			return nil, ErrVolumeCannotBeDestroyedWithChildrenPresent
 		}
 

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"sort"
 	"strconv"
 	"strings"
@@ -907,7 +909,7 @@ func (j *job) RerunBuild(buildToRerun Build, createdBy string) (Build, error) {
 	for {
 		rerunBuild, err := j.tryRerunBuild(buildToRerun, createdBy)
 		if err != nil {
-			if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 				continue
 			}
 

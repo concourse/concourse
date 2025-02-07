@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	"strconv"
 	"strings"
 	"time"
@@ -13,12 +14,13 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gobwas/glob"
-	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
