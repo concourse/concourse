@@ -58,7 +58,7 @@ var _ = Describe("ResourceCache", func() {
 			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
 			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
 			Expect(err).To(HaveOccurred())
-			Expect(err.(*pgconn.PgError).Code).To(Equal(pgerrcode.UniqueViolation))
+			Expect(err.(*pgconn.PgError).Code).To(Equal(pgerrcode.ForeignKeyViolation))
 		})
 
 		Context("when it already exists", func() {
