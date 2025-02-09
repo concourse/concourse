@@ -15,6 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/jackc/pgx/v5"
 	"github.com/lib/pq"
 )
 
@@ -75,12 +76,18 @@ func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Ke
 			return nil, err
 		}
 
-		return NewConn(name, sqlDB, dsn, oldKey, newKey), nil
+		return NewConn(name, sqlDB, dsn, oldKey, newKey)
 	}
 }
 
-func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) Conn {
-	listener := pq.NewDialListener(keepAliveDialer{}, dsn, time.Second, time.Minute, nil)
+func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (Conn, error) {
+	// only used for the LISTEN/NOTIFY commands
+	conn, err := pgx.Connect(context.Background(), dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	listener := newPgxListener(conn)
 
 	var strategy encryption.Strategy
 	if newKey != nil {
@@ -95,7 +102,7 @@ func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.
 		bus:        NewNotificationsBus(listener, sqlDB),
 		encryption: strategy,
 		name:       name,
-	}
+	}, nil
 }
 
 func shouldRetry(err error) bool {
