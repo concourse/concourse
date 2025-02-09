@@ -16,10 +16,10 @@ type WorkerLifecycle interface {
 }
 
 type workerLifecycle struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewWorkerLifecycle(conn Conn) WorkerLifecycle {
+func NewWorkerLifecycle(conn DbConn) WorkerLifecycle {
 	return &workerLifecycle{
 		conn: conn,
 	}

@@ -24,11 +24,11 @@ type JobFactory interface {
 }
 
 type jobFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewJobFactory(conn Conn, lockFactory lock.LockFactory) JobFactory {
+func NewJobFactory(conn DbConn, lockFactory lock.LockFactory) JobFactory {
 	return &jobFactory{
 		conn:        conn,
 		lockFactory: lockFactory,

@@ -3,10 +3,11 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
 	"strconv"
 	"time"
+
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -35,11 +36,11 @@ type ResourceConfigFactory interface {
 }
 
 type resourceConfigFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewResourceConfigFactory(conn Conn, lockFactory lock.LockFactory) ResourceConfigFactory {
+func NewResourceConfigFactory(conn DbConn, lockFactory lock.LockFactory) ResourceConfigFactory {
 	return &resourceConfigFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -283,7 +284,7 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Durati
 	return nil
 }
 
-func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, bool, error) {
+func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFactory, conn DbConn) (ResourceConfig, bool, error) {
 	var brtIDString, cacheIDString sql.NullString
 
 	err := psql.Select("base_resource_type_id", "resource_cache_id").

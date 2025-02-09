@@ -25,11 +25,11 @@ type pipelineRef struct {
 	pipelineName         string
 	pipelineInstanceVars atc.InstanceVars
 
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewPipelineRef(id int, name string, instanceVars atc.InstanceVars, conn Conn, lockFactory lock.LockFactory) PipelineRef {
+func NewPipelineRef(id int, name string, instanceVars atc.InstanceVars, conn DbConn, lockFactory lock.LockFactory) PipelineRef {
 	return pipelineRef{
 		pipelineID:           id,
 		pipelineName:         name,

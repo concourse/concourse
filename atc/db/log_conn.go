@@ -11,21 +11,21 @@ import (
 
 // Log returns a wrapper of DB connection which contains a wraper of DB transactions
 // so all queries could be logged by givin logger
-func Log(logger lager.Logger, conn Conn) Conn {
+func Log(logger lager.Logger, conn DbConn) DbConn {
 	return &logConn{
-		Conn:   conn,
+		DbConn: conn,
 		logger: logger,
 	}
 }
 
 type logConn struct {
-	Conn
+	DbConn
 
 	logger lager.Logger
 }
 
 func (c *logConn) Begin() (Tx, error) {
-	tx, err := c.Conn.Begin()
+	tx, err := c.DbConn.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -35,17 +35,17 @@ func (c *logConn) Begin() (Tx, error) {
 
 func (c *logConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	c.logger.Debug("query", lager.Data{"query": strip(query)})
-	return c.Conn.Query(query, args...)
+	return c.DbConn.Query(query, args...)
 }
 
 func (c *logConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	c.logger.Debug("query-row", lager.Data{"query": strip(query)})
-	return c.Conn.QueryRow(query, args...)
+	return c.DbConn.QueryRow(query, args...)
 }
 
 func (c *logConn) Exec(query string, args ...interface{}) (sql.Result, error) {
 	c.logger.Debug("exec", lager.Data{"query": strip(query)})
-	return c.Conn.Exec(query, args...)
+	return c.DbConn.Exec(query, args...)
 }
 
 func strip(query string) string {

@@ -23,11 +23,11 @@ type TeamFactory interface {
 }
 
 type teamFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewTeamFactory(conn Conn, lockFactory lock.LockFactory) TeamFactory {
+func NewTeamFactory(conn DbConn, lockFactory lock.LockFactory) TeamFactory {
 	return &teamFactory{
 		conn:        conn,
 		lockFactory: lockFactory,

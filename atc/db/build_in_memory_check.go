@@ -33,12 +33,12 @@ type inMemoryCheckBuildForApi struct {
 	endTime      time.Time
 	status       BuildStatus
 
-	conn Conn
+	conn DbConn
 
 	cacheAssociatedTeams []string
 }
 
-func newExistingInMemoryCheckBuildForApi(conn Conn, buildId int, checkable Checkable) (*inMemoryCheckBuildForApi, error) {
+func newExistingInMemoryCheckBuildForApi(conn DbConn, buildId int, checkable Checkable) (*inMemoryCheckBuildForApi, error) {
 	build := inMemoryCheckBuildForApi{
 		id:        buildId,
 		conn:      conn,
@@ -268,7 +268,7 @@ type inMemoryCheckBuild struct {
 	eventIdSeq  util.SequenceGenerator
 }
 
-func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
+func newRunningInMemoryCheckBuild(conn DbConn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
 	timeNow := time.Now()
 
 	build := &inMemoryCheckBuild{

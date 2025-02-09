@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
@@ -167,7 +168,7 @@ type job struct {
 	nonce     *string
 }
 
-func newEmptyJob(conn Conn, lockFactory lock.LockFactory) *job {
+func newEmptyJob(conn DbConn, lockFactory lock.LockFactory) *job {
 	return &job{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
@@ -1468,7 +1469,7 @@ func scanJob(j *job, row scannable) error {
 	return nil
 }
 
-func scanJobs(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, error) {
+func scanJobs(conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) (Jobs, error) {
 	defer Close(rows)
 
 	jobs := Jobs{}

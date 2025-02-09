@@ -689,10 +689,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 func (cmd *RunCommand) constructMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
-	apiConn db.Conn,
-	workerConn db.Conn,
-	backendConn db.Conn,
-	gcConn db.Conn,
+	apiConn db.DbConn,
+	workerConn db.DbConn,
+	backendConn db.DbConn,
+	gcConn db.DbConn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -784,8 +784,8 @@ func (cmd *RunCommand) constructMembers(
 func (cmd *RunCommand) constructAPIMembers(
 	logger lager.Logger,
 	reconfigurableSink *lager.ReconfigurableSink,
-	dbConn db.Conn,
-	workerConn db.Conn,
+	dbConn db.DbConn,
+	workerConn db.DbConn,
 	storage storage.Storage,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
@@ -1008,7 +1008,7 @@ func (cmd *RunCommand) constructAPIMembers(
 
 func (cmd *RunCommand) backendComponents(
 	logger lager.Logger,
-	dbConn db.Conn,
+	dbConn db.DbConn,
 	lockFactory lock.LockFactory,
 	secretManager creds.Secrets,
 	policyChecker policy.Checker,
@@ -1222,7 +1222,7 @@ func (cmd *RunCommand) streamer(cacheFactory db.ResourceCacheFactory) worker.Str
 	)
 }
 
-func (cmd *RunCommand) constructPool(dbConn db.Conn, lockFactory lock.LockFactory, workerCache *db.WorkerCache) (worker.Pool, error) {
+func (cmd *RunCommand) constructPool(dbConn db.DbConn, lockFactory lock.LockFactory, workerCache *db.WorkerCache) (worker.Pool, error) {
 	dbResourceCacheFactory := db.NewResourceCacheFactory(dbConn, lockFactory)
 	dbWorkerBaseResourceTypeFactory := db.NewWorkerBaseResourceTypeFactory(dbConn)
 	dbTaskCacheFactory := db.NewTaskCacheFactory(dbConn)
@@ -1262,7 +1262,7 @@ func (cmd *RunCommand) constructPool(dbConn db.Conn, lockFactory lock.LockFactor
 
 func (cmd *RunCommand) gcComponents(
 	logger lager.Logger,
-	gcConn db.Conn,
+	gcConn db.DbConn,
 	lockFactory lock.LockFactory,
 ) ([]RunnableComponent, error) {
 	dbWorkerLifecycle := db.NewWorkerLifecycle(gcConn)
@@ -1502,7 +1502,7 @@ func (tripper mitmRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	return tripper.RoundTripper.RoundTrip(req)
 }
 
-func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.Conn) (*tls.Config, error) {
+func (cmd *RunCommand) tlsConfig(logger lager.Logger, dbConn db.DbConn) (*tls.Config, error) {
 	tlsConfig := atc.DefaultTLSConfig()
 
 	if cmd.isTLSEnabled() {
@@ -1672,7 +1672,7 @@ func (cmd *RunCommand) constructDBConn(
 	idleConns int,
 	connectionName string,
 	lockFactory lock.LockFactory,
-) (db.Conn, error) {
+) (db.DbConn, error) {
 	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)

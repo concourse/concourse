@@ -18,13 +18,13 @@ import (
 )
 
 type VersionsDB struct {
-	conn      Conn
+	conn      DbConn
 	limitRows int
 
 	cache *gocache.Cache
 }
 
-func NewVersionsDB(conn Conn, limitRows int, cache *gocache.Cache) VersionsDB {
+func NewVersionsDB(conn DbConn, limitRows int, cache *gocache.Cache) VersionsDB {
 	return VersionsDB{
 		conn:      conn,
 		limitRows: limitRows,
@@ -676,7 +676,7 @@ type PaginatedBuilds struct {
 	jobID int
 
 	limitRows int
-	conn      Conn
+	conn      DbConn
 }
 
 func (bs *PaginatedBuilds) Next(ctx context.Context) (int, bool, error) {

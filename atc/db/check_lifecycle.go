@@ -10,10 +10,10 @@ type CheckLifecycle interface {
 }
 
 type checkLifecycle struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewCheckLifecycle(conn Conn) CheckLifecycle {
+func NewCheckLifecycle(conn DbConn) CheckLifecycle {
 	return &checkLifecycle{
 		conn: conn,
 	}

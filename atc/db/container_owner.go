@@ -14,7 +14,7 @@ import (
 // identifies its lifecycle. When the owner goes away, the container should
 // be garbage collected.
 type ContainerOwner interface {
-	Find(conn Conn) (sq.Eq, bool, error)
+	Find(conn DbConn) (sq.Eq, bool, error)
 	Create(tx Tx, workerName string) (map[string]interface{}, error)
 }
 
@@ -38,7 +38,7 @@ type buildStepContainerOwner struct {
 	TeamID  int
 }
 
-func (c buildStepContainerOwner) Find(Conn) (sq.Eq, bool, error) {
+func (c buildStepContainerOwner) Find(DbConn) (sq.Eq, bool, error) {
 	return sq.Eq(c.sqlMap()), true, nil
 }
 
@@ -81,7 +81,7 @@ type ContainerOwnerExpiries struct {
 	Max time.Duration
 }
 
-func (c resourceConfigCheckSessionContainerOwner) Find(conn Conn) (sq.Eq, bool, error) {
+func (c resourceConfigCheckSessionContainerOwner) Find(conn DbConn) (sq.Eq, bool, error) {
 	var ids []int
 	rows, err := psql.Select("id").
 		From("resource_config_check_sessions").
@@ -175,7 +175,7 @@ type fixedHandleContainerOwner struct {
 	Handle string
 }
 
-func (c fixedHandleContainerOwner) Find(Conn) (sq.Eq, bool, error) {
+func (c fixedHandleContainerOwner) Find(DbConn) (sq.Eq, bool, error) {
 	return sq.Eq(c.sqlMap()), true, nil
 }
 
@@ -213,7 +213,7 @@ type inMemoryCheckBuildContainerOwner struct {
 	TeamID     int
 }
 
-func (c inMemoryCheckBuildContainerOwner) Find(Conn) (sq.Eq, bool, error) {
+func (c inMemoryCheckBuildContainerOwner) Find(DbConn) (sq.Eq, bool, error) {
 	return sq.Eq(c.sqlMap()), true, nil
 }
 

@@ -67,7 +67,7 @@ var _ = Describe("Periodic emission of metrics", func() {
 			a.NameReturns("A")
 			b := &dbfakes.FakeConn{}
 			b.NameReturns("B")
-			monitor.Databases = []db.Conn{a, b}
+			monitor.Databases = []db.DbConn{a, b}
 		})
 
 		It("emits database queries", func() {

@@ -15,11 +15,11 @@ type ResourceFactory interface {
 }
 
 type resourceFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewResourceFactory(conn Conn, lockFactory lock.LockFactory) ResourceFactory {
+func NewResourceFactory(conn DbConn, lockFactory lock.LockFactory) ResourceFactory {
 	return &resourceFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -75,7 +75,7 @@ func (r *resourceFactory) AllResources() ([]Resource, error) {
 	return scanResources(rows, r.conn, r.lockFactory)
 }
 
-func scanResources(resourceRows *sql.Rows, conn Conn, lockFactory lock.LockFactory) ([]Resource, error) {
+func scanResources(resourceRows *sql.Rows, conn DbConn, lockFactory lock.LockFactory) ([]Resource, error) {
 	var resources []Resource
 
 	for resourceRows.Next() {

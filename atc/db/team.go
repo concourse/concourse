@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lib/pq"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 
 	"code.cloudfoundry.org/lager/v3"
 
@@ -84,7 +85,7 @@ type Team interface {
 
 type team struct {
 	id          int
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 
 	name  string
@@ -1408,7 +1409,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	return nil
 }
 
-func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
+func scanPipelines(conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
 	defer Close(rows)
 
 	pipelines := []Pipeline{}
@@ -1427,7 +1428,7 @@ func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]P
 	return pipelines, nil
 }
 
-func scanContainers(rows *sql.Rows, conn Conn, initContainers []Container) ([]Container, error) {
+func scanContainers(rows *sql.Rows, conn DbConn, initContainers []Container) ([]Container, error) {
 	containers := initContainers
 
 	defer Close(rows)

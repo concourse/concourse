@@ -165,11 +165,11 @@ func (runner *Runner) OpenDB() *sql.DB {
 	return dbConn
 }
 
-func (runner *Runner) OpenConn() db.Conn {
+func (runner *Runner) OpenConn() db.DbConn {
 	return runner.openConn("testdb")
 }
 
-func (runner *Runner) openConn(dbName string) db.Conn {
+func (runner *Runner) openConn(dbName string) db.DbConn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
 		"pgx",

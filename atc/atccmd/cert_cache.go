@@ -14,7 +14,7 @@ type dbCache struct {
 	es               encryption.Strategy
 }
 
-func newDbCache(conn db.Conn) (autocert.Cache, error) {
+func newDbCache(conn db.DbConn) (autocert.Cache, error) {
 	c := new(dbCache)
 	c.es = conn.EncryptionStrategy()
 	var err error

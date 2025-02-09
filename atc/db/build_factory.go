@@ -82,13 +82,13 @@ type BuildFactory interface {
 }
 
 type buildFactory struct {
-	conn              Conn
+	conn              DbConn
 	lockFactory       lock.LockFactory
 	oneOffGracePeriod time.Duration
 	failedGracePeriod time.Duration
 }
 
-func NewBuildFactory(conn Conn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration, failedGracePeriod time.Duration) BuildFactory {
+func NewBuildFactory(conn DbConn, lockFactory lock.LockFactory, oneOffGracePeriod time.Duration, failedGracePeriod time.Duration) BuildFactory {
 	return &buildFactory{
 		conn:              conn,
 		lockFactory:       lockFactory,
@@ -251,7 +251,7 @@ func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, 
 	return resource, true, nil
 }
 
-func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFactory) ([]Build, error) {
+func getBuilds(buildsQuery sq.SelectBuilder, conn DbConn, lockFactory lock.LockFactory) ([]Build, error) {
 	rows, err := buildsQuery.RunWith(conn).Query()
 	if err != nil {
 		return nil, err
@@ -274,7 +274,7 @@ func getBuilds(buildsQuery sq.SelectBuilder, conn Conn, lockFactory lock.LockFac
 	return bs, nil
 }
 
-func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
+func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
 	var newPage = Page{Limit: page.Limit}
 
 	tx, err := conn.Begin()
@@ -359,7 +359,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 	return getBuildsWithPagination(buildsQuery, minMaxIdQuery, newPage, conn, lockFactory, false)
 }
 
-func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn Conn, lockFactory lock.LockFactory, chronological bool) ([]BuildForAPI, Pagination, error) {
+func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory, chronological bool) ([]BuildForAPI, Pagination, error) {
 	var (
 		rows    *sql.Rows
 		err     error

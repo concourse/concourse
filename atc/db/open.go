@@ -19,13 +19,14 @@ import (
 	"github.com/lib/pq"
 )
 
-//counterfeiter:generate . Conn
-type Conn interface {
+//counterfeiter:generate . DbConn
+type DbConn interface {
 	Bus() NotificationsBus
 	EncryptionStrategy() encryption.Strategy
 
 	Ping() error
 	Driver() driver.Driver
+	Conn(context.Context) (*sql.Conn, error)
 
 	Begin() (Tx, error)
 	Exec(string, ...interface{}) (sql.Result, error)
@@ -63,7 +64,7 @@ type Tx interface {
 	EncryptionStrategy() encryption.Strategy
 }
 
-func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Key, name string, lockFactory lock.LockFactory) (Conn, error) {
+func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Key, name string, lockFactory lock.LockFactory) (DbConn, error) {
 	for {
 		sqlDB, err := migration.NewOpenHelper(driver, dsn, lockFactory, newKey, oldKey).Open()
 		if err != nil {
@@ -80,7 +81,7 @@ func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Ke
 	}
 }
 
-func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (Conn, error) {
+func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (DbConn, error) {
 	// only used for the LISTEN/NOTIFY commands
 	conn, err := pgx.Connect(context.Background(), dsn)
 	if err != nil {

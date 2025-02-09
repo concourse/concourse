@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
@@ -268,7 +269,7 @@ type build struct {
 	eventIdSeq util.SequenceGenerator
 }
 
-func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
+func newEmptyBuild(conn DbConn, lockFactory lock.LockFactory) *build {
 	return &build{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 

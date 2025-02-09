@@ -38,7 +38,7 @@ type resourceCache struct {
 	version        atc.Version
 
 	lockFactory lock.LockFactory
-	conn        Conn
+	conn        DbConn
 }
 
 func (cache *resourceCache) ID() int                        { return cache.id }

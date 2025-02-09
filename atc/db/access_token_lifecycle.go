@@ -13,10 +13,10 @@ type AccessTokenLifecycle interface {
 }
 
 type accessTokenLifecycle struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewAccessTokenLifecycle(conn Conn) AccessTokenLifecycle {
+func NewAccessTokenLifecycle(conn DbConn) AccessTokenLifecycle {
 	return &accessTokenLifecycle{conn}
 }
 

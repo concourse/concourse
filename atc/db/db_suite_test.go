@@ -31,7 +31,7 @@ func TestDB(t *testing.T) {
 var (
 	postgresRunner postgresrunner.Runner
 
-	dbConn                              db.Conn
+	dbConn                              db.DbConn
 	fakeSecrets                         *credsfakes.FakeSecrets
 	fakeVarSourcePool                   *credsfakes.FakeVarSourcePool
 	componentFactory                    db.ComponentFactory

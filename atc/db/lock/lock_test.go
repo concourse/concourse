@@ -25,7 +25,7 @@ var _ = Describe("Locks", func() {
 
 		dbLock lock.Lock
 
-		dbConn db.Conn
+		dbConn db.DbConn
 
 		team        db.Team
 		teamFactory db.TeamFactory

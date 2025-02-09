@@ -7,10 +7,10 @@ type WorkerTaskCacheFactory interface {
 }
 
 type workerTaskCacheFactory struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewWorkerTaskCacheFactory(conn Conn) WorkerTaskCacheFactory {
+func NewWorkerTaskCacheFactory(conn DbConn) WorkerTaskCacheFactory {
 	return &workerTaskCacheFactory{
 		conn: conn,
 	}

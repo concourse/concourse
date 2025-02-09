@@ -14,7 +14,7 @@ import (
 var _ = Describe("Counting Database Queries", func() {
 	var (
 		underlyingConn *dbfakes.FakeConn
-		countingConn   db.Conn
+		countingConn   db.DbConn
 	)
 
 	BeforeEach(func() {

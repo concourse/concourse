@@ -184,7 +184,7 @@ type resource struct {
 	buildSummary          *atc.BuildSummary
 }
 
-func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
+func newEmptyResource(conn DbConn, lockFactory lock.LockFactory) *resource {
 	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
@@ -866,7 +866,7 @@ func (r *resource) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) {
 	return sharedResourcesAndTypes(r.conn, r.resourceConfigScopeID, r.name)
 }
 
-func sharedResourcesAndTypes(conn Conn, resourceConfigScopeID int, name string) (atc.ResourcesAndTypes, error) {
+func sharedResourcesAndTypes(conn DbConn, resourceConfigScopeID int, name string) (atc.ResourcesAndTypes, error) {
 	if resourceConfigScopeID == 0 {
 		return atc.ResourcesAndTypes{}, ResourceHasNoScopeErr{name}
 	}

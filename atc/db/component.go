@@ -1,10 +1,11 @@
 package db
 
 import (
-	"code.cloudfoundry.org/clock"
 	"database/sql"
 	"runtime"
 	"time"
+
+	"code.cloudfoundry.org/clock"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -53,7 +54,7 @@ type component struct {
 	numGoroutineThreshold int
 	goRoutineCounter      GoroutineCounter
 
-	conn Conn
+	conn DbConn
 }
 
 func (c *component) ID() int                 { return c.id }

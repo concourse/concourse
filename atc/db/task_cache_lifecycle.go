@@ -10,10 +10,10 @@ type TaskCacheLifecycle interface {
 }
 
 type taskCacheLifecycle struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewTaskCacheLifecycle(conn Conn) TaskCacheLifecycle {
+func NewTaskCacheLifecycle(conn DbConn) TaskCacheLifecycle {
 	return &taskCacheLifecycle{
 		conn: conn,
 	}

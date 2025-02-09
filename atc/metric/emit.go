@@ -40,7 +40,7 @@ type Monitor struct {
 	emissions        chan eventEmission
 	emitterFactories []EmitterFactory
 
-	Databases       []db.Conn
+	Databases       []db.DbConn
 	DatabaseQueries Counter
 
 	ContainersCreated Counter

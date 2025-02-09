@@ -48,7 +48,7 @@ type resourceConfig struct {
 	createdByResourceCache    ResourceCache
 	createdByBaseResourceType *UsedBaseResourceType
 	lockFactory               lock.LockFactory
-	conn                      Conn
+	conn                      DbConn
 }
 
 func (r *resourceConfig) ID() int {
@@ -103,7 +103,7 @@ func (r *resourceConfig) FindOrCreateScope(resourceID *int) (ResourceConfigScope
 
 func findOrCreateResourceConfigScope(
 	tx Tx,
-	conn Conn,
+	conn DbConn,
 	lockFactory lock.LockFactory,
 	resourceConfig ResourceConfig,
 	resourceID *int,

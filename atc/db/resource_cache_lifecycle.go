@@ -1,9 +1,10 @@
 package db
 
 import (
+	"strings"
+
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
-	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
@@ -19,10 +20,10 @@ type ResourceCacheLifecycle interface {
 }
 
 type resourceCacheLifecycle struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewResourceCacheLifecycle(conn Conn) ResourceCacheLifecycle {
+func NewResourceCacheLifecycle(conn DbConn) ResourceCacheLifecycle {
 	return &resourceCacheLifecycle{
 		conn: conn,
 	}

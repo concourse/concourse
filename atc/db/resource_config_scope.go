@@ -49,7 +49,7 @@ type resourceConfigScope struct {
 	resourceID     *int
 	resourceConfig ResourceConfig
 
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
@@ -88,7 +88,7 @@ func (r *resourceConfigScope) SaveVersions(spanContext SpanContext, versions []a
 	return saveVersions(r.conn, r.ID(), versions, spanContext)
 }
 
-func saveVersions(conn Conn, rcsID int, versions []atc.Version, spanContext SpanContext) error {
+func saveVersions(conn DbConn, rcsID int, versions []atc.Version, spanContext SpanContext) error {
 	tx, err := conn.Begin()
 	if err != nil {
 		return err

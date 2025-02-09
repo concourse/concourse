@@ -146,7 +146,7 @@ type pipeline struct {
 	archived      bool
 	lastUpdated   time.Time
 
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
@@ -175,7 +175,7 @@ var pipelinesQuery = psql.Select(`
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
 
-func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
+func newPipeline(conn DbConn, lockFactory lock.LockFactory) *pipeline {
 	return &pipeline{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -1205,7 +1205,7 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 	return buildName, jobID, err
 }
 
-func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resources, error) {
+func resources(pipelineID int, conn DbConn, lockFactory lock.LockFactory) (Resources, error) {
 	rows, err := resourcesQuery.
 		Where(sq.Eq{"r.pipeline_id": pipelineID}).
 		OrderBy("r.name").

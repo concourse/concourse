@@ -209,7 +209,7 @@ func (t *resourceType) ResourceConfigScopeID() int        { return t.resourceCon
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 func (t *resourceType) HasWebhook() bool                  { return false }
 
-func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
+func newEmptyResourceType(conn DbConn, lockFactory lock.LockFactory) *resourceType {
 	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
