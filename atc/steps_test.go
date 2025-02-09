@@ -206,6 +206,7 @@ var factoryTests = []StepTest{
 			vars: {some: vars}
 			var_files: [file-1, file-2]
 			instance_vars: {branch: feature/foo}
+			detach: true
 		`,
 
 		StepConfig: &atc.SetPipelineStep{
@@ -214,6 +215,7 @@ var factoryTests = []StepTest{
 			Vars:         atc.Params{"some": "vars"},
 			VarFiles:     []string{"file-1", "file-2"},
 			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
+			Detach:       true,
 		},
 	},
 	{
