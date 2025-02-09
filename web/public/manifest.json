@@ -1,28 +1,67 @@
 {
   "$schema": "http://json.schemastore.org/web-manifest#",
   "short_name": "Concourse",
-  "name": "Concourse",
-  "description": "CI that scales with your project.",
+  "name": "Concourse CI",
+  "description": "CI that scales with your project. Automate your builds, tests, and deployments with powerful pipeline-based continuous integration.",
   "start_url": "/",
+  "id": "/",
   "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#000000",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
+  "categories": [
+    "developer tools",
+    "productivity"
+  ],
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing",
+      "auto"
+    ]
+  },
   "icons": [
     {
+      "purpose": "any",
+      "sizes": "32x32",
       "src": "images/favicon.png",
-      "type": "image/png",
-      "sizes": "32x32"
+      "type": "image/png"
     },
     {
+      "purpose": "any",
+      "sizes": "144x144",
       "src": "images/favicon-144x144.png",
-      "type": "image/png",
-      "sizes": "144x144"
+      "type": "image/png"
     },
     {
-      "src": "images/favicon.svg",
-      "type": "image/svg+xml",
-      "sizes": "256x256 512x512 1024x1024"
+      "purpose": "maskable",
+      "sizes": "1024x1024",
+      "src": "images/favicon-maskable-x1024.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "192x192",
+      "src": "images/favicon-maskable-x192.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "384x384",
+      "src": "images/favicon-maskable-x384.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "512x512",
+      "src": "images/favicon-maskable-x512.png",
+      "type": "image/png"
     }
-  ]
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }
