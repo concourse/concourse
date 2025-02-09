@@ -265,7 +265,7 @@ func destroy(d interface{ Destroy() error }) {
 
 var _ = AfterEach(func() {
 	err := dbConn.Close()
-	Expect(err).NotTo(HaveOccurred())
-
+	// try dropping the db even if closing initially fails
 	postgresRunner.DropTestDB()
+	Expect(err).NotTo(HaveOccurred())
 })
