@@ -1,15 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="31px" height="31px" viewBox="0 0 31 31" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
-    <title>ic_pause_circle_outline_white_24px (2)</title>
-    <desc>Created with Sketch.</desc>
-    <defs></defs>
-    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="Artboard-3" transform="translate(-844.000000, -14.000000)">
-            <g id="ic_pause_circle_outline_white_24px-(2)" transform="translate(842.000000, 12.000000)">
-                <polygon id="Shape" points="0 0 35 0 35 35 0 35"></polygon>
-                <path d="M13.125,23.3333333 L16.0416667,23.3333333 L16.0416667,11.6666667 L13.125,11.6666667 L13.125,23.3333333 Z M17.5,2.91666667 C9.45,2.91666667 2.91666667,9.45 2.91666667,17.5 C2.91666667,25.55 9.45,32.0833333 17.5,32.0833333 C25.55,32.0833333 32.0833333,25.55 32.0833333,17.5 C32.0833333,9.45 25.55,2.91666667 17.5,2.91666667 Z M17.5,29.1666667 C11.06875,29.1666667 5.83333333,23.93125 5.83333333,17.5 C5.83333333,11.06875 11.06875,5.83333333 17.5,5.83333333 C23.93125,5.83333333 29.1666667,11.06875 29.1666667,17.5 C29.1666667,23.93125 23.93125,29.1666667 17.5,29.1666667 Z M18.9583333,23.3333333 L21.875,23.3333333 L21.875,11.6666667 L18.9583333,11.6666667 L18.9583333,23.3333333 Z" id="Shape" fill="#FFFFFF" fill-rule="nonzero"></path>
-            </g>
-        </g>
-    </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="31" height="31"><g fill="none" fill-rule="evenodd"><path d="M-2-2h35v35H-2z"/><path fill="#FFF" fill-rule="nonzero" d="M11.125 21.333h2.917V9.667h-2.917zM15.5.917C7.45.917.917 7.45.917 15.5S7.45 30.083 15.5 30.083 30.083 23.55 30.083 15.5 23.55.917 15.5.917m0 26.25c-6.431 0-11.667-5.236-11.667-11.667S9.07 3.833 15.5 3.833 27.167 9.07 27.167 15.5 21.93 27.167 15.5 27.167m1.458-5.834h2.917V9.667h-2.917z"/></g></svg>
