@@ -6,7 +6,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -16,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc/db/migration"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 //counterfeiter:generate . DbConn
@@ -107,15 +106,7 @@ func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.
 }
 
 func shouldRetry(err error) bool {
-	if strings.Contains(err.Error(), "dial ") {
-		return true
-	}
-
-	if pqErr, ok := err.(*pq.Error); ok {
-		return pqErr.Code.Name() == "cannot_connect_now"
-	}
-
-	return false
+	return pgconn.SafeToRetry(err)
 }
 
 type db struct {
