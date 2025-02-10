@@ -1465,8 +1465,8 @@ var _ = Describe("Pipeline", func() {
 			conn, err := dbConn.Conn(context.Background())
 			Expect(err).ToNot(HaveOccurred())
 			err = conn.Raw(func(driverConn any) error {
-				conn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
-				txn, err := conn.Begin(context.Background())
+				pgxConn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
+				txn, err := pgxConn.Begin(context.Background())
 				Expect(err).ToNot(HaveOccurred())
 
 				cols := []string{"event_id", "build_id", "type", "version", "payload"}
