@@ -23,7 +23,7 @@ type pgxListener struct {
 	//TODO: add a channel to track channels we're listening to so we don't issue the command twice
 }
 
-func newPgxListener(conn *pgx.Conn) *pgxListener {
+func NewPgxListener(conn *pgx.Conn) *pgxListener {
 	l := &pgxListener{
 		conn:   conn,
 		Notify: make(chan *pgconn.Notification, 32),
@@ -93,7 +93,7 @@ func (l *pgxListener) listenerLoop() {
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				// Someone cancelled us, give them time to grab the lock
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 		}
