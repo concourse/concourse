@@ -90,9 +90,12 @@ func (l *pgxListener) listenerLoop() {
 		l.lock.Unlock()
 		l.cancelFunc = nil
 
-		if errors.Is(err, context.Canceled) {
-			// Someone cancelled us to give them time to grab the lock
-			time.Sleep(100 * time.Millisecond)
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				// Someone cancelled us, give them time to grab the lock
+				time.Sleep(50 * time.Millisecond)
+				continue
+			}
 		}
 
 		if notification != nil {
