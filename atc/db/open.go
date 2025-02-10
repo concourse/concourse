@@ -87,7 +87,7 @@ func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.
 		return nil, err
 	}
 
-	listener := newPgxListener(conn)
+	listener := NewPgxListener(conn)
 
 	var strategy encryption.Strategy
 	if newKey != nil {

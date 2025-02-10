@@ -15,7 +15,7 @@ import (
 // the lib/pq package. jackc/pgx does not provide a similar interface so we
 // have to maintain our own now
 type pgxListener struct {
-	Notify chan *pgconn.Notification
+	notify chan *pgconn.Notification
 
 	lock       sync.Mutex
 	conn       *pgx.Conn
@@ -26,7 +26,7 @@ type pgxListener struct {
 func NewPgxListener(conn *pgx.Conn) *pgxListener {
 	l := &pgxListener{
 		conn:   conn,
-		Notify: make(chan *pgconn.Notification, 32),
+		notify: make(chan *pgconn.Notification, 32),
 	}
 
 	go l.ListenerMain()
@@ -73,7 +73,7 @@ func (l *pgxListener) Unlisten(channel string) error {
 }
 
 func (l *pgxListener) NotificationChannel() <-chan *pgconn.Notification {
-	return l.Notify
+	return l.notify
 }
 
 func (l *pgxListener) listenerLoop() {
@@ -99,12 +99,12 @@ func (l *pgxListener) listenerLoop() {
 		}
 
 		if notification != nil {
-			l.Notify <- notification
+			l.notify <- notification
 		}
 	}
 }
 
 func (l *pgxListener) ListenerMain() {
 	l.listenerLoop()
-	close(l.Notify)
+	close(l.notify)
 }
