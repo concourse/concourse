@@ -190,7 +190,7 @@ func (runner *Runner) openConn(dbName string) db.DbConn {
 }
 
 func (runner *Runner) OpenSingleton() *sql.DB {
-	dbConn, err := sql.Open("postgres", runner.DataSourceName())
+	dbConn, err := sql.Open("pgx", runner.DataSourceName())
 	Expect(err).NotTo(HaveOccurred())
 
 	// only allow one connection, period. this matches production code use case,
