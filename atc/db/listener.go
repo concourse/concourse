@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -14,87 +13,109 @@ import (
 // This is our own implementation of the Listener interface from when we used
 // the lib/pq package. jackc/pgx does not provide a similar interface so we
 // have to maintain our own now
-type pgxListener struct {
+type PgxListener struct {
 	notify chan *pgconn.Notification
 
 	lock       sync.Mutex
 	conn       *pgx.Conn
+	channels   map[string]struct{}
+	cancelLock sync.Mutex
 	cancelFunc context.CancelFunc
-	//TODO: add a channel to track channels we're listening to so we don't issue the command twice
+	opsDone    chan struct{}
 }
 
-func NewPgxListener(conn *pgx.Conn) *pgxListener {
-	l := &pgxListener{
-		conn:   conn,
-		notify: make(chan *pgconn.Notification, 32),
+var (
+	listening struct{} //empty struct takes up zero memory
+)
+
+func NewPgxListener(conn *pgx.Conn) *PgxListener {
+	l := &PgxListener{
+		conn:     conn,
+		notify:   make(chan *pgconn.Notification, 32),
+		opsDone:  make(chan struct{}),
+		channels: make(map[string]struct{}),
 	}
 
 	go l.ListenerMain()
 	return l
 }
 
-func (l *pgxListener) Close() error {
-	if l.cancelFunc != nil {
-		l.cancelFunc()
-	}
-
+func (l *PgxListener) Close() error {
+	l.cancelNotificatonListener()
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
+	var err error
 	if l.conn != nil {
-		return l.conn.Close(context.Background())
+		err = l.conn.Close(context.Background())
 	}
 
-	return nil
+	close(l.opsDone)
+	return err
 }
 
-func (l *pgxListener) Listen(channel string) error {
-	if l.cancelFunc != nil {
-		l.cancelFunc()
-	}
-
+func (l *PgxListener) Listen(channel string) error {
+	l.cancelNotificatonListener()
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
+	l.channels[channel] = listening
 	_, err := l.conn.Exec(context.Background(), fmt.Sprintf("LISTEN %s", channel))
+	l.opsDone <- struct{}{}
 	return err
 }
 
-func (l *pgxListener) Unlisten(channel string) error {
-	if l.cancelFunc != nil {
-		l.cancelFunc()
-	}
-
+func (l *PgxListener) Unlisten(channel string) error {
+	l.cancelNotificatonListener()
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
+	delete(l.channels, channel)
 	_, err := l.conn.Exec(context.Background(), fmt.Sprintf("UNLISTEN %s", channel))
+	l.opsDone <- struct{}{}
 	return err
 }
 
-func (l *pgxListener) NotificationChannel() <-chan *pgconn.Notification {
+func (l *PgxListener) NotificationChannel() <-chan *pgconn.Notification {
 	return l.notify
 }
 
-func (l *pgxListener) listenerLoop() {
+func (l *PgxListener) cancelNotificatonListener() {
+	for {
+		l.cancelLock.Lock()
+		if l.cancelFunc != nil {
+			l.cancelFunc()
+			l.cancelFunc = nil
+			l.cancelLock.Unlock()
+			return
+		}
+		l.cancelLock.Unlock()
+	}
+}
+
+func (l *PgxListener) listenerLoop() {
 	for {
 		if l.conn == nil || l.conn.IsClosed() {
-			//connection was closed and cleared out
+			//connection was closed
 			return
 		}
 
 		l.lock.Lock()
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		l.cancelFunc = cancel
+		l.cancelLock.Lock()
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		l.cancelFunc = cancelFunc
+		l.cancelLock.Unlock()
 		notification, err := l.conn.WaitForNotification(ctx)
 		l.lock.Unlock()
-		l.cancelFunc = nil
 
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				// Someone cancelled us, give them time to grab the lock
-				time.Sleep(10 * time.Millisecond)
+				// Someone cancelled us, wait until they're done their work
+				<-l.opsDone
 				continue
+			}
+			if !pgconn.SafeToRetry(err) {
+				// TODO: something has happened. Lets reset the connection and try again
 			}
 		}
 
@@ -104,7 +125,7 @@ func (l *pgxListener) listenerLoop() {
 	}
 }
 
-func (l *pgxListener) ListenerMain() {
+func (l *PgxListener) ListenerMain() {
 	l.listenerLoop()
 	close(l.notify)
 }
