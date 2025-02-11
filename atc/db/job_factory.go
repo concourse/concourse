@@ -8,7 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 //counterfeiter:generate . JobFactory
@@ -358,7 +358,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 		)
 
 		j := atc.JobSummary{}
-		err = rows.Scan(&j.ID, &j.Name, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
+		m := pgtype.NewMap()
+		err = rows.Scan(&j.ID, &j.Name, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, m.SQLScanner(&j.Groups), &j.TeamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
 			&t.id, &t.name, &t.status, &t.startTime, &t.endTime,
@@ -460,7 +461,8 @@ func (d dashboardFactory) fetchJobInputs() (map[int][]atc.JobInputSummary, error
 		var jobID int
 		var trigger bool
 
-		err = rows.Scan(&jobID, &inputName, &resourceName, pq.Array(&passedString), &trigger)
+		m := pgtype.NewMap()
+		err = rows.Scan(&jobID, &inputName, &resourceName, m.SQLScanner(&passedString), &trigger)
 		if err != nil {
 			return nil, err
 		}

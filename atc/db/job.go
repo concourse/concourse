@@ -12,13 +12,13 @@ import (
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/tracing"
-	"github.com/lib/pq"
 )
 
 type InputConfigs []InputConfig
@@ -286,7 +286,8 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 		var resourceID int
 		var trigger bool
 
-		err = rows.Scan(&inputName, &resourceID, pq.Array(&passedJobs), &configVersionString, &pinnedVersionString, &trigger)
+		m := pgtype.NewMap()
+		err = rows.Scan(&inputName, &resourceID, m.SQLScanner(&passedJobs), &configVersionString, &pinnedVersionString, &trigger)
 		if err != nil {
 			return nil, err
 		}
@@ -359,7 +360,8 @@ func (j *job) Inputs() ([]atc.JobInput, error) {
 		var inputName, resourceName string
 		var trigger bool
 
-		err = rows.Scan(&inputName, &resourceName, pq.Array(&passedString), &trigger, &versionString)
+		m := pgtype.NewMap()
+		err = rows.Scan(&inputName, &resourceName, m.SQLScanner(&passedString), &trigger, &versionString)
 		if err != nil {
 			return nil, err
 		}
@@ -1438,7 +1440,8 @@ func scanJob(j *job, row scannable) error {
 		pausedAt             sql.NullTime
 	)
 
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, pq.Array(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &pausedBy, &pausedAt)
+	m := pgtype.NewMap()
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, m.SQLScanner(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &pausedBy, &pausedAt)
 	if err != nil {
 		return err
 	}
