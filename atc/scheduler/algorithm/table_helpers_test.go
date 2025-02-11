@@ -16,6 +16,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/tracing"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/lib/pq"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -271,33 +273,45 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		_, span = tracing.StartSpan(ctx, "import versions", tracing.Attrs{})
 		defer span.End()
 
-		tx, err := dbConn.Begin()
+		conn, err := dbConn.Conn(context.Background())
 		Expect(err).ToNot(HaveOccurred())
-
-		stmt, err := tx.Prepare(pq.CopyIn("resource_config_versions", "id", "resource_config_scope_id", "version", "version_sha256", "check_order"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for _, row := range debugDB.ResourceVersions {
-			name := fmt.Sprintf("imported-r%dv%d", row.ResourceID, row.VersionID)
-			setup.versionIDs[name] = row.VersionID
-
-			scope := row.ScopeID
-			if scope == 0 {
-				// pre-6.0
-				scope = row.ResourceID
-			}
-
-			_, err := stmt.Exec(row.VersionID, scope, "{}", strconv.Itoa(row.VersionID), row.CheckOrder)
+		err = conn.Raw(func(driverConn any) error {
+			pgxConn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
+			txn, err := pgxConn.Begin(context.Background())
 			Expect(err).ToNot(HaveOccurred())
-		}
 
-		_, err = stmt.Exec()
+			cols := []string{"id", "resource_config_scope_id", "version", "version_sha256", "check_order"}
+			copyCount, err := txn.CopyFrom(context.Background(),
+				pgx.Identifier{"resource_config_versions"},
+				cols, pgx.CopyFromSlice(len(debugDB.ResourceVersions), func(i int) (row []any, err error) {
+					resource := debugDB.ResourceVersions[i]
+					name := fmt.Sprintf("imported-r%dv%d", resource.ResourceID, resource.VersionID)
+					setup.versionIDs[name] = resource.VersionID
+					scope := resource.ScopeID
+					if scope == 0 {
+						// pre-6.0
+						scope = resource.ResourceID
+					}
+
+					row = []any{
+						resource.VersionID,
+						scope,
+						"{}",
+						strconv.Itoa(resource.VersionID),
+						resource.CheckOrder,
+					}
+					return row, nil
+				}))
+			Expect(int(copyCount)).To(Equal(len(debugDB.ResourceVersions)))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = txn.Commit(context.Background())
+			Expect(err).ToNot(HaveOccurred())
+
+			return nil
+		})
 		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
+		err = conn.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
@@ -822,7 +836,7 @@ func (s setupDB) insertRowBuild(row DBRow, needsV6Migration bool) {
 	var existingJobID int
 	err := s.psql.Insert("builds").
 		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready", "rerun_of", "needs_v6_migration").
-		Values(s.teamID, row.BuildID, jobID, row.BuildID, buildStatus, true, true, rerunOf, needsV6Migration).
+		Values(s.teamID, row.BuildID, jobID, strconv.Itoa(row.BuildID), buildStatus, true, true, rerunOf, needsV6Migration).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
 		Suffix("RETURNING job_id").
 		QueryRow().
