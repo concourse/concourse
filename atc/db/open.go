@@ -14,8 +14,8 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 //counterfeiter:generate . DbConn
@@ -82,12 +82,12 @@ func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Ke
 
 func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (DbConn, error) {
 	// only used for the LISTEN/NOTIFY commands
-	conn, err := pgx.Connect(context.Background(), dsn)
+	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	listener := NewPgxListener(conn)
+	listener := NewPgxListener(pool)
 
 	var strategy encryption.Strategy
 	if newKey != nil {

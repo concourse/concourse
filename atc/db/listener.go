@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/cenkalti/backoff/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // This is our own implementation of the Listener interface from when we used
@@ -17,6 +19,7 @@ type PgxListener struct {
 	notify chan *pgconn.Notification
 
 	lock       sync.Mutex
+	pool       *pgxpool.Pool
 	conn       *pgx.Conn
 	channels   map[string]struct{}
 	cancelLock sync.Mutex
@@ -28,9 +31,15 @@ var (
 	listening struct{} //empty struct takes up zero memory
 )
 
-func NewPgxListener(conn *pgx.Conn) *PgxListener {
+func NewPgxListener(pool *pgxpool.Pool) *PgxListener {
+	conn, err := pool.Acquire(context.Background())
+	if err != nil {
+		panic(err)
+	}
+
 	l := &PgxListener{
-		conn:     conn,
+		pool:     pool,
+		conn:     conn.Conn(),
 		notify:   make(chan *pgconn.Notification, 32),
 		opsDone:  make(chan struct{}),
 		channels: make(map[string]struct{}),
@@ -45,13 +54,13 @@ func (l *PgxListener) Close() error {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	var err error
 	if l.conn != nil {
-		err = l.conn.Close(context.Background())
+		l.conn.Close(context.Background())
+		// Don't need to manually close the pool
 	}
 
 	close(l.opsDone)
-	return err
+	return nil
 }
 
 func (l *PgxListener) Listen(channel string) error {
@@ -115,7 +124,40 @@ func (l *PgxListener) listenerLoop() {
 				continue
 			}
 			if !pgconn.SafeToRetry(err) {
-				// TODO: something has happened. Lets reset the connection and try again
+				// Something bad has happened, let's try recovering
+				l.lock.Lock()
+
+				ctx := context.Background()
+				reconnect := func() (bool, error) {
+					l.conn.Close(ctx)
+					l.pool.Reset()
+
+					newConn, err := l.pool.Acquire(ctx)
+					if err != nil {
+						return false, err
+					}
+
+					l.conn = newConn.Conn()
+					err = l.conn.Ping(ctx)
+					if err != nil {
+						return false, err
+					}
+
+					return true, nil
+				}
+
+				// Will retry to a max of 15mins
+				_, err := backoff.Retry(ctx, reconnect, backoff.WithBackOff(backoff.NewExponentialBackOff()))
+				if err != nil {
+					panic(fmt.Errorf("unable to reconnect to the database: %w", err))
+				}
+
+				//listen to all channels again
+				for channel, _ := range l.channels {
+					l.conn.Exec(ctx, fmt.Sprintf("LISTEN %s", channel))
+				}
+
+				l.lock.Unlock()
 			}
 		}
 
