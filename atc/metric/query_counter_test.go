@@ -13,12 +13,12 @@ import (
 
 var _ = Describe("Counting Database Queries", func() {
 	var (
-		underlyingConn *dbfakes.FakeConn
+		underlyingConn *dbfakes.FakeDbConn
 		countingConn   db.DbConn
 	)
 
 	BeforeEach(func() {
-		underlyingConn = new(dbfakes.FakeConn)
+		underlyingConn = new(dbfakes.FakeDbConn)
 		countingConn = metric.CountQueries(underlyingConn)
 	})
 

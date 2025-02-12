@@ -63,9 +63,9 @@ var _ = Describe("Periodic emission of metrics", func() {
 
 	Context("database-related metrics", func() {
 		BeforeEach(func() {
-			a := &dbfakes.FakeConn{}
+			a := &dbfakes.FakeDbConn{}
 			a.NameReturns("A")
-			b := &dbfakes.FakeConn{}
+			b := &dbfakes.FakeDbConn{}
 			b.NameReturns("B")
 			monitor.Databases = []db.DbConn{a, b}
 		})
