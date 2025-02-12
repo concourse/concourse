@@ -254,7 +254,7 @@ func Deploy(manifest string, args ...string) {
 
 	if dbInstance != nil {
 		var err error
-		DbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
+		DbConn, err = sql.Open("pgx", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
 		Expect(err).ToNot(HaveOccurred())
 	}
 }
