@@ -1,4 +1,4 @@
-import "./d3.v355.min.js";
+import "./d3.v7.min.js";
 import { Graphviz } from "./graphviz.min.js";
 
 export async function renderCausality(dot){
@@ -19,7 +19,6 @@ export async function renderCausality(dot){
 
 function createSvg(svg) {
   var g = d3.select("g.test")
-  var zoom = d3.behavior.zoom();
 
   if (g.empty()) {
     svg.append("defs").append("filter")
@@ -29,19 +28,13 @@ function createSvg(svg) {
       .attr("radius", "4");
 
     g = svg.append("g").attr("class", "test")
-    svg.on("mousedown", function() {
-      var ev = d3.event;
-      if (ev.button || ev.ctrlKey)
-        ev.stopImmediatePropagation();
+    svg.on("mousedown", function(event) {
+      if (event.button || event.ctrlKey)
+        event.stopImmediatePropagation();
       }
-    )
-    .call(zoom
-      .scaleExtent([0.5, 10])
-      .on("zoom", function() {
-        var ev = d3.event;
-        g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
-      })
-    );
+    ).call(d3.zoom().scaleExtent([0.5, 10]).on("zoom", function(event) {
+      g.attr("transform", "translate(" + event.transform.x + "," + event.transform.y + ") scale(" + event.transform.k + ")");
+    }));
   }
   return g;
 }

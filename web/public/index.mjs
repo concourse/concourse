@@ -1,4 +1,4 @@
-import "./d3.v355.min.js";
+import "./d3.v7.min.js";
 import { Graph, GraphNode } from './graph.mjs';
 
 const iconsModulePromise = import("./mdi-svg.min.js");
@@ -44,46 +44,43 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
     var svgEdge = svgEdges.enter().append("g")
       .attr("class", function(edge) { return "edge " + edge.source.node.status })
+    svgEdges = svgEdge.merge(svgEdges);
 
-    svgEdges.each(function(edge) {
+    svgEdges.each(function(edge, i, nodes) {
       if (edge.customData !== null && edge.customData.trigger !== true) {
         d3.select(this).classed("trigger-false", true)
       }
     })
 
-    function highlight(thing) {
+    function highlight(event, thing) {
       if (!thing.key) {
         return
       }
 
       currentHighlight = thing.key;
 
-      svgEdges.each(function(edge) {
-        if (edge.source.key == thing.key) {
-          d3.select(this).classed({
-            active: true
-          })
+      svgEdges.each(function(edge, i, nodes) {
+        if (edge.source.key === thing.key) {
+          d3.select(this).classed("active", true)
         }
       })
 
-      svgNodes.each(function(node) {
-        if (node.key == thing.key) {
-          d3.select(this).classed({
-            active: true
-          })
+      svgNodes.each(function(node, i, nodes) {
+        if (node.key === thing.key) {
+          d3.select(this).classed("active", true)
         }
       })
     }
 
-    function lowlight(thing) {
+    function lowlight(event, thing) {
       if (!thing.key) {
         return
       }
 
       currentHighlight = undefined;
 
-      svgEdges.classed({ active: false })
-      svgNodes.classed({ active: false })
+      svgEdges.classed("active", false)
+      svgNodes.classed("active", false)
     }
 
     var svgNode = svgNodes.enter().append("g")
@@ -91,23 +88,22 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       .attr("class", node => "node " + node.class)
       .on("mouseover", highlight)
       .on("mouseout", lowlight)
+    svgNodes = svgNode.merge(svgNodes);
 
     var nodeLink = svgNode.append("svg:a")
       .attr("xlink:href", node => node.url)
-      .on("click", function(node) {
-        var ev = d3.event;
-        if (ev.defaultPrevented) return; // dragged
+      .on("click", function(event, node) {
+        if (event.defaultPrevented) return; // dragged
 
-        if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
+        if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
           return;
         }
 
-        if (ev.button != 0) {
+        if (event.button !== 0) {
           return;
         }
 
-        ev.preventDefault();
-
+        event.preventDefault();
         newUrl.send(node.url);
       })
 
@@ -135,14 +131,14 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
     var pinIconWidth = 6;
     var pinIconHeight = 9.75;
-    nodeLink.filter(function(node) { return node.pinned() }).append("image")
+    nodeLink.filter(node => node.pinned()).append("image")
         .attr("xlink:href", "/public/images/pin-ic-white.svg")
         .attr("width", pinIconWidth)
         .attr("y", function(node) { return node.height() / 2 - pinIconHeight / 2 })
         .attr("x", function(node) { return node.padding() })
 
     var iconSize = 12;
-    nodeLink.filter(function(node) { return node.has_icon() }).append("use")
+    nodeLink.filter(node => node.has_icon()).append("use")
       .attr("xlink:href", function(node) { return "#" + node.id + "-svg-icon" })
       .attr("width", iconSize)
       .attr("height", iconSize)
@@ -229,7 +225,6 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       .on("mouseover", highlight)
       .on("mouseout", lowlight)
 
-    const nodes = graph.nodes();
     let first = true;
     let minX, minY, maxX, maxY;
     for (const node of graph.nodes()) {
@@ -295,19 +290,19 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
     if (currentHighlight) {
       svgNodes.each(function(node) {
-        if (node.key == currentHighlight) {
-          highlight(node)
+        if (node.key === currentHighlight) {
+          highlight(null, node)
         }
       });
 
       svgEdges.each(function(node) {
-        if (node.key == currentHighlight) {
-          highlight(node)
+        if (node.key === currentHighlight) {
+          highlight(null, node)
         }
       });
     }
   }
-};
+}
 
 function removeElement(el) {
   if (el == null) {
@@ -318,14 +313,6 @@ function removeElement(el) {
   }
   el.parentNode.removeChild(el);
 }
-
-var zoom = (function() {
-  var z;
-  return function() {
-    z = z || d3.behavior.zoom();
-    return z;
-  }
-})();
 
 var shouldResetPipelineFocus = false;
 
@@ -339,17 +326,15 @@ function createPipelineSvg(svg) {
       .attr("radius", "4");
 
     g = svg.append("g").attr("class", "test")
-    svg.on("mousedown", function() {
-      var ev = d3.event;
-      if (ev.button || ev.ctrlKey)
-        ev.stopImmediatePropagation();
-      }).call(zoom().scaleExtent([0.5, 10]).on("zoom", function() {
-      var ev = d3.event;
+    svg.on("mousedown", function (event) {
+      if (event.button || event.ctrlKey)
+        event.stopImmediatePropagation();
+    }).call(d3.zoom().scaleExtent([0.5, 10]).on("zoom", function (event) {
       if (shouldResetPipelineFocus) {
         shouldResetPipelineFocus = false;
         resetPipelineFocus();
       } else {
-        g.attr("transform", "translate(" + ev.translate + ") scale(" + ev.scale + ")");
+        g.attr("transform", "translate(" + event.transform.x + "," + event.transform.y + ") scale(" + event.transform.k + ")");
       }
     }));
   }
@@ -361,7 +346,7 @@ export function resetPipelineFocus() {
 
   if (!g.empty()) {
     g.attr("transform", "");
-    zoom().translate([0,0]).scale(1).center(0,0);
+    g.call(d3.zoom().transform, d3.zoomIdentity);
   } else {
     shouldResetPipelineFocus = true
   }
@@ -545,7 +530,7 @@ function createGraph(svg, jobs, resources) {
       var input = job.inputs[j];
       var status = "";
 
-      if (!input.passed || input.passed.length == 0) {
+      if (!input.passed || input.passed.length === 0) {
         var inputId = inputNode(job.name, input.resource+"-unconstrained");
 
         if (!graph.node(inputId)) {
