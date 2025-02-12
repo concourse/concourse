@@ -20,6 +20,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
+	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/concourse/dex v1.9.0
 	github.com/concourse/flag/v2 v2.1.1
 	github.com/concourse/houdini v1.2.0
@@ -52,7 +53,6 @@ require (
 	github.com/klauspost/compress v1.17.11
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
-	github.com/lib/pq v1.10.9
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
@@ -198,7 +198,6 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
-	github.com/cenkalti/backoff/v5 v5.0.2 // indirect
 	github.com/concourse/go-archive v1.0.1 // indirect
 	github.com/containerd/cgroups/v3 v3.0.5 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
@@ -229,6 +228,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
