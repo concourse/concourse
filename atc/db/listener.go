@@ -117,6 +117,11 @@ func (l *PgxListener) listenerLoop() {
 		notification, err := l.conn.WaitForNotification(ctx)
 		l.lock.Unlock()
 
+		if notification != nil {
+			// We might still get a notification even if there was an error
+			l.notify <- notification
+		}
+
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				// Someone cancelled us, wait until they're done their work
@@ -159,10 +164,6 @@ func (l *PgxListener) listenerLoop() {
 
 				l.lock.Unlock()
 			}
-		}
-
-		if notification != nil {
-			l.notify <- notification
 		}
 	}
 }
