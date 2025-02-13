@@ -3,7 +3,7 @@ services:
     image: ${TEST_POSTGRES_IMAGE:-postgres}
     shm_size: 1gb
     ports: [5432]
-    command: -c fsync=off -c full_page_writes=off -c synchronous_commit=off
+    command: -c fsync=off -c full_page_writes=off -c synchronous_commit=off -c random_page_cost=1.1
     environment:
       POSTGRES_DB: concourse
       POSTGRES_USER: dev
