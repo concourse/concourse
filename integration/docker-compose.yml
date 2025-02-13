@@ -7,11 +7,18 @@ services:
       POSTGRES_DB: concourse
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
 
   web:
     image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
     command: web
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     ports: [8080]
     volumes:
     - ../hack/keys:/concourse-keys

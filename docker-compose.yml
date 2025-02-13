@@ -15,12 +15,20 @@ services:
       POSTGRES_DB: concourse
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
+      POSTGRES_HOST_AUTH_METHOD: ${AUTH_METHOD:-trust}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
 
   web:
     build: .
     image: concourse/concourse:local
     command: web
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     ports: [8080:8080]
     networks:
       - default
