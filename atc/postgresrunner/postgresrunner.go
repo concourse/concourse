@@ -86,6 +86,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 fsync = off
 synchronous_commit = off
 full_page_writes = off
+random_page_cost = 1.1
 `)
 
 	ginkgoRunner := &ginkgomon_v2.Runner{
