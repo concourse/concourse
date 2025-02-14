@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"syscall"
 	"time"
 
@@ -191,12 +192,29 @@ func taskExecedProcesses(ctx context.Context, task containerd.Task) ([]container
 // killProcesses takes care of delivering a termination signal to a set of
 // processes and waiting for their statuses.
 func (k killer) killProcesses(ctx context.Context, procs []containerd.Process, signal syscall.Signal) error {
+	if len(procs) == 0 {
+		return nil
+	}
 
-	// TODO - this could (probably *should*) be concurrent
-	//
+	errChan := make(chan error, len(procs))
+	var wg sync.WaitGroup
+	wg.Add(len(procs))
 
 	for _, proc := range procs {
-		err := k.processKiller.Kill(ctx, proc, signal, k.gracePeriod)
+		go func() {
+			errChan <- k.processKiller.Kill(ctx, proc, signal, k.gracePeriod)
+			wg.Done()
+		}()
+	}
+
+	go func() {
+		// This is to avoid panics from the previous go routines we've spawned.
+		// We don't want them accidently sending on a closed channel
+		wg.Wait()
+		close(errChan)
+	}()
+
+	for err := range errChan {
 		if err != nil {
 			return fmt.Errorf("proc kill: %w", err)
 		}
