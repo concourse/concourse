@@ -367,6 +367,9 @@ var fuse_syscalls = []specs.LinuxSyscall{
 	AllowSyscall("unshare"),
 	AllowSyscall("umount"),
 	AllowSyscall("umount2"),
+	AllowSyscall("pidfd_open"),
+	AllowSyscall("pidfd_getfd"),
+	AllowSyscall("pidfd_send_signal"),
 }
 
 func AllowSyscall(syscall string, args ...specs.LinuxSeccompArg) specs.LinuxSyscall {
