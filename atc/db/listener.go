@@ -53,6 +53,7 @@ func (l *PgxListener) Close() error {
 
 	if l.conn != nil {
 		l.conn.Release()
+		l.conn = nil
 		// Don't need to manually close the pool
 	}
 
@@ -94,13 +95,13 @@ func (l *PgxListener) listenerLoop() {
 	)
 
 	for {
-		if l.conn == nil || l.conn.Conn().IsClosed() {
-			return
-		}
-
 		if !stillMyTurn {
 			<-l.comms
 			stillMyTurn = true
+		}
+
+		if l.conn == nil {
+			return
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -133,7 +134,7 @@ func (l *PgxListener) listenerLoop() {
 			if ok && t == askingForTurn {
 				stillMyTurn = false
 				l.comms <- itsYourTurn
-				break
+				continue
 			}
 			stillMyTurn = true
 			continue
