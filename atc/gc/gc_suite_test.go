@@ -35,7 +35,7 @@ var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 var (
 	postgresRunner postgresrunner.Runner
 
-	dbConn                 db.Conn
+	dbConn                 db.DbConn
 	err                    error
 	resourceCacheFactory   db.ResourceCacheFactory
 	resourceCacheLifecycle db.ResourceCacheLifecycle

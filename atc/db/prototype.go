@@ -9,7 +9,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -147,7 +146,7 @@ func (p *prototype) CurrentPinnedVersion() atc.Version { return nil }
 
 func (p *prototype) HasWebhook() bool { return false }
 
-func newEmptyPrototype(conn Conn, lockFactory lock.LockFactory) *prototype {
+func newEmptyPrototype(conn DbConn, lockFactory lock.LockFactory) *prototype {
 	return &prototype{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
@@ -252,7 +251,7 @@ func scanPrototype(p *prototype, row scannable) error {
 	var (
 		configJSON                           sql.NullString
 		rcsID, version, nonce                sql.NullString
-		lastCheckStartTime, lastCheckEndTime pq.NullTime
+		lastCheckStartTime, lastCheckEndTime sql.NullTime
 		pipelineInstanceVars                 sql.NullString
 		resourceConfigID                     sql.NullInt64
 	)

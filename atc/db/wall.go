@@ -16,11 +16,11 @@ type Wall interface {
 }
 
 type wall struct {
-	conn  Conn
+	conn  DbConn
 	clock Clock
 }
 
-func NewWall(conn Conn, clock Clock) Wall {
+func NewWall(conn DbConn, clock Clock) Wall {
 	return &wall{
 		conn:  conn,
 		clock: clock,

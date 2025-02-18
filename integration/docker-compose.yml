@@ -3,15 +3,23 @@ services:
     image: ${TEST_POSTGRES_IMAGE:-postgres}
     shm_size: 1gb
     ports: [5432]
+    command: -c fsync=off -c full_page_writes=off -c synchronous_commit=off -c random_page_cost=1.1
     environment:
       POSTGRES_DB: concourse
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
 
   web:
     image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
     command: web
-    depends_on: [db]
+    depends_on:
+      db:
+        condition: service_healthy
     ports: [8080]
     volumes:
     - ../hack/keys:/concourse-keys

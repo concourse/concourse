@@ -52,10 +52,10 @@ type VolumeRepository interface {
 const noTeam = 0
 
 type volumeRepository struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewVolumeRepository(conn Conn) VolumeRepository {
+func NewVolumeRepository(conn DbConn) VolumeRepository {
 	return &volumeRepository{
 		conn: conn,
 	}
@@ -769,7 +769,7 @@ func (repository *volumeRepository) findVolume(teamID int, workerName string, co
 	return getVolume(repository.conn, whereClause)
 }
 
-func getVolume(conn Conn, where map[string]interface{}) (CreatingVolume, CreatedVolume, error) {
+func getVolume(conn DbConn, where map[string]interface{}) (CreatingVolume, CreatedVolume, error) {
 	row := psql.Select(volumeColumns...).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").
@@ -817,7 +817,7 @@ var volumeColumns = []string{
 end`,
 }
 
-func scanVolume(row sq.RowScanner, conn Conn) (CreatingVolume, CreatedVolume, DestroyingVolume, FailedVolume, error) {
+func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, DestroyingVolume, FailedVolume, error) {
 	var id int
 	var handle string
 	var state string

@@ -6,10 +6,10 @@ type WorkerBaseResourceTypeFactory interface {
 }
 
 type workerBaseResourceTypeFactory struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewWorkerBaseResourceTypeFactory(conn Conn) WorkerBaseResourceTypeFactory {
+func NewWorkerBaseResourceTypeFactory(conn DbConn) WorkerBaseResourceTypeFactory {
 	return &workerBaseResourceTypeFactory{
 		conn: conn,
 	}

@@ -14,7 +14,6 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration/migrations"
 	multierror "github.com/hashicorp/go-multierror"
-	_ "github.com/lib/pq"
 )
 
 func NewOpenHelper(driver, name string, lockFactory lock.LockFactory, newKey *encryption.Key, oldKey *encryption.Key) *OpenHelper {

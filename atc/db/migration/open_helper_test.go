@@ -22,15 +22,15 @@ var _ = Describe("OpenHelper", func() {
 	)
 
 	JustBeforeEach(func() {
-		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
+		db, err = sql.Open("pgx", postgresRunner.DataSourceName())
 		Expect(err).NotTo(HaveOccurred())
 
 		for i := 0; i < lock.FactoryCount; i++ {
-			lockDB[i], err = sql.Open("postgres", postgresRunner.DataSourceName())
+			lockDB[i], err = sql.Open("pgx", postgresRunner.DataSourceName())
 			Expect(err).NotTo(HaveOccurred())
 		}
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
-		openHelper = migration.NewOpenHelper("postgres", postgresRunner.DataSourceName(), lockFactory, nil, nil)
+		openHelper = migration.NewOpenHelper("pgx", postgresRunner.DataSourceName(), lockFactory, nil, nil)
 	})
 
 	AfterEach(func() {

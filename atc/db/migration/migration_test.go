@@ -16,7 +16,6 @@ import (
 
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,11 +34,11 @@ var _ = Describe("Migration", func() {
 	)
 
 	BeforeEach(func() {
-		db, err = sql.Open("postgres", postgresRunner.DataSourceName())
+		db, err = sql.Open("pgx", postgresRunner.DataSourceName())
 		Expect(err).NotTo(HaveOccurred())
 
 		for i := 0; i < lock.FactoryCount; i++ {
-			lockDB[i], err = sql.Open("postgres", postgresRunner.DataSourceName())
+			lockDB[i], err = sql.Open("pgx", postgresRunner.DataSourceName())
 			Expect(err).NotTo(HaveOccurred())
 		}
 		lockFactory = lock.NewLockFactory(lockDB, fakeLogFunc, fakeLogFunc)
@@ -157,7 +156,7 @@ var _ = Describe("Migration", func() {
 					var (
 						version   int
 						isDirty   bool
-						timeStamp pq.NullTime
+						timeStamp sql.NullTime
 						status    string
 						direction string
 					)
@@ -178,7 +177,7 @@ var _ = Describe("Migration", func() {
 						err = migrator.Up(nil, nil)
 						Expect(err).NotTo(HaveOccurred())
 
-						var timeStamp pq.NullTime
+						var timeStamp sql.NullTime
 						rows, err := db.Query("SELECT tstamp FROM migrations_history WHERE version=8878")
 						Expect(err).NotTo(HaveOccurred())
 						var numRows = 0

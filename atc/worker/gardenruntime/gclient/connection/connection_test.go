@@ -1329,7 +1329,7 @@ var _ = Describe("Connection", func() {
 			})
 
 			Describe("waiting on the process", func() {
-				It("returns an error", func(done Done) {
+				It("returns an error", func(ctx SpecContext) {
 					process, err := connection.Run(context.TODO(), "foo-handle", garden.ProcessSpec{
 						Path: "lol",
 						Args: []string{"arg1", "arg2"},
@@ -1340,9 +1340,7 @@ var _ = Describe("Connection", func() {
 
 					_, err = process.Wait()
 					Expect(err).To(MatchError(ContainSubstring("connection: failed to hijack stream ")))
-
-					close(done)
-				})
+				}, NodeTimeout(3*time.Second))
 			})
 		})
 

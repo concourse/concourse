@@ -14,10 +14,10 @@ type UserFactory interface {
 }
 
 type userFactory struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewUserFactory(conn Conn) UserFactory {
+func NewUserFactory(conn DbConn) UserFactory {
 	return &userFactory{
 		conn: conn,
 	}

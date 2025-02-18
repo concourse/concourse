@@ -7,7 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"golang.org/x/oauth2"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/concourse/concourse/topgun/common"

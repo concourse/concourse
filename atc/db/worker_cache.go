@@ -20,7 +20,7 @@ import (
 // it's possible to miss events (e.g. the notification bus queue is full,
 // network flakes, etc).
 type WorkerCache struct {
-	conn   Conn
+	conn   DbConn
 	logger lager.Logger
 
 	// mut is used to synchronize access to the cached data and lastRefresh
@@ -39,7 +39,7 @@ type TriggerEvent struct {
 	Data      map[string]*string `json:"data"`
 }
 
-func NewWorkerCache(logger lager.Logger, conn Conn, refreshInterval time.Duration) (*WorkerCache, error) {
+func NewWorkerCache(logger lager.Logger, conn DbConn, refreshInterval time.Duration) (*WorkerCache, error) {
 	cache := NewStaticWorkerCache(logger, conn, refreshInterval)
 
 	workerNotifs, err := conn.Bus().Listen("worker_events_channel", 128)
@@ -61,7 +61,7 @@ func NewWorkerCache(logger lager.Logger, conn Conn, refreshInterval time.Duratio
 // NewStaticWorkerCache returns a WorkerCache that doesn't subscribe to changes
 // to the workers/containers table, so it's data is likely to be stale until
 // the next refresh.
-func NewStaticWorkerCache(logger lager.Logger, conn Conn, refreshInterval time.Duration) *WorkerCache {
+func NewStaticWorkerCache(logger lager.Logger, conn DbConn, refreshInterval time.Duration) *WorkerCache {
 	return &WorkerCache{
 		logger:                logger,
 		conn:                  conn,

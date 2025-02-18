@@ -10,7 +10,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -185,7 +184,7 @@ type resource struct {
 	buildSummary          *atc.BuildSummary
 }
 
-func newEmptyResource(conn Conn, lockFactory lock.LockFactory) *resource {
+func newEmptyResource(conn DbConn, lockFactory lock.LockFactory) *resource {
 	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
@@ -867,7 +866,7 @@ func (r *resource) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) {
 	return sharedResourcesAndTypes(r.conn, r.resourceConfigScopeID, r.name)
 }
 
-func sharedResourcesAndTypes(conn Conn, resourceConfigScopeID int, name string) (atc.ResourcesAndTypes, error) {
+func sharedResourcesAndTypes(conn DbConn, resourceConfigScopeID int, name string) (atc.ResourcesAndTypes, error) {
 	if resourceConfigScopeID == 0 {
 		return atc.ResourcesAndTypes{}, ResourceHasNoScopeErr{name}
 	}
@@ -1039,13 +1038,13 @@ func scanResource(r *resource, row scannable) error {
 
 type buildData struct {
 	inMemoryBuildId        sql.NullInt64
-	inMemoryBuildStartTime pq.NullTime
+	inMemoryBuildStartTime sql.NullTime
 	inMemoryBuildPlan      sql.NullString
 	inMemoryBuildStatus    sql.NullString
 
 	lastCheckBuildId   sql.NullInt64
-	lastCheckStartTime pq.NullTime
-	lastCheckEndTime   pq.NullTime
+	lastCheckStartTime sql.NullTime
+	lastCheckEndTime   sql.NullTime
 	lastCheckSucceeded sql.NullBool
 	lastCheckBuildPlan sql.NullString
 }

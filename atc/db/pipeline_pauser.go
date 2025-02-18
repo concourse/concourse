@@ -15,7 +15,7 @@ type PipelinePauser interface {
 	PausePipelines(ctx context.Context, daysSinceLastBuild int) error
 }
 
-func NewPipelinePauser(conn Conn, lockFactory lock.LockFactory) PipelinePauser {
+func NewPipelinePauser(conn DbConn, lockFactory lock.LockFactory) PipelinePauser {
 	return &pipelinePauser{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -23,7 +23,7 @@ func NewPipelinePauser(conn Conn, lockFactory lock.LockFactory) PipelinePauser {
 }
 
 type pipelinePauser struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 

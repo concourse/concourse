@@ -23,10 +23,10 @@ type FakeContainerOwner struct {
 		result1 map[string]interface{}
 		result2 error
 	}
-	FindStub        func(db.Conn) (squirrel.Eq, bool, error)
+	FindStub        func(db.DbConn) (squirrel.Eq, bool, error)
 	findMutex       sync.RWMutex
 	findArgsForCall []struct {
-		arg1 db.Conn
+		arg1 db.DbConn
 	}
 	findReturns struct {
 		result1 squirrel.Eq
@@ -107,11 +107,11 @@ func (fake *FakeContainerOwner) CreateReturnsOnCall(i int, result1 map[string]in
 	}{result1, result2}
 }
 
-func (fake *FakeContainerOwner) Find(arg1 db.Conn) (squirrel.Eq, bool, error) {
+func (fake *FakeContainerOwner) Find(arg1 db.DbConn) (squirrel.Eq, bool, error) {
 	fake.findMutex.Lock()
 	ret, specificReturn := fake.findReturnsOnCall[len(fake.findArgsForCall)]
 	fake.findArgsForCall = append(fake.findArgsForCall, struct {
-		arg1 db.Conn
+		arg1 db.DbConn
 	}{arg1})
 	stub := fake.FindStub
 	fakeReturns := fake.findReturns
@@ -132,13 +132,13 @@ func (fake *FakeContainerOwner) FindCallCount() int {
 	return len(fake.findArgsForCall)
 }
 
-func (fake *FakeContainerOwner) FindCalls(stub func(db.Conn) (squirrel.Eq, bool, error)) {
+func (fake *FakeContainerOwner) FindCalls(stub func(db.DbConn) (squirrel.Eq, bool, error)) {
 	fake.findMutex.Lock()
 	defer fake.findMutex.Unlock()
 	fake.FindStub = stub
 }
 
-func (fake *FakeContainerOwner) FindArgsForCall(i int) db.Conn {
+func (fake *FakeContainerOwner) FindArgsForCall(i int) db.DbConn {
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
 	argsForCall := fake.findArgsForCall[i]

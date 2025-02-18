@@ -19,7 +19,7 @@ type ResourceCheckRateLimiter struct {
 
 	minChecksPerSecond rate.Limit
 
-	refreshConn    Conn
+	refreshConn    DbConn
 	checkInterval  time.Duration
 	refreshLimiter *rate.Limiter
 
@@ -31,7 +31,7 @@ func NewResourceCheckRateLimiter(
 	checksPerSecond rate.Limit,
 	minChecksPerSecond rate.Limit,
 	checkInterval time.Duration,
-	refreshConn Conn,
+	refreshConn DbConn,
 	refreshInterval time.Duration,
 	clock clock.Clock,
 ) *ResourceCheckRateLimiter {

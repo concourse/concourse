@@ -62,7 +62,7 @@ type resourceConfigVersion struct {
 	checkOrder  int
 	spanContext SpanContext
 
-	conn Conn
+	conn DbConn
 }
 
 var resourceConfigVersionQuery = psql.Select(`

@@ -87,7 +87,7 @@ type Builder struct {
 	WorkerTaskCacheFactory db.WorkerTaskCacheFactory
 }
 
-func NewBuilder(conn db.Conn, lockFactory lock.LockFactory) Builder {
+func NewBuilder(conn db.DbConn, lockFactory lock.LockFactory) Builder {
 	logger := lagertest.NewTestLogger("dummy-logger")
 	return Builder{
 		TeamFactory:            db.NewTeamFactory(conn, lockFactory),
@@ -977,7 +977,7 @@ func (builder Builder) WithEnabledVersion(resourceName string, enabledVersion at
 	}
 }
 
-func (builder Builder) WithBaseResourceType(dbConn db.Conn, resourceTypeName string) SetupFunc {
+func (builder Builder) WithBaseResourceType(dbConn db.DbConn, resourceTypeName string) SetupFunc {
 	return func(scenario *Scenario) error {
 		setupTx, err := dbConn.Begin()
 		if err != nil {

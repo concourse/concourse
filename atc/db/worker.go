@@ -7,9 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
 )
 
@@ -86,7 +88,7 @@ type Worker interface {
 }
 
 type worker struct {
-	conn Conn
+	conn DbConn
 
 	name             string
 	version          *string
@@ -330,7 +332,7 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 		QueryRow().
 		Scan(cols...)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.ForeignKeyViolation {
 			return nil, ContainerOwnerDisappearedError{owner}
 		}
 

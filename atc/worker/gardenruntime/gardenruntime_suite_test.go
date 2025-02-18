@@ -15,7 +15,7 @@ import (
 
 var (
 	postgresRunner postgresrunner.Runner
-	dbConn         db.Conn
+	dbConn         db.DbConn
 	lockFactory    lock.LockFactory
 )
 

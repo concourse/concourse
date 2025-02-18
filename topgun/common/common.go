@@ -15,7 +15,7 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
 	gclient "code.cloudfoundry.org/garden/client"
 	gconn "code.cloudfoundry.org/garden/client/connection"
@@ -254,7 +254,7 @@ func Deploy(manifest string, args ...string) {
 
 	if dbInstance != nil {
 		var err error
-		DbConn, err = sql.Open("postgres", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
+		DbConn, err = sql.Open("pgx", fmt.Sprintf("postgres://atc:dummy-password@%s:5432/atc?sslmode=disable", dbInstance.IP))
 		Expect(err).ToNot(HaveOccurred())
 	}
 }

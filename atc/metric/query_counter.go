@@ -7,36 +7,36 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
-func CountQueries(conn db.Conn) db.Conn {
+func CountQueries(conn db.DbConn) db.DbConn {
 	return &countingConn{
-		Conn: conn,
+		DbConn: conn,
 	}
 }
 
 type countingConn struct {
-	db.Conn
+	db.DbConn
 }
 
 func (e *countingConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	Metrics.DatabaseQueries.Inc()
 
-	return e.Conn.Query(query, args...)
+	return e.DbConn.Query(query, args...)
 }
 
 func (e *countingConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	Metrics.DatabaseQueries.Inc()
 
-	return e.Conn.QueryRow(query, args...)
+	return e.DbConn.QueryRow(query, args...)
 }
 
 func (e *countingConn) Exec(query string, args ...interface{}) (sql.Result, error) {
 	Metrics.DatabaseQueries.Inc()
 
-	return e.Conn.Exec(query, args...)
+	return e.DbConn.Exec(query, args...)
 }
 
 func (e *countingConn) Begin() (db.Tx, error) {
-	tx, err := e.Conn.Begin()
+	tx, err := e.DbConn.Begin()
 	if err != nil {
 		return tx, err
 	}

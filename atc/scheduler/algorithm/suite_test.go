@@ -25,7 +25,7 @@ var (
 	lockFactory lock.LockFactory
 	teamFactory db.TeamFactory
 
-	dbConn db.Conn
+	dbConn db.DbConn
 
 	exporter *jaeger.Exporter
 )

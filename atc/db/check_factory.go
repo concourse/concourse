@@ -45,7 +45,7 @@ type CheckFactory interface {
 }
 
 type checkFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 
 	secrets       creds.Secrets
@@ -58,7 +58,7 @@ type checkFactory struct {
 }
 
 func NewCheckFactory(
-	conn Conn,
+	conn DbConn,
 	lockFactory lock.LockFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,

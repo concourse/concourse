@@ -86,6 +86,7 @@ func (runner Runner) Run(signals <-chan os.Signal, ready chan<- struct{}) error 
 fsync = off
 synchronous_commit = off
 full_page_writes = off
+random_page_cost = 1.1
 `)
 
 	ginkgoRunner := &ginkgomon_v2.Runner{
@@ -112,7 +113,7 @@ func appendToFile(path string, content string) {
 
 func (runner *Runner) MigrateToVersion(version int) {
 	err := migration.NewOpenHelper(
-		"postgres",
+		"pgx",
 		runner.DataSourceName(),
 		nil,
 		nil,
@@ -123,7 +124,7 @@ func (runner *Runner) MigrateToVersion(version int) {
 
 func (runner *Runner) TryOpenDBAtVersion(version int) (*sql.DB, error) {
 	dbConn, err := migration.NewOpenHelper(
-		"postgres",
+		"pgx",
 		runner.DataSourceName(),
 		nil,
 		nil,
@@ -149,7 +150,7 @@ func (runner *Runner) OpenDBAtVersion(version int) *sql.DB {
 
 func (runner *Runner) OpenDB() *sql.DB {
 	dbConn, err := migration.NewOpenHelper(
-		"postgres",
+		"pgx",
 		runner.DataSourceName(),
 		nil,
 		nil,
@@ -160,18 +161,19 @@ func (runner *Runner) OpenDB() *sql.DB {
 	// only allow one connection so that we can detect any code paths that
 	// require more than one, which will deadlock if it's at the limit
 	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
 
 	return dbConn
 }
 
-func (runner *Runner) OpenConn() db.Conn {
+func (runner *Runner) OpenConn() db.DbConn {
 	return runner.openConn("testdb")
 }
 
-func (runner *Runner) openConn(dbName string) db.Conn {
+func (runner *Runner) openConn(dbName string) db.DbConn {
 	dbConn, err := db.Open(
 		lagertest.NewTestLogger("postgres-runner"),
-		"postgres",
+		"pgx",
 		runner.dataSourceName(dbName),
 		nil,
 		nil,
@@ -183,12 +185,13 @@ func (runner *Runner) openConn(dbName string) db.Conn {
 	// only allow one connection so that we can detect any code paths that
 	// require more than one, which will deadlock if it's at the limit
 	dbConn.SetMaxOpenConns(1)
+	dbConn.SetMaxIdleConns(1)
 
 	return joinLimitValidatorConn{dbConn}
 }
 
 func (runner *Runner) OpenSingleton() *sql.DB {
-	dbConn, err := sql.Open("postgres", runner.DataSourceName())
+	dbConn, err := sql.Open("pgx", runner.DataSourceName())
 	Expect(err).NotTo(HaveOccurred())
 
 	// only allow one connection, period. this matches production code use case,

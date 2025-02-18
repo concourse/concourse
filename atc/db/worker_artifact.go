@@ -7,7 +7,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 )
 
 //counterfeiter:generate . WorkerArtifact
@@ -22,7 +21,7 @@ type WorkerArtifact interface {
 }
 
 type artifact struct {
-	conn Conn
+	conn DbConn
 
 	id        int
 	name      string
@@ -53,7 +52,7 @@ func (a *artifact) Volume(teamID int) (CreatedVolume, bool, error) {
 	return created, true, nil
 }
 
-func saveWorkerArtifact(tx Tx, conn Conn, atcArtifact atc.WorkerArtifact) (WorkerArtifact, error) {
+func saveWorkerArtifact(tx Tx, conn DbConn, atcArtifact atc.WorkerArtifact) (WorkerArtifact, error) {
 
 	var artifactID int
 
@@ -89,9 +88,9 @@ func saveWorkerArtifact(tx Tx, conn Conn, atcArtifact atc.WorkerArtifact) (Worke
 	return artifact, nil
 }
 
-func getWorkerArtifact(tx Tx, conn Conn, id int) (WorkerArtifact, bool, error) {
+func getWorkerArtifact(tx Tx, conn DbConn, id int) (WorkerArtifact, bool, error) {
 	var (
-		createdAtTime pq.NullTime
+		createdAtTime sql.NullTime
 		buildID       sql.NullInt64
 	)
 

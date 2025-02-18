@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,7 +11,8 @@ import (
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db/dbtest"
 	"github.com/concourse/concourse/vars"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -1454,29 +1456,43 @@ var _ = Describe("Pipeline", func() {
 			Expect(build4DB.ReapTime()).To(Equal(build1DB.ReapTime()))
 		})
 		It("deletes all build logs when there are more than 65_536", func() {
-			txn, err := dbConn.Begin()
-			Expect(err).ToNot(HaveOccurred())
-
-			// we break the abstractions so that we can efficiently bulk insert a heap of build events
-			// if we did this the "right" way (like the test above) it's excruciatingly slow.
-			stmt, err := txn.Prepare(pq.CopyIn(fmt.Sprintf("pipeline_build_events_%d", pipeline.ID()), "event_id", "build_id", "type", "version", "payload"))
-			Expect(err).ToNot(HaveOccurred())
-
 			numToInsert := 250_000
 			ids := make([]int, numToInsert)
-			for i := 0; i < numToInsert; i++ {
-				_, err = stmt.Exec(i, i, i, i, "")
+
+			// we break the sql.db abstraction so that we can efficiently bulk
+			// insert a heap of build events. If we did this the "right" way
+			// (like the test above) it's excruciatingly slow.
+			conn, err := dbConn.Conn(context.Background())
+			Expect(err).ToNot(HaveOccurred())
+			err = conn.Raw(func(driverConn any) error {
+				pgxConn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
+				txn, err := pgxConn.Begin(context.Background())
 				Expect(err).ToNot(HaveOccurred())
-				ids[i] = i
-			}
 
-			_, err = stmt.Exec()
+				cols := []string{"event_id", "build_id", "type", "version", "payload"}
+				counter := 0
+				copyCount, err := txn.CopyFrom(context.Background(),
+					pgx.Identifier{fmt.Sprintf("pipeline_build_events_%d", pipeline.ID())},
+					cols, pgx.CopyFromFunc(func() (row []any, err error) {
+						if counter >= numToInsert {
+							return nil, nil
+						}
+						c := fmt.Sprintf("%d", counter)
+						row = []any{c, c, c, c, ""}
+						ids[counter] = counter
+						counter++
+						return row, nil
+					}))
+				Expect(int(copyCount)).To(Equal(numToInsert))
+				Expect(err).ToNot(HaveOccurred())
+
+				err = txn.Commit(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+
+				return nil
+			})
 			Expect(err).ToNot(HaveOccurred())
-
-			err = stmt.Close()
-			Expect(err).ToNot(HaveOccurred())
-
-			err = txn.Commit()
+			err = conn.Close()
 			Expect(err).ToNot(HaveOccurred())
 
 			var count int

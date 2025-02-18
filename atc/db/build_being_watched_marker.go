@@ -1,17 +1,18 @@
 package db
 
 import (
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/lager/v3"
-	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"context"
 	"errors"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerctx"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // beingWatchedBuildEventChannelMap stores build event notifier channel names
@@ -104,7 +105,7 @@ const beingWatchedNotifyChannelName = "being_watched_build_event_channel"
 // notification to channel beingWatchedNotifyChannelName with payload of
 // the build's event channel name. This is because a build may be watched
 // from any ATCs, while the build may be running in a separate ATC.
-func MarkBuildAsBeingWatched(db Conn, buildEventChannel string) error {
+func MarkBuildAsBeingWatched(db DbConn, buildEventChannel string) error {
 	_, err := db.Exec(fmt.Sprintf("NOTIFY %s, '%s'", beingWatchedNotifyChannelName, buildEventChannel))
 	if err != nil {
 		return err
@@ -116,7 +117,7 @@ func MarkBuildAsBeingWatched(db Conn, buildEventChannel string) error {
 // mark builds as BeingWatched accordingly in a singleton map. And it periodically
 // cleans up the map.
 type BuildBeingWatchedMarker struct {
-	conn               Conn
+	conn               DbConn
 	dataRetainDuration time.Duration
 	watchedMap         *beingWatchedBuildEventChannelMap
 	notifier           chan Notification
@@ -127,7 +128,7 @@ type BuildBeingWatchedMarker struct {
 
 const DefaultBuildBeingWatchedMarkDuration = 2 * time.Hour
 
-func NewBuildBeingWatchedMarker(logger lager.Logger, conn Conn, dataRetainDuration time.Duration, clock clock.Clock) (*BuildBeingWatchedMarker, error) {
+func NewBuildBeingWatchedMarker(logger lager.Logger, conn DbConn, dataRetainDuration time.Duration, clock clock.Clock) (*BuildBeingWatchedMarker, error) {
 	if dataRetainDuration < 0 {
 		return nil, errors.New("data retain duration must be positive")
 	}

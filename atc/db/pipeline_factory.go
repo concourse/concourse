@@ -13,11 +13,11 @@ type PipelineFactory interface {
 }
 
 type pipelineFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewPipelineFactory(conn Conn, lockFactory lock.LockFactory) PipelineFactory {
+func NewPipelineFactory(conn DbConn, lockFactory lock.LockFactory) PipelineFactory {
 	return &pipelineFactory{
 		conn:        conn,
 		lockFactory: lockFactory,

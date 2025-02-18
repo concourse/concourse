@@ -3,10 +3,11 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/lib/pq"
 )
 
 // WorkerResourceCache stores resource caches on each worker. WorkerBaseResourceTypeID
@@ -76,7 +77,7 @@ func (workerResourceCache WorkerResourceCache) FindOrCreate(tx Tx, sourceWorkerB
 		QueryRow().
 		Scan(&id)
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 			return nil, false, nil
 		}
 		return nil, false, err
@@ -133,7 +134,7 @@ func (workerResourceCache WorkerResourceCache) FindByID(runner sq.Runner, id int
 func (workerResourceCache WorkerResourceCache) find(runner sq.Runner, volumeShouldBeValidBefore *time.Time, forShare bool) (*UsedWorkerResourceCache, bool, error) {
 	var id int
 	var workerBaseResourceTypeID sql.NullInt64
-	var invalidSince pq.NullTime
+	var invalidSince sql.NullTime
 
 	sb := psql.Select("id", "worker_base_resource_type_id", "invalid_since").
 		From("worker_resource_caches").

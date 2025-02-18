@@ -8,7 +8,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 //counterfeiter:generate . JobFactory
@@ -24,11 +24,11 @@ type JobFactory interface {
 }
 
 type jobFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewJobFactory(conn Conn, lockFactory lock.LockFactory) JobFactory {
+func NewJobFactory(conn DbConn, lockFactory lock.LockFactory) JobFactory {
 	return &jobFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -344,8 +344,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 		id        sql.NullInt64
 		name      sql.NullString
 		status    sql.NullString
-		startTime pq.NullTime
-		endTime   pq.NullTime
+		startTime sql.NullTime
+		endTime   sql.NullTime
 	}
 
 	var dashboard []atc.JobSummary
@@ -358,7 +358,8 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 		)
 
 		j := atc.JobSummary{}
-		err = rows.Scan(&j.ID, &j.Name, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, pq.Array(&j.Groups), &j.TeamName,
+		m := pgtype.NewMap()
+		err = rows.Scan(&j.ID, &j.Name, &j.PipelineID, &j.PipelineName, &pipelineInstanceVars, &j.Paused, &j.HasNewInputs, m.SQLScanner(&j.Groups), &j.TeamName,
 			&f.id, &f.name, &f.status, &f.startTime, &f.endTime,
 			&n.id, &n.name, &n.status, &n.startTime, &n.endTime,
 			&t.id, &t.name, &t.status, &t.startTime, &t.endTime,
@@ -434,7 +435,7 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 }
 
 func (d dashboardFactory) fetchJobInputs() (map[int][]atc.JobInputSummary, error) {
-	rows, err := psql.Select("j.id", "i.name", "r.name", "array_agg(jp.name ORDER BY jp.id)", "i.trigger").
+	rows, err := psql.Select("j.id", "i.name", "r.name", "array_remove(array_agg(jp.name ORDER BY jp.id), NULL) passed", "i.trigger").
 		From("job_inputs i").
 		Join("jobs j ON j.id = i.job_id").
 		Join("pipelines p ON p.id = j.pipeline_id").
@@ -454,22 +455,20 @@ func (d dashboardFactory) fetchJobInputs() (map[int][]atc.JobInputSummary, error
 	}
 
 	jobInputs := make(map[int][]atc.JobInputSummary)
+	m := pgtype.NewMap()
 	for rows.Next() {
-		var passedString []sql.NullString
+		var passed []string
 		var inputName, resourceName string
 		var jobID int
 		var trigger bool
 
-		err = rows.Scan(&jobID, &inputName, &resourceName, pq.Array(&passedString), &trigger)
+		err = rows.Scan(&jobID, &inputName, &resourceName, m.SQLScanner(&passed), &trigger)
 		if err != nil {
 			return nil, err
 		}
 
-		var passed []string
-		for _, s := range passedString {
-			if s.Valid {
-				passed = append(passed, s.String)
-			}
+		if len(passed) == 0 {
+			passed = nil
 		}
 
 		jobInputs[jobID] = append(jobInputs[jobID], atc.JobInputSummary{

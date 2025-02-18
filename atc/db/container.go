@@ -34,7 +34,7 @@ type creatingContainer struct {
 	handle     string
 	workerName string
 	metadata   ContainerMetadata
-	conn       Conn
+	conn       DbConn
 }
 
 func newCreatingContainer(
@@ -42,7 +42,7 @@ func newCreatingContainer(
 	handle string,
 	workerName string,
 	metadata ContainerMetadata,
-	conn Conn,
+	conn DbConn,
 ) *creatingContainer {
 	return &creatingContainer{
 		id:         id,
@@ -145,7 +145,7 @@ type createdContainer struct {
 
 	lastHijack time.Time
 
-	conn Conn
+	conn DbConn
 }
 
 func newCreatedContainer(
@@ -154,7 +154,7 @@ func newCreatedContainer(
 	workerName string,
 	metadata ContainerMetadata,
 	lastHijack time.Time,
-	conn Conn,
+	conn DbConn,
 ) *createdContainer {
 	return &createdContainer{
 		id:         id,
@@ -248,7 +248,7 @@ type destroyingContainer struct {
 	workerName string
 	metadata   ContainerMetadata
 
-	conn Conn
+	conn DbConn
 }
 
 func newDestroyingContainer(
@@ -256,7 +256,7 @@ func newDestroyingContainer(
 	handle string,
 	workerName string,
 	metadata ContainerMetadata,
-	conn Conn,
+	conn DbConn,
 ) *destroyingContainer {
 	return &destroyingContainer{
 		id:         id,
@@ -309,7 +309,7 @@ type failedContainer struct {
 	handle     string
 	workerName string
 	metadata   ContainerMetadata
-	conn       Conn
+	conn       DbConn
 }
 
 func newFailedContainer(
@@ -317,7 +317,7 @@ func newFailedContainer(
 	handle string,
 	workerName string,
 	metadata ContainerMetadata,
-	conn Conn,
+	conn DbConn,
 ) *failedContainer {
 	return &failedContainer{
 		id:         id,

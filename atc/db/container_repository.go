@@ -1,12 +1,12 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 )
 
 //counterfeiter:generate . ContainerRepository
@@ -22,10 +22,10 @@ type ContainerRepository interface {
 }
 
 type containerRepository struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewContainerRepository(conn Conn) ContainerRepository {
+func NewContainerRepository(conn DbConn) ContainerRepository {
 	return &containerRepository{
 		conn: conn,
 	}
@@ -301,12 +301,12 @@ func selectContainers(asOptional ...string) sq.SelectBuilder {
 	return psql.Select(columns...).From(table)
 }
 
-func scanContainer(row sq.RowScanner, conn Conn) (CreatingContainer, CreatedContainer, DestroyingContainer, FailedContainer, error) {
+func scanContainer(row sq.RowScanner, conn DbConn) (CreatingContainer, CreatedContainer, DestroyingContainer, FailedContainer, error) {
 	var (
 		id         int
 		handle     string
 		workerName string
-		lastHijack pq.NullTime
+		lastHijack sql.NullTime
 		state      string
 
 		metadata ContainerMetadata

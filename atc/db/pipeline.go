@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/lib/pq"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -147,7 +146,7 @@ type pipeline struct {
 	archived      bool
 	lastUpdated   time.Time
 
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
@@ -176,7 +175,7 @@ var pipelinesQuery = psql.Select(`
 	From("pipelines p").
 	LeftJoin("teams t ON p.team_id = t.id")
 
-func newPipeline(conn Conn, lockFactory lock.LockFactory) *pipeline {
+func newPipeline(conn DbConn, lockFactory lock.LockFactory) *pipeline {
 	return &pipeline{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -999,12 +998,10 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 
 	defer Rollback(tx)
 
-	a := pq.Array(buildIDs)
-
 	_, err = tx.Exec(`
    DELETE FROM `+p.eventsTable()+`
 	 WHERE build_id = ANY($1)
-	 `, a)
+	 `, buildIDs)
 	if err != nil {
 		return err
 	}
@@ -1013,7 +1010,7 @@ func (p *pipeline) DeleteBuildEventsByBuildIDs(buildIDs []int) error {
 		UPDATE builds
 		SET reap_time = now()
 		WHERE id = ANY($1)
-	`, a)
+	`, buildIDs)
 	if err != nil {
 		return err
 	}
@@ -1208,7 +1205,7 @@ func getNewBuildNameForJob(tx Tx, jobName string, pipelineID int) (string, int, 
 	return buildName, jobID, err
 }
 
-func resources(pipelineID int, conn Conn, lockFactory lock.LockFactory) (Resources, error) {
+func resources(pipelineID int, conn DbConn, lockFactory lock.LockFactory) (Resources, error) {
 	rows, err := resourcesQuery.
 		Where(sq.Eq{"r.pipeline_id": pipelineID}).
 		OrderBy("r.name").

@@ -1,12 +1,13 @@
 package db_test
 
 import (
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -57,7 +58,7 @@ var _ = Describe("ResourceCache", func() {
 			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
 			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
 			Expect(err).To(HaveOccurred())
-			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+			Expect(err.(*pgconn.PgError).Code).To(Equal(pgerrcode.ForeignKeyViolation))
 		})
 
 		Context("when it already exists", func() {
@@ -113,7 +114,7 @@ var _ = Describe("ResourceCache", func() {
 			// ON DELETE RESTRICT from resource_cache_uses -> resource_caches
 			_, err = psql.Delete("resource_caches").Where(sq.Eq{"id": urc.ID()}).RunWith(dbConn).Exec()
 			Expect(err).To(HaveOccurred())
-			Expect(err.(*pq.Error).Code.Name()).To(Equal("foreign_key_violation"))
+			Expect(err.(*pgconn.PgError).Code).To(Equal(pgerrcode.ForeignKeyViolation))
 		})
 	})
 })

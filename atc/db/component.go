@@ -1,13 +1,13 @@
 package db
 
 import (
-	"code.cloudfoundry.org/clock"
 	"database/sql"
 	"runtime"
 	"time"
 
+	"code.cloudfoundry.org/clock"
+
 	sq "github.com/Masterminds/squirrel"
-	"github.com/lib/pq"
 )
 
 var componentsQuery = psql.Select("c.id, c.name, c.interval, c.last_ran, c.paused").
@@ -54,7 +54,7 @@ type component struct {
 	numGoroutineThreshold int
 	goRoutineCounter      GoroutineCounter
 
-	conn Conn
+	conn DbConn
 }
 
 func (c *component) ID() int                 { return c.id }
@@ -138,7 +138,7 @@ func (c *component) computeDrift() time.Duration {
 
 func scanComponent(c *component, row scannable) error {
 	var (
-		lastRan  pq.NullTime
+		lastRan  sql.NullTime
 		interval string
 	)
 

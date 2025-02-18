@@ -6,7 +6,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -15,16 +14,18 @@ import (
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/migration"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-//counterfeiter:generate . Conn
-type Conn interface {
+//counterfeiter:generate . DbConn
+type DbConn interface {
 	Bus() NotificationsBus
 	EncryptionStrategy() encryption.Strategy
 
 	Ping() error
 	Driver() driver.Driver
+	Conn(context.Context) (*sql.Conn, error)
 
 	Begin() (Tx, error)
 	Exec(string, ...interface{}) (sql.Result, error)
@@ -62,7 +63,7 @@ type Tx interface {
 	EncryptionStrategy() encryption.Strategy
 }
 
-func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Key, name string, lockFactory lock.LockFactory) (Conn, error) {
+func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Key, name string, lockFactory lock.LockFactory) (DbConn, error) {
 	for {
 		sqlDB, err := migration.NewOpenHelper(driver, dsn, lockFactory, newKey, oldKey).Open()
 		if err != nil {
@@ -75,12 +76,18 @@ func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Ke
 			return nil, err
 		}
 
-		return NewConn(name, sqlDB, dsn, oldKey, newKey), nil
+		return NewConn(name, sqlDB, dsn, oldKey, newKey)
 	}
 }
 
-func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) Conn {
-	listener := pq.NewDialListener(keepAliveDialer{}, dsn, time.Second, time.Minute, nil)
+func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (DbConn, error) {
+	// only used for the LISTEN/NOTIFY commands
+	pool, err := pgxpool.New(context.Background(), dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	listener := NewPgxListener(pool)
 
 	var strategy encryption.Strategy
 	if newKey != nil {
@@ -95,19 +102,11 @@ func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.
 		bus:        NewNotificationsBus(listener, sqlDB),
 		encryption: strategy,
 		name:       name,
-	}
+	}, nil
 }
 
 func shouldRetry(err error) bool {
-	if strings.Contains(err.Error(), "dial ") {
-		return true
-	}
-
-	if pqErr, ok := err.(*pq.Error); ok {
-		return pqErr.Code.Name() == "cannot_connect_now"
-	}
-
-	return false
+	return pgconn.SafeToRetry(err)
 }
 
 type db struct {

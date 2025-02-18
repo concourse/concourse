@@ -14,7 +14,7 @@ type PipelineLifecycle interface {
 	RemoveBuildEventsForDeletedPipelines() error
 }
 
-func NewPipelineLifecycle(conn Conn, lockFactory lock.LockFactory) PipelineLifecycle {
+func NewPipelineLifecycle(conn DbConn, lockFactory lock.LockFactory) PipelineLifecycle {
 	return &pipelineLifecycle{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -22,7 +22,7 @@ func NewPipelineLifecycle(conn Conn, lockFactory lock.LockFactory) PipelineLifec
 }
 
 type pipelineLifecycle struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
@@ -87,7 +87,7 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	return nil
 }
 
-func archivePipelines(tx Tx, conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) error {
+func archivePipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) error {
 	var toArchive []pipeline
 	for rows.Next() {
 		p := newPipeline(conn, lockFactory)

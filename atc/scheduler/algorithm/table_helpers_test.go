@@ -16,7 +16,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/tracing"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -271,33 +272,46 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		_, span = tracing.StartSpan(ctx, "import versions", tracing.Attrs{})
 		defer span.End()
 
-		tx, err := dbConn.Begin()
+		conn, err := dbConn.Conn(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
-		stmt, err := tx.Prepare(pq.CopyIn("resource_config_versions", "id", "resource_config_scope_id", "version", "version_sha256", "check_order"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for _, row := range debugDB.ResourceVersions {
-			name := fmt.Sprintf("imported-r%dv%d", row.ResourceID, row.VersionID)
-			setup.versionIDs[name] = row.VersionID
-
-			scope := row.ScopeID
-			if scope == 0 {
-				// pre-6.0
-				scope = row.ResourceID
-			}
-
-			_, err := stmt.Exec(row.VersionID, scope, "{}", strconv.Itoa(row.VersionID), row.CheckOrder)
+		err = conn.Raw(func(driverConn any) error {
+			pgxConn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
+			txn, err := pgxConn.Begin(ctx)
 			Expect(err).ToNot(HaveOccurred())
-		}
 
-		_, err = stmt.Exec()
+			cols := []string{"id", "resource_config_scope_id", "version", "version_sha256", "check_order"}
+			copyCount, err := txn.CopyFrom(ctx,
+				pgx.Identifier{"resource_config_versions"},
+				cols, pgx.CopyFromSlice(len(debugDB.ResourceVersions), func(i int) (row []any, err error) {
+					resource := debugDB.ResourceVersions[i]
+					name := fmt.Sprintf("imported-r%dv%d", resource.ResourceID, resource.VersionID)
+					setup.versionIDs[name] = resource.VersionID
+					scope := resource.ScopeID
+					if scope == 0 {
+						// pre-6.0
+						scope = resource.ResourceID
+					}
+
+					row = []any{
+						resource.VersionID,
+						scope,
+						"{}",
+						strconv.Itoa(resource.VersionID),
+						resource.CheckOrder,
+					}
+					return row, nil
+				}))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(int(copyCount)).To(Equal(len(debugDB.ResourceVersions)))
+
+			err = txn.Commit(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			return nil
+		})
 		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
+		err = conn.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
@@ -308,58 +322,94 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		_, span = tracing.StartSpan(ctx, "import builds", tracing.Attrs{})
 		defer span.End()
 
-		tx, err := dbConn.Begin()
-		Expect(err).ToNot(HaveOccurred())
-
-		stmt, err := tx.Prepare(pq.CopyIn("builds", "team_id", "id", "job_id", "name", "status"))
+		conn, err := dbConn.Conn(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
 		imported := map[int]bool{}
 
-		for _, row := range debugDB.BuildOutputs {
-			if imported[row.BuildID] {
-				continue
-			}
-
-			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, row.BuildID, "succeeded")
+		err = conn.Raw(func(driverConn any) error {
+			pgxConn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
+			txn, err := pgxConn.Begin(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
-			imported[row.BuildID] = true
-		}
+			cols := []string{"team_id", "id", "job_id", "name", "status"}
+			var copyCount int64
 
-		for _, row := range debugDB.BuildInputs {
-			if imported[row.BuildID] {
-				continue
+			var outputs [][]any
+			for _, row := range debugDB.BuildOutputs {
+				if imported[row.BuildID] {
+					continue
+				}
+				r := []any{
+					setup.teamID,
+					row.BuildID,
+					row.JobID,
+					strconv.Itoa(row.BuildID),
+					"succeeded",
+				}
+				outputs = append(outputs, r)
+				imported[row.BuildID] = true
 			}
+
+			copyCount, err = txn.CopyFrom(ctx,
+				pgx.Identifier{"builds"},
+				cols, pgx.CopyFromRows(outputs))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(int(copyCount)).To(Equal(len(outputs)))
 
 			// any builds not created at this point must have failed as they weren't
 			// present via outputs
-			_, err := stmt.Exec(setup.teamID, row.BuildID, row.JobID, row.BuildID, "failed")
-			Expect(err).ToNot(HaveOccurred())
-
-			imported[row.BuildID] = true
-		}
-
-		for _, row := range debugDB.BuildReruns {
-			if imported[row.RerunOf] {
-				continue
+			var inputs [][]any
+			for _, row := range debugDB.BuildInputs {
+				if imported[row.BuildID] {
+					continue
+				}
+				r := []any{
+					setup.teamID,
+					row.BuildID,
+					row.JobID,
+					strconv.Itoa(row.BuildID),
+					"failed",
+				}
+				inputs = append(inputs, r)
+				imported[row.BuildID] = true
 			}
+			copyCount, err = txn.CopyFrom(ctx,
+				pgx.Identifier{"builds"},
+				cols, pgx.CopyFromRows(inputs))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(int(copyCount)).To(Equal(len(inputs)))
 
 			// any builds not created at this point must have failed as they weren't
 			// present via outputs
-			_, err := stmt.Exec(setup.teamID, row.RerunOf, row.JobID, "some-name", "failed")
+			var reruns [][]any
+			for _, row := range debugDB.BuildReruns {
+				if imported[row.RerunOf] {
+					continue
+				}
+				r := []any{
+					setup.teamID,
+					row.RerunOf,
+					row.JobID,
+					"some-name",
+					"failed",
+				}
+				reruns = append(reruns, r)
+				imported[row.RerunOf] = true
+			}
+			copyCount, err = txn.CopyFrom(ctx,
+				pgx.Identifier{"builds"},
+				cols, pgx.CopyFromRows(reruns))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(int(copyCount)).To(Equal(len(reruns)))
+
+			err = txn.Commit(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
-			imported[row.RerunOf] = true
-		}
-
-		_, err = stmt.Exec()
+			return nil
+		})
 		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
+		err = conn.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		for _, row := range debugDB.BuildReruns {
@@ -383,24 +433,38 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		_, span = tracing.StartSpan(ctx, "import inputs", tracing.Attrs{})
 		defer span.End()
 
-		tx, err := dbConn.Begin()
+		conn, err := dbConn.Conn(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
-		stmt, err := tx.Prepare(pq.CopyIn("build_resource_config_version_inputs", "build_id", "resource_id", "version_sha256", "name", "first_occurrence"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for i, row := range debugDB.BuildInputs {
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i), false)
+		err = conn.Raw(func(driverConn any) error {
+			pgxConn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
+			txn, err := pgxConn.Begin(ctx)
 			Expect(err).ToNot(HaveOccurred())
-		}
 
-		_, err = stmt.Exec()
+			cols := []string{"build_id", "resource_id", "version_sha256", "name", "first_occurrence"}
+			copyCount, err := txn.CopyFrom(ctx,
+				pgx.Identifier{"build_resource_config_version_inputs"},
+				cols, pgx.CopyFromSlice(len(debugDB.BuildInputs), func(i int) (row []any, err error) {
+					r := debugDB.BuildInputs[i]
+					row = []any{
+						r.BuildID,
+						r.ResourceID,
+						strconv.Itoa(r.VersionID),
+						strconv.Itoa(i),
+						false,
+					}
+					return row, nil
+				}))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(int(copyCount)).To(Equal(len(debugDB.BuildInputs)))
+
+			err = txn.Commit(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			return nil
+		})
 		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
+		err = conn.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
@@ -411,24 +475,37 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 		_, span = tracing.StartSpan(ctx, "import outputs", tracing.Attrs{})
 		defer span.End()
 
-		tx, err := dbConn.Begin()
+		conn, err := dbConn.Conn(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
-		stmt, err := tx.Prepare(pq.CopyIn("build_resource_config_version_outputs", "build_id", "resource_id", "version_sha256", "name"))
-		Expect(err).ToNot(HaveOccurred())
-
-		for i, row := range debugDB.BuildOutputs {
-			_, err := stmt.Exec(row.BuildID, row.ResourceID, strconv.Itoa(row.VersionID), strconv.Itoa(i))
+		err = conn.Raw(func(driverConn any) error {
+			pgxConn := driverConn.(*stdlib.Conn).Conn() // conn is a *pgx.Conn now
+			txn, err := pgxConn.Begin(ctx)
 			Expect(err).ToNot(HaveOccurred())
-		}
 
-		_, err = stmt.Exec()
+			cols := []string{"build_id", "resource_id", "version_sha256", "name"}
+			copyCount, err := txn.CopyFrom(ctx,
+				pgx.Identifier{"build_resource_config_version_outputs"},
+				cols, pgx.CopyFromSlice(len(debugDB.BuildOutputs), func(i int) (row []any, err error) {
+					r := debugDB.BuildOutputs[i]
+					row = []any{
+						r.BuildID,
+						r.ResourceID,
+						strconv.Itoa(r.VersionID),
+						strconv.Itoa(i),
+					}
+					return row, nil
+				}))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(int(copyCount)).To(Equal(len(debugDB.BuildOutputs)))
+
+			err = txn.Commit(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			return nil
+		})
 		Expect(err).ToNot(HaveOccurred())
-
-		err = stmt.Close()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = tx.Commit()
+		err = conn.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		return nil
@@ -822,7 +899,7 @@ func (s setupDB) insertRowBuild(row DBRow, needsV6Migration bool) {
 	var existingJobID int
 	err := s.psql.Insert("builds").
 		Columns("team_id", "id", "job_id", "name", "status", "scheduled", "inputs_ready", "rerun_of", "needs_v6_migration").
-		Values(s.teamID, row.BuildID, jobID, row.BuildID, buildStatus, true, true, rerunOf, needsV6Migration).
+		Values(s.teamID, row.BuildID, jobID, strconv.Itoa(row.BuildID), buildStatus, true, true, rerunOf, needsV6Migration).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = excluded.name").
 		Suffix("RETURNING job_id").
 		QueryRow().

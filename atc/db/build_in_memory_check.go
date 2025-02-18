@@ -18,7 +18,6 @@ import (
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
-	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
 )
 
@@ -34,12 +33,12 @@ type inMemoryCheckBuildForApi struct {
 	endTime      time.Time
 	status       BuildStatus
 
-	conn Conn
+	conn DbConn
 
 	cacheAssociatedTeams []string
 }
 
-func newExistingInMemoryCheckBuildForApi(conn Conn, buildId int, checkable Checkable) (*inMemoryCheckBuildForApi, error) {
+func newExistingInMemoryCheckBuildForApi(conn DbConn, buildId int, checkable Checkable) (*inMemoryCheckBuildForApi, error) {
 	build := inMemoryCheckBuildForApi{
 		id:        buildId,
 		conn:      conn,
@@ -183,7 +182,7 @@ func (b *inMemoryCheckBuildForApi) Events(from uint) (EventSource, error) {
 		func(tx Tx, buildID int) (bool, error) {
 			completed := false
 
-			var lastCheckStartTime, lastCheckEndTime pq.NullTime
+			var lastCheckStartTime, lastCheckEndTime sql.NullTime
 			err := psql.Select("rcs.last_check_start_time", "rcs.last_check_end_time").
 				From("resource_config_scopes rcs").
 				Join("resources r ON r.resource_config_scope_id = rcs.id").
@@ -269,7 +268,7 @@ type inMemoryCheckBuild struct {
 	eventIdSeq  util.SequenceGenerator
 }
 
-func newRunningInMemoryCheckBuild(conn Conn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
+func newRunningInMemoryCheckBuild(conn DbConn, lockFactory lock.LockFactory, checkable Checkable, plan atc.Plan, spanContext SpanContext, seqGen util.SequenceGenerator) (*inMemoryCheckBuild, error) {
 	timeNow := time.Now()
 
 	build := &inMemoryCheckBuild{

@@ -13,12 +13,13 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gobwas/glob"
-	"github.com/lib/pq"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
@@ -82,7 +83,7 @@ type Team interface {
 
 type team struct {
 	id          int
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 
 	name  string
@@ -1032,7 +1033,7 @@ func (t *team) FindCheckContainers(logger lager.Logger, pipelineRef atc.Pipeline
 	for rows.Next() {
 		var (
 			id        int
-			expiresAt pq.NullTime
+			expiresAt sql.NullTime
 		)
 
 		err = rows.Scan(&id, &expiresAt)
@@ -1221,7 +1222,7 @@ func saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) (int, er
 	var jobID int
 	err = psql.Insert("jobs").
 		Columns("name", "pipeline_id", "config", "public", "max_in_flight", "disable_manual_trigger", "interruptible", "active", "nonce", "tags").
-		Values(job.Name, pipelineID, encryptedPayload, job.Public, job.MaxInFlight(), job.DisableManualTrigger, job.Interruptible, true, nonce, pq.Array(groups)).
+		Values(job.Name, pipelineID, encryptedPayload, job.Public, job.MaxInFlight(), job.DisableManualTrigger, job.Interruptible, true, nonce, groups).
 		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, public = EXCLUDED.public, max_in_flight = EXCLUDED.max_in_flight, disable_manual_trigger = EXCLUDED.disable_manual_trigger, interruptible = EXCLUDED.interruptible, active = EXCLUDED.active, nonce = EXCLUDED.nonce, tags = EXCLUDED.tags").
 		Suffix("RETURNING id").
 		RunWith(tx).
@@ -1334,7 +1335,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		display       sql.NullString
 		nonce         sql.NullString
 		nonceStr      *string
-		lastUpdated   pq.NullTime
+		lastUpdated   sql.NullTime
 		parentJobID   sql.NullInt64
 		parentBuildID sql.NullInt64
 		instanceVars  sql.NullString
@@ -1406,7 +1407,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	return nil
 }
 
-func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
+func scanPipelines(conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) ([]Pipeline, error) {
 	defer Close(rows)
 
 	pipelines := []Pipeline{}
@@ -1425,7 +1426,7 @@ func scanPipelines(conn Conn, lockFactory lock.LockFactory, rows *sql.Rows) ([]P
 	return pipelines, nil
 }
 
-func scanContainers(rows *sql.Rows, conn Conn, initContainers []Container) ([]Container, error) {
+func scanContainers(rows *sql.Rows, conn DbConn, initContainers []Container) ([]Container, error) {
 	containers := initContainers
 
 	defer Close(rows)

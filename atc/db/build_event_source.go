@@ -26,7 +26,7 @@ type buildCompleteWatcherFunc func(Tx, int) (bool, error)
 func newBuildEventSource(
 	buildID int,
 	table string,
-	conn Conn,
+	conn DbConn,
 	from uint,
 	watcher buildCompleteWatcherFunc,
 ) (*buildEventSource, error) {
@@ -87,7 +87,7 @@ type buildEventSource struct {
 	buildID int
 	table   string
 
-	conn     Conn
+	conn     DbConn
 	notifier Notifier
 
 	events chan event.Envelope

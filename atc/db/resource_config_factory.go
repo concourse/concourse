@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/lib/pq"
 )
 
 type ErrCustomResourceTypeVersionNotFound struct {
@@ -34,11 +36,11 @@ type ResourceConfigFactory interface {
 }
 
 type resourceConfigFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewResourceConfigFactory(conn Conn, lockFactory lock.LockFactory) ResourceConfigFactory {
+func NewResourceConfigFactory(conn DbConn, lockFactory lock.LockFactory) ResourceConfigFactory {
 	return &resourceConfigFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -270,7 +272,7 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Durati
 		PlaceholderFormat(sq.Dollar).
 		RunWith(f.conn).Exec()
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqFKeyViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.ForeignKeyViolation {
 			// this can happen if a use or resource cache is created referencing the
 			// config; as the subqueries above are not atomic
 			return nil
@@ -282,7 +284,7 @@ func (f *resourceConfigFactory) CleanUnreferencedConfigs(gracePeriod time.Durati
 	return nil
 }
 
-func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFactory, conn Conn) (ResourceConfig, bool, error) {
+func findResourceConfigByID(tx Tx, resourceConfigID int, lockFactory lock.LockFactory, conn DbConn) (ResourceConfig, bool, error) {
 	var brtIDString, cacheIDString sql.NullString
 
 	err := psql.Select("base_resource_type_id", "resource_cache_id").

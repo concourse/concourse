@@ -33,7 +33,7 @@ type Scenario struct {
 
 type SetupFunc func(*Scenario)
 
-func Setup(dbConn db.Conn, lockFactory lock.LockFactory, setup ...SetupFunc) *Scenario {
+func Setup(dbConn db.DbConn, lockFactory lock.LockFactory, setup ...SetupFunc) *Scenario {
 	db := worker.NewDB(
 		db.NewWorkerFactory(dbConn, db.NewStaticWorkerCache(dummyLogger, dbConn, 0)),
 		db.NewTeamFactory(dbConn, lockFactory),

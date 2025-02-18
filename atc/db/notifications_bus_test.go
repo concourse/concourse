@@ -6,7 +6,7 @@ import (
 
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,7 +15,7 @@ import (
 var _ = Describe("NotificationBus", func() {
 
 	var (
-		c            chan *pq.Notification
+		c            chan *pgconn.Notification
 		fakeExecutor *dbfakes.FakeExecutor
 		fakeListener *dbfakes.FakeListener
 
@@ -23,7 +23,7 @@ var _ = Describe("NotificationBus", func() {
 	)
 
 	BeforeEach(func() {
-		c = make(chan *pq.Notification, 1)
+		c = make(chan *pgconn.Notification, 1)
 
 		fakeExecutor = new(dbfakes.FakeExecutor)
 		fakeListener = new(dbfakes.FakeListener)
@@ -198,7 +198,7 @@ var _ = Describe("NotificationBus", func() {
 			Context("when it receives an upstream notification", func() {
 
 				BeforeEach(func() {
-					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
 				})
 
 				It("delivers the notification to all listeners", func() {
@@ -225,7 +225,7 @@ var _ = Describe("NotificationBus", func() {
 				})
 
 				It("should still send notifications to the other listeners", func() {
-					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
 					Eventually(b).Should(Receive(Equal(db.Notification{Healthy: true})))
 				})
 			})
@@ -243,7 +243,7 @@ var _ = Describe("NotificationBus", func() {
 			Context("when it receives an upstream notification", func() {
 
 				BeforeEach(func() {
-					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
 				})
 
 				It("delivers the notification to only specific listeners", func() {
@@ -270,7 +270,7 @@ var _ = Describe("NotificationBus", func() {
 				a, err = bus.Listen("some-channel", 1)
 				Expect(err).NotTo(HaveOccurred())
 
-				c <- &pq.Notification{Channel: "some-channel", Extra: "hello!"}
+				c <- &pgconn.Notification{Channel: "some-channel", Payload: "hello!"}
 			})
 
 			It("sends a notification with the payload", func() {
@@ -287,7 +287,7 @@ var _ = Describe("NotificationBus", func() {
 			Context("when it receives many upstream notifications", func() {
 				BeforeEach(func() {
 					for i := 0; i < 100; i++ {
-						c <- &pq.Notification{Channel: "some-channel"}
+						c <- &pgconn.Notification{Channel: "some-channel"}
 					}
 					Eventually(c).Should(BeEmpty())
 					// TODO: this is awful, but we need to guarantee the last event has been processed
@@ -302,7 +302,7 @@ var _ = Describe("NotificationBus", func() {
 				It("should send messages again after the channel is drained", func() {
 					<-a
 
-					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
 					Eventually(a).Should(Receive())
 				})
 			})
@@ -317,7 +317,7 @@ var _ = Describe("NotificationBus", func() {
 			Context("when it receives many upstream notifications", func() {
 				BeforeEach(func() {
 					for i := 0; i < 100; i++ {
-						c <- &pq.Notification{Channel: "some-channel"}
+						c <- &pgconn.Notification{Channel: "some-channel"}
 					}
 				})
 
@@ -332,7 +332,7 @@ var _ = Describe("NotificationBus", func() {
 						<-a
 					}
 
-					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
 					Eventually(a).Should(Receive())
 				})
 			})
@@ -340,7 +340,7 @@ var _ = Describe("NotificationBus", func() {
 			Context("when it receives more upstream notifications than fit in the queue", func() {
 				BeforeEach(func() {
 					for i := 0; i < 200; i++ {
-						c <- &pq.Notification{Channel: "some-channel"}
+						c <- &pgconn.Notification{Channel: "some-channel"}
 					}
 					// TODO: this is awful, but we need to guarantee the last event has been processed
 					time.Sleep(1 * time.Second)
@@ -358,9 +358,9 @@ var _ = Describe("NotificationBus", func() {
 		Context("when the notification channel fills up while listening", func() {
 			BeforeEach(func() {
 				fakeListener.ListenCalls(func(_ string) error {
-					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
 					return nil
 				})
 			})
@@ -381,9 +381,9 @@ var _ = Describe("NotificationBus", func() {
 
 			BeforeEach(func() {
 				fakeListener.UnlistenCalls(func(_ string) error {
-					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
-					c <- &pq.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
+					c <- &pgconn.Notification{Channel: "some-channel"}
 					return nil
 				})
 			})

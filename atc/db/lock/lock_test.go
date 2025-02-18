@@ -12,7 +12,6 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/db/lock/lockfakes"
-	"github.com/lib/pq"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,12 +19,11 @@ import (
 
 var _ = Describe("Locks", func() {
 	var (
-		listener    *pq.Listener
 		lockFactory lock.LockFactory
 
 		dbLock lock.Lock
 
-		dbConn db.Conn
+		dbConn db.DbConn
 
 		team        db.Team
 		teamFactory db.TeamFactory
@@ -38,9 +36,6 @@ var _ = Describe("Locks", func() {
 
 	BeforeEach(func() {
 		postgresRunner.CreateTestDBFromTemplate()
-
-		listener = pq.NewListener(postgresRunner.DataSourceName(), time.Second, time.Minute, nil)
-		Eventually(listener.Ping, 5*time.Second).ShouldNot(HaveOccurred())
 
 		logger = lagertest.NewTestLogger("test")
 
@@ -60,9 +55,6 @@ var _ = Describe("Locks", func() {
 
 	AfterEach(func() {
 		err := dbConn.Close()
-		Expect(err).NotTo(HaveOccurred())
-
-		err = listener.Close()
 		Expect(err).NotTo(HaveOccurred())
 
 		if dbLock != nil {

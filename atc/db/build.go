@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/vars"
-	"github.com/lib/pq"
 	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/concourse/concourse/atc"
@@ -267,7 +269,7 @@ type build struct {
 	eventIdSeq util.SequenceGenerator
 }
 
-func newEmptyBuild(conn Conn, lockFactory lock.LockFactory) *build {
+func newEmptyBuild(conn DbConn, lockFactory lock.LockFactory) *build {
 	return &build{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
@@ -934,7 +936,7 @@ func (b *build) SaveImageResourceVersion(rc ResourceCache) error {
 		RunWith(b.conn).
 		Exec()
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 			return nil
 		}
 
@@ -1851,7 +1853,7 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	var (
 		jobID, resourceID, resourceTypeID, pipelineID, rerunOf, rerunNumber               sql.NullInt64
 		schema, privatePlan, jobName, resourceName, pipelineName, publicPlan, rerunOfName sql.NullString
-		createTime, startTime, endTime, reapTime                                          pq.NullTime
+		createTime, startTime, endTime, reapTime                                          sql.NullTime
 		nonce, spanContext, createdBy                                                     sql.NullString
 		drained, aborted, completed                                                       bool
 		status                                                                            string

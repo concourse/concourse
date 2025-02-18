@@ -11,10 +11,10 @@ type ResourceConfigCheckSessionLifecycle interface {
 }
 
 type resourceConfigCheckSessionLifecycle struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewResourceConfigCheckSessionLifecycle(conn Conn) ResourceConfigCheckSessionLifecycle {
+func NewResourceConfigCheckSessionLifecycle(conn DbConn) ResourceConfigCheckSessionLifecycle {
 	return resourceConfigCheckSessionLifecycle{
 		conn: conn,
 	}

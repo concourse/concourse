@@ -31,11 +31,11 @@ type ResourceCacheFactory interface {
 }
 
 type resourceCacheFactory struct {
-	conn        Conn
+	conn        DbConn
 	lockFactory lock.LockFactory
 }
 
-func NewResourceCacheFactory(conn Conn, lockFactory lock.LockFactory) ResourceCacheFactory {
+func NewResourceCacheFactory(conn DbConn, lockFactory lock.LockFactory) ResourceCacheFactory {
 	return &resourceCacheFactory{
 		conn:        conn,
 		lockFactory: lockFactory,
@@ -211,7 +211,7 @@ func (f *resourceCacheFactory) FindResourceCacheByID(id int) (ResourceCache, boo
 	return findResourceCacheByID(tx, id, f.lockFactory, f.conn)
 }
 
-func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn Conn) (ResourceCache, bool, error) {
+func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, conn DbConn) (ResourceCache, bool, error) {
 	var rcID int
 	var versionBytes string
 

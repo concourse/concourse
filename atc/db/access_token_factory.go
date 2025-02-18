@@ -15,12 +15,12 @@ type AccessTokenFactory interface {
 	GetAccessToken(token string) (AccessToken, bool, error)
 }
 
-func NewAccessTokenFactory(conn Conn) AccessTokenFactory {
+func NewAccessTokenFactory(conn DbConn) AccessTokenFactory {
 	return &accessTokenFactory{conn}
 }
 
 type accessTokenFactory struct {
-	conn Conn
+	conn DbConn
 }
 
 func (a *accessTokenFactory) CreateAccessToken(token string, claims Claims) error {

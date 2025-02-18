@@ -13,7 +13,6 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/util"
-	"github.com/lib/pq"
 )
 
 type ResourceTypeNotFoundError struct {
@@ -210,7 +209,7 @@ func (t *resourceType) ResourceConfigScopeID() int        { return t.resourceCon
 func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 func (t *resourceType) HasWebhook() bool                  { return false }
 
-func newEmptyResourceType(conn Conn, lockFactory lock.LockFactory) *resourceType {
+func newEmptyResourceType(conn DbConn, lockFactory lock.LockFactory) *resourceType {
 	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
 }
 
@@ -356,7 +355,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 	var (
 		configJSON                           sql.NullString
 		rcsID, nonce                         sql.NullString
-		lastCheckStartTime, lastCheckEndTime pq.NullTime
+		lastCheckStartTime, lastCheckEndTime sql.NullTime
 		pipelineInstanceVars                 sql.NullString
 		resourceConfigID                     sql.NullInt64
 	)

@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 	uuid "github.com/nu7hatch/gouuid"
 )
 
@@ -80,7 +82,7 @@ type creatingVolume struct {
 	workerTaskCacheID        int
 	workerResourceCertsID    int
 	workerArtifactID         int
-	conn                     Conn
+	conn                     DbConn
 }
 
 func (volume *creatingVolume) ID() int { return volume.id }
@@ -186,7 +188,7 @@ type createdVolume struct {
 	workerTaskCacheID        int
 	workerResourceCertsID    int
 	workerArtifactID         int
-	conn                     Conn
+	conn                     DbConn
 }
 
 type VolumeResourceType struct {
@@ -469,7 +471,7 @@ func (volume *createdVolume) initializeResourceCache(tx Tx, resourceCache Resour
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 			// another volume was 'blessed' as the cache volume - leave this one
 			// owned by the container so it just expires when the container is GCed
 			return nil, false, nil
@@ -502,7 +504,7 @@ func (volume *createdVolume) InitializeArtifact(name string, buildID int) (Worke
 	return initializeArtifact(volume.conn, volume.id, name, buildID)
 }
 
-func initializeArtifact(conn Conn, volumeID int, name string, buildID int) (WorkerArtifact, error) {
+func initializeArtifact(conn DbConn, volumeID int, name string, buildID int) (WorkerArtifact, error) {
 	tx, err := conn.Begin()
 	if err != nil {
 		return nil, err
@@ -587,7 +589,7 @@ func (volume *createdVolume) InitializeTaskCache(jobID int, stepName string, pat
 		RunWith(tx).
 		Exec()
 	if err != nil {
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code.Name() == pqUniqueViolationErrCode {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
 			// another volume was 'blessed' as the cache volume - leave this one
 			// owned by the container so it just expires when the container is GCed
 			return nil
@@ -691,9 +693,9 @@ func (volume *createdVolume) Destroying() (DestroyingVolume, error) {
 
 		}
 
-		if pqErr, ok := err.(*pq.Error); ok &&
-			pqErr.Code.Name() == pqFKeyViolationErrCode &&
-			pqErr.Constraint == "volumes_parent_id_fkey" {
+		if pgErr, ok := err.(*pgconn.PgError); ok &&
+			pgErr.Code == pgerrcode.ForeignKeyViolation &&
+			pgErr.ConstraintName == "volumes_parent_id_fkey" {
 			return nil, ErrVolumeCannotBeDestroyedWithChildrenPresent
 		}
 
@@ -719,7 +721,7 @@ type destroyingVolume struct {
 	id         int
 	workerName string
 	handle     string
-	conn       Conn
+	conn       DbConn
 }
 
 func (volume *destroyingVolume) Handle() string     { return volume.handle }
@@ -759,7 +761,7 @@ type failedVolume struct {
 	id         int
 	workerName string
 	handle     string
-	conn       Conn
+	conn       DbConn
 }
 
 func (volume *failedVolume) Handle() string     { return volume.handle }
@@ -789,7 +791,7 @@ func (volume *failedVolume) Destroy() (bool, error) {
 	return true, nil
 }
 
-func volumeStateTransition(volumeID int, conn Conn, from, to VolumeState) error {
+func volumeStateTransition(volumeID int, conn DbConn, from, to VolumeState) error {
 	rows, err := psql.Update("volumes").
 		Set("state", string(to)).
 		Where(sq.And{

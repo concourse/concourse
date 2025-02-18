@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/db"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type FakeListener struct {
@@ -30,15 +30,15 @@ type FakeListener struct {
 	listenReturnsOnCall map[int]struct {
 		result1 error
 	}
-	NotificationChannelStub        func() <-chan *pq.Notification
+	NotificationChannelStub        func() <-chan *pgconn.Notification
 	notificationChannelMutex       sync.RWMutex
 	notificationChannelArgsForCall []struct {
 	}
 	notificationChannelReturns struct {
-		result1 <-chan *pq.Notification
+		result1 <-chan *pgconn.Notification
 	}
 	notificationChannelReturnsOnCall map[int]struct {
-		result1 <-chan *pq.Notification
+		result1 <-chan *pgconn.Notification
 	}
 	UnlistenStub        func(string) error
 	unlistenMutex       sync.RWMutex
@@ -169,7 +169,7 @@ func (fake *FakeListener) ListenReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeListener) NotificationChannel() <-chan *pq.Notification {
+func (fake *FakeListener) NotificationChannel() <-chan *pgconn.Notification {
 	fake.notificationChannelMutex.Lock()
 	ret, specificReturn := fake.notificationChannelReturnsOnCall[len(fake.notificationChannelArgsForCall)]
 	fake.notificationChannelArgsForCall = append(fake.notificationChannelArgsForCall, struct {
@@ -193,32 +193,32 @@ func (fake *FakeListener) NotificationChannelCallCount() int {
 	return len(fake.notificationChannelArgsForCall)
 }
 
-func (fake *FakeListener) NotificationChannelCalls(stub func() <-chan *pq.Notification) {
+func (fake *FakeListener) NotificationChannelCalls(stub func() <-chan *pgconn.Notification) {
 	fake.notificationChannelMutex.Lock()
 	defer fake.notificationChannelMutex.Unlock()
 	fake.NotificationChannelStub = stub
 }
 
-func (fake *FakeListener) NotificationChannelReturns(result1 <-chan *pq.Notification) {
+func (fake *FakeListener) NotificationChannelReturns(result1 <-chan *pgconn.Notification) {
 	fake.notificationChannelMutex.Lock()
 	defer fake.notificationChannelMutex.Unlock()
 	fake.NotificationChannelStub = nil
 	fake.notificationChannelReturns = struct {
-		result1 <-chan *pq.Notification
+		result1 <-chan *pgconn.Notification
 	}{result1}
 }
 
-func (fake *FakeListener) NotificationChannelReturnsOnCall(i int, result1 <-chan *pq.Notification) {
+func (fake *FakeListener) NotificationChannelReturnsOnCall(i int, result1 <-chan *pgconn.Notification) {
 	fake.notificationChannelMutex.Lock()
 	defer fake.notificationChannelMutex.Unlock()
 	fake.NotificationChannelStub = nil
 	if fake.notificationChannelReturnsOnCall == nil {
 		fake.notificationChannelReturnsOnCall = make(map[int]struct {
-			result1 <-chan *pq.Notification
+			result1 <-chan *pgconn.Notification
 		})
 	}
 	fake.notificationChannelReturnsOnCall[i] = struct {
-		result1 <-chan *pq.Notification
+		result1 <-chan *pgconn.Notification
 	}{result1}
 }
 

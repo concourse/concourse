@@ -77,11 +77,11 @@ func ExtractQueries(query string) []string {
 }
 
 type joinLimitValidatorConn struct {
-	db.Conn
+	db.DbConn
 }
 
 func (c joinLimitValidatorConn) Begin() (db.Tx, error) {
-	tx, err := c.Conn.Begin()
+	tx, err := c.DbConn.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -93,21 +93,21 @@ func (c joinLimitValidatorConn) Query(query string, args ...interface{}) (*sql.R
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
-	return c.Conn.Query(query, args...)
+	return c.DbConn.Query(query, args...)
 }
 
 func (c joinLimitValidatorConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
-	return c.Conn.QueryRow(query, args...)
+	return c.DbConn.QueryRow(query, args...)
 }
 
 func (c joinLimitValidatorConn) Exec(query string, args ...interface{}) (sql.Result, error) {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
-	return c.Conn.Exec(query, args...)
+	return c.DbConn.Exec(query, args...)
 }
 
 type joinLimitValidatorTx struct {

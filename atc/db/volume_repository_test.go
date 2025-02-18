@@ -1,12 +1,12 @@
 package db_test
 
 import (
+	"database/sql"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -846,7 +846,7 @@ var _ = Describe("VolumeRepository", func() {
 			today        time.Time
 			err          error
 			handles      []string
-			missingSince pq.NullTime
+			missingSince sql.NullTime
 		)
 
 		BeforeEach(func() {

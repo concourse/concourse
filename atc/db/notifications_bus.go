@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type Notification struct {
@@ -21,7 +21,7 @@ type Listener interface {
 	Close() error
 	Listen(channel string) error
 	Unlisten(channel string) error
-	NotificationChannel() <-chan *pq.Notification
+	NotificationChannel() <-chan *pgconn.Notification
 }
 
 //counterfeiter:generate . Executor
@@ -209,11 +209,11 @@ func (bus *notificationsBus) asyncNotify() {
 	}()
 }
 
-func (bus *notificationsBus) handleNotification(notification *pq.Notification) {
+func (bus *notificationsBus) handleNotification(notification *pgconn.Notification) {
 	// alert any relevant listeners of notification being received
 	// (nonblocking)
 	bus.notifications.eachForChannel(notification.Channel, func(sink chan Notification) {
-		n := Notification{Healthy: true, Payload: notification.Extra}
+		n := Notification{Healthy: true, Payload: notification.Payload}
 		select {
 		case sink <- n:
 			// notified of message being received (or queued up)

@@ -10,10 +10,10 @@ type WorkerArtifactLifecycle interface {
 }
 
 type artifactLifecycle struct {
-	conn Conn
+	conn DbConn
 }
 
-func NewArtifactLifecycle(conn Conn) *artifactLifecycle {
+func NewArtifactLifecycle(conn DbConn) *artifactLifecycle {
 	return &artifactLifecycle{
 		conn: conn,
 	}

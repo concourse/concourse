@@ -9,7 +9,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	"github.com/lib/pq"
 )
 
 //counterfeiter:generate . WorkerFactory
@@ -25,11 +24,11 @@ type WorkerFactory interface {
 }
 
 type workerFactory struct {
-	conn  Conn
+	conn  DbConn
 	cache *WorkerCache
 }
 
-func NewWorkerFactory(conn Conn, cache *WorkerCache) WorkerFactory {
+func NewWorkerFactory(conn DbConn, cache *WorkerCache) WorkerFactory {
 	return &workerFactory{
 		conn:  conn,
 		cache: cache,
@@ -109,7 +108,7 @@ func (f *workerFactory) Workers() ([]Worker, error) {
 	return f.cache.Workers()
 }
 
-func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
+func getWorker(conn DbConn, query sq.SelectBuilder) (Worker, bool, error) {
 	row := query.
 		RunWith(conn).
 		QueryRow()
@@ -127,7 +126,7 @@ func getWorker(conn Conn, query sq.SelectBuilder) (Worker, bool, error) {
 	return w, true, nil
 }
 
-func getWorkers(conn Conn, query sq.SelectBuilder) ([]Worker, error) {
+func getWorkers(conn DbConn, query sq.SelectBuilder) ([]Worker, error) {
 	rows, err := query.RunWith(conn).Query()
 	if err != nil {
 		return nil, err
@@ -164,8 +163,8 @@ func scanWorker(worker *worker, row scannable) error {
 		tags          []byte
 		teamName      sql.NullString
 		teamID        sql.NullInt64
-		startTime     pq.NullTime
-		expiresAt     pq.NullTime
+		startTime     sql.NullTime
+		expiresAt     sql.NullTime
 		ephemeral     sql.NullBool
 	)
 
@@ -365,7 +364,7 @@ func (f *workerFactory) BuildContainersCountPerWorker() (map[string]int, error) 
 	return f.cache.WorkerContainerCounts()
 }
 
-func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, conn Conn) (Worker, error) {
+func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, conn DbConn) (Worker, error) {
 	resourceTypes, err := json.Marshal(atcWorker.ResourceTypes)
 	if err != nil {
 		return nil, err
