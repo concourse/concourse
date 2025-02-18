@@ -1,11 +1,1 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0.5" y="0.5" width="15" height="15" stroke="#FFFFFF"/>
-    <rect x="6" y="13" width="1" height="1" fill="#FFFFFF"/>
-    <rect x="6" y="11" width="1" height="1" fill="#FFFFFF"/>
-    <rect x="6" y="9" width="1" height="1" fill="#FFFFFF"/>
-    <rect x="6" y="7" width="1" height="1" fill="#FFFFFF"/>
-    <rect x="6" y="5" width="1" height="1" fill="#FFFFFF"/>
-    <rect x="6" y="3" width="1" height="1" fill="#FFFFFF"/>
-    <rect x="6" y="1" width="1" height="1" fill="#FFFFFF"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"><path stroke="#FFF" d="M.5.5h15v15H.5z"/><path fill="#FFF" d="M6 13h1v1H6zM6 11h1v1H6zM6 9h1v1H6zM6 7h1v1H6zM6 5h1v1H6zM6 3h1v1H6zM6 1h1v1H6z"/></svg>
