@@ -8,7 +8,7 @@ import (
 //go:generate counterfeiter . Translator
 
 type Translator interface {
-	TranslatePath(path string, info os.FileInfo, err error) error
+	TranslatePath(path string, dir os.DirEntry, err error) error
 	TranslateCommand(*exec.Cmd)
 }
 
@@ -31,7 +31,12 @@ func NewTranslator(mapper Mapper) *translator {
 	}
 }
 
-func (t *translator) TranslatePath(path string, info os.FileInfo, err error) error {
+func (t *translator) TranslatePath(path string, dir os.DirEntry, err error) error {
+	if err != nil {
+		return err
+	}
+
+	info, err := dir.Info()
 	if err != nil {
 		return err
 	}

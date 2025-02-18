@@ -27,7 +27,7 @@ func (n *UidNamespacer) NamespacePath(logger lager.Logger, rootfsPath string) er
 	log.Debug("start")
 	defer log.Debug("done")
 
-	if err := filepath.Walk(rootfsPath, n.Translator.TranslatePath); err != nil {
+	if err := filepath.WalkDir(rootfsPath, n.Translator.TranslatePath); err != nil {
 		log.Error("failed-to-walk-and-translate", err)
 	}
 

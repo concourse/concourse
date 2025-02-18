@@ -39,7 +39,7 @@ func Compress(dest io.Writer, workDir string, paths ...string) error {
 }
 
 func writePathToTar(tw *tar.Writer, workDir string, srcPath string) error {
-	return filepath.Walk(srcPath, func(path string, info os.FileInfo, err error) error {
+	return filepath.WalkDir(srcPath, func(path string, info os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
