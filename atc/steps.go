@@ -387,6 +387,7 @@ type SetPipelineStep struct {
 	Vars         Params       `json:"vars,omitempty"`
 	VarFiles     []string     `json:"var_files,omitempty"`
 	InstanceVars InstanceVars `json:"instance_vars,omitempty"`
+	Detach       bool         `json:"detach,omitempty"`
 }
 
 func (step *SetPipelineStep) Visit(v StepVisitor) error {
