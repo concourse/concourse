@@ -70,8 +70,7 @@ type Privileged bool
 type InputHandler func(io.ReadCloser) error
 type OutputHandler func(io.Writer) error
 
-//go:generate counterfeiter . Pool
-
+//counterfeiter:generate . Pool
 type Pool interface {
 	FindOrSelectWorker(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)
 	FindResourceCacheVolume(context.Context, int, db.ResourceCache, worker.Spec, time.Time) (runtime.Volume, bool, error)
@@ -80,8 +79,7 @@ type Pool interface {
 	LocateVolume(ctx context.Context, teamID int, handle string) (runtime.Volume, runtime.Worker, bool, error)
 }
 
-//go:generate counterfeiter . Streamer
-
+//counterfeiter:generate . Streamer
 type Streamer interface {
 	StreamFile(ctx context.Context, artifact runtime.Artifact, path string) (io.ReadCloser, error)
 }

@@ -5,7 +5,9 @@ import (
 	"path/filepath"
 )
 
-//go:generate counterfeiter . Filesystem
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . Filesystem
 
 type Filesystem interface {
 	NewVolume(string) (FilesystemInitVolume, error)
@@ -13,7 +15,7 @@ type Filesystem interface {
 	ListVolumes() ([]FilesystemLiveVolume, error)
 }
 
-//go:generate counterfeiter . FilesystemVolume
+//counterfeiter:generate . FilesystemVolume
 
 // FilesystemVolume represents the state of a volume's data and metadata.
 //
@@ -35,7 +37,7 @@ type FilesystemVolume interface {
 	Destroy() error
 }
 
-//go:generate counterfeiter . FilesystemInitVolume
+//counterfeiter:generate . FilesystemInitVolume
 
 type FilesystemInitVolume interface {
 	FilesystemVolume
@@ -43,7 +45,7 @@ type FilesystemInitVolume interface {
 	Initialize() (FilesystemLiveVolume, error)
 }
 
-//go:generate counterfeiter . FilesystemLiveVolume
+//counterfeiter:generate . FilesystemLiveVolume
 
 type FilesystemLiveVolume interface {
 	FilesystemVolume

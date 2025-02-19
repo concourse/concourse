@@ -5,8 +5,9 @@ import (
 	"sync"
 )
 
-//go:generate counterfeiter . LockManager
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate. LockManager
 type LockManager interface {
 	Lock(key string)
 	Unlock(key string)

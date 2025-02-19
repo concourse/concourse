@@ -543,7 +543,7 @@ func (s *IntegrationSuite) TestRunUnprivileged() {
 	maxUid, maxGid, err := runtime.NewUserNamespace().MaxValidIds()
 	s.NoError(err)
 
-	filepath.Walk(s.rootfs, func(path string, _ os.FileInfo, _ error) error {
+	filepath.WalkDir(s.rootfs, func(path string, _ os.DirEntry, _ error) error {
 		return os.Lchown(path, int(maxUid), int(maxGid))
 	})
 

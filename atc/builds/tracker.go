@@ -14,14 +14,14 @@ import (
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
-//go:generate counterfeiter . Engine
+//counterfeiter:generate . Engine
 type Engine interface {
 	NewBuild(db.Build) Runnable
 
 	Drain(context.Context)
 }
 
-//go:generate counterfeiter . Runnable
+//counterfeiter:generate . Runnable
 type Runnable interface {
 	Run(context.Context)
 }
