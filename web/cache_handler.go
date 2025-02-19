@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/NYTimes/gziphandler"
+	"github.com/klauspost/compress/gzhttp"
 )
 
 const yearInSeconds = 31536000
@@ -14,5 +14,5 @@ func CacheNearlyForever(handler http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d, private", yearInSeconds))
 		handler.ServeHTTP(w, r)
 	})
-	return gziphandler.GzipHandler(withoutGz)
+	return gzhttp.GzipHandler(withoutGz)
 }
