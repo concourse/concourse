@@ -44,6 +44,7 @@ type VolumeRepository interface {
 	RemoveDestroyingVolumes(workerName string, handles []string) (int, error)
 
 	UpdateVolumesMissingSince(workerName string, handles []string) error
+	UpdateVolumeSize(handle string, size int) error
 	RemoveMissingVolumes(gracePeriod time.Duration) (removed int, err error)
 
 	DestroyUnknownVolumes(workerName string, handles []string) (int, error)
@@ -131,6 +132,32 @@ func (repository *volumeRepository) UpdateVolumesMissingSince(workerName string,
 		Set("missing_since", sq.Expr("now()")).
 		Where(sq.And{
 			sq.Eq{"handle": handles},
+			sq.NotEq{"state": VolumeStateCreating},
+		}).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(query, args...)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (repository *volumeRepository) UpdateVolumeSize(handle string, size int) error {
+	tx, err := repository.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	query, args, err := psql.Update("volumes").
+		Set("size", size).
+		Where(sq.And{
+			sq.Eq{"handle": handle},
 			sq.NotEq{"state": VolumeStateCreating},
 		}).ToSql()
 	if err != nil {
@@ -797,6 +824,7 @@ var volumeColumns = []string{
 	"v.state",
 	"w.name",
 	"v.path",
+	"v.size",
 	"c.handle",
 	"pv.handle",
 	"v.team_id",
@@ -823,6 +851,7 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 	var state string
 	var workerName string
 	var sqPath sql.NullString
+	var sqSize sql.NullInt64
 	var sqContainerHandle sql.NullString
 	var sqParentHandle sql.NullString
 	var sqTeamID sql.NullInt64
@@ -840,6 +869,7 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 		&state,
 		&workerName,
 		&sqPath,
+		&sqSize,
 		&sqContainerHandle,
 		&sqParentHandle,
 		&sqTeamID,
@@ -858,6 +888,11 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 	var path string
 	if sqPath.Valid {
 		path = sqPath.String
+	}
+
+	var size int
+	if sqSize.Valid {
+		size = int(sqSize.Int64)
 	}
 
 	var containerHandle string
@@ -912,6 +947,7 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 			handle:                   handle,
 			typ:                      volumeType,
 			path:                     path,
+			size:                     size,
 			teamID:                   teamID,
 			workerName:               workerName,
 			containerHandle:          containerHandle,
@@ -930,6 +966,7 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 			handle:                   handle,
 			typ:                      volumeType,
 			path:                     path,
+			size:                     size,
 			teamID:                   teamID,
 			workerName:               workerName,
 			containerHandle:          containerHandle,
