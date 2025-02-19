@@ -7,8 +7,9 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 )
 
-//go:generate counterfeiter . Namespacer
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Namespacer
 type Namespacer interface {
 	NamespacePath(logger lager.Logger, path string) error
 	NamespaceCommand(cmd *exec.Cmd)

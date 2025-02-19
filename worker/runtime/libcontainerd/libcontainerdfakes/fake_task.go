@@ -9,6 +9,7 @@ import (
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/api/types"
 	"github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/oci"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -188,17 +189,17 @@ type FakeTask struct {
 	resumeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SpecStub        func(context.Context) (*specs.Spec, error)
+	SpecStub        func(context.Context) (*oci.Spec, error)
 	specMutex       sync.RWMutex
 	specArgsForCall []struct {
 		arg1 context.Context
 	}
 	specReturns struct {
-		result1 *specs.Spec
+		result1 *oci.Spec
 		result2 error
 	}
 	specReturnsOnCall map[int]struct {
-		result1 *specs.Spec
+		result1 *oci.Spec
 		result2 error
 	}
 	StartStub        func(context.Context) error
@@ -1114,7 +1115,7 @@ func (fake *FakeTask) ResumeReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTask) Spec(arg1 context.Context) (*specs.Spec, error) {
+func (fake *FakeTask) Spec(arg1 context.Context) (*oci.Spec, error) {
 	fake.specMutex.Lock()
 	ret, specificReturn := fake.specReturnsOnCall[len(fake.specArgsForCall)]
 	fake.specArgsForCall = append(fake.specArgsForCall, struct {
@@ -1139,7 +1140,7 @@ func (fake *FakeTask) SpecCallCount() int {
 	return len(fake.specArgsForCall)
 }
 
-func (fake *FakeTask) SpecCalls(stub func(context.Context) (*specs.Spec, error)) {
+func (fake *FakeTask) SpecCalls(stub func(context.Context) (*oci.Spec, error)) {
 	fake.specMutex.Lock()
 	defer fake.specMutex.Unlock()
 	fake.SpecStub = stub
@@ -1152,28 +1153,28 @@ func (fake *FakeTask) SpecArgsForCall(i int) context.Context {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTask) SpecReturns(result1 *specs.Spec, result2 error) {
+func (fake *FakeTask) SpecReturns(result1 *oci.Spec, result2 error) {
 	fake.specMutex.Lock()
 	defer fake.specMutex.Unlock()
 	fake.SpecStub = nil
 	fake.specReturns = struct {
-		result1 *specs.Spec
+		result1 *oci.Spec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTask) SpecReturnsOnCall(i int, result1 *specs.Spec, result2 error) {
+func (fake *FakeTask) SpecReturnsOnCall(i int, result1 *oci.Spec, result2 error) {
 	fake.specMutex.Lock()
 	defer fake.specMutex.Unlock()
 	fake.SpecStub = nil
 	if fake.specReturnsOnCall == nil {
 		fake.specReturnsOnCall = make(map[int]struct {
-			result1 *specs.Spec
+			result1 *oci.Spec
 			result2 error
 		})
 	}
 	fake.specReturnsOnCall[i] = struct {
-		result1 *specs.Spec
+		result1 *oci.Spec
 		result2 error
 	}{result1, result2}
 }

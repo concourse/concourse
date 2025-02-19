@@ -18,7 +18,9 @@ const (
 	StrategyImport      = "import"
 )
 
-//go:generate counterfeiter . Client
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . Client
 
 // Client represents a client connection to a BaggageClaim server.
 type Client interface {
@@ -72,7 +74,7 @@ type Client interface {
 	DestroyVolume(context.Context, string) error
 }
 
-//go:generate counterfeiter . Volume
+//counterfeiter:generate . Volume
 
 // Volume represents a volume in the BaggageClaim system.
 type Volume interface {

@@ -2,7 +2,7 @@
 package uidgidfakes
 
 import (
-	"io/fs"
+	"os"
 	"os/exec"
 	"sync"
 
@@ -15,11 +15,11 @@ type FakeTranslator struct {
 	translateCommandArgsForCall []struct {
 		arg1 *exec.Cmd
 	}
-	TranslatePathStub        func(string, fs.FileInfo, error) error
+	TranslatePathStub        func(string, os.DirEntry, error) error
 	translatePathMutex       sync.RWMutex
 	translatePathArgsForCall []struct {
 		arg1 string
-		arg2 fs.FileInfo
+		arg2 os.DirEntry
 		arg3 error
 	}
 	translatePathReturns struct {
@@ -64,12 +64,12 @@ func (fake *FakeTranslator) TranslateCommandArgsForCall(i int) *exec.Cmd {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTranslator) TranslatePath(arg1 string, arg2 fs.FileInfo, arg3 error) error {
+func (fake *FakeTranslator) TranslatePath(arg1 string, arg2 os.DirEntry, arg3 error) error {
 	fake.translatePathMutex.Lock()
 	ret, specificReturn := fake.translatePathReturnsOnCall[len(fake.translatePathArgsForCall)]
 	fake.translatePathArgsForCall = append(fake.translatePathArgsForCall, struct {
 		arg1 string
-		arg2 fs.FileInfo
+		arg2 os.DirEntry
 		arg3 error
 	}{arg1, arg2, arg3})
 	stub := fake.TranslatePathStub
@@ -91,13 +91,13 @@ func (fake *FakeTranslator) TranslatePathCallCount() int {
 	return len(fake.translatePathArgsForCall)
 }
 
-func (fake *FakeTranslator) TranslatePathCalls(stub func(string, fs.FileInfo, error) error) {
+func (fake *FakeTranslator) TranslatePathCalls(stub func(string, os.DirEntry, error) error) {
 	fake.translatePathMutex.Lock()
 	defer fake.translatePathMutex.Unlock()
 	fake.TranslatePathStub = stub
 }
 
-func (fake *FakeTranslator) TranslatePathArgsForCall(i int) (string, fs.FileInfo, error) {
+func (fake *FakeTranslator) TranslatePathArgsForCall(i int) (string, os.DirEntry, error) {
 	fake.translatePathMutex.RLock()
 	defer fake.translatePathMutex.RUnlock()
 	argsForCall := fake.translatePathArgsForCall[i]

@@ -1,7 +1,8 @@
 package volume
 
-//go:generate counterfeiter . Driver
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Driver
 type Driver interface {
 	CreateVolume(FilesystemInitVolume) error
 	DestroyVolume(FilesystemVolume) error

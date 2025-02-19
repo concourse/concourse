@@ -21,8 +21,9 @@ var ErrVolumeDoesNotExist = errors.New("volume does not exist")
 var ErrVolumeIsCorrupted = errors.New("volume is corrupted")
 var ErrUnsupportedStreamEncoding = errors.New("unsupported stream encoding")
 
-//go:generate counterfeiter . Repository
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
+//counterfeiter:generate . Repository
 type Repository interface {
 	ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, []string, error)
 	GetVolume(ctx context.Context, handle string) (Volume, bool, error)

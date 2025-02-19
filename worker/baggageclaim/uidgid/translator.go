@@ -5,7 +5,7 @@ import (
 	"os/exec"
 )
 
-//go:generate counterfeiter . Translator
+//counterfeiter:generate . Translator
 
 type Translator interface {
 	TranslatePath(path string, dir os.DirEntry, err error) error

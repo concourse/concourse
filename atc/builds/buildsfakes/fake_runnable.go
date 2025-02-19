@@ -23,9 +23,10 @@ func (fake *FakeRunnable) Run(arg1 context.Context) {
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
 		arg1 context.Context
 	}{arg1})
+	stub := fake.RunStub
 	fake.recordInvocation("Run", []interface{}{arg1})
 	fake.runMutex.Unlock()
-	if fake.RunStub != nil {
+	if stub != nil {
 		fake.RunStub(arg1)
 	}
 }
