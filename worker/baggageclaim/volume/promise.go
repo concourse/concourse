@@ -19,7 +19,6 @@ type Promise interface {
 type promise struct {
 	volume *Volume
 	err    error
-	cancel chan struct{}
 
 	sync.RWMutex
 }
@@ -28,7 +27,6 @@ func NewPromise() Promise {
 	return &promise{
 		volume: nil,
 		err:    nil,
-		cancel: make(chan struct{}),
 	}
 }
 
@@ -47,7 +45,7 @@ func (p *promise) GetValue() (Volume, error, error) {
 	p.RLock()
 	defer p.RUnlock()
 
-	if p.IsPending() {
+	if p.isPending() {
 		return Volume{}, nil, ErrPromiseStillPending
 	}
 
