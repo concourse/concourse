@@ -47,7 +47,7 @@ func (command *PruneWorkerCommand) Execute(args []string) error {
 			}
 		}
 		if workersNames == nil {
-			fmt.Printf(ui.WarningColor("WARNING: No stalled workers found.\n"))
+			fmt.Print(ui.WarningColor("WARNING: No stalled workers found.\n"))
 		}
 	}
 

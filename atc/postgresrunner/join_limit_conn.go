@@ -3,6 +3,7 @@ package postgresrunner
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -24,7 +25,7 @@ func validateJoinLimit(query string) error {
 			}
 			errMsg += fmt.Sprintf("\n\njoin_collapse_limit defaults to %d JOINs, while this query has %d. exceeding the limit can result in really slow queries", limit, numJoins)
 
-			return fmt.Errorf(errMsg)
+			return errors.New(errMsg)
 		}
 	}
 	return nil

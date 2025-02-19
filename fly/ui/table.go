@@ -97,13 +97,13 @@ func (table Table) renderRow(dst io.Writer, row TableRow, widths map[int]int, is
 		}
 
 		paddingSize := widths[i] - len(column.Contents)
-		_, err = fmt.Fprintf(dst, strings.Repeat(" ", paddingSize))
+		_, err = fmt.Fprint(dst, strings.Repeat(" ", paddingSize))
 		if err != nil {
 			return err
 		}
 
 		if i+1 < len(widths) {
-			_, err := fmt.Fprintf(dst, "  ")
+			_, err := fmt.Fprint(dst, "  ")
 			if err != nil {
 				return err
 			}
