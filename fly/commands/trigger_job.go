@@ -57,7 +57,7 @@ func (command *TriggerJobCommand) Execute(args []string) error {
 			<-terminate
 			fmt.Fprintf(ui.Stderr, "\ndetached, build is still running...\n")
 			fmt.Fprintf(ui.Stderr, "re-attach to it with:\n\n")
-			fmt.Fprintf(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineRef.String(), jobName, build.Name)))
+			fmt.Fprint(ui.Stderr, "    "+ui.Embolden(fmt.Sprintf("fly -t %s watch -j %s/%s -b %s\n\n", Fly.Target, pipelineRef.String(), jobName, build.Name)))
 			os.Exit(2)
 		}(terminate)
 

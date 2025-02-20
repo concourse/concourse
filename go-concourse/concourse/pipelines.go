@@ -3,6 +3,7 @@ package concourse
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -69,7 +70,7 @@ func (team *team) OrderingPipelines(pipelineNames []string) error {
 		return fmt.Errorf("you do not have a role on team '%s'", team.Name())
 	case http.StatusBadRequest:
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf(string(body))
+		return errors.New(string(body))
 	default:
 		body, _ := io.ReadAll(resp.Body)
 		return internal.UnexpectedResponseError{
@@ -113,7 +114,7 @@ func (team *team) OrderingPipelinesWithinGroup(groupName string, instanceVars []
 		return fmt.Errorf("you do not have a role on team '%s'", team.Name())
 	case http.StatusBadRequest:
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf(string(body))
+		return errors.New(string(body))
 	default:
 		body, _ := io.ReadAll(resp.Body)
 		return internal.UnexpectedResponseError{

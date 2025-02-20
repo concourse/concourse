@@ -1,8 +1,8 @@
 module github.com/concourse/concourse
 
-go 1.23.0
+go 1.24
 
-toolchain go1.23.5
+toolchain go1.24.0
 
 require (
 	code.cloudfoundry.org/clock v1.28.0

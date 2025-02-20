@@ -54,14 +54,14 @@ func (validator *StepValidator) Validate(step Step) error {
 		for field := range step.UnknownFields {
 			fieldNames = append(fieldNames, field)
 		}
-		validator.recordError("unknown fields %+q", fieldNames)
+		validator.recordErrorf("unknown fields %+q", fieldNames)
 	}
 
 	return step.Config.Visit(validator)
 }
 
 func (validator *StepValidator) VisitTask(plan *TaskStep) error {
-	validator.pushContext(fmt.Sprintf(".task(%s)", plan.Name))
+	validator.pushContextf(".task(%s)", plan.Name)
 	defer validator.popContext()
 
 	warning, err := ValidateIdentifier(plan.Name, validator.context...)
@@ -114,7 +114,7 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 }
 
 func (validator *StepValidator) VisitGet(step *GetStep) error {
-	validator.pushContext(fmt.Sprintf(".get(%s)", step.Name))
+	validator.pushContextf(".get(%s)", step.Name)
 	defer validator.popContext()
 
 	warning, err := ValidateIdentifier(step.Name, validator.context...)
@@ -135,7 +135,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 
 	_, found := validator.config.Resources.Lookup(resourceName)
 	if !found {
-		validator.recordError("unknown resource '%s'", resourceName)
+		validator.recordErrorf("unknown resource '%s'", resourceName)
 	}
 
 	validator.pushContext(".passed")
@@ -143,7 +143,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	for _, job := range step.Passed {
 		jobConfig, found := validator.config.Jobs.Lookup(job)
 		if !found {
-			validator.recordError("unknown job '%s'", job)
+			validator.recordErrorf("unknown job '%s'", job)
 			continue
 		}
 
@@ -165,7 +165,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 		})
 
 		if !foundResource {
-			validator.recordError("job '%s' does not interact with resource '%s'", job, resourceName)
+			validator.recordErrorf("job '%s' does not interact with resource '%s'", job, resourceName)
 		}
 	}
 
@@ -175,7 +175,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 }
 
 func (validator *StepValidator) VisitPut(step *PutStep) error {
-	validator.pushContext(".put(%s)", step.Name)
+	validator.pushContextf(".put(%s)", step.Name)
 	defer validator.popContext()
 
 	warning, err := ValidateIdentifier(step.Name, validator.context...)
@@ -190,14 +190,14 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 
 	_, found := validator.config.Resources.Lookup(resourceName)
 	if !found {
-		validator.recordError("unknown resource '%s'", resourceName)
+		validator.recordErrorf("unknown resource '%s'", resourceName)
 	}
 
 	return nil
 }
 
 func (validator *StepValidator) VisitRun(step *RunStep) error {
-	validator.pushContext(".run(%s.%s)", step.Type, step.Message)
+	validator.pushContextf(".run(%s.%s)", step.Type, step.Message)
 	defer validator.popContext()
 
 	warning, err := ValidateIdentifier(step.Message, validator.context...)
@@ -213,14 +213,14 @@ func (validator *StepValidator) VisitRun(step *RunStep) error {
 
 	_, found := validator.config.Prototypes.Lookup(step.Type)
 	if !found {
-		validator.recordError("unknown prototype '%s'", step.Type)
+		validator.recordErrorf("unknown prototype '%s'", step.Type)
 	}
 
 	return nil
 }
 
 func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
-	validator.pushContext(".set_pipeline(%s)", step.Name)
+	validator.pushContextf(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()
 
 	warning, err := ValidateIdentifier(step.Name, validator.context...)
@@ -239,7 +239,7 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 }
 
 func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
-	validator.pushContext(".load_var(%s)", step.Name)
+	validator.pushContextf(".load_var(%s)", step.Name)
 	defer validator.popContext()
 
 	warning, err := ValidateIdentifier(step.Name, validator.context...)
@@ -271,7 +271,7 @@ func (validator *StepValidator) VisitDo(step *DoStep) error {
 	defer validator.popContext()
 
 	for i, sub := range step.Steps {
-		validator.pushContext(fmt.Sprintf("[%d]", i))
+		validator.pushContextf("[%d]", i)
 
 		err := validator.Validate(sub)
 		if err != nil {
@@ -289,7 +289,7 @@ func (validator *StepValidator) VisitInParallel(step *InParallelStep) error {
 	defer validator.popContext()
 
 	for i, sub := range step.Config.Steps {
-		validator.pushContext(".steps[%d]", i)
+		validator.pushContextf(".steps[%d]", i)
 
 		err := validator.Validate(sub)
 		if err != nil {
@@ -318,7 +318,7 @@ func (validator *StepValidator) VisitAcross(step *AcrossStep) error {
 	}
 
 	for i, v := range step.Vars {
-		validator.pushContext("[%d]", i)
+		validator.pushContextf("[%d]", i)
 
 		validator.declareLocalVar(v.Var)
 
@@ -344,7 +344,7 @@ func (validator *StepValidator) VisitTimeout(step *TimeoutStep) error {
 
 	_, err = time.ParseDuration(step.Duration)
 	if err != nil {
-		validator.recordError("invalid duration '%s'", step.Duration)
+		validator.recordErrorf("invalid duration '%s'", step.Duration)
 	}
 
 	return nil
@@ -430,7 +430,11 @@ func (validator *StepValidator) recordWarning(warning ConfigWarning) {
 	validator.Warnings = append(validator.Warnings, warning)
 }
 
-func (validator *StepValidator) recordError(message string, args ...interface{}) {
+func (validator *StepValidator) recordError(message string) {
+	validator.Errors = append(validator.Errors, validator.annotate(message))
+}
+
+func (validator *StepValidator) recordErrorf(message string, args ...interface{}) {
 	validator.Errors = append(validator.Errors, validator.annotate(fmt.Sprintf(message, args...)))
 }
 
@@ -438,7 +442,11 @@ func (validator *StepValidator) annotate(message string) string {
 	return fmt.Sprintf("%s: %s", strings.Join(validator.context, ""), message)
 }
 
-func (validator *StepValidator) pushContext(ctx string, args ...interface{}) {
+func (validator *StepValidator) pushContext(ctx string) {
+	validator.context = append(validator.context, ctx)
+}
+
+func (validator *StepValidator) pushContextf(ctx string, args ...interface{}) {
 	validator.context = append(validator.context, fmt.Sprintf(ctx, args...))
 }
 

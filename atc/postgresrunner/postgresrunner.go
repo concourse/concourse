@@ -211,9 +211,12 @@ func (runner *Runner) dataSourceName(dbName string) string {
 	return fmt.Sprintf("host=/tmp user=postgres dbname=%s sslmode=disable port=%d", dbName, runner.Port)
 }
 
-func (runner *Runner) psql(c string, args ...interface{}) int {
-	commandStr := fmt.Sprintf(c, args...)
-	cmd := exec.Command("psql", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "-q", "-t", "-c", commandStr)
+func (runner *Runner) psqlf(c string, args ...interface{}) int {
+	return runner.psql(fmt.Sprintf(c, args...))
+}
+
+func (runner *Runner) psql(c string) int {
+	cmd := exec.Command("psql", "-h", "/tmp", "-U", "postgres", "-p", strconv.Itoa(runner.Port), "-q", "-t", "-c", c)
 	session, err := gexec.Start(cmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -278,7 +281,7 @@ func (runner *Runner) DropTestDB() {
 }
 
 func (runner *Runner) terminateIdleConnections(dbName string) {
-	exitCode := runner.psql("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname = '%s' AND state = 'idle';", dbName)
+	exitCode := runner.psqlf("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND datname = '%s' AND state = 'idle';", dbName)
 	Expect(exitCode).To(Equal(0), "terminate idle connections")
 }
 

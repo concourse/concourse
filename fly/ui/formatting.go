@@ -9,12 +9,15 @@ import (
 )
 
 func Embolden(message string, params ...interface{}) string {
-	if isatty.IsTerminal(os.Stdout.Fd()) {
-
-		return fmt.Sprintf(fmt.Sprintf("\033[1m%s\033[22m", message), params...)
+	if len(params) > 0 {
+		message = fmt.Sprintf(message, params...)
 	}
 
-	return fmt.Sprintf(message, params...)
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		return fmt.Sprintf("\033[1m%s\033[22m", message)
+	}
+
+	return message
 }
 
 func WarningColor(message string, params ...interface{}) string {
