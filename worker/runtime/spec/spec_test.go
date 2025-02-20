@@ -5,6 +5,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -413,6 +414,10 @@ func (s *SpecSuite) TestOciCgroupsPath() {
 }
 
 func (s *SpecSuite) TestContainerSpec() {
+	cgroupType := "cgroup"
+	if cgroups.IsCgroup2UnifiedMode() {
+		cgroupType = "cgroup2"
+	}
 	var minimalContainerSpec = garden.ContainerSpec{
 		Handle: "handle", RootFSPath: "raw:///rootfs",
 	}
@@ -453,14 +458,14 @@ func (s *SpecSuite) TestContainerSpec() {
 				})
 				s.Contains(oci.Mounts, specs.Mount{
 					Destination: "/sys/fs/cgroup",
-					Type:        "cgroup",
-					Source:      "cgroup",
+					Type:        cgroupType,
+					Source:      cgroupType,
 					Options:     []string{"nosuid", "noexec", "nodev"},
 				})
 				for _, ociMount := range oci.Mounts {
 					if ociMount.Destination == "/sys" {
 						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
-					} else if ociMount.Type == "cgroup" {
+					} else if ociMount.Destination == "/sys/fs/cgroup" {
 						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
 					}
 				}
@@ -482,14 +487,14 @@ func (s *SpecSuite) TestContainerSpec() {
 				})
 				s.NotContains(oci.Mounts, specs.Mount{
 					Destination: "/sys/fs/cgroup",
-					Type:        "cgroup",
-					Source:      "cgroup",
+					Type:        cgroupType,
+					Source:      cgroupType,
 					Options:     []string{"nosuid", "noexec", "nodev"},
 				})
 				for _, ociMount := range oci.Mounts {
 					if ociMount.Destination == "/sys" {
 						s.Contains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
-					} else if ociMount.Type == "cgroup" {
+					} else if ociMount.Destination == "/sys/fs/cgroup" {
 						s.Contains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
 					}
 				}

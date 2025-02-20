@@ -1,6 +1,9 @@
 package spec
 
-import "github.com/opencontainers/runtime-spec/specs-go"
+import (
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runtime-spec/specs-go"
+)
 
 const DefaultInitBinPath = "/usr/local/concourse/bin/init"
 
@@ -44,8 +47,8 @@ var (
 		},
 		{
 			Destination: "/sys/fs/cgroup",
-			Type:        "cgroup",
-			Source:      "cgroup",
+			Type:        systemCgroupType(),
+			Source:      systemCgroupType(),
 			Options:     []string{"ro", "nosuid", "noexec", "nodev"},
 		},
 	}
@@ -63,7 +66,7 @@ func ContainerMounts(privilegedMode PrivilegedMode, privileged bool, initBinPath
 	// Following the current behaviour for privileged containers in Docker
 	if privileged && privilegedMode == FullPrivilegedMode {
 		for i, ociMount := range mounts {
-			if ociMount.Destination == "/sys" || ociMount.Type == "cgroup" {
+			if ociMount.Destination == "/sys" || ociMount.Type == systemCgroupType() {
 				clearReadOnly(&mounts[i])
 			}
 		}
@@ -79,4 +82,11 @@ func clearReadOnly(m *specs.Mount) {
 		}
 	}
 	m.Options = opt
+}
+
+func systemCgroupType() string {
+	if cgroups.IsCgroup2UnifiedMode() {
+		return "cgroup2"
+	}
+	return "cgroup"
 }
