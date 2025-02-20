@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
@@ -396,6 +397,7 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 		return false, ErrVolumeDoesNotExist
 	}
 
+	path = strings.ReplaceAll(path, "..", "")
 	destinationPath := filepath.Join(volume.DataPath(), path)
 
 	logger = logger.WithData(lager.Data{
