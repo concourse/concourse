@@ -63,7 +63,7 @@ type ContainerdRuntime struct {
 	} `group:"Container Networking"`
 
 	MaxContainers  int                   `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
-	PrivilegedMode bespec.PrivilegedMode `long:"privileged-mode" default:"full" description:"How many privileges privileged containers get. full equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
+	PrivilegedMode bespec.PrivilegedMode `long:"privileged-mode" default:"full" choice:"full" choice:"fuse-only" choice:"ignore" description:"How many privileges privileged containers get. full is equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
 }
 
 type DNSConfig struct {
