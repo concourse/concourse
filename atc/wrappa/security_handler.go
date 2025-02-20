@@ -3,9 +3,10 @@ package wrappa
 import "net/http"
 
 type SecurityHandler struct {
-	XFrameOptions         string
-	ContentSecurityPolicy string
-	Handler               http.Handler
+	XFrameOptions           string
+	ContentSecurityPolicy   string
+	StrictTransportSecurity string
+	Handler                 http.Handler
 }
 
 func (handler SecurityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -14,6 +15,9 @@ func (handler SecurityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 	if handler.ContentSecurityPolicy != "" {
 		w.Header().Set("Content-Security-Policy", handler.ContentSecurityPolicy)
+	}
+	if handler.StrictTransportSecurity != "" {
+		w.Header().Set("Strict-Transport-Security", handler.StrictTransportSecurity)
 	}
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
 	w.Header().Set("X-Content-Type-Options", "nosniff")

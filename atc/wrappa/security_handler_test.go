@@ -78,4 +78,22 @@ var _ = Describe("SecurityHandler", func() {
 			Expect(rw.Result().Header).NotTo(HaveKey("Content-Security-Policy"))
 		})
 	})
+
+	Context("when Strict-Transport-Security is set", func() {
+		BeforeEach(func() {
+			securityHandler = wrappa.SecurityHandler{
+				StrictTransportSecurity: "some-policy 'value'",
+				Handler:                 fakeHandler,
+			}
+		})
+		It("sets the Strict-Transport-Security to whatever it was configured with", func() {
+			Expect(rw.Header().Get("Strict-Transport-Security")).To(Equal("some-policy 'value'"))
+		})
+	})
+
+	Context("when Strict-Transport-Security is empty", func() {
+		It("does not set Strict-Transport-Security header", func() {
+			Expect(rw.Result().Header).NotTo(HaveKey("Strict-Transport-Security"))
+		})
+	})
 })
