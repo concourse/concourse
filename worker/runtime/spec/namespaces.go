@@ -28,8 +28,8 @@ func init() {
 	}
 }
 
-func OciNamespaces(privileged bool) []specs.LinuxNamespace {
-	if !privileged {
+func OciNamespaces(privilegedMode PrivilegedMode, privileged bool) []specs.LinuxNamespace {
+	if !privileged || privilegedMode != FullPrivilegedMode {
 		return UnprivilegedContainerNamespaces
 	}
 

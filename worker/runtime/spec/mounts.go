@@ -51,7 +51,7 @@ var (
 	}
 )
 
-func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
+func ContainerMounts(privilegedMode PrivilegedMode, privileged bool, initBinPath string) []specs.Mount {
 	mounts := make([]specs.Mount, 0, len(DefaultContainerMounts)+1)
 	mounts = append(mounts, DefaultContainerMounts...)
 	mounts = append(mounts, specs.Mount{
@@ -61,7 +61,7 @@ func ContainerMounts(privileged bool, initBinPath string) []specs.Mount {
 		Options:     []string{"bind"},
 	})
 	// Following the current behaviour for privileged containers in Docker
-	if privileged {
+	if privileged && privilegedMode == FullPrivilegedMode {
 		for i, ociMount := range mounts {
 			if ociMount.Destination == "/sys" || ociMount.Type == "cgroup" {
 				clearReadOnly(&mounts[i])

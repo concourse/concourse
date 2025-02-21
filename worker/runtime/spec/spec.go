@@ -11,6 +11,35 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
+type PrivilegedMode int
+
+const (
+	// Full privileged mode means that privileged tasks can do everything.
+	// It is equivalent to full root on the host.
+	FullPrivilegedMode PrivilegedMode = iota
+	// Ignore privileged mode means that privileged tasks have the same
+	// powers as unprivileged tasks (effectively disabling privileged).
+	IgnorePrivilegedMode
+	// FUSE-only privileged mode means that privileged tasks have access to
+	// create and mount FUSE filesystems. This is enough to use
+	// fuse-overlayfs, but not to escape the container.
+	FUSEOnlyPrivilegedMode
+)
+
+func (pm *PrivilegedMode) UnmarshalFlag(value string) error {
+	switch strings.ToLower(value) {
+	case "full":
+		*pm = FullPrivilegedMode
+	case "ignore":
+		*pm = IgnorePrivilegedMode
+	case "fuse-only":
+		*pm = FUSEOnlyPrivilegedMode
+	default:
+		return fmt.Errorf("unsupported value for PrivilegedMode: %s", value)
+	}
+	return nil
+}
+
 const baseCgroupsPath = "garden"
 
 var isSwapLimitEnabled bool
@@ -26,7 +55,7 @@ func swapLimitEnabled() bool {
 }
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
-func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
+func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, hooks specs.Hooks, privilegedMode PrivilegedMode, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -49,10 +78,10 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, hooks specs.Hooks, 
 	}
 
 	resources := OciResources(gdn.Limits, isSwapLimitEnabled)
-	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, gdn.Privileged)
+	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, privilegedMode, gdn.Privileged)
 
 	oci = merge(
-		defaultGardenOciSpec(initBinPath, seccomp, gdn.Privileged, maxUid, maxGid),
+		defaultGardenOciSpec(initBinPath, seccomp, seccompFuse, privilegedMode, gdn.Privileged, maxUid, maxGid),
 		&specs.Spec{
 			Version:  specs.Version,
 			Hostname: gdn.Handle,
@@ -114,8 +143,8 @@ func OciSpecBindMounts(bindMounts []garden.BindMount) (mounts []specs.Mount, err
 
 // OciIDMappings provides the uid/gid mappings for user namespaces (if
 // necessary, based on `privileged`).
-func OciIDMappings(privileged bool, max uint32) []specs.LinuxIDMapping {
-	if privileged {
+func OciIDMappings(privilegedMode PrivilegedMode, privileged bool, max uint32) []specs.LinuxIDMapping {
+	if privileged && privilegedMode == FullPrivilegedMode {
 		return []specs.LinuxIDMapping{}
 	}
 
@@ -177,8 +206,8 @@ func OciResources(limits garden.Limits, swapLimitEnabled bool) *specs.LinuxResou
 	}
 }
 
-func OciCgroupsPath(basePath, handle string, privileged bool) string {
-	if privileged {
+func OciCgroupsPath(basePath, handle string, privilegedMode PrivilegedMode, privileged bool) string {
+	if privilegedMode == FullPrivilegedMode && privileged {
 		return ""
 	}
 	return filepath.Join(basePath, handle)
@@ -189,10 +218,10 @@ func OciCgroupsPath(basePath, handle string, privileged bool) string {
 //
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
-func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privileged bool, maxUid, maxGid uint32) *specs.Spec {
+func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, privilegedMode PrivilegedMode, privileged bool, maxUid, maxGid uint32) *specs.Spec {
 	var (
-		namespaces   = OciNamespaces(privileged)
-		capabilities = OciCapabilities(privileged)
+		namespaces   = OciNamespaces(privilegedMode, privileged)
+		capabilities = OciCapabilities(privilegedMode, privileged)
 	)
 
 	spec := &specs.Spec{
@@ -206,15 +235,19 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, privil
 			Resources: &specs.LinuxResources{
 				Devices: AnyContainerDevices,
 			},
-			Devices:     Devices(privileged),
-			UIDMappings: OciIDMappings(privileged, maxUid),
-			GIDMappings: OciIDMappings(privileged, maxGid),
+			Devices:     Devices(privilegedMode, privileged),
+			UIDMappings: OciIDMappings(privilegedMode, privileged, maxUid),
+			GIDMappings: OciIDMappings(privilegedMode, privileged, maxGid),
 		},
-		Mounts: ContainerMounts(privileged, initBinPath),
+		Mounts: ContainerMounts(privilegedMode, privileged, initBinPath),
 	}
 
-	if !privileged {
-		spec.Linux.Seccomp = &seccomp
+	if !privileged || privilegedMode != FullPrivilegedMode {
+		if privilegedMode == FUSEOnlyPrivilegedMode {
+			spec.Linux.Seccomp = &seccompFuse
+		} else {
+			spec.Linux.Seccomp = &seccomp
+		}
 	}
 
 	return spec

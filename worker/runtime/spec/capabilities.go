@@ -2,11 +2,15 @@ package spec
 
 import "github.com/opencontainers/runtime-spec/specs-go"
 
-func OciCapabilities(privileged bool) specs.LinuxCapabilities {
-	if !privileged {
+func OciCapabilities(privilegedMode PrivilegedMode, privileged bool) specs.LinuxCapabilities {
+	if !privileged || privilegedMode == IgnorePrivilegedMode {
 		return UnprivilegedContainerCapabilities
 	}
 
+	if privilegedMode == FUSEOnlyPrivilegedMode {
+		return FUSEOnlyContainerCapabilities
+	}
+	
 	return PrivilegedContainerCapabilities
 }
 
@@ -16,6 +20,13 @@ var (
 		Bounding:    privilegedCaps,
 		Inheritable: privilegedCaps,
 		Permitted:   privilegedCaps,
+	}
+
+	FUSEOnlyContainerCapabilities = specs.LinuxCapabilities{
+		Effective:   fuseOnlyCaps,
+		Bounding:    fuseOnlyCaps,
+		Inheritable: fuseOnlyCaps,
+		Permitted:   fuseOnlyCaps,
 	}
 
 	UnprivilegedContainerCapabilities = specs.LinuxCapabilities{
@@ -42,6 +53,24 @@ var (
 		"CAP_SYS_CHROOT",
 	}
 
+	fuseOnlyCaps = []string{
+		"CAP_AUDIT_WRITE",
+		"CAP_CHOWN",
+		"CAP_DAC_OVERRIDE",
+		"CAP_FOWNER",
+		"CAP_FSETID",
+		"CAP_KILL",
+		"CAP_MKNOD",
+		"CAP_NET_BIND_SERVICE",
+		"CAP_NET_RAW",
+		"CAP_SETFCAP",
+		"CAP_SETGID",
+		"CAP_SETPCAP",
+		"CAP_SETUID",
+		"CAP_SYS_CHROOT",
+		"CAP_SYS_ADMIN",
+	}
+	
 	privilegedCaps = []string{
 		"CAP_AUDIT_CONTROL",
 		"CAP_AUDIT_READ",

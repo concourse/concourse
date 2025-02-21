@@ -46,6 +46,7 @@ var seccomp = &specs.LinuxSeccomp{
 		AllowSyscall("exit"),
 		AllowSyscall("exit_group"),
 		AllowSyscall("faccessat"),
+		AllowSyscall("faccessat2"),
 		AllowSyscall("fadvise64"),
 		AllowSyscall("fadvise64_64"),
 		AllowSyscall("fallocate"),
@@ -172,6 +173,8 @@ var seccomp = &specs.LinuxSeccomp{
 		AllowSyscall("_newselect"),
 		AllowSyscall("open"),
 		AllowSyscall("openat"),
+		AllowSyscall("openat2"),
+		AllowSyscall("open_tree"),
 		AllowSyscall("pause"),
 		AllowSyscall("personality",
 			specs.LinuxSeccompArg{
@@ -332,6 +335,7 @@ var seccomp = &specs.LinuxSeccomp{
 		AllowSyscall("utime"),
 		AllowSyscall("utimensat"),
 		AllowSyscall("utimes"),
+		AllowSyscall("utimes"),
 		AllowSyscall("vfork"),
 		AllowSyscall("vmsplice"),
 		AllowSyscall("wait4"),
@@ -353,6 +357,21 @@ var seccomp = &specs.LinuxSeccomp{
 	},
 }
 
+var fuse_syscalls = []specs.LinuxSyscall{
+	AllowSyscall("clone"),
+	AllowSyscall("clone3"),
+	AllowSyscall("mount"),
+	AllowSyscall("mount_setattr"),
+	AllowSyscall("move_mount"),
+	AllowSyscall("pivot_root"),
+	AllowSyscall("unshare"),
+	AllowSyscall("umount"),
+	AllowSyscall("umount2"),
+	AllowSyscall("pidfd_open"),
+	AllowSyscall("pidfd_getfd"),
+	AllowSyscall("pidfd_send_signal"),
+}
+
 func AllowSyscall(syscall string, args ...specs.LinuxSeccompArg) specs.LinuxSyscall {
 	return specs.LinuxSyscall{
 		Names:  []string{syscall},
@@ -363,4 +382,13 @@ func AllowSyscall(syscall string, args ...specs.LinuxSeccompArg) specs.LinuxSysc
 
 func GetDefaultSeccompProfile() specs.LinuxSeccomp {
 	return *seccomp
+}
+
+func GetDefaultSeccompProfileFuse() specs.LinuxSeccomp {
+	merged_seccomp := *seccomp
+	s := []specs.LinuxSyscall{}
+	s = append(s, fuse_syscalls[:]...)
+	s = append(s, seccomp.Syscalls[:]...)
+	merged_seccomp.Syscalls = s
+	return merged_seccomp
 }
