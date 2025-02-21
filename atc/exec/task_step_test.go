@@ -406,10 +406,25 @@ var _ = Describe("TaskStep", func() {
 			})
 
 			Context("when all inputs are present", func() {
+				var input3 *runtimetest.Volume
+				var input4 *runtimetest.Volume
+
 				BeforeEach(func() {
+					input3 = runtimetest.NewVolume("input3")
+					input4 = runtimetest.NewVolume("input4")
+
 					// If or not framCache when RegisterArtifact, that should not impact task execution.
 					repo.RegisterArtifact("some-input", input1, false)
 					repo.RegisterArtifact("some-other-input", input2, true)
+					repo.RegisterArtifact("absolute-input", input3, false)
+					repo.RegisterArtifact("parent-dirs-input", input4, false)
+
+					taskPlan.Config.Inputs = []atc.TaskInputConfig{
+						{Name: "some-input", Path: "some-input-configured-path"},
+						{Name: "some-other-input"},
+						{Name: "absolute-input", Path: "/absolute-input"},
+						{Name: "parent-dirs-input", Path: "../parent-dirs/../input"},
+					}
 				})
 
 				It("configures the inputs for the containerSpec correctly", func() {
@@ -423,6 +438,16 @@ var _ = Describe("TaskStep", func() {
 							Artifact:        input2,
 							DestinationPath: "some-artifact-root/some-other-input",
 							FromCache:       true,
+						},
+						{
+							Artifact:        input3,
+							DestinationPath: "/absolute-input",
+							FromCache:       false,
+						},
+						{
+							Artifact:        input4,
+							DestinationPath: "some-artifact-root/parent-dirs/input",
+							FromCache:       false,
 						},
 					}))
 					Expect(stepErr).ToNot(HaveOccurred())
@@ -621,13 +646,16 @@ var _ = Describe("TaskStep", func() {
 		})
 
 		Context("when the configuration specifies paths for outputs", func() {
-			var outputVolume1, outputVolume2, outputVolume3 *runtimetest.Volume
+			var outputVolume1, outputVolume2, outputVolume3,
+				outputVolume4, outputVolume5 *runtimetest.Volume
 
 			BeforeEach(func() {
 				taskPlan.Config.Outputs = []atc.TaskOutputConfig{
 					{Name: "some-output", Path: "some-output-configured-path"},
 					{Name: "some-other-output"},
 					{Name: "some-trailing-slash-output", Path: "some-output-configured-path-with-trailing-slash/"},
+					{Name: "absolute-output", Path: "/absolute/output"},
+					{Name: "parent-dir-output", Path: "../parent/dir/../output"},
 				}
 				taskPlan.OutputMapping = map[string]string{
 					"some-other-output": "some-remapped-output",
@@ -636,6 +664,8 @@ var _ = Describe("TaskStep", func() {
 				outputVolume1 = runtimetest.NewVolume("output1")
 				outputVolume2 = runtimetest.NewVolume("output2")
 				outputVolume3 = runtimetest.NewVolume("output3")
+				outputVolume4 = runtimetest.NewVolume("output4")
+				outputVolume5 = runtimetest.NewVolume("output5")
 
 				chosenContainer.Mounts = []runtime.VolumeMount{
 					{
@@ -650,6 +680,14 @@ var _ = Describe("TaskStep", func() {
 						Volume:    outputVolume3,
 						MountPath: "some-artifact-root/some-output-configured-path-with-trailing-slash/",
 					},
+					{
+						Volume:    outputVolume4,
+						MountPath: "/absolute/output/",
+					},
+					{
+						Volume:    outputVolume5,
+						MountPath: "some-artifact-root/parent/dir/output/",
+					},
 				}
 			})
 
@@ -658,6 +696,8 @@ var _ = Describe("TaskStep", func() {
 					"some-output":                "some-artifact-root/some-output-configured-path/",
 					"some-other-output":          "some-artifact-root/some-other-output/",
 					"some-trailing-slash-output": "some-artifact-root/some-output-configured-path-with-trailing-slash/",
+					"absolute-output":            "/absolute/output/",
+					"parent-dir-output":          "some-artifact-root/parent/dir/output/",
 				}))
 			})
 
@@ -673,6 +713,14 @@ var _ = Describe("TaskStep", func() {
 					},
 					"some-trailing-slash-output": {
 						Artifact:  outputVolume3,
+						FromCache: false,
+					},
+					"absolute-output": {
+						Artifact:  outputVolume4,
+						FromCache: false,
+					},
+					"parent-dir-output": {
+						Artifact:  outputVolume5,
 						FromCache: false,
 					},
 				}))

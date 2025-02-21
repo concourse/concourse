@@ -519,6 +519,7 @@ func resolvePath(workingDir string, path string) string {
 	if filepath.IsAbs(path) {
 		return path
 	}
+	path = strings.ReplaceAll(path, "..", "")
 	return filepath.Join(workingDir, path)
 }
 
