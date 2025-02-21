@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	concourseCmd "github.com/concourse/concourse/cmd"
@@ -251,19 +249,4 @@ func (cmd *WorkerCommand) workerName() (string, error) {
 	}
 
 	return os.Hostname()
-}
-
-func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
-	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
-
-	err := os.MkdirAll(volumesDir, 0755)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd.Baggageclaim.VolumesDir = flag.Dir(volumesDir)
-
-	cmd.Baggageclaim.OverlaysDir = filepath.Join(cmd.WorkDir.Path(), "overlays")
-
-	return cmd.Baggageclaim.Runner(nil, cmd.Containerd.PrivilegedMode)
 }

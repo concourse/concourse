@@ -4,11 +4,14 @@
 package workercmd
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/flag/v2"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
@@ -45,4 +48,19 @@ func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, i
 	}
 
 	return worker, runner, nil
+}
+
+func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
+	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
+
+	err := os.MkdirAll(volumesDir, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Baggageclaim.VolumesDir = flag.Dir(volumesDir)
+
+	cmd.Baggageclaim.OverlaysDir = filepath.Join(cmd.WorkDir.Path(), "overlays")
+
+	return cmd.Baggageclaim.Runner(nil)
 }

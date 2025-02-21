@@ -261,3 +261,20 @@ func (cmd *WorkerCommand) verifyRuntimeFlags() error {
 
 	return nil
 }
+
+func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner, error) {
+	volumesDir := filepath.Join(cmd.WorkDir.Path(), "volumes")
+
+	err := os.MkdirAll(volumesDir, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.Baggageclaim.VolumesDir = flag.Dir(volumesDir)
+
+	cmd.Baggageclaim.OverlaysDir = filepath.Join(cmd.WorkDir.Path(), "overlays")
+
+	cmd.Baggageclaim.PrivilegedMode = cmd.Containerd.PrivilegedMode
+
+	return cmd.Baggageclaim.Runner(nil)
+}
