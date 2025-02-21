@@ -34,21 +34,16 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	teamName := command.Team.Name()
-	if teamName == "" {
-		teamName = target.Team().Name()
-	}
-	team, err := target.FindTeam(teamName)
+
+	team, err := command.Team.LoadTeam(target)
 	if err != nil {
 		return err
 	}
+
 	var orderedNames []string
 	if command.Alphabetical {
 		seen := map[string]bool{}
 
-		if err != nil {
-			return err
-		}
 		ps, err := team.ListPipelines()
 		if err != nil {
 			return err
