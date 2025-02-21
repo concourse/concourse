@@ -33,8 +33,8 @@ var _ = Describe("Caching of secrets", func() {
 	BeforeEach(func() {
 		secretManager = new(credsfakes.FakeSecrets)
 		cacheConfig = creds.SecretCacheConfig{
-			Duration:         2 * time.Second,
-			DurationNotFound: 1 * time.Second,
+			Duration:         400 * time.Millisecond,
+			DurationNotFound: 200 * time.Millisecond,
 			PurgeInterval:    100 * time.Millisecond,
 		}
 		cachedSecretManager = creds.NewCachedSecrets(secretManager, cacheConfig)
@@ -159,6 +159,32 @@ var _ = Describe("Caching of secrets", func() {
 		_, _, _, _ = cachedSecretManager.Get("bar")
 		_, _, _, _ = cachedSecretManager.Get("baz")
 		Expect(underlyingReads).To(BeIdenticalTo(1))
+		Expect(underlyingMisses).To(BeIdenticalTo(4))
+	})
+
+
+	It("should not cache longer than default duration if durarion is 0 or less", func() {
+		secretManager.GetStub = makeGetStub("foo", "value", &time.Time{}, true, nil, &underlyingReads, &underlyingMisses)
+
+		// get few entries first
+		_, _, _, _ = cachedSecretManager.Get("foo")
+		_, _, _, _ = cachedSecretManager.Get("bar")
+		_, _, _, _ = cachedSecretManager.Get("baz")
+		Expect(underlyingReads).To(BeIdenticalTo(1))
+		Expect(underlyingMisses).To(BeIdenticalTo(2))
+
+		// sleep
+		time.Sleep(cacheConfig.Duration + time.Millisecond)
+
+		// existing secret should be gone
+		_, _, _, _ = cachedSecretManager.Get("foo")
+		Expect(underlyingReads).To(BeIdenticalTo(2))
+		Expect(underlyingMisses).To(BeIdenticalTo(2))
+
+		// non-existing secrets should be attempted to be retrieved again
+		_, _, _, _ = cachedSecretManager.Get("bar")
+		_, _, _, _ = cachedSecretManager.Get("baz")
+		Expect(underlyingReads).To(BeIdenticalTo(2))
 		Expect(underlyingMisses).To(BeIdenticalTo(4))
 	})
 
