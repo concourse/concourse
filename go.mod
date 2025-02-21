@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	code.cloudfoundry.org/clock v1.28.0
-	code.cloudfoundry.org/credhub-cli v0.0.0-20250210140307-5af5e1820968
+	code.cloudfoundry.org/credhub-cli v0.0.0-20250219235359-bc9098574636
 	code.cloudfoundry.org/garden v0.0.0-20250212022216-de2fe4eea9a3
 	code.cloudfoundry.org/lager/v3 v3.26.0
 	code.cloudfoundry.org/localip v0.30.0
@@ -20,7 +20,7 @@ require (
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.2
-	github.com/concourse/dex v1.9.0
+	github.com/concourse/dex v1.10.0
 	github.com/concourse/flag/v2 v2.2.0
 	github.com/concourse/houdini v1.2.0
 	github.com/concourse/retryhttp v1.2.4
@@ -34,6 +34,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.15.23
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
@@ -49,7 +50,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jackpal/gateway v1.0.16
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/klauspost/compress v1.17.11
+	github.com/klauspost/compress v1.18.0
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/mattn/go-colorable v0.1.14
@@ -67,7 +68,7 @@ require (
 	github.com/peterhellberg/link v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/term v1.2.0-beta.2.0.20211217091447-1a4a3b719465
-	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_golang v1.21.0
 	github.com/racksec/srslog v0.0.0-20180709174129-a4725f04ec91
 	github.com/sirupsen/logrus v1.9.3
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
@@ -119,7 +120,7 @@ require (
 	github.com/containernetworking/cni v1.2.3
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dexidp/dex/api/v2 v2.2.0 // indirect
+	github.com/dexidp/dex/api/v2 v2.3.0 // indirect
 	github.com/docker/go-events v0.0.0-20250114142523-c867878c5e32 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -209,7 +210,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.7 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-ldap/ldap/v3 v3.4.10 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
