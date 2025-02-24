@@ -97,9 +97,6 @@ func (f fileStore) ContainerIpLookup(handle string) (string, error) {
 	if !found {
 		return "", fmt.Errorf("ip not found for container handle: %s", handle)
 	}
-	if err != nil {
-		return "", fmt.Errorf("error finding container ip: %w", err)
-	}
 
 	return ip, nil
 }
