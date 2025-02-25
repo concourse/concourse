@@ -146,8 +146,6 @@ func (worker *Worker) findOrCreateContainer(
 	if gardenContainer == nil {
 		gardenContainer, err = worker.createGardenContainer(ctx, containerSpec, creatingContainer, delegate)
 		if err != nil {
-			logger.Error("failed-to-create-container-in-garden", err)
-			markContainerAsFailed(logger, creatingContainer)
 			return nil, nil, err
 		}
 	}
