@@ -31,9 +31,9 @@ func (s *userNamespace) MaxValidIds() (uint32, uint32, error) {
 }
 
 func maxValidFromFile(fname string) (uint32, error) {
-	f, err := os.Open(uidMap)
+	f, err := os.Open(fname)
 	if err != nil {
-		return 0, fmt.Errorf("open %s: %w", uidMap, err)
+		return 0, fmt.Errorf("open %s: %w", fname, err)
 	}
 	defer f.Close()
 
