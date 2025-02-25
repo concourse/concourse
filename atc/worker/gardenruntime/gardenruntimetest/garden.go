@@ -11,7 +11,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 )
 
 type Garden struct {
@@ -324,7 +324,7 @@ func (p *Process) Signal(sig garden.Signal) error {
 }
 
 func generateID() string {
-	uuid, err := uuid.NewV4()
+	uuid, err := uuid.NewRandom()
 	if err != nil {
 		panic(err)
 	}

@@ -11,7 +11,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 )
 
 var (
@@ -623,7 +623,7 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 
 	defer Rollback(tx)
 
-	handle, err := uuid.NewV4()
+	handle, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}

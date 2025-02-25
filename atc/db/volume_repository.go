@@ -6,7 +6,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 )
 
 //counterfeiter:generate . VolumeRepository
@@ -704,7 +704,7 @@ func (repository *volumeRepository) createVolume(
 	columns map[string]interface{},
 	volumeType VolumeType,
 ) (*creatingVolume, error) {
-	handle, err := uuid.NewV4()
+	handle, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}

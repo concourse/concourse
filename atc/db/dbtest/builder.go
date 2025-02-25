@@ -14,7 +14,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/lock"
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 )
 
 const BaseResourceType = "global-base-type"
@@ -998,7 +998,7 @@ func (builder Builder) WithBaseResourceType(dbConn db.DbConn, resourceTypeName s
 }
 
 func unique(kind string) string {
-	id, err := uuid.NewV4()
+	id, err := uuid.NewRandom()
 	if err != nil {
 		panic(err)
 	}

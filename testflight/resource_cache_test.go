@@ -1,7 +1,7 @@
 package testflight_test
 
 import (
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("Resource caching", func() {
 	It("takes params into account when determining a cache hit", func() {
-		guid, err := uuid.NewV4()
+		guid, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		setAndUnpausePipeline(

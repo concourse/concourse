@@ -3,7 +3,7 @@ package testflight_test
 import (
 	"time"
 
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +12,7 @@ var _ = Describe("Resource container GC", func() {
 	var checkContainerHandle string
 
 	BeforeEach(func() {
-		uuid, err := uuid.NewV4()
+		uuid, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		setAndUnpausePipeline(
@@ -50,7 +50,7 @@ var _ = Describe("Resource container GC", func() {
 
 	Describe("changing the resource config", func() {
 		BeforeEach(func() {
-			uuid, err := uuid.NewV4()
+			uuid, err := uuid.NewRandom()
 			Expect(err).ToNot(HaveOccurred())
 
 			setAndUnpausePipeline(

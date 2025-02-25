@@ -4,15 +4,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var (
@@ -183,7 +183,7 @@ func (worker *worker) Land() error {
 
 func (worker *worker) Retire() error {
 	result, err := psql.Update("workers").
-		SetMap(map[string]interface{}{
+		SetMap(map[string]any{
 			"state": string(WorkerStateRetiring),
 		}).
 		Where(sq.Eq{"name": worker.name}).
@@ -295,12 +295,12 @@ func (worker *worker) FindContainer(owner ContainerOwner) (CreatingContainer, Cr
 }
 
 func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error) {
-	handle, err := uuid.NewV4()
+	handle, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
 	}
 	var containerID int
-	cols := []interface{}{&containerID}
+	cols := []any{&containerID}
 
 	metadata := &ContainerMetadata{}
 	cols = append(cols, metadata.ScanTargets()...)
@@ -321,9 +321,7 @@ func (worker *worker) CreateContainer(owner ContainerOwner, meta ContainerMetada
 		return nil, fmt.Errorf("create owner: %w", err)
 	}
 
-	for k, v := range ownerCols {
-		insMap[k] = v
-	}
+	maps.Copy(insMap, ownerCols)
 
 	err = psql.Insert("containers").
 		SetMap(insMap).

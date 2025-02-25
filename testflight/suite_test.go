@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/concourse/concourse/go-concourse/concourse"
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	"github.com/onsi/gomega/gexec"
 )
 
@@ -186,7 +186,7 @@ func downloadFly(atcUrl string) (string, error) {
 }
 
 func randomPipelineName() string {
-	guid, err := uuid.NewV4()
+	guid, err := uuid.NewRandom()
 	Expect(err).ToNot(HaveOccurred())
 
 	return fmt.Sprintf("%s-%d-%s", pipelinePrefix, GinkgoParallelProcess(), guid)
@@ -339,7 +339,7 @@ func inPipeline(thing string) string {
 }
 
 func newMockVersion(resourceName string, tag string) string {
-	guid, err := uuid.NewV4()
+	guid, err := uuid.NewRandom()
 	Expect(err).ToNot(HaveOccurred())
 
 	version := guid.String() + "-" + tag
