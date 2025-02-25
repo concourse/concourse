@@ -61,30 +61,30 @@ var _ = Describe("NewRelicEmitter", func() {
 			})
 			It("should write one batch to NewRelic", func() {
 				server.RouteToHandler(http.MethodPost, "/", verifyEvents(2))
-				for i := 0; i < 3; i++ {
+				for range 3 {
 					testEmitter.Emit(testLogger, testEvent)
 				}
 				Eventually(server.ReceivedRequests).Should(HaveLen(1))
-				Expect(testEmitter.NewRelicBatch).To(HaveLen(1))
+				Expect(testEmitter.Batch()).To(HaveLen(1))
 			})
 			It("should write two batches to NewRelic", func() {
 				server.RouteToHandler(http.MethodPost, "/", verifyEvents(2))
 				server.RouteToHandler(http.MethodPost, "/", verifyEvents(2))
-				for i := 0; i < 4; i++ {
+				for range 4 {
 					testEmitter.Emit(testLogger, testEvent)
 				}
 				Eventually(server.ReceivedRequests).Should(HaveLen(2))
-				Expect(testEmitter.NewRelicBatch).To(HaveLen(0))
+				Expect(testEmitter.Batch()).To(HaveLen(0))
 			})
 			It("should write no batches to NewRelic", func() {
 				testEmitter.Emit(testLogger, testEvent)
 
 				time.Sleep(500 * time.Millisecond)
 				Eventually(server.ReceivedRequests).Should(HaveLen(0))
-				Expect(testEmitter.NewRelicBatch).To(HaveLen(1))
+				Expect(testEmitter.Batch()).To(HaveLen(1))
 			})
 		})
-		Context("when batch duration is 1 millisecond", func() {
+		Context("when batch duration is 1 second", func() {
 			var testEmitter emitter.NewRelicEmitter
 			BeforeEach(func() {
 				testEmitter = emitter.NewRelicEmitter{
@@ -98,25 +98,25 @@ var _ = Describe("NewRelicEmitter", func() {
 			})
 			It("should write one batch to NewRelic", func() {
 				server.RouteToHandler(http.MethodPost, "/", verifyEvents(1))
-				time.Sleep(1 * time.Millisecond)
+				time.Sleep(1 * time.Second)
 				testEmitter.Emit(testLogger, testEvent)
 				Eventually(server.ReceivedRequests).Should(HaveLen(1))
-				Expect(testEmitter.NewRelicBatch).To(HaveLen(0))
+				Expect(testEmitter.Batch()).To(HaveLen(0))
 			})
 			It("should write two batches to NewRelic", func() {
 				server.RouteToHandler(http.MethodPost, "/", verifyEvents(1))
 				server.RouteToHandler(http.MethodPost, "/", verifyEvents(1))
-				for i := 0; i < 2; i++ {
-					time.Sleep(1 * time.Millisecond)
+				for range 2 {
+					time.Sleep(1 * time.Second)
 					testEmitter.Emit(testLogger, testEvent)
 				}
 				Eventually(server.ReceivedRequests).Should(HaveLen(2))
-				Expect(testEmitter.NewRelicBatch).To(HaveLen(0))
+				Expect(testEmitter.Batch()).To(HaveLen(0))
 			})
 			It("should write no batches to NewRelic", func() {
 				testEmitter.Emit(testLogger, testEvent)
 				Eventually(server.ReceivedRequests).Should(HaveLen(0))
-				Expect(testEmitter.NewRelicBatch).To(HaveLen(1))
+				Expect(testEmitter.Batch()).To(HaveLen(1))
 
 			})
 		})

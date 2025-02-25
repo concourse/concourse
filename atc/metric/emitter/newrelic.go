@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -17,8 +18,8 @@ import (
 
 type (
 	stats struct {
-		created interface{}
-		deleted interface{}
+		created any
+		deleted any
 	}
 
 	NewRelicEmitter struct {
@@ -33,7 +34,10 @@ type (
 		BatchDuration      time.Duration
 		DisableCompression bool
 		LastEmitTime       time.Time
-		NewRelicBatch      []NewRelicEvent
+
+		batchLock sync.RWMutex
+		// External packages should use Batch() to read the array
+		NewRelicBatch []NewRelicEvent
 	}
 
 	NewRelicConfig struct {
@@ -46,7 +50,7 @@ type (
 		DisableCompression bool          `long:"newrelic-batch-disable-compression" description:"Disables compression of the batch before sending it"`
 	}
 
-	NewRelicEvent map[string]interface{}
+	NewRelicEvent map[string]any
 )
 
 func init() {
@@ -79,10 +83,18 @@ func (config *NewRelicConfig) NewEmitter(_ map[string]string) (metric.Emitter, e
 		NewRelicBatch:      make([]NewRelicEvent, 0),
 	}, nil
 }
+func (emitter *NewRelicEmitter) Batch() []NewRelicEvent {
+	emitter.batchLock.RLock()
+	defer emitter.batchLock.RUnlock()
+
+	return emitter.NewRelicBatch
+}
 
 func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	logger = logger.Session("new-relic")
 
+	emitter.batchLock.Lock()
+	defer emitter.batchLock.Unlock()
 	switch event.Name {
 
 	// These are the simple ones that only need a small name transformation
