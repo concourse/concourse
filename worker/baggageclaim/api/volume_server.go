@@ -13,7 +13,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
 
@@ -648,7 +648,7 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 }
 
 func (vs *VolumeServer) generateHandle() (string, error) {
-	handle, err := uuid.NewV4()
+	handle, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
 	}

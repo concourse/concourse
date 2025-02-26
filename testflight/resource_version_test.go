@@ -1,7 +1,7 @@
 package testflight_test
 
 import (
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -11,7 +11,7 @@ var _ = Describe("Resource version", func() {
 	var hash string
 
 	BeforeEach(func() {
-		u, err := uuid.NewV4()
+		u, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		hash = u.String()

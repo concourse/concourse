@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -20,10 +20,10 @@ var _ = Describe("A job with multiple inputs", func() {
 	)
 
 	BeforeEach(func() {
-		hash, err := uuid.NewV4()
+		hash, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
-		hash2, err := uuid.NewV4()
+		hash2, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		setAndUnpausePipeline(

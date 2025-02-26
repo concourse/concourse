@@ -1,14 +1,14 @@
 package testflight_test
 
 import (
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Resource config versions", func() {
 	BeforeEach(func() {
-		hash, err := uuid.NewV4()
+		hash, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		setAndUnpausePipeline(
@@ -26,7 +26,7 @@ var _ = Describe("Resource config versions", func() {
 			fly("trigger-job", "-j", inPipeline("initial-job"), "-w")
 
 			By("checking the a new version of the custom resource type")
-			u, err := uuid.NewV4()
+			u, err := uuid.NewRandom()
 			Expect(err).ToNot(HaveOccurred())
 
 			newVersion := u.String()

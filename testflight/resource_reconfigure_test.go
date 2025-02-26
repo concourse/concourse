@@ -1,7 +1,7 @@
 package testflight_test
 
 import (
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -9,10 +9,10 @@ import (
 
 var _ = Describe("Reconfiguring a resource", func() {
 	It("picks up the new configuration immediately", func() {
-		guid1, err := uuid.NewV4()
+		guid1, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
-		guid2, err := uuid.NewV4()
+		guid2, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		setAndUnpausePipeline(

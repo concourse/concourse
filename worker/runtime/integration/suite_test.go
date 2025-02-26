@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	gouuid "github.com/nu7hatch/gouuid"
+	guuid "github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -28,7 +28,7 @@ func (m *buffer) String() string {
 }
 
 func uuid() string {
-	u4, err := gouuid.NewV4()
+	u4, err := guuid.NewRandom()
 	if err != nil {
 		panic("couldn't create new uuid")
 	}

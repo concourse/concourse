@@ -1,7 +1,7 @@
 package testflight_test
 
 import (
-	uuid "github.com/nu7hatch/gouuid"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -11,12 +11,12 @@ var _ = Describe("image resource caching", func() {
 	var version string
 
 	BeforeEach(func() {
-		u, err := uuid.NewV4()
+		u, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		version = u.String()
 
-		hash, err := uuid.NewV4()
+		hash, err := uuid.NewRandom()
 		Expect(err).ToNot(HaveOccurred())
 
 		setAndUnpausePipeline(

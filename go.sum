@@ -739,8 +739,8 @@ github.com/concourse/flag/v2 v2.2.0 h1:gKalNjiAQ/kajq2oPtiGeRLCYsvPsFzMUKj8h1OuZ
 github.com/concourse/flag/v2 v2.2.0/go.mod h1:Crz1peofKdtySScA89xQ7GPa3dX7LnlDUq2Q37EUWrg=
 github.com/concourse/go-archive v1.0.1 h1:6jQk0VDiE4G6lNJQ0mLZ7XmxbqI3spO4x0wgVwk4pfo=
 github.com/concourse/go-archive v1.0.1/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
-github.com/concourse/houdini v1.2.0 h1:sL9WITdVs4uOb/8dRqGd55fxK57P29kXde/V7svwkkQ=
-github.com/concourse/houdini v1.2.0/go.mod h1:1xkwc7aQDRE4jVswAg5/Pb6CUQUCB0jmzAuhoTjqsvM=
+github.com/concourse/houdini v1.3.0 h1:JzxY0p0algYdydonCG/7SSAkDOWNXpaG37TRbVwY2Io=
+github.com/concourse/houdini v1.3.0/go.mod h1:+iygT0c7+YYv+tE1lbLZnaHt5DOh9BIj67Oo7Kq7Slk=
 github.com/concourse/retryhttp v1.2.4 h1:eo1DhK3ZaW7lWm846Y9R8/91LpETTWA6/YtBhxabclY=
 github.com/concourse/retryhttp v1.2.4/go.mod h1:OdmoHwj4SdbCWGnoHMvar5lcsLVQNpUkOI3uLgLBS8Q=
 github.com/containerd/cgroups/v3 v3.0.5 h1:44na7Ud+VwyE7LIoJ8JTNQOa549a8543BmzaJHo6Bzo=
@@ -1188,7 +1188,6 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d h1:VhgPp6v9qf9Agr/56bj7Y/xa04UccTW04VP0Qed4vnQ=
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d/go.mod h1:YUTz3bUH2ZwIWBy3CJBeOBEugqcmXREj14T+iG/4k4U=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
 github.com/nxadm/tail v1.4.8/go.mod h1:+ncqLTQzXmGhMZNUePPaPqPvBxHAIsmXswZKocGu+AU=
