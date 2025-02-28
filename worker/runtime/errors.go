@@ -3,7 +3,6 @@ package runtime
 import "errors"
 
 // ErrInvalidInput indicates a bad input was supplied.
-//
 type ErrInvalidInput string
 
 func (e ErrInvalidInput) Error() string {
@@ -11,7 +10,6 @@ func (e ErrInvalidInput) Error() string {
 }
 
 // ErrNotFound indicates that something wasn't found.
-//
 type ErrNotFound string
 
 func (e ErrNotFound) Error() string {
@@ -27,4 +25,9 @@ var (
 	// ErrNotImplemented indicates that a method is not implemented.
 	//
 	ErrNotImplemented = errors.New("not implemented")
+
+	// ErrGettingContainerIP indicates that there was an error reading the host
+	// file in the container
+	//
+	ErrGettingContainerIP = errors.New("error getting container IP")
 )
