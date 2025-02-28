@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -499,7 +500,7 @@ func (n cniNetwork) restrictHostAccess() error {
 func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
 	containerIp, err := n.store.ContainerIpLookup(containerHandle)
 	if err != nil {
-		return fmt.Errorf("error getting container IP: %w", err)
+		return errors.Join(ErrGettingContainerIP, err)
 	}
 
 	err = n.ipt.InsertRule(filterTable, "INPUT", 1, "-s", containerIp, "-j", "DROP")
@@ -518,7 +519,7 @@ func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
 func (n cniNetwork) ResumeContainerTraffic(containerHandle string) error {
 	containerIp, err := n.store.ContainerIpLookup(containerHandle)
 	if err != nil {
-		return fmt.Errorf("error getting container IP: %w", err)
+		return errors.Join(ErrGettingContainerIP, err)
 	}
 
 	err = n.ipt.DeleteRule(filterTable, "INPUT", "-s", containerIp, "-j", "DROP")

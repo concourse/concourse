@@ -400,6 +400,20 @@ func (s *CNINetworkSuite) TestDropContainerTraffic() {
 	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
 }
 
+func (s *CNINetworkSuite) TestDropContainerTrafficErrors() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	s.store.ContainerIpLookupReturns("", errors.New("some-error"))
+
+	err = network.DropContainerTraffic("some-handle")
+	s.ErrorIs(err, runtime.ErrGettingContainerIP)
+}
+
 func (s *CNINetworkSuite) TestResumeContainerTraffic() {
 	network, err := runtime.NewCNINetwork(
 		runtime.WithDefaultsForTesting(),
@@ -423,4 +437,19 @@ func (s *CNINetworkSuite) TestResumeContainerTraffic() {
 	s.Equal("filter", table)
 	s.Equal("FORWARD", chain)
 	s.Equal([]string{"-s", "10.8.0.1", "-j", "DROP"}, rulespec)
+}
+
+func (s *CNINetworkSuite) TestResumeContainerTrafficErrors() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	s.store.ContainerIpLookupReturns("", errors.New("some-error"))
+
+	err = network.ResumeContainerTraffic("some-handle")
+	s.ErrorIs(err, runtime.ErrGettingContainerIP)
+
 }
