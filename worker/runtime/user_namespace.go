@@ -97,7 +97,7 @@ func MaxValid(r io.Reader) (uint32, error) {
 			return 0, fmt.Errorf("scanf: %w", err)
 		}
 
-		val = maxUint(val, inside+size-1)
+		val = max(val, inside+size-1)
 		lines++
 	}
 
@@ -111,12 +111,4 @@ func MaxValid(r io.Reader) (uint32, error) {
 	}
 
 	return val, nil
-}
-
-func maxUint(a, b uint32) uint32 {
-	if a > b {
-		return a
-	}
-
-	return b
 }

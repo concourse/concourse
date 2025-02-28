@@ -47,26 +47,10 @@ func (u IDMap) MaxValid() (int, error) {
 			return 0, ParseError{Line: scanner.Text(), Err: err}
 		}
 
-		m = minUint(container+size-1, uint(maxInt))
+		m = min(container+size-1, uint(maxInt))
 	}
 
 	return int(m), nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-
-	return b
-}
-
-func minUint(a, b uint) uint {
-	if a < b {
-		return a
-	}
-
-	return b
 }
 
 type ParseError struct {
