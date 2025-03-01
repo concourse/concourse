@@ -77,7 +77,7 @@ func newPlaceStrategy(options PlacementOptions, chain []string) (PlacementStrate
 			}
 			strategy = append(strategy, limitActiveVolumesStrategy{MaxVolumes: options.MaxActiveVolumesPerWorker})
 		default:
-			return nil, fmt.Errorf("invalid container placement strategy %s", strategy)
+			return nil, fmt.Errorf("invalid container placement strategy %s", s)
 		}
 	}
 
@@ -133,9 +133,7 @@ func (strategy PlacementStrategy) Order(logger lager.Logger, pool Pool, workers 
 
 func (strategy PlacementStrategy) Approve(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) error {
 	var err error
-	var i int
-
-	for i = 0; i < len(strategy); i++ {
+	for i := range len(strategy) {
 		err = strategy[i].Approve(logger, worker, spec)
 
 		if err != nil {
