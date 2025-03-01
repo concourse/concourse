@@ -14,15 +14,15 @@ import (
 )
 
 type Index interface {
-	FindEquivalent(interface{}) (interface{}, bool)
-	Slice() []interface{}
+	FindEquivalent(any) (any, bool)
+	Slice() []any
 }
 
 type Diffs []Diff
 
 type Diff struct {
-	Before interface{}
-	After  interface{}
+	Before any
+	After  any
 }
 
 type DisplayDiff struct {
@@ -30,7 +30,7 @@ type DisplayDiff struct {
 	After  *DisplayConfig
 }
 
-func name(v interface{}) string {
+func name(v any) string {
 	return reflect.ValueOf(v).FieldByName("Name").String()
 }
 
@@ -78,8 +78,8 @@ func (diff DisplayDiff) Render(to io.Writer) {
 
 type GroupIndex GroupConfigs
 
-func (index GroupIndex) Slice() []interface{} {
-	slice := make([]interface{}, len(index))
+func (index GroupIndex) Slice() []any {
+	slice := make([]any, len(index))
 	for i, object := range index {
 		slice[i] = object
 	}
@@ -87,14 +87,14 @@ func (index GroupIndex) Slice() []interface{} {
 	return slice
 }
 
-func (index GroupIndex) FindEquivalentWithOrder(obj interface{}) (interface{}, int, bool) {
+func (index GroupIndex) FindEquivalentWithOrder(obj any) (any, int, bool) {
 	return GroupConfigs(index).Lookup(name(obj))
 }
 
 type VarSourceIndex VarSourceConfigs
 
-func (index VarSourceIndex) Slice() []interface{} {
-	slice := make([]interface{}, len(index))
+func (index VarSourceIndex) Slice() []any {
+	slice := make([]any, len(index))
 	for i, object := range index {
 		slice[i] = object
 	}
@@ -102,14 +102,14 @@ func (index VarSourceIndex) Slice() []interface{} {
 	return slice
 }
 
-func (index VarSourceIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
+func (index VarSourceIndex) FindEquivalent(obj any) (any, bool) {
 	return VarSourceConfigs(index).Lookup(name(obj))
 }
 
 type JobIndex JobConfigs
 
-func (index JobIndex) Slice() []interface{} {
-	slice := make([]interface{}, len(index))
+func (index JobIndex) Slice() []any {
+	slice := make([]any, len(index))
 	for i, object := range index {
 		slice[i] = object
 	}
@@ -117,14 +117,14 @@ func (index JobIndex) Slice() []interface{} {
 	return slice
 }
 
-func (index JobIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
+func (index JobIndex) FindEquivalent(obj any) (any, bool) {
 	return JobConfigs(index).Lookup(name(obj))
 }
 
 type ResourceIndex ResourceConfigs
 
-func (index ResourceIndex) Slice() []interface{} {
-	slice := make([]interface{}, len(index))
+func (index ResourceIndex) Slice() []any {
+	slice := make([]any, len(index))
 	for i, object := range index {
 		slice[i] = object
 	}
@@ -132,14 +132,14 @@ func (index ResourceIndex) Slice() []interface{} {
 	return slice
 }
 
-func (index ResourceIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
+func (index ResourceIndex) FindEquivalent(obj any) (any, bool) {
 	return ResourceConfigs(index).Lookup(name(obj))
 }
 
 type ResourceTypeIndex ResourceTypes
 
-func (index ResourceTypeIndex) Slice() []interface{} {
-	slice := make([]interface{}, len(index))
+func (index ResourceTypeIndex) Slice() []any {
+	slice := make([]any, len(index))
 	for i, object := range index {
 		slice[i] = object
 	}
@@ -147,7 +147,7 @@ func (index ResourceTypeIndex) Slice() []interface{} {
 	return slice
 }
 
-func (index ResourceTypeIndex) FindEquivalent(obj interface{}) (interface{}, bool) {
+func (index ResourceTypeIndex) FindEquivalent(obj any) (any, bool) {
 	return ResourceTypes(index).Lookup(name(obj))
 }
 
@@ -260,16 +260,20 @@ func renderDiff(to io.Writer, a, b string) {
 	}
 }
 
-func practicallyDifferent(a, b interface{}) bool {
+func practicallyDifferent(a, b any) bool {
 	if reflect.DeepEqual(a, b) {
 		return false
 	}
 
 	// prevent silly things like 300 != 300.0 due to YAML vs. JSON
 	// inconsistencies
+	marshalledA, errA := yaml.Marshal(a)
+	marshalledB, errB := yaml.Marshal(b)
 
-	marshalledA, _ := yaml.Marshal(a)
-	marshalledB, _ := yaml.Marshal(b)
+	// If we can't marshal either value, they're different
+	if errA != nil || errB != nil {
+		return true
+	}
 
 	return !bytes.Equal(marshalledA, marshalledB)
 }
@@ -292,7 +296,7 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 	varSourceDiffs := diffIndices(VarSourceIndex(c.VarSources), VarSourceIndex(newConfig.VarSources))
 	if len(varSourceDiffs) > 0 {
 		diffExists = true
-		fmt.Println("variable source:")
+		fmt.Fprintln(out, "variable source:")
 
 		for _, diff := range varSourceDiffs {
 			diff.Render(indent, "variable source")
