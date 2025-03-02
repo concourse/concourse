@@ -24,17 +24,23 @@ var _ = Describe("Scanner", func() {
 		planFactory      atc.PlanFactory
 
 		scanner Scanner
+
+		ctx    context.Context
+		cancel context.CancelFunc
+
+		maxConcurrency = 10
 	)
 
 	BeforeEach(func() {
 		planFactory = atc.NewPlanFactory(0)
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
 
-		scanner = lidar.NewScanner(fakeCheckFactory, planFactory)
+		scanner = lidar.NewScanner(fakeCheckFactory, planFactory, maxConcurrency)
+		ctx, cancel = context.WithCancel(context.Background())
 	})
 
 	JustBeforeEach(func() {
-		err = scanner.Run(context.TODO())
+		err = scanner.Run(ctx)
 	})
 
 	Describe("Run", func() {
@@ -45,6 +51,16 @@ var _ = Describe("Scanner", func() {
 
 			It("errors", func() {
 				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when context is cancelled", func() {
+			BeforeEach(func() {
+				cancel()
+			})
+
+			It("does not check any resources", func() {
+				Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
 			})
 		})
 
@@ -99,6 +115,24 @@ var _ = Describe("Scanner", func() {
 					fakeResourceType.SourceReturns(atc.Source{"some": "type-source"})
 
 					fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{1: {fakeResourceType}}, nil)
+				})
+
+				Context("when there are more resouces than maxConcurrency", func() {
+					BeforeEach(func() {
+						maxConcurrency = 5
+						var resources []db.Resource
+						for range 20 {
+							rs := new(dbfakes.FakeResource)
+							rs.NameReturns("some-name-")
+							rs.SourceReturns(atc.Source{"some": "source"})
+							resources = append(resources, rs)
+						}
+						fakeCheckFactory.ResourcesReturns(resources, nil)
+					})
+
+					It("successfully checks all resources", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(20))
+					})
 				})
 
 				Context("when the resource parent type is a base type", func() {
