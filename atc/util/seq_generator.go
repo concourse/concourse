@@ -1,28 +1,23 @@
 package util
 
-import "sync"
+import (
+	"sync/atomic"
+)
 
 type SequenceGenerator interface {
 	Next() int
 }
 
 type seqGenerator struct {
-	current int
-	lock    *sync.Mutex
+	current atomic.Int64
 }
 
 func NewSequenceGenerator(start int) SequenceGenerator {
-	return &seqGenerator{
-		current: start,
-		lock:    &sync.Mutex{},
-	}
+	gen := &seqGenerator{}
+	gen.current.Store(int64(start - 1))
+	return gen
 }
 
 func (g *seqGenerator) Next() int {
-	g.lock.Lock()
-	defer g.lock.Unlock()
-
-	next := g.current
-	g.current++
-	return next
+	return int(g.current.Add(1))
 }

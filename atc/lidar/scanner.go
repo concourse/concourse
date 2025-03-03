@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"sync"
 
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -13,16 +14,18 @@ import (
 	"github.com/concourse/concourse/tracing"
 )
 
-func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory) *scanner {
+func NewScanner(checkFactory db.CheckFactory, planFactory atc.PlanFactory, maxConcurrency int) *scanner {
 	return &scanner{
-		checkFactory: checkFactory,
-		planFactory:  planFactory,
+		checkFactory:   checkFactory,
+		planFactory:    planFactory,
+		maxConcurrency: maxConcurrency,
 	}
 }
 
 type scanner struct {
-	checkFactory db.CheckFactory
-	planFactory  atc.PlanFactory
+	checkFactory   db.CheckFactory
+	planFactory    atc.PlanFactory
+	maxConcurrency int
 }
 
 func (s *scanner) Run(ctx context.Context) error {
@@ -53,24 +56,69 @@ func (s *scanner) Run(ctx context.Context) error {
 
 func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, resourceTypesMap map[int]db.ResourceTypes) {
 	logger := lagerctx.FromContext(ctx)
-	waitGroup := new(sync.WaitGroup)
-	for _, resource := range resources {
+	waitGroup := sync.WaitGroup{}
+
+	resourcesChan := make(chan db.Resource, s.maxConcurrency)
+
+	go func() {
+		defer close(resourcesChan)
+		for _, rs := range resources {
+			select {
+			case resourcesChan <- rs:
+			case <-ctx.Done():
+				logger.Debug("lidar-scanner-cancelled-sending-work", lager.Data{"error": ctx.Err().Error()})
+				return
+			}
+		}
+	}()
+
+	for range s.maxConcurrency {
 		waitGroup.Add(1)
-
-		resourceTypes := resourceTypesMap[resource.PipelineID()]
-		go func(r db.Resource, rts db.ResourceTypes) {
-			defer func() {
-				err := util.DumpPanic(recover(), "scanning resource %d", r.ID())
-				if err != nil {
-					logger.Error("panic-in-scanner-run", err)
-				}
-			}()
+		go func() {
 			defer waitGroup.Done()
+			for {
+				select {
+				case rs, open := <-resourcesChan:
+					if !open {
+						// channel closed, no more work to do
+						return
+					}
 
-			s.check(ctx, r, rts)
-		}(resource, resourceTypes)
+					resourceTypes := resourceTypesMap[rs.PipelineID()]
+
+					// Run check inside a func so we don't lose the worker
+					// go routine if there's a panic
+					func() {
+						defer func() {
+							err := util.DumpPanic(recover(), "scanning resource %d", rs.ID())
+							if err != nil {
+								logger.Error("panic-in-scanner-run", err)
+							}
+						}()
+						s.check(ctx, rs, resourceTypes)
+					}()
+
+				case <-ctx.Done():
+					logger.Debug("lidar-scanner-worker-cancelled", lager.Data{"error": ctx.Err().Error()})
+					return
+				}
+			}
+		}()
 	}
-	waitGroup.Wait()
+
+	done := make(chan struct{})
+	go func() {
+		waitGroup.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return
+	case <-ctx.Done():
+		logger.Debug("lidar-scanner-cancelled", lager.Data{"error": ctx.Err().Error()})
+		return
+	}
 }
 
 func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTypes db.ResourceTypes) {
