@@ -20,28 +20,16 @@ func NewTaskCacheLifecycle(conn DbConn) TaskCacheLifecycle {
 }
 
 func (f *taskCacheLifecycle) CleanUpInvalidTaskCaches() ([]int, error) {
-	inactiveTaskCaches, _, err := psql.Select("tc.id").
-		From("task_caches tc").
-		Join("jobs j ON j.id = tc.job_id").
-		Join("pipelines p ON p.id = j.pipeline_id").
-		Where(sq.Or{
-			sq.Expr("p.archived"),
-			sq.And{
-				sq.Expr("p.paused"),
-				sq.Expr("j.next_build_id IS NULL"),
-			},
-			sq.And{
-				sq.Expr("j.paused"),
-				sq.Expr("j.next_build_id IS NULL"),
-			},
-		}).
-		ToSql()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := psql.Delete("task_caches").
-		Where("id IN (" + inactiveTaskCaches + ")").
+	rows, err := psql.Delete("task_caches tc").
+		Where(sq.Expr(`tc.id IN (
+            SELECT tc.id 
+            FROM task_caches tc
+            JOIN jobs j ON j.id = tc.job_id
+            JOIN pipelines p ON p.id = j.pipeline_id
+            WHERE p.archived OR
+                (p.paused AND j.next_build_id IS NULL) OR
+                (j.paused AND j.next_build_id IS NULL)
+        )`)).
 		Suffix("RETURNING id").
 		RunWith(f.conn).
 		Query()

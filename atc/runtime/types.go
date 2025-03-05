@@ -141,7 +141,7 @@ var _ propagation.TextMapCarrier = new(ContainerSpec)
 
 func (cs *ContainerSpec) Get(key string) string {
 	for _, env := range cs.Env {
-		assignment := strings.SplitN("=", env, 2)
+		assignment := strings.SplitN(env, "=", 2)
 		if assignment[0] == strings.ToUpper(key) {
 			return assignment[1]
 		}
@@ -153,7 +153,7 @@ func (cs *ContainerSpec) Set(key string, value string) {
 	varName := strings.ToUpper(key)
 	envVar := varName + "=" + value
 	for i, env := range cs.Env {
-		if strings.SplitN("=", env, 2)[0] == varName {
+		if strings.SplitN(env, "=", 2)[0] == varName {
 			cs.Env[i] = envVar
 			return
 		}

@@ -95,6 +95,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer Close(rows) // Properly defer closing the main job rows
 
 	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
 	if err != nil {
@@ -105,30 +106,29 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	pipelineResourceTypes := make(map[int]ResourceTypes)
 	pipelinePrototypes := make(map[int]Prototypes)
 	for _, job := range jobs {
-		rows, err := tx.Query(`WITH inputs AS (
-				SELECT ji.resource_id from job_inputs ji where ji.job_id = $1
-				UNION
-				SELECT jo.resource_id from job_outputs jo where jo.job_id = $1
-			)
-			SELECT r.name, r.type, r.config, r.nonce
-			From resources r
-			Join inputs i on i.resource_id = r.id`, job.ID())
+		resourceRows, err := tx.Query(`WITH inputs AS (
+                SELECT ji.resource_id from job_inputs ji where ji.job_id = $1
+                UNION
+                SELECT jo.resource_id from job_outputs jo where jo.job_id = $1
+            )
+            SELECT r.name, r.type, r.config, r.nonce
+            From resources r
+            Join inputs i on i.resource_id = r.id`, job.ID())
 		if err != nil {
 			return nil, err
 		}
+		defer Close(resourceRows)
 
 		var schedulerResources SchedulerResources
-		for rows.Next() {
+		for resourceRows.Next() {
 			var name, type_ string
 			var configBlob []byte
 			var nonce sql.NullString
 
-			err = rows.Scan(&name, &type_, &configBlob, &nonce)
+			err = resourceRows.Scan(&name, &type_, &configBlob, &nonce)
 			if err != nil {
 				return nil, err
 			}
-
-			defer Close(rows)
 
 			es := j.conn.EncryptionStrategy()
 
@@ -158,7 +158,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 		resourceTypes, found := pipelineResourceTypes[job.PipelineID()]
 		if !found {
-			rows, err := resourceTypesQuery.
+			resourceTypeRows, err := resourceTypesQuery.
 				Where(sq.Eq{"r.pipeline_id": job.PipelineID()}).
 				OrderBy("r.name").
 				RunWith(tx).
@@ -166,12 +166,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			if err != nil {
 				return nil, err
 			}
+			defer Close(resourceTypeRows)
 
-			defer Close(rows)
-
-			for rows.Next() {
+			for resourceTypeRows.Next() {
 				resourceType := newEmptyResourceType(j.conn, j.lockFactory)
-				err := scanResourceType(resourceType, rows)
+				err := scanResourceType(resourceType, resourceTypeRows)
 				if err != nil {
 					return nil, err
 				}
@@ -184,7 +183,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 		prototypes, found := pipelinePrototypes[job.PipelineID()]
 		if !found {
-			rows, err := prototypesQuery.
+			prototypeRows, err := prototypesQuery.
 				Where(sq.Eq{"pt.pipeline_id": job.PipelineID()}).
 				OrderBy("pt.name").
 				RunWith(tx).
@@ -192,12 +191,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			if err != nil {
 				return nil, err
 			}
+			defer Close(prototypeRows)
 
-			defer Close(rows)
-
-			for rows.Next() {
+			for prototypeRows.Next() {
 				prototype := newEmptyPrototype(j.conn, j.lockFactory)
-				err := scanPrototype(prototype, rows)
+				err := scanPrototype(prototype, prototypeRows)
 				if err != nil {
 					return nil, err
 				}
@@ -339,6 +337,7 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 	if err != nil {
 		return nil, err
 	}
+	defer Close(rows)
 
 	type nullableBuild struct {
 		id        sql.NullInt64
@@ -453,6 +452,7 @@ func (d dashboardFactory) fetchJobInputs() (map[int][]atc.JobInputSummary, error
 	if err != nil {
 		return nil, err
 	}
+	defer Close(rows)
 
 	jobInputs := make(map[int][]atc.JobInputSummary)
 	m := pgtype.NewMap()
@@ -499,6 +499,7 @@ func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutputSummary, err
 	if err != nil {
 		return nil, err
 	}
+	defer Close(rows)
 
 	jobOutputs := make(map[int][]atc.JobOutputSummary)
 	for rows.Next() {
@@ -512,7 +513,7 @@ func (d dashboardFactory) fetchJobOutputs() (map[int][]atc.JobOutputSummary, err
 		jobOutputs[jobID] = append(jobOutputs[jobID], output)
 	}
 
-	return jobOutputs, err
+	return jobOutputs, nil
 }
 
 func (d dashboardFactory) combineJobInputsAndOutputsWithDashboardJobs(dashboard []atc.JobSummary, jobInputs map[int][]atc.JobInputSummary, jobOutputs map[int][]atc.JobOutputSummary) []atc.JobSummary {

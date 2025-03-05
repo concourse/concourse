@@ -63,7 +63,7 @@ func (repository *containerRepository) queryContainerHandles(tx Tx, cond sq.Eq) 
 	handles := []string{}
 
 	for rows.Next() {
-		var handle = "handle"
+		var handle string
 		columns := []interface{}{&handle}
 
 		err = rows.Scan(columns...)

@@ -497,31 +497,58 @@ func validateDisplay(c atc.Config) ([]atc.ConfigWarning, error) {
 	return warnings, nil
 }
 
-func detectCycle(j atc.JobConfig, visited map[string]int, pipelineConfig atc.Config) error {
-	const (
-		nonVisited     = 0
-		semiVisited    = 1
-		alreadyVisited = 2
-	)
-	visited[j.Name] = semiVisited
+// JobState represents the visit state of a job during cycle detection
+type JobState int
+
+const (
+	NotVisited JobState = iota
+	Visiting
+	Visited
+)
+
+// detectCycle performs cycle detection for a single traversal starting from job j
+func detectCycle(j atc.JobConfig, visited map[string]JobState, pipelineConfig atc.Config) error {
+	if visited[j.Name] == Visiting {
+		return fmt.Errorf("pipeline contains a cycle that starts at Job '%s'", j.Name)
+	}
+
+	if visited[j.Name] == Visited {
+		return nil
+	}
+
+	visited[j.Name] = Visiting
+
 	err := j.StepConfig().Visit(atc.StepRecursor{
 		OnGet: func(step *atc.GetStep) error {
 			for _, nextJobName := range step.Passed {
 				nextJob := findJobByName(nextJobName, pipelineConfig.Jobs)
-				if visited[nextJobName] == semiVisited {
-					return fmt.Errorf("pipeline contains a cycle that starts at Job '%s'", nextJobName)
-				} else if visited[nextJobName] == nonVisited {
-					err := detectCycle(nextJob, visited, pipelineConfig)
-					if err != nil {
-						return err
-					}
+				if err := detectCycle(nextJob, visited, pipelineConfig); err != nil {
+					return err
 				}
 			}
 			return nil
 		},
 	})
-	visited[j.Name] = alreadyVisited
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	visited[j.Name] = Visited
+	return nil
+}
+
+// validateCycle checks for cycles in the entire pipeline configuration
+func validateCycle(c atc.Config) error {
+	for _, job := range c.Jobs {
+		// Create fresh visited map for each root job
+		visited := make(map[string]JobState)
+
+		if err := detectCycle(job, visited, c); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func findJobByName(jobName string, jobs atc.JobConfigs) atc.JobConfig {
@@ -531,16 +558,4 @@ func findJobByName(jobName string, jobs atc.JobConfigs) atc.JobConfig {
 		}
 	}
 	return atc.JobConfig{}
-}
-
-func validateCycle(c atc.Config) error {
-	jobs := c.Jobs
-	visitedJobsMap := make(map[string]int)
-	for _, job := range jobs {
-		err := detectCycle(job, visitedJobsMap, c)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }

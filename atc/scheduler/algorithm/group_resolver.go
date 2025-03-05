@@ -324,23 +324,23 @@ func (r *groupResolver) candidatesAreDoomed() bool {
 	for i, c := range r.candidates {
 		doomed := r.doomedCandidates[i]
 
+		// Both nil case - continue checking others
 		if c == nil && doomed == nil {
 			continue
 		}
 
-		if c == nil && doomed != nil {
+		// Any mismatch means not all candidates are doomed
+		if c == nil || doomed == nil {
 			return false
 		}
 
-		if c != nil && doomed == nil {
-			return false
-		}
-
-		if doomed.Version != c.Version {
+		// Both non-nil but versions don't match
+		if c.Version != doomed.Version {
 			return false
 		}
 	}
 
+	// All candidates matched their doomed counterparts
 	return true
 }
 
@@ -496,7 +496,7 @@ func (r *groupResolver) vouchForCandidate(oldCandidate *versionCandidate, versio
 }
 
 func (r *groupResolver) orderJobs(jobIDs map[int]bool) []int {
-	orderedJobs := []int{}
+	orderedJobs := make([]int, 0, len(jobIDs))
 	for id := range jobIDs {
 		orderedJobs = append(orderedJobs, id)
 	}
