@@ -1686,7 +1686,7 @@ func (cmd *RunCommand) constructDBConn(
 
 	// Instrument with Logging
 	if cmd.LogDBQueries {
-		dbConn = db.Log(logger.Session("log-conn"), dbConn)
+		dbConn = db.Log(logger.Session("log-dbconn"), dbConn)
 	}
 
 	// Prepare
