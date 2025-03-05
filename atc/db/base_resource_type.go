@@ -47,6 +47,7 @@ func warmUpBaseResourceTypesCache(runner sq.Runner) error {
 	if err != nil {
 		return err
 	}
+	defer Close(rows)
 
 	for rows.Next() {
 		var id int

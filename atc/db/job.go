@@ -814,18 +814,6 @@ func (j *job) EnsurePendingBuildExists(ctx context.Context) error {
 func (j *job) GetPendingBuilds() ([]Build, error) {
 	builds := []Build{}
 
-	row := jobsQuery.Where(sq.Eq{
-		"j.name":        j.name,
-		"j.active":      true,
-		"j.pipeline_id": j.pipelineID,
-	}).RunWith(j.conn).QueryRow()
-
-	job := newEmptyJob(j.conn, j.lockFactory)
-	err := scanJob(job, row)
-	if err != nil {
-		return nil, err
-	}
-
 	rows, err := buildsQuery.
 		Where(sq.Eq{
 			"b.job_id": j.id,
@@ -982,7 +970,7 @@ func (j *job) ClearTaskCache(stepName string, cachePath string) (int64, error) {
 
 	defer Rollback(tx)
 
-	var sqlBuilder sq.DeleteBuilder = psql.Delete("task_caches").
+	var sqlBuilder = psql.Delete("task_caches").
 		Where(sq.Eq{
 			"job_id":    j.id,
 			"step_name": stepName,
@@ -1343,6 +1331,7 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer Close(rows)
 
 	buildInputs := []BuildInput{}
 	for rows.Next() {
@@ -1524,6 +1513,7 @@ func requestScheduleOnDownstreamJobs(tx Tx, jobID int) error {
 	if err != nil {
 		return err
 	}
+	defer Close(rows)
 
 	var jobIDs []int
 	for rows.Next() {
