@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Concourse</title>
+    <link rel="modulepreload" href="{{asset "elm-setup.js"}}">
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="manifest" href="{{asset "manifest.json"}}" />
-    <link rel="stylesheet" type="text/css" media="all" href="{{asset "main.css"}}" />
-    <link rel="icon" type="image/png" id="favicon" href="{{asset "images/favicon.png"}}" />
+    <title>Concourse</title>
     <script src="{{asset "elm.min.js"}}"></script>
-    <script src="{{asset "clipboard.min.js"}}"></script>
+    <script src="{{asset "clipboard.min.js"}}" defer></script>
+    <link rel="stylesheet" type="text/css" href="{{asset "main.css"}}" />
+    <link rel="icon" type="image/png" sizes="32x32" id="favicon" href="{{asset "images/favicon.png"}}" />
+    <link rel="manifest" href="{{asset "manifest.webmanifest"}}" />
     <style>
         @keyframes pipeline-running {
           0% { background-position-x: -53.5px; }
@@ -67,7 +68,7 @@
     </style>
   </head>
   <body>
-    <noscript>You don’t appear to have JavaScript enabled. This web UI won’t work without it!</noscript>
+    <noscript>Please enable JavaScript in your browser to view Concourse pipelines and build logs.</noscript>
     <div id="elm-app-embed"></div>
     <script>
       window.elmFlags = {

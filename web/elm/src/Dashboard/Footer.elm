@@ -10,7 +10,7 @@ import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, download, href, id, style)
+import Html.Attributes exposing (attribute, class, download, href, id, style, title)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Keyboard
 import Message.Effects as Effects
@@ -264,6 +264,7 @@ cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
 cliIcon hovered cli =
     Html.a
         ([ href <| Cli.downloadUrl cli
+         , title <| Cli.label cli
          , attribute "aria-label" <| Cli.label cli
          , id <| "cli-" ++ Cli.id cli
          , onMouseEnter <| Hover <| Just <| FooterCliIcon cli
