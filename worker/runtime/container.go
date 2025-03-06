@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -413,10 +414,9 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 // Set a default path based on the UID if no existing PATH is found
 func envWithDefaultPath(uid uint32, currentEnv []string) string {
 	pathRegexp := regexp.MustCompile("^PATH=.*$")
-	for _, envVar := range currentEnv {
-		if pathRegexp.MatchString(envVar) {
-			return ""
-		}
+	pathFound := slices.ContainsFunc(currentEnv, pathRegexp.MatchString)
+	if pathFound {
+		return ""
 	}
 
 	if uid == 0 {
