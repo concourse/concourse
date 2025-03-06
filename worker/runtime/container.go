@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/google/uuid"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -99,7 +100,23 @@ func (c *Container) Run(
 
 	task, err := c.container.Task(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("task retrieval: %w", err)
+		if errdefs.IsNotFound(err) {
+			// The containerd task is usually made during container creation.
+			// The task may have been killed if the containerd daemon was
+			// restarted. We can recover from this error by recreating the task
+			// and continuing as usual
+			initTask, err := c.container.NewTask(ctx, cio.NullIO, containerd.WithNoNewKeyring)
+			if err != nil {
+				return nil, fmt.Errorf("recreating init task: %w", err)
+			}
+			err = initTask.Start(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("restarting init task: %w", err)
+			}
+			task = initTask
+		} else {
+			return nil, fmt.Errorf("task retrieval: %w", err)
+		}
 	}
 
 	id := procID(spec)
@@ -157,7 +174,7 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 
 	task, err := c.container.Task(ctx, cio.Load)
 	if err != nil {
-		return nil, fmt.Errorf("task: %w", err)
+		return nil, fmt.Errorf("task attach: %w", err)
 	}
 
 	cioOpts := containerdCIO(processIO, false)
