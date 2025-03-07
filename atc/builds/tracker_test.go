@@ -91,15 +91,6 @@ func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 
 func (s *TrackerSuite) TestTrackInMemoryBuilds() {
 	inMemoryBuilds := []db.Build{}
-	for i := 0; i < 3; i++ {
-		fakeBuild := new(dbfakes.FakeBuild)
-		// When tracked, in-memory builds have no id yet, thus let's use fake
-		// team id to verify test result.
-		fakeBuild.IDReturns(0)
-		fakeBuild.TeamIDReturns(i + 1)
-		inMemoryBuilds = append(inMemoryBuilds, fakeBuild)
-		s.buildChan <- fakeBuild
-	}
 
 	running := make(chan db.Build, 3)
 	s.fakeEngine.NewBuildStub = func(build db.Build) builds.Runnable {
@@ -108,6 +99,16 @@ func (s *TrackerSuite) TestTrackInMemoryBuilds() {
 			running <- build
 		}
 		return engineBuild
+	}
+
+	for i := range 3 {
+		fakeBuild := new(dbfakes.FakeBuild)
+		// When tracked, in-memory builds have no id yet, thus let's use fake
+		// team id to verify test result.
+		fakeBuild.IDReturns(0)
+		fakeBuild.TeamIDReturns(i + 1)
+		inMemoryBuilds = append(inMemoryBuilds, fakeBuild)
+		s.buildChan <- fakeBuild
 	}
 
 	err := s.tracker.Run(context.TODO())
