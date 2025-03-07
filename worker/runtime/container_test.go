@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -102,6 +103,21 @@ func (s *ContainerSuite) TestRunTaskError() {
 
 	_, err := s.container.Run(garden.ProcessSpec{}, garden.ProcessIO{})
 	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestRunTaskNotFoundErrorSucceeds() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	expectedErr := errdefs.ErrNotFound
+	s.containerdContainer.TaskReturns(nil, expectedErr)
+	s.containerdContainer.NewTaskReturns(s.containerdTask, nil)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{}, garden.ProcessIO{})
+	s.NoError(err)
 }
 
 func (s *ContainerSuite) TestRunTaskExecError() {

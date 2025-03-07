@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -586,6 +587,68 @@ func (s *IntegrationSuite) runToCompletion(privileged bool) {
 	s.Equal(exitCode, 0)
 	s.Equal("hello world\n", buf.String())
 
+}
+
+func (s *IntegrationSuite) TestRunRecoversFromTaskNotFoundErr() {
+	handle := uuid()
+
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.gardenBackend.Destroy(handle))
+	}()
+
+	//stop the container task made during gardenBackend.Create()
+	client, err := containerd.New(s.containerdSocket(), containerd.WithDefaultNamespace("test"))
+	s.NoError(err)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	containers, err := client.Containers(ctx)
+	s.NoError(err)
+	taskKilled := false
+	for _, container := range containers {
+		if container.ID() == handle {
+			ts, err := container.Task(ctx, nil)
+			s.NoError(err)
+			exited, err := ts.Wait(ctx)
+			s.NoError(err)
+			err = ts.Kill(ctx, syscall.SIGKILL)
+			s.NoError(err)
+			select {
+			case <-exited:
+			case <-ctx.Done():
+				s.Fail(ctx.Err().Error())
+			}
+			_, err = ts.Delete(ctx)
+			s.NoError(err)
+			taskKilled = true
+		}
+	}
+	s.True(taskKilled)
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Dir:  "/somewhere",
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+
+	s.Equal(exitCode, 0)
+	s.Equal("hello world\n", buf.String())
 }
 
 // TestRunWithoutTerminalStdinReturnsEOF validates that when running a process
