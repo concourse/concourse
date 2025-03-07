@@ -1,3 +1,5 @@
+//go:build linux
+
 package runtime
 
 import (
@@ -20,7 +22,6 @@ import (
 // key.1: ...second chunk of value...
 // ...
 // key.n: ...last chunk of value
-//
 func propertiesToLabels(properties garden.Properties) (map[string]string, error) {
 	// Hard restriction on the total length of key + value imposed by
 	// containerd on a per-label basis.
@@ -63,7 +64,6 @@ func propertiesToLabels(properties garden.Properties) (map[string]string, error)
 // order.
 //
 // Any labels that aren't of the correct format (i.e. key.n) will be ignored.
-//
 func labelsToProperties(labels map[string]string) garden.Properties {
 	properties := garden.Properties{}
 	for len(labels) > 0 {
@@ -113,19 +113,18 @@ func labelsToProperties(labels map[string]string) garden.Properties {
 //
 // containerd filters are in the form of
 //
-//           <what>.<field><operator><value>
+//	<what>.<field><operator><value>
 //
 // which, in our very specific case of properties, means
 //
-//           labels.foo==bar
-//           |      |  | value
-//           |      |  equality
-//           |      key
-//           what
+//	labels.foo==bar
+//	|      |  | value
+//	|      |  equality
+//	|      key
+//	what
 //
 // note that the key in this case represents the label key, which is not the
 // same as the property key - refer to propertiesToLabels.
-//
 func propertiesToFilterList(properties garden.Properties) ([]string, error) {
 	for k, v := range properties {
 		if k == "" || v == "" {

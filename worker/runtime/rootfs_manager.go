@@ -1,3 +1,5 @@
+//go:build linux
+
 package runtime
 
 import (
@@ -33,7 +35,6 @@ const (
 
 // RootfsManager is responsible for mutating and reading from the rootfs of a
 // container.
-//
 type RootfsManager interface {
 	// SetupCwd mutates the root filesystem to guarantee the presence of a
 	// directory to be used as `cwd`.
@@ -48,12 +49,10 @@ type RootfsManager interface {
 
 // RootfsManagerOpt defines a functional option that when applied, modifies the
 // configuration of a rootfsManager.
-//
 type RootfsManagerOpt func(m *rootfsManager)
 
 // WithMkdirAll configures the function to be used for creating directories
 // recursively.
-//
 func WithMkdirAll(f func(path string, mode os.FileMode) error) RootfsManagerOpt {
 	return func(m *rootfsManager) {
 		m.mkdirall = f
@@ -67,7 +66,6 @@ type rootfsManager struct {
 var _ RootfsManager = (*rootfsManager)(nil)
 
 // NewRootfsManager instantiates a rootfsManager
-//
 func NewRootfsManager(opts ...RootfsManagerOpt) *rootfsManager {
 	m := &rootfsManager{
 		mkdirall: os.MkdirAll,
