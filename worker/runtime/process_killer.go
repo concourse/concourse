@@ -1,3 +1,5 @@
+//go:build linux
+
 package runtime
 
 import (
@@ -37,13 +39,13 @@ func NewProcessKiller() *processKiller {
 // ErrGracePeriodTimeout is returned.
 //
 // ps.: even in the case of a SIGKILL being used as the signal, `Kill` will
-//      wait for a `waitPeriod` for a status to be reported back. This way one
-//      can detect cases where not even a SIGKILL changes the status of a
-//      process (e.g., if the process is frozen due to a blocking syscall that
-//      never returns, or because it's suspended - see [1]).
+//
+//	wait for a `waitPeriod` for a status to be reported back. This way one
+//	can detect cases where not even a SIGKILL changes the status of a
+//	process (e.g., if the process is frozen due to a blocking syscall that
+//	never returns, or because it's suspended - see [1]).
 //
 // [1]: https://github.com/concourse/concourse/issues/4477
-//
 func (p processKiller) Kill(
 	ctx context.Context,
 	proc containerd.Process,

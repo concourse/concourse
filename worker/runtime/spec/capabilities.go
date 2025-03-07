@@ -1,3 +1,5 @@
+//go:build linux
+
 package spec
 
 import "github.com/opencontainers/runtime-spec/specs-go"
@@ -10,7 +12,7 @@ func OciCapabilities(privilegedMode PrivilegedMode, privileged bool) specs.Linux
 	if privilegedMode == FUSEOnlyPrivilegedMode {
 		return FUSEOnlyContainerCapabilities
 	}
-	
+
 	return PrivilegedContainerCapabilities
 }
 
@@ -70,7 +72,7 @@ var (
 		"CAP_SYS_CHROOT",
 		"CAP_SYS_ADMIN",
 	}
-	
+
 	privilegedCaps = []string{
 		"CAP_AUDIT_CONTROL",
 		"CAP_AUDIT_READ",

@@ -1,3 +1,5 @@
+//go:build linux
+
 // Package backend provides the implementation of a Garden server backed by
 // containerd.
 //
