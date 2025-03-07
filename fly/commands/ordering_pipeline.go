@@ -36,10 +36,16 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 		return err
 	}
 
+	var team concourse.Team
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
 	var orderedNames []string
 	if command.Alphabetical {
 		seen := map[string]bool{}
-		ps, err := target.Team().ListPipelines()
+		ps, err := team.ListPipelines()
 		if err != nil {
 			return err
 		}
@@ -58,12 +64,6 @@ func (command *OrderPipelinesCommand) Execute(args []string) error {
 			}
 		}
 		orderedNames = command.Pipelines
-	}
-
-	var team concourse.Team
-	team, err = command.Team.LoadTeam(target)
-	if err != nil {
-		return err
 	}
 
 	err = team.OrderingPipelines(orderedNames)
