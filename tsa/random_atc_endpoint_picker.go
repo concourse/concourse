@@ -2,7 +2,6 @@ package tsa
 
 import (
 	"math/rand"
-	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag/v2"
@@ -18,8 +17,6 @@ func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
 	for _, f := range atcURLFlags {
 		atcEndpoints = append(atcEndpoints, rata.NewRequestGenerator(f.String(), atc.Routes))
 	}
-
-	rand.Seed(time.Now().Unix())
 
 	return &randomATCEndpointPicker{
 		ATCEndpoints: atcEndpoints,
