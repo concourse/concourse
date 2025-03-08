@@ -2,6 +2,7 @@ package builds
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -64,7 +65,7 @@ func (bt *Tracker) Run(ctx context.Context) error {
 	}
 
 	for _, b := range builds {
-		bt.trackBuild(logger, b, true)
+		bt.trackBuild(logger, b)
 	}
 
 	return nil
@@ -74,14 +75,19 @@ func (bt *Tracker) Drain(ctx context.Context) {
 	bt.engine.Drain(ctx)
 }
 
-func (bt *Tracker) trackBuild(logger lager.Logger, b db.Build, dupCheck bool) {
-	if dupCheck {
-		if _, exists := bt.running.LoadOrStore(b.ID(), true); exists {
-			return
-		}
+func (bt *Tracker) trackBuild(logger lager.Logger, b db.Build) {
+	var id string
+	if b.ID() != 0 {
+		id = fmt.Sprintf("build-%d", b.ID())
+	} else {
+		id = fmt.Sprintf("resource-%d", b.ResourceID())
 	}
 
-	go func(build db.Build) {
+	if _, exists := bt.running.LoadOrStore(id, true); exists {
+		return
+	}
+
+	go func(build db.Build, id string) {
 		loggerData := build.LagerData()
 		defer func() {
 			err := util.DumpPanic(recover(), "tracking build %d", build.ID())
@@ -92,11 +98,7 @@ func (bt *Tracker) trackBuild(logger lager.Logger, b db.Build, dupCheck bool) {
 			}
 		}()
 
-		defer func(dupCheck bool) {
-			if dupCheck {
-				bt.running.Delete(build.ID())
-			}
-		}(dupCheck)
+		defer bt.running.Delete(id)
 
 		if build.Name() == db.CheckBuildName {
 			metric.Metrics.CheckBuildsRunning.Inc()
@@ -112,7 +114,7 @@ func (bt *Tracker) trackBuild(logger lager.Logger, b db.Build, dupCheck bool) {
 				logger.Session("run", loggerData),
 			),
 		)
-	}(b)
+	}(b, id)
 }
 
 func (bt *Tracker) trackInMemoryBuilds(logger lager.Logger) {
@@ -127,7 +129,7 @@ func (bt *Tracker) trackInMemoryBuilds(logger lager.Logger) {
 				return
 			}
 			logger.Debug("received-in-memory-build", b.LagerData())
-			bt.trackBuild(logger, b, false)
+			bt.trackBuild(logger, b)
 		}
 	}
 }
