@@ -30,8 +30,6 @@ var ctx = context.Background()
 var baggageClaimPath string
 
 func TestIntegration(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Baggage Claim Suite")
 }

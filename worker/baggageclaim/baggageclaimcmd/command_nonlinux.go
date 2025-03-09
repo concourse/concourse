@@ -32,6 +32,8 @@ type BaggageclaimCommand struct {
 
 	VolumesDir flag.Dir `long:"volumes" required:"true" description:"Directory in which to place volume data."`
 
+	OverlaysDir string `long:"overlays-dir" description:"Path to directory in which to store overlay data"`
+
 	Driver string `long:"driver" default:"detect" choice:"detect" choice:"naive" description:"Driver to use for managing volumes."`
 }
 

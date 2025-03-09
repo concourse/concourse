@@ -122,7 +122,6 @@ var _ = AfterSuite(func() {
 })
 
 func setReleaseNameAndNamespace(description string) {
-	rand.Seed(time.Now().UTC().UnixNano())
 	releaseName = fmt.Sprintf("topgun-"+description+"-%d", rand.Int63n(100000000))
 	namespace = releaseName
 }

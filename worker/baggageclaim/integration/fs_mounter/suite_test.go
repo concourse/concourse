@@ -2,10 +2,8 @@ package integration_test
 
 import (
 	"encoding/json"
-	"math/rand"
 	"runtime"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,8 +18,6 @@ func TestIntegration(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		suiteName = suiteName + " - skipping btrfs tests because non-linux"
 	}
-
-	rand.Seed(time.Now().Unix())
 
 	RegisterFailHandler(Fail)
 	RunSpecs(t, suiteName)
