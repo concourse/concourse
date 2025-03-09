@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -184,6 +185,117 @@ var _ = Describe("Fly CLI", func() {
 				Expect(sess.ExitCode()).To(Equal(1))
 
 				Expect(sess.Err).To(gbytes.Say(`error: pipeline name "forbidden/pipelinename" cannot contain '/'`))
+			})
+		})
+
+		Context("with a custom team", func() {
+			var (
+				teamName string
+				path     string
+				err      error
+			)
+
+			BeforeEach(func() {
+				teamName = "custom-team"
+				path, err = atc.Routes.CreatePathForRoute(atc.OrderPipelines, rata.Params{"team_name": teamName})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when the pipeline exists", func() {
+				var pipelineNames []string
+
+				BeforeEach(func() {
+					pipelineNames = []string{
+						"awesome-pipeline",
+						"awesome-pipeline-2",
+					}
+				})
+
+				JustBeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", teamName)),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: teamName,
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyJSONRepresenting(pipelineNames),
+							ghttp.VerifyRequest("PUT", path),
+							ghttp.RespondWith(http.StatusOK, nil),
+						),
+					)
+				})
+
+				It("orders the pipelines", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "order-pipelines", "-p", "awesome-pipeline", "-p", "awesome-pipeline-2", "--team", teamName)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
+					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
+					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline-2`))
+				})
+
+				It("orders the pipeline with alias", func() {
+
+					flyCmd := exec.Command(flyPath, "-t", targetName, "op", "-p", "awesome-pipeline", "-p", "awesome-pipeline-2", "--team", teamName)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
+					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
+					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline-2`))
+				})
+			})
+
+			Context("when the alphabetical option is passed in custom team", func() {
+				BeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", teamName)),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: teamName,
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s/pipelines", teamName)),
+							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
+								{Name: "beautiful-pipeline", Paused: false, Public: false},
+								{Name: "awesome-pipeline", Paused: true, Public: false},
+								{Name: "awesome-pipeline", InstanceVars: map[string]interface{}{"hello": "world"}, Paused: true, Public: false},
+								{Name: "delightful-pipeline", Paused: false, Public: true},
+								{Name: "charming-pipeline", Paused: false, Public: true},
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("PUT", path),
+							ghttp.RespondWith(http.StatusOK, nil),
+						),
+					)
+				})
+
+				It("orders all the pipelines in alphabetical order", func() {
+					flyCmd := exec.Command(flyPath, "-t", targetName, "order-pipelines", "--alphabetical", "--team", teamName)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
+					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
+					Consistently(sess).ShouldNot(gbytes.Say(`  - awesome-pipeline`))
+					Eventually(sess).Should(gbytes.Say(`  - beautiful-pipeline`))
+					Eventually(sess).Should(gbytes.Say(`  - charming-pipeline`))
+					Eventually(sess).Should(gbytes.Say(`  - delightful-pipeline`))
+				})
 			})
 		})
 	})

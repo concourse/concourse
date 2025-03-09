@@ -194,6 +194,8 @@ var _ = Describe("Fly CLI", func() {
 				exec.Command(flyPath, "-t", targetName, "destroy-pipeline", "-p", "pipeline", "--team", otherTeam)),
 			Entry("get-pipeline command returns an error",
 				exec.Command(flyPath, "-t", targetName, "get-pipeline", "-p", "pipeline", "--team", otherTeam)),
+			Entry("order-pipelines command returns an error",
+				exec.Command(flyPath, "-t", targetName, "order-pipelines", "-p", "pipeline", "--team", otherTeam)),
 			Entry("abort-build command returns an error",
 				exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "pipeline/job", "-b", "4", "--team", otherTeam)),
 			Entry("archive-pipeline command returns an error",
