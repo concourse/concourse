@@ -57,7 +57,7 @@ func (s *TrackerSuite) SetupTest() {
 
 func (s *TrackerSuite) TestTrackRunsStartedBuilds() {
 	startedBuilds := []db.Build{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		fakeBuild := new(dbfakes.FakeBuild)
 		fakeBuild.IDReturns(i + 1)
 		startedBuilds = append(startedBuilds, fakeBuild)
@@ -103,10 +103,10 @@ func (s *TrackerSuite) TestTrackInMemoryBuilds() {
 
 	for i := range 3 {
 		fakeBuild := new(dbfakes.FakeBuild)
-		// When tracked, in-memory builds have no id yet, thus let's use fake
-		// team id to verify test result.
+		// When tracked, in-memory builds have no id yet, but they do have a
+		// resource ID
 		fakeBuild.IDReturns(0)
-		fakeBuild.TeamIDReturns(i + 1)
+		fakeBuild.ResourceIDReturns(i + 1)
 		inMemoryBuilds = append(inMemoryBuilds, fakeBuild)
 		s.buildChan <- fakeBuild
 	}
@@ -115,13 +115,13 @@ func (s *TrackerSuite) TestTrackInMemoryBuilds() {
 	s.NoError(err)
 
 	s.ElementsMatch([]int{
-		inMemoryBuilds[0].TeamID(),
-		inMemoryBuilds[1].TeamID(),
-		inMemoryBuilds[2].TeamID(),
+		inMemoryBuilds[0].ResourceID(),
+		inMemoryBuilds[1].ResourceID(),
+		inMemoryBuilds[2].ResourceID(),
 	}, []int{
-		(<-running).TeamID(),
-		(<-running).TeamID(),
-		(<-running).TeamID(),
+		(<-running).ResourceID(),
+		(<-running).ResourceID(),
+		(<-running).ResourceID(),
 	})
 }
 
@@ -204,6 +204,37 @@ func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningBuilds() {
 	select {
 	case <-running:
 		s.Fail("another build was started!")
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func (s *TrackerSuite) TestTrackDoesntTrackAlreadyRunningInMemoryChecks() {
+	fakeInMemoryCheck := new(dbfakes.FakeBuild)
+	fakeInMemoryCheck.IDReturns(0)
+	fakeInMemoryCheck.ResourceIDReturns(1)
+	s.fakeBuildFactory.GetAllStartedBuildsReturns([]db.Build{}, nil)
+
+	wait := make(chan struct{})
+	defer close(wait)
+
+	running := make(chan db.Build, 3)
+	s.fakeEngine.NewBuildStub = func(build db.Build) builds.Runnable {
+		engineBuild := new(buildsfakes.FakeRunnable)
+		engineBuild.RunStub = func(context.Context) {
+			running <- build
+			<-wait
+		}
+
+		return engineBuild
+	}
+
+	s.buildChan <- fakeInMemoryCheck
+	<-running
+	s.buildChan <- fakeInMemoryCheck
+
+	select {
+	case <-running:
+		s.Fail("another in-memory check was started!")
 	case <-time.After(100 * time.Millisecond):
 	}
 }
