@@ -9,11 +9,13 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type ClearResourceCacheCommand struct {
 	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to clear cache"`
 	Version  *atc.Version             `short:"v" long:"version"                  value-name:"VERSION"           description:"Version of the resource to check from, e.g. digest:sha256@..., in case a version is not specified the command will delete all the resource caches for that resource"`
+	Team     flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline/resource belong, if different from the target default"`
 }
 
 func (command *ClearResourceCacheCommand) Execute(args []string) error {
@@ -23,6 +25,12 @@ func (command *ClearResourceCacheCommand) Execute(args []string) error {
 	}
 
 	err = target.Validate()
+	if err != nil {
+		return err
+	}
+
+	var team concourse.Team
+	team, err = command.Team.LoadTeam(target)
 	if err != nil {
 		return err
 	}
@@ -50,7 +58,7 @@ func (command *ClearResourceCacheCommand) Execute(args []string) error {
 		return err
 	}
 
-	numRemoved, err := target.Team().ClearResourceCache(command.Resource.PipelineRef, command.Resource.ResourceName, version)
+	numRemoved, err := team.ClearResourceCache(command.Resource.PipelineRef, command.Resource.ResourceName, version)
 
 	if err != nil {
 		return err

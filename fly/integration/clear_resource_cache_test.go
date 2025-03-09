@@ -59,38 +59,74 @@ var _ = Describe("Fly CLI", func() {
 		})
 
 		Context("when resource and a version are specified", func() {
-			JustBeforeEach(func() {
-				atcServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
-						ghttp.VerifyJSON(`{"version":{"ref":"fake-ref"}}`),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearResourceCacheResponse{CachesRemoved: 1}),
-					),
-				)
-			})
+			Context("team is not specified", func() {
+				JustBeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+							ghttp.VerifyJSON(`{"version":{"ref":"fake-ref"}}`),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearResourceCacheResponse{CachesRemoved: 1}),
+						),
+					)
+				})
 
-			BeforeEach(func() {
-				args = append(args, "-r", "some-pipeline/some-resource", "-v", "ref:fake-ref")
-			})
+				BeforeEach(func() {
+					args = append(args, "-r", "some-pipeline/some-resource", "-v", "ref:fake-ref")
+				})
 
-			It("warns this could be a dangerous command", func() {
-				Eventually(sess).Should(gbytes.Say("this will remove the resource cache\\(s\\) for `some-pipeline/some-resource` with version: `{\"ref\":\"fake-ref\"}`"))
-			})
+				It("warns this could be a dangerous command", func() {
+					Eventually(sess).Should(gbytes.Say("this will remove the resource cache\\(s\\) for `some-pipeline/some-resource` with version: `{\"ref\":\"fake-ref\"}`"))
+				})
 
-			It("succeeds with one deletion", func() {
-				Expect(func() {
-					yes()
+				It("succeeds with one deletion", func() {
+					Expect(func() {
+						yes()
+						Eventually(sess).Should(gexec.Exit(0))
+						Eventually(sess).Should(gbytes.Say("1 caches removed"))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(2))
+				})
+
+				It("bails out if the user negate the command", func() {
+					no()
+					Eventually(sess).Should(gbytes.Say(`bailing out`))
 					Eventually(sess).Should(gexec.Exit(0))
-					Eventually(sess).Should(gbytes.Say("1 caches removed"))
-				}).To(Change(func() int {
-					return len(atcServer.ReceivedRequests())
-				}).By(2))
+				})
 			})
+			Context("team is specified", func() {
+				var teamName = "custom-team"
+				var expectedURL = fmt.Sprintf("/api/v1/teams/%s/pipelines/some-pipeline/resources/some-resource/cache", teamName)
 
-			It("bails out if the user negate the command", func() {
-				no()
-				Eventually(sess).Should(gbytes.Say(`bailing out`))
-				Eventually(sess).Should(gexec.Exit(0))
+				JustBeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", teamName)),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: teamName,
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+							ghttp.VerifyJSON(`{"version":{"ref":"fake-ref"}}`),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearResourceCacheResponse{CachesRemoved: 1}),
+						),
+					)
+				})
+
+				BeforeEach(func() {
+					args = append(args, "-r", "some-pipeline/some-resource", "-v", "ref:fake-ref", "--team", teamName)
+				})
+
+				It("succeeds with one deletion", func() {
+					Expect(func() {
+						yes()
+						Eventually(sess).Should(gexec.Exit(0))
+						Eventually(sess).Should(gbytes.Say("1 caches removed"))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
 			})
 		})
 
@@ -117,6 +153,46 @@ var _ = Describe("Fly CLI", func() {
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
+				})
+			})
+
+			Context("when the resource exist and team is specified", func() {
+				var teamName = "custom-team"
+				var expectedURL = fmt.Sprintf("/api/v1/teams/%s/pipelines/some-pipeline/resources/some-resource/cache", teamName)
+
+				JustBeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", teamName)),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: teamName,
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", expectedURL, strings.Join(expectedQueryParams, "&")),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearResourceCacheResponse{CachesRemoved: 1}),
+						),
+					)
+				})
+
+				BeforeEach(func() {
+					args = append(args, "-r", "some-pipeline/some-resource", "--team", teamName)
+				})
+
+				It("succeeds with one deletion", func() {
+					Expect(func() {
+						yes()
+						Eventually(sess).Should(gexec.Exit(0))
+						Eventually(sess).Should(gbytes.Say("1 caches removed"))
+					}).To(Change(func() int {
+						return len(atcServer.ReceivedRequests())
+					}).By(3))
+				})
+
+				It("bails out if the user negate the command", func() {
+					no()
+					Eventually(sess).Should(gbytes.Say(`bailing out`))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
 
