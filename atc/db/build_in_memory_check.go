@@ -653,7 +653,7 @@ func (b *inMemoryCheckBuild) Start(atc.Plan) (bool, error) {
 func (b *inMemoryCheckBuild) ResourcesChecked() (bool, error) {
 	return false, errors.New("not implemented for in memory build")
 }
-func (b *inMemoryCheckBuild) SavePipeline(atc.PipelineRef, int, atc.Config, ConfigVersion, bool) (Pipeline, bool, error) {
+func (b *inMemoryCheckBuild) SavePipeline(atc.PipelineRef, int, atc.Config, ConfigVersion, bool, bool) (Pipeline, bool, error) {
 	return nil, false, errors.New("not implemented for in memory build")
 }
 func (b *inMemoryCheckBuild) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
