@@ -10,16 +10,18 @@ import (
 type vaultFactory struct {
 	sr              SecretReader
 	prefix          string
+	prefixes        []string
 	sharedPath      string
 	lookupTemplates []*creds.SecretTemplate
 	loggedIn        <-chan struct{}
 	loginTimeout    time.Duration
 }
 
-func NewVaultFactory(sr SecretReader, loginTimeout time.Duration, loggedIn <-chan struct{}, prefix string, lookupTemplates []*creds.SecretTemplate, sharedPath string) *vaultFactory {
+func NewVaultFactory(sr SecretReader, loginTimeout time.Duration, loggedIn <-chan struct{}, prefix string, prefixes []string, lookupTemplates []*creds.SecretTemplate, sharedPath string) *vaultFactory {
 	factory := &vaultFactory{
 		sr:              sr,
 		prefix:          prefix,
+		prefixes:        prefixes,
 		lookupTemplates: lookupTemplates,
 		sharedPath:      sharedPath,
 		loggedIn:        loggedIn,
@@ -33,6 +35,7 @@ func (factory *vaultFactory) NewSecrets() creds.Secrets {
 	return &Vault{
 		SecretReader:    factory.sr,
 		Prefix:          factory.prefix,
+		Prefixes:        factory.prefixes,
 		LookupTemplates: factory.lookupTemplates,
 		SharedPath:      factory.sharedPath,
 		LoginTimeout:    factory.loginTimeout,
