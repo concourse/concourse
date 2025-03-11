@@ -7,13 +7,16 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
 )
 
 type ContainersCommand struct {
-	Json bool `long:"json" description:"Print command result as JSON"`
+	Json bool                 `long:"json" description:"Print command result as JSON"`
+	Team flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the containers belong, if different from the target default"`
 }
 
 func (command *ContainersCommand) Execute([]string) error {
@@ -27,7 +30,13 @@ func (command *ContainersCommand) Execute([]string) error {
 		return err
 	}
 
-	containers, err := target.Team().ListContainers(map[string]string{})
+	var team concourse.Team
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
+	containers, err := team.ListContainers(map[string]string{})
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"os/exec"
 
 	"github.com/concourse/concourse/atc"
@@ -149,6 +150,75 @@ var _ = Describe("Fly CLI", func() {
 						{{Contents: "post-handle"}, {Contents: "worker-name-3"}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "none", Color: color.New(color.Faint)}, {Contents: "142"}, {Contents: "task"}, {Contents: "one-off"}, {Contents: "n/a", Color: color.New(color.Faint)}},
 					},
 				}))
+			})
+		})
+
+		Context("when retrieving containers for a specific team in JSON format", func() {
+			var teamName = "custom-team"
+			JustBeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", teamName)),
+						ghttp.RespondWithJSONEncoded(200, atc.Team{
+							Name: teamName,
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s/containers", teamName)),
+						ghttp.RespondWithJSONEncoded(200, []atc.Container{
+							{
+								ID:                   "handle-1",
+								WorkerName:           "worker-name-1",
+								PipelineID:           1,
+								PipelineName:         "instanced-pipeline",
+								PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
+								Type:                 "check",
+								ResourceName:         "git-repo",
+							},
+							{
+								ID:         "post-handle",
+								WorkerName: "worker-name-2",
+								BuildID:    123,
+								Type:       "task",
+								StepName:   "one-off",
+							},
+						}),
+					),
+				)
+			})
+			BeforeEach(func() {
+				flyCmd.Args = append(flyCmd.Args, "--json", "--team", teamName)
+			})
+
+			It("prints response in json as stdout", func() {
+				Expect(func() {
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+
+					Eventually(sess).Should(gexec.Exit(0))
+					Expect(sess.Out.Contents()).To(MatchJSON(`[
+					{
+						"id": "handle-1",
+						"worker_name": "worker-name-1",
+						"type": "check",
+						"pipeline_id": 1,
+						"pipeline_name": "instanced-pipeline",
+						"pipeline_instance_vars": {
+						"branch": "master"
+						},
+						"resource_name": "git-repo"
+					},
+					{
+						"id": "post-handle",
+						"worker_name": "worker-name-2",
+						"type": "task",
+						"step_name": "one-off",
+						"build_id": 123
+					}
+					]`))
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(3))
 			})
 		})
 
