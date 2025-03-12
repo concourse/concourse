@@ -116,7 +116,7 @@ window.addEventListener('storage', function(event) {
   if (event.key === csrfTokenKey || event.key === favoritedPipelinesKey || event.key === favoritedInstanceGroupsKey) {
     const value = localStorage.getItem(event.key);
     setTimeout(function() {
-      app.ports.receivedFromLocalStorage.send([event.key, value]);
+      app.ports.receivedFromLocalStorage.send([event.key, JSON.parse(value)]);
     }, 0);
   }
 }, false);
