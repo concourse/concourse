@@ -597,7 +597,7 @@ all =
                                 [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                         )
                     |> Tuple.first
-                    |> afterSeconds 6
+                    |> afterSeconds 10
                     |> Common.queryView
                     |> Query.find [ id "page-below-top-bar" ]
                     |> Query.hasNot [ style "padding-bottom" "50px" ]
@@ -1846,7 +1846,7 @@ all =
                             |> Query.find [ id "concourse-info" ]
                             |> Query.has [ text "v1.2.3" ]
                 ]
-            , test "hides after 6 seconds" <|
+            , test "hides after 10 seconds" <|
                 \_ ->
                     Common.init "/"
                         |> givenDataUnauthenticated (apiData [ ( "team", [] ) ])
@@ -1857,7 +1857,7 @@ all =
                                     [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
                             )
                         |> Tuple.first
-                        |> afterSeconds 6
+                        |> afterSeconds 10
                         |> Common.queryView
                         |> Query.hasNot [ id "dashboard-info" ]
             , test "reappears on mouse action" <|
