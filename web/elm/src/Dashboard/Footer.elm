@@ -61,7 +61,7 @@ handleDelivery delivery ( model, effects ) =
             ( { model | hideFooter = False, hideFooterCounter = 0 }, effects )
 
         ClockTicked OneSecond _ ->
-            ( if model.hideFooterCounter > 4 then
+            ( if model.hideFooterCounter > 8 then
                 { model | hideFooter = True }
 
               else
