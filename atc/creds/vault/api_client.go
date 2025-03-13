@@ -83,7 +83,7 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 	// Need to discard the metadata object and pull the v2 data field up to match kv1
 	if kv2 {
 		if data, ok := secret.Data["data"]; ok && data != nil {
-			secret.Data = data.(map[string]interface{})
+			secret.Data = data.(map[string]any)
 			secret.LeaseDuration = -1
 		} else {
 			// Return a nil secret object if the secret was deleted, but not destroyed
@@ -94,8 +94,8 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 	return secret, err
 }
 
-func (ac *APIClient) loginParams() map[string]interface{} {
-	loginParams := make(map[string]interface{})
+func (ac *APIClient) loginParams() map[string]any {
+	loginParams := make(map[string]any)
 	for k, v := range ac.authConfig.Params {
 		loginParams[k] = v
 	}

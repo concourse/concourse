@@ -9,7 +9,7 @@ import (
 
 var PanicSink io.Writer = os.Stderr
 
-func DumpPanic(recovered interface{}, msg string, args ...interface{}) error {
+func DumpPanic(recovered any, msg string, args ...any) error {
 	if recovered == nil {
 		return nil
 	}

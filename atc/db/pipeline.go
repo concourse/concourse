@@ -457,7 +457,7 @@ func (p *pipeline) ResourceByID(id int) (Resource, bool, error) {
 	})
 }
 
-func (p *pipeline) resource(where map[string]interface{}) (Resource, bool, error) {
+func (p *pipeline) resource(where map[string]any) (Resource, bool, error) {
 	row := resourcesQuery.
 		Where(where).
 		RunWith(p.conn).
@@ -523,7 +523,7 @@ func (p *pipeline) ResourceType(name string) (ResourceType, bool, error) {
 	})
 }
 
-func (p *pipeline) resourceType(where map[string]interface{}) (ResourceType, bool, error) {
+func (p *pipeline) resourceType(where map[string]any) (ResourceType, bool, error) {
 	row := resourceTypesQuery.
 		Where(where).
 		RunWith(p.conn).
@@ -575,7 +575,7 @@ func (p *pipeline) Prototype(name string) (Prototype, bool, error) {
 	})
 }
 
-func (p *pipeline) prototype(where map[string]interface{}) (Prototype, bool, error) {
+func (p *pipeline) prototype(where map[string]any) (Prototype, bool, error) {
 	row := prototypesQuery.
 		Where(where).
 		RunWith(p.conn).
@@ -1032,7 +1032,7 @@ func (p *pipeline) CreateOneOffBuild() (Build, error) {
 	defer Rollback(tx)
 
 	build := newEmptyBuild(p.conn, p.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(tx, build, map[string]any{
 		"name":        sq.Expr("nextval('one_off_name')"),
 		"pipeline_id": p.id,
 		"team_id":     p.teamID,
@@ -1069,7 +1069,7 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	}
 
 	build := newEmptyBuild(p.conn, p.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(tx, build, map[string]any{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"pipeline_id":  p.id,
 		"team_id":      p.teamID,
@@ -1136,7 +1136,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 			return nil, errors.Wrapf(err, "evaluate var_source '%s' error", cm.Name)
 		}
 
-		config, ok := newConfig["config"].(map[string]interface{})
+		config, ok := newConfig["config"].(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("var_source '%s' invalid config", cm.Name)
 		}

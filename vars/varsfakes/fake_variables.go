@@ -8,18 +8,18 @@ import (
 )
 
 type FakeVariables struct {
-	GetStub        func(vars.Reference) (interface{}, bool, error)
+	GetStub        func(vars.Reference) (any, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 vars.Reference
 	}
 	getReturns struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}
@@ -39,7 +39,7 @@ type FakeVariables struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVariables) Get(arg1 vars.Reference) (interface{}, bool, error) {
+func (fake *FakeVariables) Get(arg1 vars.Reference) (any, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -64,7 +64,7 @@ func (fake *FakeVariables) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeVariables) GetCalls(stub func(vars.Reference) (interface{}, bool, error)) {
+func (fake *FakeVariables) GetCalls(stub func(vars.Reference) (any, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
@@ -77,30 +77,30 @@ func (fake *FakeVariables) GetArgsForCall(i int) vars.Reference {
 	return argsForCall.arg1
 }
 
-func (fake *FakeVariables) GetReturns(result1 interface{}, result2 bool, result3 error) {
+func (fake *FakeVariables) GetReturns(result1 any, result2 bool, result3 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeVariables) GetReturnsOnCall(i int, result1 interface{}, result2 bool, result3 error) {
+func (fake *FakeVariables) GetReturnsOnCall(i int, result1 any, result2 bool, result3 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 interface{}
+			result1 any
 			result2 bool
 			result3 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}{result1, result2, result3}

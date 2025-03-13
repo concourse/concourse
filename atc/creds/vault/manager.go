@@ -81,7 +81,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	return json.Marshal(&map[string]interface{}{
+	return json.Marshal(&map[string]any{
 		"url":                manager.URL,
 		"path_prefix":        manager.PathPrefix,
 		"lookup_templates":   manager.LookupTemplates,
@@ -97,7 +97,7 @@ func (manager *VaultManager) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (manager *VaultManager) Config(config map[string]interface{}) error {
+func (manager *VaultManager) Config(config map[string]any) error {
 	// apply defaults
 	manager.PathPrefix = "/concourse"
 	manager.Auth.RetryMax = 5 * time.Minute

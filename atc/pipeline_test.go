@@ -23,9 +23,9 @@ var _ = Describe("PipelineRef", func() {
 			{
 				desc: "with instance vars",
 				ref: atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{
-					"field.1": map[string]interface{}{
+					"field.1": map[string]any{
 						"subfield:1": 1,
-						"subfield 2": []interface{}{"1", 2, map[string]interface{}{"k": "v"}},
+						"subfield 2": []any{"1", 2, map[string]any{"k": "v"}},
 					},
 					"other": "field",
 				}},
@@ -34,9 +34,9 @@ var _ = Describe("PipelineRef", func() {
 			{
 				desc: "instance vars sorted alphabetically",
 				ref: atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{
-					"b": map[string]interface{}{
+					"b": map[string]any{
 						"foo": 1,
-						"bar": []interface{}{"1", 2},
+						"bar": []any{"1", 2},
 					},
 					"a": "hello.world",
 				}},
@@ -99,12 +99,12 @@ var _ = Describe("PipelineRef", func() {
 			},
 			{
 				desc: "nested",
-				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello": map[string]interface{}{"foo": 123, "bar": false}}},
+				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello": map[string]any{"foo": 123, "bar": false}}},
 				out:  url.Values{"vars.hello.foo": []string{`123`}, "vars.hello.bar": []string{`false`}},
 			},
 			{
 				desc: "quoted",
-				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello.1": map[string]interface{}{"foo:bar": "baz"}}},
+				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello.1": map[string]any{"foo:bar": "baz"}}},
 				out:  url.Values{`vars."hello.1"."foo:bar"`: []string{`"baz"`}},
 			},
 		} {
@@ -144,8 +144,8 @@ var _ = Describe("PipelineRef", func() {
 					`vars."a.b".c."d:e"`: {`"f"`},
 				},
 				out: atc.InstanceVars{
-					"a.b": map[string]interface{}{
-						"c": map[string]interface{}{
+					"a.b": map[string]any{
+						"c": map[string]any{
 							"d:e": "f",
 						},
 					},
@@ -157,7 +157,7 @@ var _ = Describe("PipelineRef", func() {
 					`vars.foo"`: {`["a",{"b":123}]`},
 				},
 				out: atc.InstanceVars{
-					"foo": []interface{}{"a", map[string]interface{}{"b": 123.0}},
+					"foo": []any{"a", map[string]any{"b": 123.0}},
 				},
 			},
 			{
@@ -166,7 +166,7 @@ var _ = Describe("PipelineRef", func() {
 					`vars`: {`{"foo":["a",{"b":123}]}`},
 				},
 				out: atc.InstanceVars{
-					"foo": []interface{}{"a", map[string]interface{}{"b": 123.0}},
+					"foo": []any{"a", map[string]any{"b": 123.0}},
 				},
 			},
 			{
@@ -176,7 +176,7 @@ var _ = Describe("PipelineRef", func() {
 					`vars.bar`: {`"baz"`},
 				},
 				out: atc.InstanceVars{
-					"foo": []interface{}{"a", map[string]interface{}{"b": 123.0}},
+					"foo": []any{"a", map[string]any{"b": 123.0}},
 					"bar": "baz",
 				},
 			},

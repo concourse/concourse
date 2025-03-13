@@ -44,15 +44,15 @@ type RunState interface {
 	vars.Variables
 
 	NewLocalScope() RunState
-	AddLocalVar(name string, val interface{}, redact bool)
+	AddLocalVar(name string, val any, redact bool)
 
 	IterateInterpolatedCreds(vars.TrackedVarsIterator)
 	RedactionEnabled() bool
 
 	ArtifactRepository() *build.Repository
 
-	Result(atc.PlanID, interface{}) bool
-	StoreResult(atc.PlanID, interface{})
+	Result(atc.PlanID, any) bool
+	StoreResult(atc.PlanID, any)
 
 	Run(context.Context, atc.Plan) (bool, error)
 

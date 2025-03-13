@@ -276,7 +276,7 @@ func (r *resource) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return nil
 }
 
-func setResourceConfigScopeForResource(tx Tx, scope ResourceConfigScope, pred interface{}, args ...interface{}) error {
+func setResourceConfigScopeForResource(tx Tx, scope ResourceConfigScope, pred any, args ...any) error {
 	var resourceID int
 	err := psql.Update("resources").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
@@ -365,7 +365,7 @@ func (r *resource) CreateBuild(ctx context.Context, manuallyTriggered bool, plan
 		Plan:              plan,
 		ManuallyTriggered: manuallyTriggered,
 		SpanContext:       NewSpanContext(ctx),
-		ExtraValues: map[string]interface{}{
+		ExtraValues: map[string]any{
 			"resource_id": r.id,
 		},
 	})

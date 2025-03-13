@@ -148,8 +148,8 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
-					"federated_claims": map[string]interface{}{
+				verification.RawClaims = map[string]any{
+					"federated_claims": map[string]any{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
 					},
@@ -179,8 +179,8 @@ var _ = Describe("Accessor", func() {
 
 			verification.HasToken = true
 			verification.IsTokenValid = true
-			verification.RawClaims = map[string]interface{}{
-				"federated_claims": map[string]interface{}{
+			verification.RawClaims = map[string]any{
+				"federated_claims": map[string]any{
 					"connector_id": "some-connector",
 					"user_id":      "some-user-id",
 				},
@@ -226,9 +226,9 @@ var _ = Describe("Accessor", func() {
 			verification.HasToken = true
 			verification.IsTokenValid = true
 
-			verification.RawClaims = map[string]interface{}{
-				"groups": []interface{}{"some-group"},
-				"federated_claims": map[string]interface{}{
+			verification.RawClaims = map[string]any{
+				"groups": []any{"some-group"},
+				"federated_claims": map[string]any{
 					"connector_id": "some-connector",
 				},
 			}
@@ -273,9 +273,9 @@ var _ = Describe("Accessor", func() {
 			verification.HasToken = true
 			verification.IsTokenValid = true
 
-			verification.RawClaims = map[string]interface{}{
-				"groups": []interface{}{"some-group"},
-				"federated_claims": map[string]interface{}{
+			verification.RawClaims = map[string]any{
+				"groups": []any{"some-group"},
+				"federated_claims": map[string]any{
 					"connector_id": "some-connector",
 					"user_id":      "some-user-id",
 				},
@@ -357,8 +357,8 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
-					"federated_claims": map[string]interface{}{
+				verification.RawClaims = map[string]any{
+					"federated_claims": map[string]any{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
 					},
@@ -478,8 +478,8 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
-					"federated_claims": map[string]interface{}{
+				verification.RawClaims = map[string]any{
+					"federated_claims": map[string]any{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
 					},
@@ -589,7 +589,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
+				verification.RawClaims = map[string]any{
 					"sub": "not-system",
 				}
 			})
@@ -603,7 +603,7 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
+				verification.RawClaims = map[string]any{
 					"sub": "system",
 				}
 			})
@@ -646,12 +646,12 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
+				verification.RawClaims = map[string]any{
 					"sub":                "some-sub",
 					"name":               "some-name",
 					"preferred_username": "some-user-name",
 					"email":              "some-email",
-					"federated_claims": map[string]interface{}{
+					"federated_claims": map[string]any{
 						"user_id":      "some-id",
 						"connector_id": "some-connector",
 					},
@@ -686,12 +686,12 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
+				verification.RawClaims = map[string]any{
 					"sub":                "some-sub",
 					"name":               "some-name",
 					"preferred_username": "some-user-name",
 					"email":              "some-email",
-					"federated_claims": map[string]interface{}{
+					"federated_claims": map[string]any{
 						"user_id":      "some-id",
 						"connector_id": "some-connector",
 					},
@@ -747,16 +747,16 @@ var _ = Describe("Accessor", func() {
 			BeforeEach(func() {
 				verification.HasToken = true
 				verification.IsTokenValid = true
-				verification.RawClaims = map[string]interface{}{
+				verification.RawClaims = map[string]any{
 					"sub":                "some-sub",
 					"name":               "some-name",
 					"preferred_username": "some-user-name",
 					"email":              "some-email",
-					"federated_claims": map[string]interface{}{
+					"federated_claims": map[string]any{
 						"connector_id": "some-connector",
 						"user_id":      "some-user-id",
 					},
-					"groups": []interface{}{"some-group"},
+					"groups": []any{"some-group"},
 				}
 			})
 
@@ -820,16 +820,16 @@ var _ = Describe("Accessor", func() {
 
 			Context("when the user is granted a role from a group by connector cloudfoundry", func() {
 				BeforeEach(func() {
-					verification.RawClaims = map[string]interface{}{
+					verification.RawClaims = map[string]any{
 						"sub":                "some-sub",
 						"name":               "some-name",
 						"preferred_username": "some-user-name",
 						"email":              "some-email",
-						"federated_claims": map[string]interface{}{
+						"federated_claims": map[string]any{
 							"connector_id": "cloudfoundry",
 							"user_id":      "some-user-id",
 						},
-						"groups": []interface{}{"some-group", "some-other-group"},
+						"groups": []any{"some-group", "some-other-group"},
 					}
 
 					fakeTeam1.AuthReturns(atc.TeamAuth{

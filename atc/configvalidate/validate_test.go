@@ -422,15 +422,15 @@ var _ = Describe("ValidateConfig", func() {
 					atc.VarSourceConfig{
 						Name: "some",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k2": "v2"},
+						Config: map[string]any{
+							"vars": map[string]any{"k2": "v2"},
 						},
 					},
 					atc.VarSourceConfig{
 						Name: "some",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k2": "v2"},
+						Config: map[string]any{
+							"vars": map[string]any{"k2": "v2"},
 						},
 					},
 				)
@@ -448,22 +448,22 @@ var _ = Describe("ValidateConfig", func() {
 					atc.VarSourceConfig{
 						Name: "s1",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k": "v"},
+						Config: map[string]any{
+							"vars": map[string]any{"k": "v"},
 						},
 					},
 					atc.VarSourceConfig{
 						Name: "s2",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k": "((s1:k))"},
+						Config: map[string]any{
+							"vars": map[string]any{"k": "((s1:k))"},
 						},
 					},
 					atc.VarSourceConfig{
 						Name: "s3",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k": "((none:k))"},
+						Config: map[string]any{
+							"vars": map[string]any{"k": "((none:k))"},
 						},
 					},
 				)
@@ -481,22 +481,22 @@ var _ = Describe("ValidateConfig", func() {
 					atc.VarSourceConfig{
 						Name: "s1",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k": "((s3:v))"},
+						Config: map[string]any{
+							"vars": map[string]any{"k": "((s3:v))"},
 						},
 					},
 					atc.VarSourceConfig{
 						Name: "s2",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k": "((s1:k))"},
+						Config: map[string]any{
+							"vars": map[string]any{"k": "((s1:k))"},
 						},
 					},
 					atc.VarSourceConfig{
 						Name: "s3",
 						Type: "dummy",
-						Config: map[string]interface{}{
-							"vars": map[string]interface{}{"k": "((s2:k))"},
+						Config: map[string]any{
+							"vars": map[string]any{"k": "((s2:k))"},
 						},
 					},
 				)
@@ -1978,17 +1978,17 @@ var _ = Describe("ValidateConfig", func() {
 							Vars: []atc.AcrossVarConfig{
 								{
 									Var:    "var1",
-									Values: []interface{}{"v1", "v2"},
+									Values: []any{"v1", "v2"},
 								},
 								{
 									Var:         "var2",
 									MaxInFlight: &atc.MaxInFlightConfig{Limit: 2},
-									Values:      []interface{}{"v1", "v2"},
+									Values:      []any{"v1", "v2"},
 								},
 								{
 									Var:         "var3",
 									MaxInFlight: &atc.MaxInFlightConfig{All: true},
-									Values:      []interface{}{"v1", "v2"},
+									Values:      []any{"v1", "v2"},
 								},
 							},
 						},

@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func evaluate(variablesResolver vars.Variables, in, out interface{}) error {
+func evaluate(variablesResolver vars.Variables, in, out any) error {
 	byteParams, err := json.Marshal(in)
 	if err != nil {
 		return err

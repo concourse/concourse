@@ -44,7 +44,7 @@ func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRo
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (s *Ssm) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (s *Ssm) Get(secretPath string) (any, *time.Time, bool, error) {
 	// Try to get the parameter as string value, by name
 	value, expiration, found, err := s.getParameterByName(secretPath)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *Ssm) Get(secretPath string) (interface{}, *time.Time, bool, error) {
 	return nil, nil, false, nil
 }
 
-func (s *Ssm) getParameterByName(name string) (interface{}, *time.Time, bool, error) {
+func (s *Ssm) getParameterByName(name string) (any, *time.Time, bool, error) {
 	param, err := s.api.GetParameter(&ssm.GetParameterInput{
 		Name:           &name,
 		WithDecryption: aws.Bool(true),
@@ -84,12 +84,12 @@ func (s *Ssm) getParameterByName(name string) (interface{}, *time.Time, bool, er
 	return nil, nil, false, err
 }
 
-func (s *Ssm) getParameterByPath(path string) (interface{}, *time.Time, bool, error) {
+func (s *Ssm) getParameterByPath(path string) (any, *time.Time, bool, error) {
 	path = strings.TrimRight(path, "/")
 	if path == "" {
 		path = "/"
 	}
-	value := make(map[string]interface{})
+	value := make(map[string]any)
 	pathQuery := &ssm.GetParametersByPathInput{}
 	pathQuery = pathQuery.SetPath(path).SetRecursive(true).SetWithDecryption(true).SetMaxResults(10)
 	err := s.api.GetParametersByPathPages(pathQuery, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {

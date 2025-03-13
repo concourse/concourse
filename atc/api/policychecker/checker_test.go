@@ -180,7 +180,7 @@ var _ = Describe("PolicyChecker", func() {
 						Team:           "some-team",
 						Roles:          []string{"some-role"},
 						Pipeline:       "some-pipeline",
-						Data:           map[string]interface{}{"a": "b"},
+						Data:           map[string]any{"a": "b"},
 					}))
 				})
 

@@ -316,7 +316,7 @@ func (delegate *buildStepDelegate) FetchImage(
 	}, result.ResourceCache, nil
 }
 
-func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte, acrossVars []atc.AcrossVar, valueCombinations [][]interface{}) ([]atc.VarScopedPlan, error) {
+func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte, acrossVars []atc.AcrossVar, valueCombinations [][]any) ([]atc.VarScopedPlan, error) {
 	template := vars.NewTemplate(templateBytes)
 	substeps := make([]atc.VarScopedPlan, len(valueCombinations))
 	substepsPublic := make([]*json.RawMessage, len(substeps))
@@ -393,7 +393,7 @@ func (delegate *buildStepDelegate) checkImagePolicy(imageSource atc.Source, imag
 		Action:   policy.ActionUseImage,
 		Team:     delegate.build.TeamName(),
 		Pipeline: delegate.build.PipelineName(),
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"image_type":   imageType,
 			"image_source": redactedSource,
 			"privileged":   privileged,

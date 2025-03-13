@@ -68,7 +68,7 @@ var _ = Describe("ContainerOwner", func() {
 			})
 
 			Context("when a resource config exists", func() {
-				var createdColumns map[string]interface{}
+				var createdColumns map[string]any
 
 				BeforeEach(func() {
 					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(
@@ -95,7 +95,7 @@ var _ = Describe("ContainerOwner", func() {
 			})
 
 			Context("when there are multiple resource config check sessions", func() {
-				var createdColumns, createdColumns2 map[string]interface{}
+				var createdColumns, createdColumns2 map[string]any
 
 				BeforeEach(func() {
 					existingOwner := db.NewResourceConfigCheckSessionContainerOwner(

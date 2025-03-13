@@ -18,8 +18,8 @@ var _ = Describe("VariableLookupFromSecrets", func() {
 		secrets := dummy.NewSecretsFactory([]dummy.VarFlag{
 			{
 				Name: "a",
-				Value: map[string]interface{}{
-					"b": map[interface{}]interface{}{
+				Value: map[string]any{
+					"b": map[any]any{
 						"c": "foo",
 					},
 				},

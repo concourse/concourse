@@ -17,7 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func jsonEncode(object interface{}) *bytes.Buffer {
+func jsonEncode(object any) *bytes.Buffer {
 	reqPayload, err := json.Marshal(object)
 	Expect(err).NotTo(HaveOccurred())
 

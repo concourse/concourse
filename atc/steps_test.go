@@ -187,8 +187,8 @@ var factoryTests = []StepTest{
 			Type:       "some-prototype",
 			Privileged: true,
 			Params: atc.Params{
-				"foo": map[string]interface{}{
-					"bar": []interface{}{123.0, 456.0},
+				"foo": map[string]any{
+					"bar": []any{123.0, 456.0},
 				},
 				"baz": "qux",
 			},
@@ -370,7 +370,7 @@ var factoryTests = []StepTest{
 			Vars: []atc.AcrossVarConfig{
 				{
 					Var:         "var1",
-					Values:      []interface{}{float64(1), float64(2), float64(3)},
+					Values:      []any{float64(1), float64(2), float64(3)},
 					MaxInFlight: &atc.MaxInFlightConfig{Limit: 3},
 				},
 				{
@@ -380,7 +380,7 @@ var factoryTests = []StepTest{
 				},
 				{
 					Var:    "var3",
-					Values: []interface{}{map[string]interface{}{"a": "a", "b": "b"}},
+					Values: []any{map[string]any{"a": "a", "b": "b"}},
 				},
 			},
 			FailFast: true,
@@ -495,7 +495,7 @@ var factoryTests = []StepTest{
 								Vars: []atc.AcrossVarConfig{
 									{
 										Var:    "version",
-										Values: []interface{}{"v1", "v2", "v3"},
+										Values: []any{"v1", "v2", "v3"},
 									},
 								},
 							},

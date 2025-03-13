@@ -9,19 +9,19 @@ import (
 )
 
 type FakeSecrets struct {
-	GetStub        func(string) (interface{}, *time.Time, bool, error)
+	GetStub        func(string) (any, *time.Time, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 string
 	}
 	getReturns struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error
@@ -43,7 +43,7 @@ type FakeSecrets struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSecrets) Get(arg1 string) (interface{}, *time.Time, bool, error) {
+func (fake *FakeSecrets) Get(arg1 string) (any, *time.Time, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -68,7 +68,7 @@ func (fake *FakeSecrets) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeSecrets) GetCalls(stub func(string) (interface{}, *time.Time, bool, error)) {
+func (fake *FakeSecrets) GetCalls(stub func(string) (any, *time.Time, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
@@ -81,32 +81,32 @@ func (fake *FakeSecrets) GetArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeSecrets) GetReturns(result1 interface{}, result2 *time.Time, result3 bool, result4 error) {
+func (fake *FakeSecrets) GetReturns(result1 any, result2 *time.Time, result3 bool, result4 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeSecrets) GetReturnsOnCall(i int, result1 interface{}, result2 *time.Time, result3 bool, result4 error) {
+func (fake *FakeSecrets) GetReturnsOnCall(i int, result1 any, result2 *time.Time, result3 bool, result4 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 interface{}
+			result1 any
 			result2 *time.Time
 			result3 bool
 			result4 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error

@@ -14,7 +14,7 @@ func init() {
 func NewManagerFactory() creds.ManagerFactory {
 	return &managerFactory{}
 }
-func (manager managerFactory) Health() (interface{}, error) {
+func (manager managerFactory) Health() (any, error) {
 	return nil, nil
 }
 
@@ -28,6 +28,6 @@ func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
 	return manager
 }
 
-func (factory *managerFactory) NewInstance(interface{}) (creds.Manager, error) {
+func (factory *managerFactory) NewInstance(any) (creds.Manager, error) {
 	return &Manager{}, nil
 }

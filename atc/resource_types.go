@@ -11,7 +11,7 @@ type MetadataField struct {
 	Value string `json:"value"`
 }
 
-type Source map[string]interface{}
+type Source map[string]any
 
 func (src Source) MarshalJSON() ([]byte, error) {
 	if src == nil {
@@ -47,7 +47,7 @@ func (src Source) Merge(other Source) Source {
 	return newSource
 }
 
-type Params map[string]interface{}
+type Params map[string]any
 
 func (ps Params) MarshalJSON() ([]byte, error) {
 	if ps == nil {
@@ -64,12 +64,12 @@ func (ps Params) MarshalJSON() ([]byte, error) {
 
 type Version map[string]string
 
-func stringifyKeys(root interface{}) (interface{}, error) {
+func stringifyKeys(root any) (any, error) {
 	val := reflect.ValueOf(root)
 
 	switch val.Kind() {
 	case reflect.Map:
-		sanitized := map[string]interface{}{}
+		sanitized := map[string]any{}
 
 		iter := val.MapRange()
 		for iter.Next() {
@@ -92,7 +92,7 @@ func stringifyKeys(root interface{}) (interface{}, error) {
 		return sanitized, nil
 
 	case reflect.Slice:
-		sanitized := make([]interface{}, val.Len())
+		sanitized := make([]any, val.Len())
 
 		for i := range sanitized {
 			v := val.Index(i)

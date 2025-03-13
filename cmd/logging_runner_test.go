@@ -18,7 +18,7 @@ var _ = Describe("LoggingRunner", func() {
 		runner                  ifrit.Runner
 		fakeRunner              *ifritFakes.FakeRunner
 		logger                  *lagertest.TestLogger
-		fakeRunnerBlocker       chan interface{}
+		fakeRunnerBlocker       chan any
 		fakeRunnerRunStubReturn error
 		runnerError             chan error
 		signals                 <-chan os.Signal
@@ -28,7 +28,7 @@ var _ = Describe("LoggingRunner", func() {
 	BeforeEach(func() {
 		runnerError = make(chan error, 1)
 
-		fakeRunnerBlocker = make(chan interface{})
+		fakeRunnerBlocker = make(chan any)
 		signals = make(chan os.Signal)
 		ready = make(chan struct{})
 

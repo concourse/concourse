@@ -30,13 +30,13 @@ func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
 	return manager
 }
 
-func (factory *managerFactory) NewInstance(config interface{}) (creds.Manager, error) {
-	configMap, ok := config.(map[string]interface{})
+func (factory *managerFactory) NewInstance(config any) (creds.Manager, error) {
+	configMap, ok := config.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid dummy credential manager config: %T", config)
 	}
 
-	vars, ok := configMap["vars"].(map[string]interface{})
+	vars, ok := configMap["vars"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid vars config: %T", configMap["vars"])
 	}

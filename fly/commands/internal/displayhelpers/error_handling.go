@@ -49,12 +49,12 @@ func ShowWarnings(warnings []concourse.ConfigWarning) {
 	}
 }
 
-func Failf(message string, args ...interface{}) {
+func Failf(message string, args ...any) {
 	fmt.Fprintf(ui.Stderr, message+"\n", args...)
 	os.Exit(1)
 }
 
-func FailWithErrorf(message string, err error, args ...interface{}) {
+func FailWithErrorf(message string, err error, args ...any) {
 	templatedMessage := fmt.Sprintf(message, args...)
 	Failf("%s: %s", templatedMessage, err.Error())
 }

@@ -27,7 +27,7 @@ var _ = Describe("Fly CLI", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/user"),
-						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+						ghttp.RespondWithJSONEncoded(200, map[string]any{
 							"sub":       "zero",
 							"name":      "test",
 							"user_id":   "test_id",

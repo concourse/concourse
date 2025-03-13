@@ -49,7 +49,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(
 		// If we don't check Strict now, then the subsequent steps will mask any
 		// duplicate key errors.
 		// We should consider being strict throughout the entire stack by default.
-		err = yaml.UnmarshalStrict(config, make(map[string]interface{}))
+		err = yaml.UnmarshalStrict(config, make(map[string]any))
 		if err != nil {
 			return nil, fmt.Errorf("error parsing yaml before applying templates: %s", err.Error())
 		}

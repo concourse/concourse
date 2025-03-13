@@ -9,11 +9,11 @@ import (
 )
 
 type FakeExecutor struct {
-	ExecStub        func(string, ...interface{}) (sql.Result, error)
+	ExecStub        func(string, ...any) (sql.Result, error)
 	execMutex       sync.RWMutex
 	execArgsForCall []struct {
 		arg1 string
-		arg2 []interface{}
+		arg2 []any
 	}
 	execReturns struct {
 		result1 sql.Result
@@ -27,12 +27,12 @@ type FakeExecutor struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeExecutor) Exec(arg1 string, arg2 ...interface{}) (sql.Result, error) {
+func (fake *FakeExecutor) Exec(arg1 string, arg2 ...any) (sql.Result, error) {
 	fake.execMutex.Lock()
 	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
 		arg1 string
-		arg2 []interface{}
+		arg2 []any
 	}{arg1, arg2})
 	stub := fake.ExecStub
 	fakeReturns := fake.execReturns
@@ -53,13 +53,13 @@ func (fake *FakeExecutor) ExecCallCount() int {
 	return len(fake.execArgsForCall)
 }
 
-func (fake *FakeExecutor) ExecCalls(stub func(string, ...interface{}) (sql.Result, error)) {
+func (fake *FakeExecutor) ExecCalls(stub func(string, ...any) (sql.Result, error)) {
 	fake.execMutex.Lock()
 	defer fake.execMutex.Unlock()
 	fake.ExecStub = stub
 }
 
-func (fake *FakeExecutor) ExecArgsForCall(i int) (string, []interface{}) {
+func (fake *FakeExecutor) ExecArgsForCall(i int) (string, []any) {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
 	argsForCall := fake.execArgsForCall[i]

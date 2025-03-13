@@ -1,10 +1,10 @@
 package vars
 
-type StaticVariables map[string]interface{}
+type StaticVariables map[string]any
 
 var _ Variables = StaticVariables{}
 
-func (v StaticVariables) Get(ref Reference) (interface{}, bool, error) {
+func (v StaticVariables) Get(ref Reference) (any, bool, error) {
 	if ref.Source != "" {
 		return nil, false, nil
 	}
@@ -30,10 +30,10 @@ func (v StaticVariables) List() ([]Reference, error) {
 	return refs, nil
 }
 
-func Traverse(val interface{}, name string, fields []string) (interface{}, error) {
+func Traverse(val any, name string, fields []string) (any, error) {
 	for _, seg := range fields {
 		switch v := val.(type) {
-		case map[interface{}]interface{}:
+		case map[any]any:
 			var found bool
 			val, found = v[seg]
 			if !found {
@@ -42,7 +42,7 @@ func Traverse(val interface{}, name string, fields []string) (interface{}, error
 					Field: seg,
 				}
 			}
-		case map[string]interface{}:
+		case map[string]any:
 			var found bool
 			val, found = v[seg]
 			if !found {
@@ -70,15 +70,15 @@ func (v StaticVariables) Flatten() KVPairs {
 	return flat
 }
 
-func flatten(path string, fields []string, value interface{}) KVPairs {
+func flatten(path string, fields []string, value any) KVPairs {
 	var flat KVPairs
 
 	switch node := value.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		for k, v := range node {
 			flat = append(flat, flatten(path, append(fields, k), v)...)
 		}
-	case map[interface{}]interface{}:
+	case map[any]any:
 		for k, v := range node {
 			if str, ok := k.(string); ok {
 				flat = append(flat, flatten(path, append(fields, str), v)...)
@@ -99,26 +99,26 @@ func flatten(path string, fields []string, value interface{}) KVPairs {
 
 type KVPair struct {
 	Ref   Reference
-	Value interface{}
+	Value any
 }
 
 type KVPairs []KVPair
 
 func (p KVPairs) Expand() StaticVariables {
-	out := make(map[string]interface{}, len(p))
+	out := make(map[string]any, len(p))
 	for _, pair := range p {
 		upsert(out, pair.Ref.Path, pair.Ref.Fields, pair.Value)
 	}
 	return out
 }
 
-func upsert(out map[string]interface{}, path string, fields []string, value interface{}) {
+func upsert(out map[string]any, path string, fields []string, value any) {
 	node, ok := out[path]
 	if !ok {
 		out[path] = constructValue(fields, value)
 		return
 	}
-	nodeMap, ok := node.(map[string]interface{})
+	nodeMap, ok := node.(map[string]any)
 	if !ok {
 		out[path] = constructValue(fields, value)
 		return
@@ -130,9 +130,9 @@ func upsert(out map[string]interface{}, path string, fields []string, value inte
 	upsert(nodeMap, fields[0], fields[1:], value)
 }
 
-func constructValue(fields []string, value interface{}) interface{} {
+func constructValue(fields []string, value any) any {
 	if len(fields) == 0 {
 		return value
 	}
-	return constructValue(fields[:len(fields)-1], map[string]interface{}{fields[len(fields)-1]: value})
+	return constructValue(fields[:len(fields)-1], map[string]any{fields[len(fields)-1]: value})
 }

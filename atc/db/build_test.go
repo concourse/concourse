@@ -925,8 +925,8 @@ var _ = Describe("Build", func() {
 				config.VarSources = append(config.VarSources, atc.VarSourceConfig{
 					Name: "some-source",
 					Type: "dummy",
-					Config: map[string]interface{}{
-						"vars": map[string]interface{}{"baz": "caz"},
+					Config: map[string]any{
+						"vars": map[string]any{"baz": "caz"},
 					},
 				})
 

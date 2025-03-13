@@ -489,7 +489,7 @@ func SplitTableColumns(row string) []string {
 }
 
 func WaitForWorkersToBeRunning(expected int) {
-	Eventually(func() interface{} {
+	Eventually(func() any {
 		workers := FlyTable("workers")
 
 		runningWorkers := []map[string]string{}

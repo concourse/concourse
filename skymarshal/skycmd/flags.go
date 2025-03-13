@@ -83,7 +83,7 @@ func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 	}
 
 	var data struct {
-		Roles []map[string]interface{} `json:"roles"`
+		Roles []map[string]any `json:"roles"`
 	}
 	if err = yaml.Unmarshal(content, &data); err != nil {
 		return nil, err
@@ -126,8 +126,8 @@ func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 			}
 		}
 
-		if conf, ok := role["local"].(map[string]interface{}); ok {
-			for _, user := range conf["users"].([]interface{}) {
+		if conf, ok := role["local"].(map[string]any); ok {
+			for _, user := range conf["users"].([]any) {
 				if user != "" {
 					users = append(users, "local:"+strings.ToLower(user.(string)))
 				}

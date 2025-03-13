@@ -30,8 +30,8 @@ func (factory *vaultManagerFactory) AddConfig(group *flags.Group) creds.Manager 
 	return manager
 }
 
-func (factory *vaultManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
-	if c, ok := config.(map[string]interface{}); !ok {
+func (factory *vaultManagerFactory) NewInstance(config any) (creds.Manager, error) {
+	if c, ok := config.(map[string]any); !ok {
 		return nil, fmt.Errorf("invalid vault config format")
 	} else {
 		manager := &VaultManager{}

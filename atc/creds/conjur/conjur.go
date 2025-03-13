@@ -37,7 +37,7 @@ func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allow
 	return lookupPaths
 }
 
-func (c Conjur) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (c Conjur) Get(secretPath string) (any, *time.Time, bool, error) {
 	secretValue, err := c.client.RetrieveSecret(secretPath)
 	if err != nil {
 		return nil, nil, false, nil

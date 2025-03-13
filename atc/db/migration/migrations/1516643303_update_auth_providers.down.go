@@ -49,7 +49,7 @@ func (m *migrations) Down_1516643303() error {
 			return err
 		}
 
-		var authConfig map[string]interface{}
+		var authConfig map[string]any
 		err = json.Unmarshal(decryptedAuth, &authConfig)
 		if err != nil {
 			return err
@@ -58,7 +58,7 @@ func (m *migrations) Down_1516643303() error {
 		var basicAuthConfig map[string]string
 
 		if config, ok := authConfig["basicauth"]; ok {
-			if configMap, ok := config.(map[string]interface{}); ok {
+			if configMap, ok := config.(map[string]any); ok {
 				basicAuthConfig = map[string]string{}
 				basicAuthConfig["basic_auth_username"] = configMap["username"].(string)
 				basicAuthConfig["basic_auth_password"] = configMap["password"].(string)

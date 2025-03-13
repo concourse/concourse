@@ -1596,7 +1596,7 @@ var factoryTests = []PlannerTest{
 			Vars: []atc.AcrossVarConfig{
 				{
 					Var:         "var1",
-					Values:      []interface{}{"a1", "a2"},
+					Values:      []any{"a1", "a2"},
 					MaxInFlight: &atc.MaxInFlightConfig{All: true},
 				},
 				{

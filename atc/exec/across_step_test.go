@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("AcrossStep", func() {
-	type vals [4]interface{}
+	type vals [4]any
 
 	var (
 		ctx    context.Context
@@ -115,21 +115,21 @@ var _ = Describe("AcrossStep", func() {
 		plan.Vars = []atc.AcrossVar{
 			{
 				Var:         "var1",
-				Values:      []interface{}{"a1", "a2"},
+				Values:      []any{"a1", "a2"},
 				MaxInFlight: &atc.MaxInFlightConfig{All: true},
 			},
 			{
 				Var:    "var2",
-				Values: []interface{}{"b1", "b2"},
+				Values: []any{"b1", "b2"},
 			},
 			{
 				Var:         "var3",
-				Values:      []interface{}{"c1", "c2", "c3"},
+				Values:      []any{"c1", "c2", "c3"},
 				MaxInFlight: &atc.MaxInFlightConfig{Limit: 3},
 			},
 			{
 				Var:    "var4",
-				Values: []interface{}{"d1", "d2"},
+				Values: []any{"d1", "d2"},
 			},
 		}
 		stepperFailOnCount = -1
@@ -235,7 +235,7 @@ var _ = Describe("AcrossStep", func() {
 
 		Expect(fakeDelegate.ConstructAcrossSubstepsCallCount()).To(Equal(1))
 		_, _, valueCombinations := fakeDelegate.ConstructAcrossSubstepsArgsForCall(0)
-		Expect(valueCombinations).To(Equal([][]interface{}{
+		Expect(valueCombinations).To(Equal([][]any{
 			{"a1", "b1", "c1", "d1"},
 			{"a1", "b1", "c1", "d2"},
 			{"a1", "b1", "c2", "d1"},

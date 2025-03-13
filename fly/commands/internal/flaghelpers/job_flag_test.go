@@ -35,7 +35,7 @@ var _ = Describe("JobFlag", func() {
 				flag: "some-pipeline/branch:master,foo.bar:baz/some-job",
 				pipelineRef: atc.PipelineRef{
 					Name:         "some-pipeline",
-					InstanceVars: atc.InstanceVars{"branch": "master", "foo": map[string]interface{}{"bar": "baz"}},
+					InstanceVars: atc.InstanceVars{"branch": "master", "foo": map[string]any{"bar": "baz"}},
 				},
 				jobName: "some-job",
 			},
@@ -54,7 +54,7 @@ var _ = Describe("JobFlag", func() {
 				pipelineRef: atc.PipelineRef{
 					Name: "some-pipeline",
 					InstanceVars: atc.InstanceVars{
-						"foo": map[string]interface{}{
+						"foo": map[string]any{
 							"bar.baz": "abc,def:ghi",
 						},
 					},

@@ -76,7 +76,7 @@ func (cache *resourceCache) BaseResourceType() *UsedBaseResourceType {
 	return cache.resourceConfig.CreatedByResourceCache().BaseResourceType()
 }
 
-func mapHash(m map[string]interface{}) string {
+func mapHash(m map[string]any) string {
 	j, _ := json.Marshal(m)
 	return fmt.Sprintf("%x", sha256.Sum256(j))
 }

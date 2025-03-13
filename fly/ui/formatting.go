@@ -8,7 +8,7 @@ import (
 	"github.com/mattn/go-isatty"
 )
 
-func Embolden(message string, params ...interface{}) string {
+func Embolden(message string, params ...any) string {
 	if len(params) > 0 {
 		message = fmt.Sprintf(message, params...)
 	}
@@ -20,6 +20,6 @@ func Embolden(message string, params ...interface{}) string {
 	return message
 }
 
-func WarningColor(message string, params ...interface{}) string {
+func WarningColor(message string, params ...any) string {
 	return color.New(color.FgRed).SprintfFunc()(message, params...)
 }

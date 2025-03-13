@@ -46,8 +46,8 @@ var _ = Describe("Config API", func() {
 				{
 					Name: "some",
 					Type: "dummy",
-					Config: map[string]interface{}{
-						"vars": map[string]interface{}{},
+					Config: map[string]any{
+						"vars": map[string]any{},
 					},
 				},
 			},
@@ -162,8 +162,8 @@ var _ = Describe("Config API", func() {
 							{
 								Name: "some",
 								Type: "dummy",
-								Config: map[string]interface{}{
-									"vars": map[string]interface{}{},
+								Config: map[string]any{
+									"vars": map[string]any{},
 								},
 							},
 						})
@@ -995,7 +995,7 @@ jobs:
 
 								Context("when a credentials manager is not used", func() {
 									BeforeEach(func() {
-										fakeSecretManager.GetStub = func(secretPath string) (interface{}, *time.Time, bool, error) {
+										fakeSecretManager.GetStub = func(secretPath string) (any, *time.Time, bool, error) {
 											return noop.Noop{}.Get(secretPath)
 										}
 									})
@@ -1183,14 +1183,14 @@ jobs:
 					BeforeEach(func() {
 						request.Header.Set("Content-Type", "application/json")
 
-						remoraPayload, err := json.Marshal(map[string]interface{}{
+						remoraPayload, err := json.Marshal(map[string]any{
 							"extra": "noooooo",
 
-							"meta": map[string]interface{}{
+							"meta": map[string]any{
 								"whoa": "lol",
 							},
 
-							"jobs": []map[string]interface{}{
+							"jobs": []map[string]any{
 								{
 									"name":   "some-job",
 									"public": true,
@@ -1237,10 +1237,10 @@ jobs:
 					BeforeEach(func() {
 						request.Header.Set("Content-Type", "application/json")
 
-						remoraPayload, err := json.Marshal(map[string]interface{}{
+						remoraPayload, err := json.Marshal(map[string]any{
 							"extra": "noooooo",
 
-							"jobs": []map[string]interface{}{
+							"jobs": []map[string]any{
 								{
 									"name":  "some-job",
 									"pubic": true,

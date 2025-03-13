@@ -294,9 +294,9 @@ var _ = Describe("Connection", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("PUT", "/containers/foo/stop"),
-					verifyRequestBody(map[string]interface{}{
+					verifyRequestBody(map[string]any{
 						"kill": true,
-					}, make(map[string]interface{})),
+					}, make(map[string]any)),
 					ghttp.RespondWith(200, "{}")))
 		})
 
@@ -374,12 +374,12 @@ var _ = Describe("Connection", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/containers/foo-handle/net/in"),
-					verifyRequestBody(map[string]interface{}{
+					verifyRequestBody(map[string]any{
 						"handle":         "foo-handle",
 						"host_port":      float64(8080),
 						"container_port": float64(8081),
-					}, make(map[string]interface{})),
-					ghttp.RespondWith(200, marshalProto(map[string]interface{}{
+					}, make(map[string]any)),
+					ghttp.RespondWith(200, marshalProto(map[string]any{
 						"host_port":      1234,
 						"container_port": 1235,
 					}))))
@@ -620,7 +620,7 @@ var _ = Describe("Connection", func() {
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("PUT", fmt.Sprintf("/containers/%s/grace_time", handle)),
-					// interface{} confusion: the JSON decoder decodes numberics to float64...
+					// any confusion: the JSON decoder decodes numberics to float64...
 					verifyRequestBody(float64(graceTime), float64(0)),
 					ghttp.RespondWith(status, "{}"),
 				),
@@ -987,23 +987,23 @@ var _ = Describe("Connection", func() {
 
 							decoder := json.NewDecoder(br)
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
 
-							var payload map[string]interface{}
+							var payload map[string]any
 							err = decoder.Decode(&payload)
 							Expect(err).ToNot(HaveOccurred())
 
-							Expect(payload).To(Equal(map[string]interface{}{
+							Expect(payload).To(Equal(map[string]any{
 								"process_id": "process-handle",
 								"source":     float64(transport.Stdin),
 								"data":       "stdin data",
 							}))
 							stdInContent <- payload["data"].(string)
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id":  "process-handle",
 								"exit_status": 3,
 							})
@@ -1112,21 +1112,21 @@ var _ = Describe("Connection", func() {
 
 							decoder := json.NewDecoder(br)
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
 
-							var payload map[string]interface{}
+							var payload map[string]any
 							err = decoder.Decode(&payload)
 							Expect(err).ToNot(HaveOccurred())
 
-							Expect(payload).To(Equal(map[string]interface{}{
+							Expect(payload).To(Equal(map[string]any{
 								"process_id": "process-handle",
 								"signal":     float64(garden.SignalTerminate),
 							}))
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id":  "process-handle",
 								"exit_status": 3,
 							})
@@ -1170,21 +1170,21 @@ var _ = Describe("Connection", func() {
 
 							decoder := json.NewDecoder(br)
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
 
-							var payload map[string]interface{}
+							var payload map[string]any
 							err = decoder.Decode(&payload)
 							Expect(err).ToNot(HaveOccurred())
 
-							Expect(payload).To(Equal(map[string]interface{}{
+							Expect(payload).To(Equal(map[string]any{
 								"process_id": "process-handle",
 								"signal":     float64(garden.SignalKill),
 							}))
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id":  "process-handle",
 								"exit_status": 3,
 							})
@@ -1238,29 +1238,29 @@ var _ = Describe("Connection", func() {
 
 							decoder := json.NewDecoder(br)
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
 
 							// the stdin data may come in before or after the tty message
-							Eventually(func() interface{} {
-								var payload map[string]interface{}
+							Eventually(func() any {
+								var payload map[string]any
 								err = decoder.Decode(&payload)
 								Expect(err).ToNot(HaveOccurred())
 
 								return payload
-							}).Should(Equal(map[string]interface{}{
+							}).Should(Equal(map[string]any{
 								"process_id": "process-handle",
-								"tty": map[string]interface{}{
-									"window_size": map[string]interface{}{
+								"tty": map[string]any{
+									"window_size": map[string]any{
 										"columns": float64(80),
 										"rows":    float64(24),
 									},
 								},
 							}))
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id":  "process-handle",
 								"exit_status": 3,
 							})
@@ -1308,7 +1308,7 @@ var _ = Describe("Connection", func() {
 
 							defer conn.Close()
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
@@ -1357,7 +1357,7 @@ var _ = Describe("Connection", func() {
 
 							defer conn.Close()
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
@@ -1389,16 +1389,16 @@ var _ = Describe("Connection", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", "/containers/foo-handle/processes"),
-						ghttp.RespondWith(200, marshalProto(map[string]interface{}{
+						ghttp.RespondWith(200, marshalProto(map[string]any{
 							"process_id": "process-handle",
 							"stream_id":  "123",
 						},
-							map[string]interface{}{
+							map[string]any{
 								"process_id": "process-handle",
 								"source":     transport.Stderr,
 								"data":       "stderr data",
 							},
-							map[string]interface{}{
+							map[string]any{
 								"process_id": "process-handle",
 								"error":      "oh no!",
 							},
@@ -1461,23 +1461,23 @@ var _ = Describe("Connection", func() {
 
 							defer conn.Close()
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
 
-							var payload map[string]interface{}
+							var payload map[string]any
 							err = json.NewDecoder(br).Decode(&payload)
 							Expect(err).ToNot(HaveOccurred())
 
-							Expect(payload).To(Equal(map[string]interface{}{
+							Expect(payload).To(Equal(map[string]any{
 								"process_id": "process-handle",
 								"source":     float64(transport.Stdin),
 								"data":       "stdin data",
 							}))
 							expectedRoundtrip <- payload["data"].(string)
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id":  "process-handle",
 								"exit_status": 3,
 							})
@@ -1554,7 +1554,7 @@ var _ = Describe("Connection", func() {
 
 							defer conn.Close()
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
@@ -1615,18 +1615,18 @@ var _ = Describe("Connection", func() {
 							Expect(err).ToNot(HaveOccurred())
 							defer conn.Close()
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
 
 							decoder := json.NewDecoder(br)
 
-							var payload map[string]interface{}
+							var payload map[string]any
 							err = decoder.Decode(&payload)
 							Expect(err).ToNot(HaveOccurred())
 
-							Expect(payload).To(Equal(map[string]interface{}{
+							Expect(payload).To(Equal(map[string]any{
 								"process_id": "process-handle",
 								"source":     float64(transport.Stdin),
 								"data":       "stdin data",
@@ -1658,24 +1658,24 @@ var _ = Describe("Connection", func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/containers/foo-handle/processes/process-handle"),
-						ghttp.RespondWith(200, marshalProto(map[string]interface{}{
+						ghttp.RespondWith(200, marshalProto(map[string]any{
 							"process_id": "process-handle",
 							"stream_id":  "123",
 						},
-							map[string]interface{}{
+							map[string]any{
 								"process_id": "process-handle",
 							},
-							map[string]interface{}{
+							map[string]any{
 								"process_id": "process-handle",
 								"source":     transport.Stdout,
 								"data":       "stdout data",
 							},
-							map[string]interface{}{
+							map[string]any{
 								"process_id": "process-handle",
 								"source":     transport.Stderr,
 								"data":       "stderr data",
 							},
-							map[string]interface{}{
+							map[string]any{
 								"process_id": "process-handle",
 								"error":      "oh no!",
 							},
@@ -1713,18 +1713,18 @@ var _ = Describe("Connection", func() {
 
 							defer conn.Close()
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"stream_id":  "123",
 							})
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"source":     transport.Stdout,
 								"data":       "stdout data",
 							})
 
-							transport.WriteMessage(conn, map[string]interface{}{
+							transport.WriteMessage(conn, map[string]any{
 								"process_id": "process-handle",
 								"source":     transport.Stderr,
 								"data":       "stderr data",
@@ -1772,7 +1772,7 @@ var _ = Describe("Connection", func() {
 	})
 })
 
-func verifyRequestBody(expectedMessage interface{}, emptyType interface{}) http.HandlerFunc {
+func verifyRequestBody(expectedMessage any, emptyType any) http.HandlerFunc {
 	return func(resp http.ResponseWriter, req *http.Request) {
 		defer GinkgoRecover()
 
@@ -1786,7 +1786,7 @@ func verifyRequestBody(expectedMessage interface{}, emptyType interface{}) http.
 	}
 }
 
-func marshalProto(messages ...interface{}) string {
+func marshalProto(messages ...any) string {
 	result := new(bytes.Buffer)
 	for _, msg := range messages {
 		err := transport.WriteMessage(result, msg)

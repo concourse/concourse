@@ -26,7 +26,7 @@ func (s *strategerizer) StrategyFor(request baggageclaim.VolumeRequest) (Strateg
 		return nil, ErrNoStrategy
 	}
 
-	var strategyInfo map[string]interface{}
+	var strategyInfo map[string]any
 	err := json.Unmarshal(*request.Strategy, &strategyInfo)
 	if err != nil {
 		return nil, fmt.Errorf("malformed strategy: %s", err)

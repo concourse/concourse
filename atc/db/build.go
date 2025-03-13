@@ -2005,7 +2005,7 @@ func (b *build) eventsTable() string {
 	return fmt.Sprintf("team_build_events_%d", b.teamID)
 }
 
-func createBuild(tx Tx, build *build, vals map[string]interface{}) error {
+func createBuild(tx Tx, build *build, vals map[string]any) error {
 	var buildID int
 
 	err := psql.Insert("builds").
@@ -2038,7 +2038,7 @@ type startedBuildArgs struct {
 	Plan              atc.Plan
 	ManuallyTriggered bool
 	SpanContext       SpanContext
-	ExtraValues       map[string]interface{}
+	ExtraValues       map[string]any
 }
 
 func createStartedBuild(tx Tx, build *build, args startedBuildArgs) error {
@@ -2057,7 +2057,7 @@ func createStartedBuild(tx Tx, build *build, args startedBuildArgs) error {
 		return err
 	}
 
-	buildVals := make(map[string]interface{})
+	buildVals := make(map[string]any)
 	buildVals["name"] = args.Name
 	buildVals["pipeline_id"] = args.PipelineID
 	buildVals["team_id"] = args.TeamID

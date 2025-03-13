@@ -124,7 +124,7 @@ type FakeConn struct {
 	waitReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -133,7 +133,7 @@ func (fake *FakeConn) ClientVersion() []byte {
 	ret, specificReturn := fake.clientVersionReturnsOnCall[len(fake.clientVersionArgsForCall)]
 	fake.clientVersionArgsForCall = append(fake.clientVersionArgsForCall, struct {
 	}{})
-	fake.recordInvocation("ClientVersion", []interface{}{})
+	fake.recordInvocation("ClientVersion", []any{})
 	fake.clientVersionMutex.Unlock()
 	if fake.ClientVersionStub != nil {
 		return fake.ClientVersionStub()
@@ -185,7 +185,7 @@ func (fake *FakeConn) Close() error {
 	ret, specificReturn := fake.closeReturnsOnCall[len(fake.closeArgsForCall)]
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
-	fake.recordInvocation("Close", []interface{}{})
+	fake.recordInvocation("Close", []any{})
 	fake.closeMutex.Unlock()
 	if fake.CloseStub != nil {
 		return fake.CloseStub()
@@ -237,7 +237,7 @@ func (fake *FakeConn) LocalAddr() net.Addr {
 	ret, specificReturn := fake.localAddrReturnsOnCall[len(fake.localAddrArgsForCall)]
 	fake.localAddrArgsForCall = append(fake.localAddrArgsForCall, struct {
 	}{})
-	fake.recordInvocation("LocalAddr", []interface{}{})
+	fake.recordInvocation("LocalAddr", []any{})
 	fake.localAddrMutex.Unlock()
 	if fake.LocalAddrStub != nil {
 		return fake.LocalAddrStub()
@@ -296,7 +296,7 @@ func (fake *FakeConn) OpenChannel(arg1 string, arg2 []byte) (ssh.Channel, <-chan
 		arg1 string
 		arg2 []byte
 	}{arg1, arg2Copy})
-	fake.recordInvocation("OpenChannel", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("OpenChannel", []any{arg1, arg2Copy})
 	fake.openChannelMutex.Unlock()
 	if fake.OpenChannelStub != nil {
 		return fake.OpenChannelStub(arg1, arg2)
@@ -361,7 +361,7 @@ func (fake *FakeConn) RemoteAddr() net.Addr {
 	ret, specificReturn := fake.remoteAddrReturnsOnCall[len(fake.remoteAddrArgsForCall)]
 	fake.remoteAddrArgsForCall = append(fake.remoteAddrArgsForCall, struct {
 	}{})
-	fake.recordInvocation("RemoteAddr", []interface{}{})
+	fake.recordInvocation("RemoteAddr", []any{})
 	fake.remoteAddrMutex.Unlock()
 	if fake.RemoteAddrStub != nil {
 		return fake.RemoteAddrStub()
@@ -421,7 +421,7 @@ func (fake *FakeConn) SendRequest(arg1 string, arg2 bool, arg3 []byte) (bool, []
 		arg2 bool
 		arg3 []byte
 	}{arg1, arg2, arg3Copy})
-	fake.recordInvocation("SendRequest", []interface{}{arg1, arg2, arg3Copy})
+	fake.recordInvocation("SendRequest", []any{arg1, arg2, arg3Copy})
 	fake.sendRequestMutex.Unlock()
 	if fake.SendRequestStub != nil {
 		return fake.SendRequestStub(arg1, arg2, arg3)
@@ -486,7 +486,7 @@ func (fake *FakeConn) ServerVersion() []byte {
 	ret, specificReturn := fake.serverVersionReturnsOnCall[len(fake.serverVersionArgsForCall)]
 	fake.serverVersionArgsForCall = append(fake.serverVersionArgsForCall, struct {
 	}{})
-	fake.recordInvocation("ServerVersion", []interface{}{})
+	fake.recordInvocation("ServerVersion", []any{})
 	fake.serverVersionMutex.Unlock()
 	if fake.ServerVersionStub != nil {
 		return fake.ServerVersionStub()
@@ -538,7 +538,7 @@ func (fake *FakeConn) SessionID() []byte {
 	ret, specificReturn := fake.sessionIDReturnsOnCall[len(fake.sessionIDArgsForCall)]
 	fake.sessionIDArgsForCall = append(fake.sessionIDArgsForCall, struct {
 	}{})
-	fake.recordInvocation("SessionID", []interface{}{})
+	fake.recordInvocation("SessionID", []any{})
 	fake.sessionIDMutex.Unlock()
 	if fake.SessionIDStub != nil {
 		return fake.SessionIDStub()
@@ -590,7 +590,7 @@ func (fake *FakeConn) User() string {
 	ret, specificReturn := fake.userReturnsOnCall[len(fake.userArgsForCall)]
 	fake.userArgsForCall = append(fake.userArgsForCall, struct {
 	}{})
-	fake.recordInvocation("User", []interface{}{})
+	fake.recordInvocation("User", []any{})
 	fake.userMutex.Unlock()
 	if fake.UserStub != nil {
 		return fake.UserStub()
@@ -642,7 +642,7 @@ func (fake *FakeConn) Wait() error {
 	ret, specificReturn := fake.waitReturnsOnCall[len(fake.waitArgsForCall)]
 	fake.waitArgsForCall = append(fake.waitArgsForCall, struct {
 	}{})
-	fake.recordInvocation("Wait", []interface{}{})
+	fake.recordInvocation("Wait", []any{})
 	fake.waitMutex.Unlock()
 	if fake.WaitStub != nil {
 		return fake.WaitStub()
@@ -689,7 +689,7 @@ func (fake *FakeConn) WaitReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeConn) Invocations() map[string][][]interface{} {
+func (fake *FakeConn) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.clientVersionMutex.RLock()
@@ -712,21 +712,21 @@ func (fake *FakeConn) Invocations() map[string][][]interface{} {
 	defer fake.userMutex.RUnlock()
 	fake.waitMutex.RLock()
 	defer fake.waitMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeConn) recordInvocation(key string, args []interface{}) {
+func (fake *FakeConn) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

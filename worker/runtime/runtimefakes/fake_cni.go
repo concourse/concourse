@@ -100,7 +100,7 @@ type FakeCNI struct {
 	statusReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -115,7 +115,7 @@ func (fake *FakeCNI) Check(arg1 context.Context, arg2 string, arg3 string, arg4 
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.CheckStub
 	fakeReturns := fake.checkReturns
-	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Check", []any{arg1, arg2, arg3, arg4})
 	fake.checkMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4...)
@@ -175,7 +175,7 @@ func (fake *FakeCNI) GetConfig() *cni.ConfigResult {
 	}{})
 	stub := fake.GetConfigStub
 	fakeReturns := fake.getConfigReturns
-	fake.recordInvocation("GetConfig", []interface{}{})
+	fake.recordInvocation("GetConfig", []any{})
 	fake.getConfigMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -229,7 +229,7 @@ func (fake *FakeCNI) Load(arg1 ...cni.Opt) error {
 	}{arg1})
 	stub := fake.LoadStub
 	fakeReturns := fake.loadReturns
-	fake.recordInvocation("Load", []interface{}{arg1})
+	fake.recordInvocation("Load", []any{arg1})
 	fake.loadMutex.Unlock()
 	if stub != nil {
 		return stub(arg1...)
@@ -293,7 +293,7 @@ func (fake *FakeCNI) Remove(arg1 context.Context, arg2 string, arg3 string, arg4
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.RemoveStub
 	fakeReturns := fake.removeReturns
-	fake.recordInvocation("Remove", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Remove", []any{arg1, arg2, arg3, arg4})
 	fake.removeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4...)
@@ -357,7 +357,7 @@ func (fake *FakeCNI) Setup(arg1 context.Context, arg2 string, arg3 string, arg4 
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.SetupStub
 	fakeReturns := fake.setupReturns
-	fake.recordInvocation("Setup", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Setup", []any{arg1, arg2, arg3, arg4})
 	fake.setupMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4...)
@@ -424,7 +424,7 @@ func (fake *FakeCNI) SetupSerially(arg1 context.Context, arg2 string, arg3 strin
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.SetupSeriallyStub
 	fakeReturns := fake.setupSeriallyReturns
-	fake.recordInvocation("SetupSerially", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("SetupSerially", []any{arg1, arg2, arg3, arg4})
 	fake.setupSeriallyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4...)
@@ -487,7 +487,7 @@ func (fake *FakeCNI) Status() error {
 	}{})
 	stub := fake.StatusStub
 	fakeReturns := fake.statusReturns
-	fake.recordInvocation("Status", []interface{}{})
+	fake.recordInvocation("Status", []any{})
 	fake.statusMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -533,7 +533,7 @@ func (fake *FakeCNI) StatusReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeCNI) Invocations() map[string][][]interface{} {
+func (fake *FakeCNI) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkMutex.RLock()
@@ -550,21 +550,21 @@ func (fake *FakeCNI) Invocations() map[string][][]interface{} {
 	defer fake.setupSeriallyMutex.RUnlock()
 	fake.statusMutex.RLock()
 	defer fake.statusMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCNI) recordInvocation(key string, args []interface{}) {
+func (fake *FakeCNI) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

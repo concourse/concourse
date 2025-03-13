@@ -60,7 +60,7 @@ func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) 
 	v, found, err = results.Get(vars.Reference{Path: parts[0], Fields: parts[1:]})
 	if err != nil || !found {
 		messages = []string{}
-	} else if arr, ok := v.([]interface{}); v != nil && !ok {
+	} else if arr, ok := v.([]any); v != nil && !ok {
 		return opaResult{}, fmt.Errorf("messages: key '%s' must have a list of strings", opaConfig.ResultMessagesKey)
 	} else {
 		for _, item := range arr {

@@ -16,7 +16,7 @@ const (
 
 // Re-usable buffer pool to reduce allocations
 var bufferPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		// Default size that should handle most log lines
 		buf := make([]byte, 0, 256)
 		return &buf

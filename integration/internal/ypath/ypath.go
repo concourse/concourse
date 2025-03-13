@@ -31,7 +31,7 @@ func (doc *Document) Bytes() []byte {
 	return []byte(doc.file.String())
 }
 
-func (doc *Document) Read(t *testing.T, pathString string, dest interface{}) {
+func (doc *Document) Read(t *testing.T, pathString string, dest any) {
 	path, err := yaml.PathString(pathString)
 	require.NoError(t, err)
 
@@ -39,7 +39,7 @@ func (doc *Document) Read(t *testing.T, pathString string, dest interface{}) {
 	require.NoError(t, err)
 }
 
-func (doc *Document) Merge(t *testing.T, pathString string, value interface{}) {
+func (doc *Document) Merge(t *testing.T, pathString string, value any) {
 	path, err := yaml.PathString(pathString)
 	require.NoError(t, err)
 
@@ -50,7 +50,7 @@ func (doc *Document) Merge(t *testing.T, pathString string, value interface{}) {
 	require.NoError(t, err)
 }
 
-func (doc *Document) Replace(t *testing.T, pathString string, value interface{}) {
+func (doc *Document) Replace(t *testing.T, pathString string, value any) {
 	path, err := yaml.PathString(pathString)
 	require.NoError(t, err)
 
@@ -61,7 +61,7 @@ func (doc *Document) Replace(t *testing.T, pathString string, value interface{})
 	require.NoError(t, err)
 }
 
-func (doc *Document) Set(t *testing.T, pathString string, value interface{}) {
+func (doc *Document) Set(t *testing.T, pathString string, value any) {
 	segments := strings.Split(pathString, ".")
 	field := segments[len(segments)-1]
 	parent := strings.Join(segments[0:len(segments)-1], ".")
@@ -69,7 +69,7 @@ func (doc *Document) Set(t *testing.T, pathString string, value interface{}) {
 	path, err := yaml.PathString(parent)
 	require.NoError(t, err)
 
-	node, err := yaml.NewEncoder(nil).EncodeToNode(map[string]interface{}{
+	node, err := yaml.NewEncoder(nil).EncodeToNode(map[string]any{
 		field: value,
 	})
 	require.NoError(t, err)
@@ -86,7 +86,7 @@ func (doc *Document) Delete(t *testing.T, pathString string) {
 	path, err := yaml.PathString(parent)
 	require.NoError(t, err)
 
-	var newMap map[string]interface{}
+	var newMap map[string]any
 	doc.Read(t, parent, &newMap)
 	delete(newMap, field)
 
@@ -98,7 +98,7 @@ func (doc *Document) Delete(t *testing.T, pathString string) {
 }
 
 func (doc *Document) Clone(t *testing.T, srcPath string, dstPath string) {
-	var src interface{}
+	var src any
 	doc.Read(t, srcPath, &src)
 	doc.Set(t, dstPath, src)
 }

@@ -47,8 +47,8 @@ var _ = Describe("StaticVariables", func() {
 
 		It("follows fields", func() {
 			v := StaticVariables{
-				"a": map[string]interface{}{
-					"subkey1": map[interface{}]interface{}{
+				"a": map[string]any{
+					"subkey1": map[any]any{
 						"subkey2": "foo",
 					},
 				}}
@@ -62,8 +62,8 @@ var _ = Describe("StaticVariables", func() {
 		Context("when fields don't exist", func() {
 			It("errors with a MissingFieldError error", func() {
 				v := StaticVariables{
-					"a": map[string]interface{}{
-						"subkey1": map[interface{}]interface{}{
+					"a": map[string]any{
+						"subkey1": map[any]any{
 							"subkey2": "foo",
 						},
 					}}
@@ -77,8 +77,8 @@ var _ = Describe("StaticVariables", func() {
 		Context("when fields cannot be recursed", func() {
 			It("errors with an InvalidFieldError error", func() {
 				v := StaticVariables{
-					"a": map[string]interface{}{
-						"subkey1": map[interface{}]interface{}{
+					"a": map[string]any{
+						"subkey1": map[any]any{
 							"subkey2": "foo",
 						},
 					}}
@@ -115,7 +115,7 @@ var _ = Describe("StaticVariables", func() {
 				desc: "flattens recursively",
 				expanded: StaticVariables{
 					"hello": "world",
-					"foo":   map[string]interface{}{"bar": "baz", "abc": map[interface{}]interface{}{"def": "ghi", "jkl": "mno"}},
+					"foo":   map[string]any{"bar": "baz", "abc": map[any]any{"def": "ghi", "jkl": "mno"}},
 				},
 				kvPairs: KVPairs{
 					{Ref: Reference{Path: "hello"}, Value: "world"},
@@ -142,39 +142,39 @@ var _ = Describe("StaticVariables", func() {
 				desc: "merges flat elements into map",
 				kvPairs: KVPairs{
 					{Ref: Reference{Path: "hello"}, Value: "world"},
-					{Ref: Reference{Path: "foo"}, Value: map[string]interface{}{"bar": "baz"}},
+					{Ref: Reference{Path: "foo"}, Value: map[string]any{"bar": "baz"}},
 				},
 				expanded: StaticVariables{
 					"hello": "world",
-					"foo":   map[string]interface{}{"bar": "baz"},
+					"foo":   map[string]any{"bar": "baz"},
 				},
 			},
 			{
 				desc: "merges recurses through fields",
 				kvPairs: KVPairs{
 					{Ref: Reference{Path: "hello", Fields: []string{"a", "b"}}, Value: "world"},
-					{Ref: Reference{Path: "foo"}, Value: map[string]interface{}{"bar": map[string]interface{}{"abc": "def"}}},
+					{Ref: Reference{Path: "foo"}, Value: map[string]any{"bar": map[string]any{"abc": "def"}}},
 					{Ref: Reference{Path: "foo", Fields: []string{"bar", "ghi"}}, Value: "jkl"},
 				},
 				expanded: StaticVariables{
-					"hello": map[string]interface{}{"a": map[string]interface{}{"b": "world"}},
-					"foo":   map[string]interface{}{"bar": map[string]interface{}{"abc": "def", "ghi": "jkl"}},
+					"hello": map[string]any{"a": map[string]any{"b": "world"}},
+					"foo":   map[string]any{"bar": map[string]any{"abc": "def", "ghi": "jkl"}},
 				},
 			},
 			{
 				desc: "overwrites non-map nodes",
 				kvPairs: KVPairs{
-					{Ref: Reference{Path: "foo"}, Value: map[string]interface{}{"bar": "baz"}},
+					{Ref: Reference{Path: "foo"}, Value: map[string]any{"bar": "baz"}},
 					{Ref: Reference{Path: "foo", Fields: []string{"bar", "ghi"}}, Value: "jkl"},
 				},
 				expanded: StaticVariables{
-					"foo": map[string]interface{}{"bar": map[string]interface{}{"ghi": "jkl"}},
+					"foo": map[string]any{"bar": map[string]any{"ghi": "jkl"}},
 				},
 			},
 			{
 				desc: "overwrites full nodes",
 				kvPairs: KVPairs{
-					{Ref: Reference{Path: "foo"}, Value: map[string]interface{}{"bar": "baz"}},
+					{Ref: Reference{Path: "foo"}, Value: map[string]any{"bar": "baz"}},
 					{Ref: Reference{Path: "foo"}, Value: "jkl"},
 				},
 				expanded: StaticVariables{

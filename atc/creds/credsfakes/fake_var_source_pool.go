@@ -13,11 +13,11 @@ type FakeVarSourcePool struct {
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct {
 	}
-	FindOrCreateStub        func(lager.Logger, map[string]interface{}, creds.ManagerFactory) (creds.Secrets, error)
+	FindOrCreateStub        func(lager.Logger, map[string]any, creds.ManagerFactory) (creds.Secrets, error)
 	findOrCreateMutex       sync.RWMutex
 	findOrCreateArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 map[string]interface{}
+		arg2 map[string]any
 		arg3 creds.ManagerFactory
 	}
 	findOrCreateReturns struct {
@@ -66,12 +66,12 @@ func (fake *FakeVarSourcePool) CloseCalls(stub func()) {
 	fake.CloseStub = stub
 }
 
-func (fake *FakeVarSourcePool) FindOrCreate(arg1 lager.Logger, arg2 map[string]interface{}, arg3 creds.ManagerFactory) (creds.Secrets, error) {
+func (fake *FakeVarSourcePool) FindOrCreate(arg1 lager.Logger, arg2 map[string]any, arg3 creds.ManagerFactory) (creds.Secrets, error) {
 	fake.findOrCreateMutex.Lock()
 	ret, specificReturn := fake.findOrCreateReturnsOnCall[len(fake.findOrCreateArgsForCall)]
 	fake.findOrCreateArgsForCall = append(fake.findOrCreateArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 map[string]interface{}
+		arg2 map[string]any
 		arg3 creds.ManagerFactory
 	}{arg1, arg2, arg3})
 	stub := fake.FindOrCreateStub
@@ -93,13 +93,13 @@ func (fake *FakeVarSourcePool) FindOrCreateCallCount() int {
 	return len(fake.findOrCreateArgsForCall)
 }
 
-func (fake *FakeVarSourcePool) FindOrCreateCalls(stub func(lager.Logger, map[string]interface{}, creds.ManagerFactory) (creds.Secrets, error)) {
+func (fake *FakeVarSourcePool) FindOrCreateCalls(stub func(lager.Logger, map[string]any, creds.ManagerFactory) (creds.Secrets, error)) {
 	fake.findOrCreateMutex.Lock()
 	defer fake.findOrCreateMutex.Unlock()
 	fake.FindOrCreateStub = stub
 }
 
-func (fake *FakeVarSourcePool) FindOrCreateArgsForCall(i int) (lager.Logger, map[string]interface{}, creds.ManagerFactory) {
+func (fake *FakeVarSourcePool) FindOrCreateArgsForCall(i int) (lager.Logger, map[string]any, creds.ManagerFactory) {
 	fake.findOrCreateMutex.RLock()
 	defer fake.findOrCreateMutex.RUnlock()
 	argsForCall := fake.findOrCreateArgsForCall[i]

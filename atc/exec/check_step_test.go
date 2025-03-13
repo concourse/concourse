@@ -206,7 +206,7 @@ var _ = Describe("CheckStep", func() {
 				})
 
 				It("does not store a version", func() {
-					var dst interface{}
+					var dst any
 					Expect(runState.Result(planID, &dst)).To(BeFalse())
 				})
 			})
@@ -672,7 +672,7 @@ var _ = Describe("CheckStep", func() {
 					})
 
 					It("does not store a version", func() {
-						var dst interface{}
+						var dst any
 						Expect(runState.Result(planID, &dst)).To(BeFalse())
 					})
 				})

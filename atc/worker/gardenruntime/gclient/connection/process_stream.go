@@ -47,7 +47,7 @@ func (s *processStream) Signal(signal garden.Signal) error {
 	})
 }
 
-func (s *processStream) sendPayload(payload interface{}) error {
+func (s *processStream) sendPayload(payload any) error {
 	s.Lock()
 
 	err := transport.WriteMessage(s.conn, payload)

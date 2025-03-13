@@ -28,16 +28,16 @@ type DbConn interface {
 	Conn(context.Context) (*sql.Conn, error)
 
 	Begin() (Tx, error)
-	Exec(string, ...interface{}) (sql.Result, error)
+	Exec(string, ...any) (sql.Result, error)
 	Prepare(string) (*sql.Stmt, error)
-	Query(string, ...interface{}) (*sql.Rows, error)
-	QueryRow(string, ...interface{}) squirrel.RowScanner
+	Query(string, ...any) (*sql.Rows, error)
+	QueryRow(string, ...any) squirrel.RowScanner
 
 	BeginTx(context.Context, *sql.TxOptions) (Tx, error)
-	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
 	PrepareContext(context.Context, string) (*sql.Stmt, error)
-	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
-	QueryRowContext(context.Context, string, ...interface{}) squirrel.RowScanner
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) squirrel.RowScanner
 
 	SetMaxIdleConns(int)
 	SetMaxOpenConns(int)
@@ -50,14 +50,14 @@ type DbConn interface {
 //counterfeiter:generate . Tx
 type Tx interface {
 	Commit() error
-	Exec(string, ...interface{}) (sql.Result, error)
+	Exec(string, ...any) (sql.Result, error)
 	Prepare(string) (*sql.Stmt, error)
-	Query(string, ...interface{}) (*sql.Rows, error)
-	QueryRow(string, ...interface{}) squirrel.RowScanner
-	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	Query(string, ...any) (*sql.Rows, error)
+	QueryRow(string, ...any) squirrel.RowScanner
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
 	PrepareContext(context.Context, string) (*sql.Stmt, error)
-	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
-	QueryRowContext(context.Context, string, ...interface{}) squirrel.RowScanner
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) squirrel.RowScanner
 	Rollback() error
 	Stmt(*sql.Stmt) *sql.Stmt
 	EncryptionStrategy() encryption.Strategy
@@ -159,7 +159,7 @@ func (db *db) Begin() (Tx, error) {
 	return &dbTx{tx, GlobalConnectionTracker.Track(), db.EncryptionStrategy()}, nil
 }
 
-func (db *db) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (db *db) Exec(query string, args ...any) (sql.Result, error) {
 	defer GlobalConnectionTracker.Track().Release()
 	return db.DB.Exec(query, args...)
 }
@@ -169,13 +169,13 @@ func (db *db) Prepare(query string) (*sql.Stmt, error) {
 	return db.DB.Prepare(query)
 }
 
-func (db *db) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (db *db) Query(query string, args ...any) (*sql.Rows, error) {
 	defer GlobalConnectionTracker.Track().Release()
 	return db.DB.Query(query, args...)
 }
 
 // to conform to squirrel.Runner interface
-func (db *db) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (db *db) QueryRow(query string, args ...any) squirrel.RowScanner {
 	defer GlobalConnectionTracker.Track().Release()
 	return db.DB.QueryRow(query, args...)
 }
@@ -189,7 +189,7 @@ func (db *db) BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error) {
 	return &dbTx{tx, GlobalConnectionTracker.Track(), db.EncryptionStrategy()}, nil
 }
 
-func (db *db) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (db *db) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	defer GlobalConnectionTracker.Track().Release()
 	return db.DB.ExecContext(ctx, query, args...)
 }
@@ -199,13 +199,13 @@ func (db *db) PrepareContext(ctx context.Context, query string) (*sql.Stmt, erro
 	return db.DB.PrepareContext(ctx, query)
 }
 
-func (db *db) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (db *db) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	defer GlobalConnectionTracker.Track().Release()
 	return db.DB.QueryContext(ctx, query, args...)
 }
 
 // to conform to squirrel.Runner interface
-func (db *db) QueryRowContext(ctx context.Context, query string, args ...interface{}) squirrel.RowScanner {
+func (db *db) QueryRowContext(ctx context.Context, query string, args ...any) squirrel.RowScanner {
 	defer GlobalConnectionTracker.Track().Release()
 	return db.DB.QueryRowContext(ctx, query, args...)
 }
@@ -218,11 +218,11 @@ type dbTx struct {
 }
 
 // to conform to squirrel.Runner interface
-func (tx *dbTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (tx *dbTx) QueryRow(query string, args ...any) squirrel.RowScanner {
 	return tx.Tx.QueryRow(query, args...)
 }
 
-func (tx *dbTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) squirrel.RowScanner {
+func (tx *dbTx) QueryRowContext(ctx context.Context, query string, args ...any) squirrel.RowScanner {
 	return tx.Tx.QueryRowContext(ctx, query, args...)
 }
 

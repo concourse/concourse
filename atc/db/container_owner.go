@@ -15,7 +15,7 @@ import (
 // be garbage collected.
 type ContainerOwner interface {
 	Find(conn DbConn) (sq.Eq, bool, error)
-	Create(tx Tx, workerName string) (map[string]interface{}, error)
+	Create(tx Tx, workerName string) (map[string]any, error)
 }
 
 // NewBuildStepContainerOwner references a step within a build. When the build
@@ -42,12 +42,12 @@ func (c buildStepContainerOwner) Find(DbConn) (sq.Eq, bool, error) {
 	return sq.Eq(c.sqlMap()), true, nil
 }
 
-func (c buildStepContainerOwner) Create(Tx, string) (map[string]interface{}, error) {
+func (c buildStepContainerOwner) Create(Tx, string) (map[string]any, error) {
 	return c.sqlMap(), nil
 }
 
-func (c buildStepContainerOwner) sqlMap() map[string]interface{} {
-	return map[string]interface{}{
+func (c buildStepContainerOwner) sqlMap() map[string]any {
+	return map[string]any{
 		"build_id": c.BuildID,
 		"plan_id":  c.PlanID,
 		"team_id":  c.TeamID,
@@ -114,7 +114,7 @@ func (c resourceConfigCheckSessionContainerOwner) Find(conn DbConn) (sq.Eq, bool
 	}, true, nil
 }
 
-func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName string) (map[string]interface{}, error) {
+func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName string) (map[string]any, error) {
 	var wbrtID int
 	err := psql.Select("id").
 		From("worker_base_resource_types").
@@ -138,7 +138,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 
 	var rccsID int
 	err = psql.Insert("resource_config_check_sessions").
-		SetMap(map[string]interface{}{
+		SetMap(map[string]any{
 			"resource_config_id":           c.resourceConfigID,
 			"worker_base_resource_type_id": wbrtID,
 			"expires_at":                   sq.Expr("(SELECT " + expiryStmt + " FROM workers)"),
@@ -156,7 +156,7 @@ func (c resourceConfigCheckSessionContainerOwner) Create(tx Tx, workerName strin
 		return nil, fmt.Errorf("upsert resource config check session: %s", err)
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"resource_config_check_session_id": rccsID,
 	}, nil
 
@@ -179,12 +179,12 @@ func (c fixedHandleContainerOwner) Find(DbConn) (sq.Eq, bool, error) {
 	return sq.Eq(c.sqlMap()), true, nil
 }
 
-func (c fixedHandleContainerOwner) Create(Tx, string) (map[string]interface{}, error) {
+func (c fixedHandleContainerOwner) Create(Tx, string) (map[string]any, error) {
 	return c.sqlMap(), nil
 }
 
-func (c fixedHandleContainerOwner) sqlMap() map[string]interface{} {
-	return map[string]interface{}{
+func (c fixedHandleContainerOwner) sqlMap() map[string]any {
+	return map[string]any{
 		"handle": c.Handle,
 	}
 }
@@ -217,12 +217,12 @@ func (c inMemoryCheckBuildContainerOwner) Find(DbConn) (sq.Eq, bool, error) {
 	return sq.Eq(c.sqlMap()), true, nil
 }
 
-func (c inMemoryCheckBuildContainerOwner) Create(Tx, string) (map[string]interface{}, error) {
+func (c inMemoryCheckBuildContainerOwner) Create(Tx, string) (map[string]any, error) {
 	return c.sqlMap(), nil
 }
 
-func (c inMemoryCheckBuildContainerOwner) sqlMap() map[string]interface{} {
-	return map[string]interface{}{
+func (c inMemoryCheckBuildContainerOwner) sqlMap() map[string]any {
+	return map[string]any{
 		"in_memory_build_id":          c.BuildID,
 		"in_memory_build_create_time": c.CreateTime,
 		"plan_id":                     c.PlanID,

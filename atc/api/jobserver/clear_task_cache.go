@@ -59,7 +59,7 @@ func (s *Server) ClearTaskCache(pipeline db.Pipeline) http.Handler {
 	})
 }
 
-func (s *Server) writeJSONResponse(w http.ResponseWriter, obj interface{}) {
+func (s *Server) writeJSONResponse(w http.ResponseWriter, obj any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 

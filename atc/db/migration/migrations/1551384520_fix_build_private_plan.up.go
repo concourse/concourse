@@ -44,7 +44,7 @@ func (m *migrations) Up_1550160079() error {
 			return err
 		}
 
-		var payload map[string]interface{}
+		var payload map[string]any
 		err = json.Unmarshal(decrypted, &payload)
 		if err != nil {
 			return err

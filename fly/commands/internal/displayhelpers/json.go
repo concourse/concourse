@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func JsonPrint(jsonObj interface{}) error {
+func JsonPrint(jsonObj any) error {
 	jsonBytes, err := json.MarshalIndent(jsonObj, "", "  ")
 	if err != nil {
 		return err

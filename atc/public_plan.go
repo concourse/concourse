@@ -364,14 +364,14 @@ func (plan ArtifactOutputPlan) Public() *json.RawMessage {
 func (plan VarScopedPlan) Public() *json.RawMessage {
 	return enc(struct {
 		Step   *json.RawMessage `json:"step"`
-		Values []interface{}    `json:"values"`
+		Values []any            `json:"values"`
 	}{
 		Step:   plan.Step.Public(),
 		Values: plan.Values,
 	})
 }
 
-func enc(public interface{}) *json.RawMessage {
+func enc(public any) *json.RawMessage {
 	enc, _ := json.Marshal(public)
 	return (*json.RawMessage)(&enc)
 }

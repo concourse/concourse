@@ -12,11 +12,11 @@ import (
 )
 
 type FakeRunState struct {
-	AddLocalVarStub        func(string, interface{}, bool)
+	AddLocalVarStub        func(string, any, bool)
 	addLocalVarMutex       sync.RWMutex
 	addLocalVarArgsForCall []struct {
 		arg1 string
-		arg2 interface{}
+		arg2 any
 		arg3 bool
 	}
 	ArtifactRepositoryStub        func() *build.Repository
@@ -29,18 +29,18 @@ type FakeRunState struct {
 	artifactRepositoryReturnsOnCall map[int]struct {
 		result1 *build.Repository
 	}
-	GetStub        func(vars.Reference) (interface{}, bool, error)
+	GetStub        func(vars.Reference) (any, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 vars.Reference
 	}
 	getReturns struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}
@@ -91,11 +91,11 @@ type FakeRunState struct {
 	redactionEnabledReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	ResultStub        func(atc.PlanID, interface{}) bool
+	ResultStub        func(atc.PlanID, any) bool
 	resultMutex       sync.RWMutex
 	resultArgsForCall []struct {
 		arg1 atc.PlanID
-		arg2 interface{}
+		arg2 any
 	}
 	resultReturns struct {
 		result1 bool
@@ -117,21 +117,21 @@ type FakeRunState struct {
 		result1 bool
 		result2 error
 	}
-	StoreResultStub        func(atc.PlanID, interface{})
+	StoreResultStub        func(atc.PlanID, any)
 	storeResultMutex       sync.RWMutex
 	storeResultArgsForCall []struct {
 		arg1 atc.PlanID
-		arg2 interface{}
+		arg2 any
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRunState) AddLocalVar(arg1 string, arg2 interface{}, arg3 bool) {
+func (fake *FakeRunState) AddLocalVar(arg1 string, arg2 any, arg3 bool) {
 	fake.addLocalVarMutex.Lock()
 	fake.addLocalVarArgsForCall = append(fake.addLocalVarArgsForCall, struct {
 		arg1 string
-		arg2 interface{}
+		arg2 any
 		arg3 bool
 	}{arg1, arg2, arg3})
 	stub := fake.AddLocalVarStub
@@ -148,13 +148,13 @@ func (fake *FakeRunState) AddLocalVarCallCount() int {
 	return len(fake.addLocalVarArgsForCall)
 }
 
-func (fake *FakeRunState) AddLocalVarCalls(stub func(string, interface{}, bool)) {
+func (fake *FakeRunState) AddLocalVarCalls(stub func(string, any, bool)) {
 	fake.addLocalVarMutex.Lock()
 	defer fake.addLocalVarMutex.Unlock()
 	fake.AddLocalVarStub = stub
 }
 
-func (fake *FakeRunState) AddLocalVarArgsForCall(i int) (string, interface{}, bool) {
+func (fake *FakeRunState) AddLocalVarArgsForCall(i int) (string, any, bool) {
 	fake.addLocalVarMutex.RLock()
 	defer fake.addLocalVarMutex.RUnlock()
 	argsForCall := fake.addLocalVarArgsForCall[i]
@@ -214,7 +214,7 @@ func (fake *FakeRunState) ArtifactRepositoryReturnsOnCall(i int, result1 *build.
 	}{result1}
 }
 
-func (fake *FakeRunState) Get(arg1 vars.Reference) (interface{}, bool, error) {
+func (fake *FakeRunState) Get(arg1 vars.Reference) (any, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -239,7 +239,7 @@ func (fake *FakeRunState) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeRunState) GetCalls(stub func(vars.Reference) (interface{}, bool, error)) {
+func (fake *FakeRunState) GetCalls(stub func(vars.Reference) (any, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
@@ -252,30 +252,30 @@ func (fake *FakeRunState) GetArgsForCall(i int) vars.Reference {
 	return argsForCall.arg1
 }
 
-func (fake *FakeRunState) GetReturns(result1 interface{}, result2 bool, result3 error) {
+func (fake *FakeRunState) GetReturns(result1 any, result2 bool, result3 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeRunState) GetReturnsOnCall(i int, result1 interface{}, result2 bool, result3 error) {
+func (fake *FakeRunState) GetReturnsOnCall(i int, result1 any, result2 bool, result3 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 interface{}
+			result1 any
 			result2 bool
 			result3 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -528,12 +528,12 @@ func (fake *FakeRunState) RedactionEnabledReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakeRunState) Result(arg1 atc.PlanID, arg2 interface{}) bool {
+func (fake *FakeRunState) Result(arg1 atc.PlanID, arg2 any) bool {
 	fake.resultMutex.Lock()
 	ret, specificReturn := fake.resultReturnsOnCall[len(fake.resultArgsForCall)]
 	fake.resultArgsForCall = append(fake.resultArgsForCall, struct {
 		arg1 atc.PlanID
-		arg2 interface{}
+		arg2 any
 	}{arg1, arg2})
 	stub := fake.ResultStub
 	fakeReturns := fake.resultReturns
@@ -554,13 +554,13 @@ func (fake *FakeRunState) ResultCallCount() int {
 	return len(fake.resultArgsForCall)
 }
 
-func (fake *FakeRunState) ResultCalls(stub func(atc.PlanID, interface{}) bool) {
+func (fake *FakeRunState) ResultCalls(stub func(atc.PlanID, any) bool) {
 	fake.resultMutex.Lock()
 	defer fake.resultMutex.Unlock()
 	fake.ResultStub = stub
 }
 
-func (fake *FakeRunState) ResultArgsForCall(i int) (atc.PlanID, interface{}) {
+func (fake *FakeRunState) ResultArgsForCall(i int) (atc.PlanID, any) {
 	fake.resultMutex.RLock()
 	defer fake.resultMutex.RUnlock()
 	argsForCall := fake.resultArgsForCall[i]
@@ -655,11 +655,11 @@ func (fake *FakeRunState) RunReturnsOnCall(i int, result1 bool, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeRunState) StoreResult(arg1 atc.PlanID, arg2 interface{}) {
+func (fake *FakeRunState) StoreResult(arg1 atc.PlanID, arg2 any) {
 	fake.storeResultMutex.Lock()
 	fake.storeResultArgsForCall = append(fake.storeResultArgsForCall, struct {
 		arg1 atc.PlanID
-		arg2 interface{}
+		arg2 any
 	}{arg1, arg2})
 	stub := fake.StoreResultStub
 	fake.recordInvocation("StoreResult", []interface{}{arg1, arg2})
@@ -675,13 +675,13 @@ func (fake *FakeRunState) StoreResultCallCount() int {
 	return len(fake.storeResultArgsForCall)
 }
 
-func (fake *FakeRunState) StoreResultCalls(stub func(atc.PlanID, interface{})) {
+func (fake *FakeRunState) StoreResultCalls(stub func(atc.PlanID, any)) {
 	fake.storeResultMutex.Lock()
 	defer fake.storeResultMutex.Unlock()
 	fake.StoreResultStub = stub
 }
 
-func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, interface{}) {
+func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, any) {
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
 	argsForCall := fake.storeResultArgsForCall[i]

@@ -20,7 +20,7 @@ type KubernetesManager struct {
 
 func (manager *KubernetesManager) MarshalJSON() ([]byte, error) {
 	// XXX: Get Health
-	return json.Marshal(&map[string]interface{}{
+	return json.Marshal(&map[string]any{
 		"in_cluster_config": manager.InClusterConfig,
 		"config_path":       manager.ConfigPath,
 		"namespace_config":  manager.NamespacePrefix,

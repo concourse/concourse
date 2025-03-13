@@ -30,7 +30,7 @@ func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string, a
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (c CredHubAtc) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (c CredHubAtc) Get(secretPath string) (any, *time.Time, bool, error) {
 	var cred credentials.Credential
 	var found bool
 	var err error

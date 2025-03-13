@@ -22,7 +22,7 @@ type FakeUserNamespace struct {
 		result2 uint32
 		result3 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -33,7 +33,7 @@ func (fake *FakeUserNamespace) MaxValidIds() (uint32, uint32, error) {
 	}{})
 	stub := fake.MaxValidIdsStub
 	fakeReturns := fake.maxValidIdsReturns
-	fake.recordInvocation("MaxValidIds", []interface{}{})
+	fake.recordInvocation("MaxValidIds", []any{})
 	fake.maxValidIdsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -85,26 +85,26 @@ func (fake *FakeUserNamespace) MaxValidIdsReturnsOnCall(i int, result1 uint32, r
 	}{result1, result2, result3}
 }
 
-func (fake *FakeUserNamespace) Invocations() map[string][][]interface{} {
+func (fake *FakeUserNamespace) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.maxValidIdsMutex.RLock()
 	defer fake.maxValidIdsMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeUserNamespace) recordInvocation(key string, args []interface{}) {
+func (fake *FakeUserNamespace) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

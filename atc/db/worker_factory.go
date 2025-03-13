@@ -394,7 +394,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		workerVersion = &atcWorker.Version
 	}
 
-	values := []interface{}{
+	values := []any{
 		atcWorker.GardenAddr,
 		atcWorker.ActiveContainers,
 		atcWorker.ActiveVolumes,
@@ -443,7 +443,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"team_id",
 			"ephemeral",
 		).
-		Values(append([]interface{}{
+		Values(append([]any{
 			sq.Expr(expires),
 			sq.Expr(startTime),
 		}, values...)...).

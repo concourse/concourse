@@ -18,7 +18,7 @@ type FakeLockManager struct {
 	unlockArgsForCall []struct {
 		arg1 string
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -28,7 +28,7 @@ func (fake *FakeLockManager) Lock(arg1 string) {
 		arg1 string
 	}{arg1})
 	stub := fake.LockStub
-	fake.recordInvocation("Lock", []interface{}{arg1})
+	fake.recordInvocation("Lock", []any{arg1})
 	fake.lockMutex.Unlock()
 	if stub != nil {
 		fake.LockStub(arg1)
@@ -60,7 +60,7 @@ func (fake *FakeLockManager) Unlock(arg1 string) {
 		arg1 string
 	}{arg1})
 	stub := fake.UnlockStub
-	fake.recordInvocation("Unlock", []interface{}{arg1})
+	fake.recordInvocation("Unlock", []any{arg1})
 	fake.unlockMutex.Unlock()
 	if stub != nil {
 		fake.UnlockStub(arg1)
@@ -86,28 +86,28 @@ func (fake *FakeLockManager) UnlockArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeLockManager) Invocations() map[string][][]interface{} {
+func (fake *FakeLockManager) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.lockMutex.RLock()
 	defer fake.lockMutex.RUnlock()
 	fake.unlockMutex.RLock()
 	defer fake.unlockMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeLockManager) recordInvocation(key string, args []interface{}) {
+func (fake *FakeLockManager) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

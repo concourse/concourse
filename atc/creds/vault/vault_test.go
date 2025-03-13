@@ -38,9 +38,9 @@ func (msr *MockSecretReader) Read(lookupPath string) (*vaultapi.Secret, error) {
 
 func createMockV2Secret(value string) *vaultapi.Secret {
 	return &vaultapi.Secret{
-		Data: map[string]interface{}{
-			"data": map[string]interface{}{"value": value},
-			"metadata": map[string]interface{}{
+		Data: map[string]any{
+			"data": map[string]any{"value": value},
+			"metadata": map[string]any{
 				"created_time":  "2021-01-06T22:32:10.969537Z",
 				"deletion_time": "",
 				"destroyed":     false,
@@ -52,7 +52,7 @@ func createMockV2Secret(value string) *vaultapi.Secret {
 
 func createMockV1Secret(value string) *vaultapi.Secret {
 	return &vaultapi.Secret{
-		Data: map[string]interface{}{
+		Data: map[string]any{
 			"value": value,
 		},
 	}
@@ -72,7 +72,7 @@ var _ = Describe("Vault", func() {
 			{
 				path: "/concourse/team",
 				secret: &vaultapi.Secret{
-					Data: map[string]interface{}{"foo": "bar"},
+					Data: map[string]any{"foo": "bar"},
 				},
 			}},
 		}
@@ -114,7 +114,7 @@ var _ = Describe("Vault", func() {
 					{
 						path: "/concourse/team/pipeline/foo",
 						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "bar"},
+							Data: map[string]any{"value": "bar"},
 						},
 					}},
 				}
@@ -130,7 +130,7 @@ var _ = Describe("Vault", func() {
 					{
 						path: "/concourse/team/pipeline/foo",
 						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "bar"},
+							Data: map[string]any{"value": "bar"},
 						},
 					}},
 				}
@@ -145,7 +145,7 @@ var _ = Describe("Vault", func() {
 					{
 						path: "/concourse/team/foo",
 						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "bar"},
+							Data: map[string]any{"value": "bar"},
 						},
 					}},
 				}
@@ -160,7 +160,7 @@ var _ = Describe("Vault", func() {
 					{
 						path: "/concourse/shared/foo",
 						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "bar"},
+							Data: map[string]any{"value": "bar"},
 						},
 					}},
 				}
@@ -175,13 +175,13 @@ var _ = Describe("Vault", func() {
 					{
 						path: "/concourse/shared/foo",
 						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "foo"},
+							Data: map[string]any{"value": "foo"},
 						},
 					},
 					{
 						path: "/concourse/team/foo",
 						secret: &vaultapi.Secret{
-							Data: map[string]interface{}{"value": "bar"},
+							Data: map[string]any{"value": "bar"},
 						},
 					}},
 				}
@@ -201,19 +201,19 @@ var _ = Describe("Vault", func() {
 						{
 							path: "/concourse/place1/team/sub/pipeline/foo",
 							secret: &vaultapi.Secret{
-								Data: map[string]interface{}{"value": "bar"},
+								Data: map[string]any{"value": "bar"},
 							},
 						},
 						{
 							path: "/concourse/place2/team/baz",
 							secret: &vaultapi.Secret{
-								Data: map[string]interface{}{"value": "qux"},
+								Data: map[string]any{"value": "qux"},
 							},
 						},
 						{
 							path: "/concourse/place3/global",
 							secret: &vaultapi.Secret{
-								Data: map[string]interface{}{"value": "shared"},
+								Data: map[string]any{"value": "shared"},
 							},
 						}},
 					}
@@ -268,7 +268,7 @@ var _ = Describe("Vault", func() {
 						{
 							path: "/concourse/foo",
 							secret: &vaultapi.Secret{
-								Data: map[string]interface{}{"value": "foo"},
+								Data: map[string]any{"value": "foo"},
 							},
 						}},
 					}
@@ -284,7 +284,7 @@ var _ = Describe("Vault", func() {
 						{
 							path: "/concourse/foo",
 							secret: &vaultapi.Secret{
-								Data: map[string]interface{}{"value": "foo"},
+								Data: map[string]any{"value": "foo"},
 							},
 						}},
 					}

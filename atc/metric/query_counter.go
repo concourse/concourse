@@ -17,19 +17,19 @@ type countingConn struct {
 	db.DbConn
 }
 
-func (e *countingConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (e *countingConn) Query(query string, args ...any) (*sql.Rows, error) {
 	Metrics.DatabaseQueries.Inc()
 
 	return e.DbConn.Query(query, args...)
 }
 
-func (e *countingConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (e *countingConn) QueryRow(query string, args ...any) squirrel.RowScanner {
 	Metrics.DatabaseQueries.Inc()
 
 	return e.DbConn.QueryRow(query, args...)
 }
 
-func (e *countingConn) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (e *countingConn) Exec(query string, args ...any) (sql.Result, error) {
 	Metrics.DatabaseQueries.Inc()
 
 	return e.DbConn.Exec(query, args...)
@@ -48,19 +48,19 @@ type countingTx struct {
 	db.Tx
 }
 
-func (e *countingTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (e *countingTx) Query(query string, args ...any) (*sql.Rows, error) {
 	Metrics.DatabaseQueries.Inc()
 
 	return e.Tx.Query(query, args...)
 }
 
-func (e *countingTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (e *countingTx) QueryRow(query string, args ...any) squirrel.RowScanner {
 	Metrics.DatabaseQueries.Inc()
 
 	return e.Tx.QueryRow(query, args...)
 }
 
-func (e *countingTx) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (e *countingTx) Exec(query string, args ...any) (sql.Result, error) {
 	Metrics.DatabaseQueries.Inc()
 
 	return e.Tx.Exec(query, args...)

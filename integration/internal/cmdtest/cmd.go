@@ -98,7 +98,7 @@ func (cmd Cmd) Output(t *testing.T, args ...string) string {
 	return buf.String()
 }
 
-func (cmd Cmd) OutputJSON(t *testing.T, dest interface{}, args ...string) {
+func (cmd Cmd) OutputJSON(t *testing.T, dest any, args ...string) {
 	buf := new(bytes.Buffer)
 	cmd.Stdout = buf
 	cmd.Run(t, args...)
@@ -194,7 +194,7 @@ func (cmd Cmd) TryOutput(args ...string) (string, error) {
 	return buf.String(), nil
 }
 
-func (cmd Cmd) TryOutputJSON(dest interface{}, args ...string) error {
+func (cmd Cmd) TryOutputJSON(dest any, args ...string) error {
 	buf := new(bytes.Buffer)
 
 	cmd.Stdout = buf

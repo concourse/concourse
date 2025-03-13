@@ -9,7 +9,7 @@ import (
 
 type VarFlag struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 func (pair *VarFlag) UnmarshalFlag(value string) error {

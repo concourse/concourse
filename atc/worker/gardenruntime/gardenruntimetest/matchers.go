@@ -17,7 +17,7 @@ type haveStrategyMatcher struct {
 	expected baggageclaim.Strategy
 }
 
-func (m haveStrategyMatcher) Match(actual interface{}) (bool, error) {
+func (m haveStrategyMatcher) Match(actual any) (bool, error) {
 	volume, ok := actual.(*Volume)
 	if !ok {
 		return false, errors.New("expecting a *grt.Volume")
@@ -25,10 +25,10 @@ func (m haveStrategyMatcher) Match(actual interface{}) (bool, error) {
 
 	return StrategyEq(m.expected)(volume), nil
 }
-func (m haveStrategyMatcher) FailureMessage(actual interface{}) string {
+func (m haveStrategyMatcher) FailureMessage(actual any) string {
 	return format.Message(actual, "to have strategy", m.expected)
 }
-func (m haveStrategyMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m haveStrategyMatcher) NegatedFailureMessage(actual any) string {
 	return format.Message(actual, "not to have strategy", m.expected)
 }
 
@@ -40,7 +40,7 @@ type haveContentMatcher struct {
 	expected runtimetest.VolumeContent
 }
 
-func (m haveContentMatcher) Match(actual interface{}) (bool, error) {
+func (m haveContentMatcher) Match(actual any) (bool, error) {
 	volume, ok := actual.(*Volume)
 	if !ok {
 		return false, errors.New("expecting a *grt.Volume")
@@ -48,10 +48,10 @@ func (m haveContentMatcher) Match(actual interface{}) (bool, error) {
 
 	return ContentEq(m.expected)(volume), nil
 }
-func (m haveContentMatcher) FailureMessage(actual interface{}) string {
+func (m haveContentMatcher) FailureMessage(actual any) string {
 	return format.Message(actual, "to have content", m.expected)
 }
-func (m haveContentMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m haveContentMatcher) NegatedFailureMessage(actual any) string {
 	return format.Message(actual, "not to have content", m.expected)
 }
 
@@ -63,7 +63,7 @@ type bePrivilegedMatcher struct {
 	expected bool
 }
 
-func (m bePrivilegedMatcher) Match(actual interface{}) (bool, error) {
+func (m bePrivilegedMatcher) Match(actual any) (bool, error) {
 	volume, ok := actual.(*Volume)
 	if !ok {
 		return false, errors.New("expecting a *grt.Volume")
@@ -71,10 +71,10 @@ func (m bePrivilegedMatcher) Match(actual interface{}) (bool, error) {
 
 	return PrivilegedEq(m.expected)(volume), nil
 }
-func (m bePrivilegedMatcher) FailureMessage(actual interface{}) string {
+func (m bePrivilegedMatcher) FailureMessage(actual any) string {
 	return format.Message(actual, "to be "+m.expectation())
 }
-func (m bePrivilegedMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m bePrivilegedMatcher) NegatedFailureMessage(actual any) string {
 	return format.Message(actual, "not to be "+m.expectation())
 }
 
@@ -93,7 +93,7 @@ type haveHandleMatcher struct {
 	expected string
 }
 
-func (m haveHandleMatcher) Match(actual interface{}) (bool, error) {
+func (m haveHandleMatcher) Match(actual any) (bool, error) {
 	volume, ok := actual.(*Volume)
 	if !ok {
 		return false, errors.New("expecting a *grt.Volume")
@@ -101,9 +101,9 @@ func (m haveHandleMatcher) Match(actual interface{}) (bool, error) {
 
 	return HandleEq(m.expected)(volume), nil
 }
-func (m haveHandleMatcher) FailureMessage(actual interface{}) string {
+func (m haveHandleMatcher) FailureMessage(actual any) string {
 	return format.Message(actual, "to have handle "+m.expected)
 }
-func (m haveHandleMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m haveHandleMatcher) NegatedFailureMessage(actual any) string {
 	return format.Message(actual, "not to have handle "+m.expected)
 }

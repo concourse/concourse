@@ -69,7 +69,7 @@ type detectInputs struct {
 	guessedNames []build.ArtifactName
 }
 
-func detectInputsFromParam(value interface{}) []build.ArtifactName {
+func detectInputsFromParam(value any) []build.ArtifactName {
 	switch actual := value.(type) {
 	case string:
 		input := actual
@@ -83,13 +83,13 @@ func detectInputsFromParam(value interface{}) []build.ArtifactName {
 			}
 		}
 		return []build.ArtifactName{build.ArtifactName(input)}
-	case map[string]interface{}:
+	case map[string]any:
 		var inputs []build.ArtifactName
 		for _, value := range actual {
 			inputs = append(inputs, detectInputsFromParam(value)...)
 		}
 		return inputs
-	case []interface{}:
+	case []any:
 		var inputs []build.ArtifactName
 		for _, value := range actual {
 			inputs = append(inputs, detectInputsFromParam(value)...)
@@ -102,7 +102,7 @@ func detectInputsFromParam(value interface{}) []build.ArtifactName {
 
 func NewDetectInputs(params atc.Params) PutInputs {
 	return &detectInputs{
-		guessedNames: detectInputsFromParam(map[string]interface{}(params)),
+		guessedNames: detectInputsFromParam(map[string]any(params)),
 	}
 }
 

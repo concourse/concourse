@@ -42,7 +42,7 @@ func (state *runState) ArtifactRepository() *build.Repository {
 	return state.artifacts
 }
 
-func (state *runState) Result(id atc.PlanID, to interface{}) bool {
+func (state *runState) Result(id atc.PlanID, to any) bool {
 	val, ok := state.results.Load(id)
 	if !ok {
 		return false
@@ -56,11 +56,11 @@ func (state *runState) Result(id atc.PlanID, to interface{}) bool {
 	return false
 }
 
-func (state *runState) StoreResult(id atc.PlanID, val interface{}) {
+func (state *runState) StoreResult(id atc.PlanID, val any) {
 	state.results.Store(id, val)
 }
 
-func (state *runState) Get(ref vars.Reference) (interface{}, bool, error) {
+func (state *runState) Get(ref vars.Reference) (any, bool, error) {
 	return state.vars.Get(ref)
 }
 
@@ -84,7 +84,7 @@ func (state *runState) Parent() RunState {
 	return state.parent
 }
 
-func (state *runState) AddLocalVar(name string, val interface{}, redact bool) {
+func (state *runState) AddLocalVar(name string, val any, redact bool) {
 	state.vars.AddLocalVar(name, val, redact)
 }
 

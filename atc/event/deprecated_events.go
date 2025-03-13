@@ -11,10 +11,10 @@ type InputV10 struct {
 }
 
 type LegacyTurbineInput struct {
-	Name     string                 `json:"name"`
-	Resource string                 `json:"resource"`
-	Type     string                 `json:"type"`
-	Version  map[string]interface{} `json:"version,omitempty"`
+	Name     string         `json:"name"`
+	Resource string         `json:"resource"`
+	Type     string         `json:"type"`
+	Version  map[string]any `json:"version,omitempty"`
 	Metadata []struct {
 		Name  string `json:"name"`
 		Value string `json:"value"`
@@ -30,10 +30,10 @@ type OutputV10 struct {
 }
 
 type LegacyTurbineOutput struct {
-	Name     string                 `json:"name"`
-	Type     string                 `json:"type"`
-	On       []string               `json:"on,omitempty"`
-	Version  map[string]interface{} `json:"version,omitempty"`
+	Name     string         `json:"name"`
+	Type     string         `json:"type"`
+	On       []string       `json:"on,omitempty"`
+	Version  map[string]any `json:"version,omitempty"`
 	Metadata []struct {
 		Name  string `json:"name"`
 		Value string `json:"value"`

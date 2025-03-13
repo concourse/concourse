@@ -45,13 +45,13 @@ func (m *migrations) Down_1550160079() error {
 			return err
 		}
 
-		var payload map[string]interface{}
+		var payload map[string]any
 		err = json.Unmarshal(decrypted, &payload)
 		if err != nil {
 			return err
 		}
 
-		fixed, err := json.Marshal(map[string]interface{}{"plan": payload})
+		fixed, err := json.Marshal(map[string]any{"plan": payload})
 		if err != nil {
 			return err
 		}

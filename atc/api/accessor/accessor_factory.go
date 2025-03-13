@@ -10,7 +10,7 @@ import (
 
 //counterfeiter:generate . TokenVerifier
 type TokenVerifier interface {
-	Verify(req *http.Request) (map[string]interface{}, error)
+	Verify(req *http.Request) (map[string]any, error)
 }
 
 //counterfeiter:generate . TeamFetcher

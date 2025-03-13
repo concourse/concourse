@@ -9,24 +9,24 @@ import (
 )
 
 type FakeTokenVerifier struct {
-	VerifyStub        func(*http.Request) (map[string]interface{}, error)
+	VerifyStub        func(*http.Request) (map[string]any, error)
 	verifyMutex       sync.RWMutex
 	verifyArgsForCall []struct {
 		arg1 *http.Request
 	}
 	verifyReturns struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}
 	verifyReturnsOnCall map[int]struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTokenVerifier) Verify(arg1 *http.Request) (map[string]interface{}, error) {
+func (fake *FakeTokenVerifier) Verify(arg1 *http.Request) (map[string]any, error) {
 	fake.verifyMutex.Lock()
 	ret, specificReturn := fake.verifyReturnsOnCall[len(fake.verifyArgsForCall)]
 	fake.verifyArgsForCall = append(fake.verifyArgsForCall, struct {
@@ -51,7 +51,7 @@ func (fake *FakeTokenVerifier) VerifyCallCount() int {
 	return len(fake.verifyArgsForCall)
 }
 
-func (fake *FakeTokenVerifier) VerifyCalls(stub func(*http.Request) (map[string]interface{}, error)) {
+func (fake *FakeTokenVerifier) VerifyCalls(stub func(*http.Request) (map[string]any, error)) {
 	fake.verifyMutex.Lock()
 	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = stub
@@ -64,28 +64,28 @@ func (fake *FakeTokenVerifier) VerifyArgsForCall(i int) *http.Request {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTokenVerifier) VerifyReturns(result1 map[string]interface{}, result2 error) {
+func (fake *FakeTokenVerifier) VerifyReturns(result1 map[string]any, result2 error) {
 	fake.verifyMutex.Lock()
 	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = nil
 	fake.verifyReturns = struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTokenVerifier) VerifyReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+func (fake *FakeTokenVerifier) VerifyReturnsOnCall(i int, result1 map[string]any, result2 error) {
 	fake.verifyMutex.Lock()
 	defer fake.verifyMutex.Unlock()
 	fake.VerifyStub = nil
 	if fake.verifyReturnsOnCall == nil {
 		fake.verifyReturnsOnCall = make(map[int]struct {
-			result1 map[string]interface{}
+			result1 map[string]any
 			result2 error
 		})
 	}
 	fake.verifyReturnsOnCall[i] = struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}{result1, result2}
 }

@@ -57,9 +57,9 @@ var _ = Describe("AccessorFactory", func() {
 
 		Context("when the token is valid", func() {
 			BeforeEach(func() {
-				fakeTokenVerifier.VerifyReturns(map[string]interface{}{
+				fakeTokenVerifier.VerifyReturns(map[string]any{
 					"preferred_username": "user1",
-					"federated_claims": map[string]interface{}{
+					"federated_claims": map[string]any{
 						"connector_id": "github",
 					},
 				}, nil)

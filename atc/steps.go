@@ -435,18 +435,18 @@ type InParallelConfig struct {
 }
 
 func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
-	var data interface{}
+	var data any
 	err := json.Unmarshal(payload, &data)
 	if err != nil {
 		return err
 	}
 
 	switch actual := data.(type) {
-	case []interface{}:
+	case []any:
 		if err := json.Unmarshal(payload, &c.Steps); err != nil {
 			return fmt.Errorf("failed to unmarshal parallel steps: %s", err)
 		}
-	case map[string]interface{}:
+	case map[string]any:
 		// Used to avoid infinite recursion when unmarshalling this variant.
 		type target InParallelConfig
 
@@ -465,7 +465,7 @@ func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 
 type AcrossVarConfig struct {
 	Var         string             `json:"var"`
-	Values      interface{}        `json:"values,omitempty"`
+	Values      any                `json:"values,omitempty"`
 	MaxInFlight *MaxInFlightConfig `json:"max_in_flight,omitempty"`
 }
 
@@ -686,7 +686,7 @@ const VersionLatest = "latest"
 const VersionEvery = "every"
 
 func (c *VersionConfig) UnmarshalJSON(version []byte) error {
-	var data interface{}
+	var data any
 
 	err := json.Unmarshal(version, &data)
 	if err != nil {
@@ -697,7 +697,7 @@ func (c *VersionConfig) UnmarshalJSON(version []byte) error {
 	case string:
 		c.Every = actual == VersionEvery
 		c.Latest = actual == VersionLatest
-	case map[string]interface{}:
+	case map[string]any:
 		version := Version{}
 
 		for k, v := range actual {
@@ -745,7 +745,7 @@ type InputsConfig struct {
 }
 
 func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
-	var data interface{}
+	var data any
 
 	err := json.Unmarshal(inputs, &data)
 	if err != nil {
@@ -756,7 +756,7 @@ func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 	case string:
 		c.All = actual == InputsAll
 		c.Detect = actual == InputsDetect
-	case []interface{}:
+	case []any:
 		inputs := []string{}
 
 		for _, v := range actual {
@@ -792,7 +792,7 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 	return json.Marshal("")
 }
 
-func unmarshalStrict(data []byte, to interface{}) error {
+func unmarshalStrict(data []byte, to any) error {
 	decoder := json.NewDecoder(bytes.NewBuffer(data))
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(to)

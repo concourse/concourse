@@ -61,7 +61,7 @@ func (cm *changeMatcher) By(amount int) *changeMatcher {
 	return cm
 }
 
-func (cm *changeMatcher) Match(actual interface{}) (success bool, err error) {
+func (cm *changeMatcher) Match(actual any) (success bool, err error) {
 	cm.before = cm.fn()
 
 	ac, ok := actual.(func())
@@ -76,10 +76,10 @@ func (cm *changeMatcher) Match(actual interface{}) (success bool, err error) {
 	return (cm.after - cm.before) == cm.amount, nil
 }
 
-func (cm *changeMatcher) FailureMessage(actual interface{}) (message string) {
+func (cm *changeMatcher) FailureMessage(actual any) (message string) {
 	return fmt.Sprintf("Expected value to change by %d but it changed from %d to %d", cm.amount, cm.before, cm.after)
 }
 
-func (cm *changeMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (cm *changeMatcher) NegatedFailureMessage(actual any) (message string) {
 	return fmt.Sprintf("Expected value not to change by %d but it changed from %d to %d", cm.amount, cm.before, cm.after)
 }

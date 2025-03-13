@@ -191,13 +191,13 @@ type AcrossPlan struct {
 
 type AcrossVar struct {
 	Var         string             `json:"name"`
-	Values      interface{}        `json:"values,omitempty"`
+	Values      any                `json:"values,omitempty"`
 	MaxInFlight *MaxInFlightConfig `json:"max_in_flight,omitempty"`
 }
 
 type VarScopedPlan struct {
-	Step   Plan          `json:"step"`
-	Values []interface{} `json:"values"`
+	Step   Plan  `json:"step"`
+	Values []any `json:"values"`
 }
 
 type DoPlan []Plan
@@ -382,12 +382,12 @@ type RunPlan struct {
 }
 
 type SetPipelinePlan struct {
-	Name         string                 `json:"name"`
-	File         string                 `json:"file"`
-	Team         string                 `json:"team,omitempty"`
-	Vars         map[string]interface{} `json:"vars,omitempty"`
-	VarFiles     []string               `json:"var_files,omitempty"`
-	InstanceVars map[string]interface{} `json:"instance_vars,omitempty"`
+	Name         string         `json:"name"`
+	File         string         `json:"file"`
+	Team         string         `json:"team,omitempty"`
+	Vars         map[string]any `json:"vars,omitempty"`
+	VarFiles     []string       `json:"var_files,omitempty"`
+	InstanceVars map[string]any `json:"instance_vars,omitempty"`
 }
 
 type LoadVarPlan struct {

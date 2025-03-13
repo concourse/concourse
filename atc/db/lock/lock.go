@@ -350,8 +350,8 @@ func (l LockID) toDBParams() string {
 	return strings.Join(s, ",")
 }
 
-func (l LockID) toDBArgs() []interface{} {
-	result := []interface{}{}
+func (l LockID) toDBArgs() []any {
+	result := []any{}
 	for i := range l {
 		result = append(result, l[i])
 	}

@@ -90,21 +90,21 @@ func (c joinLimitValidatorConn) Begin() (db.Tx, error) {
 	return joinLimitValidatorTx{Tx: tx}, nil
 }
 
-func (c joinLimitValidatorConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (c joinLimitValidatorConn) Query(query string, args ...any) (*sql.Rows, error) {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
 	return c.DbConn.Query(query, args...)
 }
 
-func (c joinLimitValidatorConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (c joinLimitValidatorConn) QueryRow(query string, args ...any) squirrel.RowScanner {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
 	return c.DbConn.QueryRow(query, args...)
 }
 
-func (c joinLimitValidatorConn) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (c joinLimitValidatorConn) Exec(query string, args ...any) (sql.Result, error) {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
@@ -115,28 +115,28 @@ type joinLimitValidatorTx struct {
 	db.Tx
 }
 
-func (t joinLimitValidatorTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (t joinLimitValidatorTx) Query(query string, args ...any) (*sql.Rows, error) {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
 	return t.Tx.Query(query, args...)
 }
 
-func (t joinLimitValidatorTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (t joinLimitValidatorTx) QueryRow(query string, args ...any) squirrel.RowScanner {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
 	return t.Tx.QueryRow(query, args...)
 }
 
-func (t joinLimitValidatorTx) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (t joinLimitValidatorTx) Exec(query string, args ...any) (sql.Result, error) {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}
 	return t.Tx.Exec(query, args...)
 }
 
-func (t joinLimitValidatorTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) squirrel.RowScanner {
+func (t joinLimitValidatorTx) QueryRowContext(ctx context.Context, query string, args ...any) squirrel.RowScanner {
 	if err := validateJoinLimit(query); err != nil {
 		ginkgo.Fail(err.Error())
 	}

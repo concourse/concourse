@@ -22,7 +22,7 @@ var _ = Describe("YAMLVariablePair", func() {
 			desc string
 			flag string
 			ref  vars.Reference
-			val  interface{}
+			val  any
 			err  string
 		}{
 			{
@@ -35,13 +35,13 @@ var _ = Describe("YAMLVariablePair", func() {
 				desc: "unmarshals arbitrary yaml",
 				flag: `key={hello:world: [a, b, c]}`,
 				ref:  vars.Reference{Path: `key`, Fields: []string{}},
-				val:  map[string]interface{}{"hello:world": []interface{}{"a", "b", "c"}},
+				val:  map[string]any{"hello:world": []any{"a", "b", "c"}},
 			},
 			{
 				desc: "unmarshals numbers as json.Number",
 				flag: `key={int: 1, float: 1.23}`,
 				ref:  vars.Reference{Path: `key`, Fields: []string{}},
-				val:  map[string]interface{}{"int": json.Number("1"), "float": json.Number("1.23")},
+				val:  map[string]any{"int": json.Number("1"), "float": json.Number("1.23")},
 			},
 			{
 				desc: "errors if yaml is malformed",

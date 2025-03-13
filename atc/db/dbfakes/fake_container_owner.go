@@ -9,18 +9,18 @@ import (
 )
 
 type FakeContainerOwner struct {
-	CreateStub        func(db.Tx, string) (map[string]interface{}, error)
+	CreateStub        func(db.Tx, string) (map[string]any, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 db.Tx
 		arg2 string
 	}
 	createReturns struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}
 	createReturnsOnCall map[int]struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}
 	FindStub        func(db.DbConn) (squirrel.Eq, bool, error)
@@ -42,7 +42,7 @@ type FakeContainerOwner struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerOwner) Create(arg1 db.Tx, arg2 string) (map[string]interface{}, error) {
+func (fake *FakeContainerOwner) Create(arg1 db.Tx, arg2 string) (map[string]any, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
@@ -68,7 +68,7 @@ func (fake *FakeContainerOwner) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeContainerOwner) CreateCalls(stub func(db.Tx, string) (map[string]interface{}, error)) {
+func (fake *FakeContainerOwner) CreateCalls(stub func(db.Tx, string) (map[string]any, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
@@ -81,28 +81,28 @@ func (fake *FakeContainerOwner) CreateArgsForCall(i int) (db.Tx, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeContainerOwner) CreateReturns(result1 map[string]interface{}, result2 error) {
+func (fake *FakeContainerOwner) CreateReturns(result1 map[string]any, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainerOwner) CreateReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+func (fake *FakeContainerOwner) CreateReturnsOnCall(i int, result1 map[string]any, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
-			result1 map[string]interface{}
+			result1 map[string]any
 			result2 error
 		})
 	}
 	fake.createReturnsOnCall[i] = struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}{result1, result2}
 }

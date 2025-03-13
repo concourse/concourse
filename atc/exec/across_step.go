@@ -56,7 +56,7 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) (bool, error) {
 
 	delegate.Starting(logger)
 
-	varValues := make([][]interface{}, len(step.plan.Vars))
+	varValues := make([][]any, len(step.plan.Vars))
 	for i, v := range step.plan.Vars {
 		_, found, _ := state.Get(vars.Reference{Source: ".", Path: v.Var})
 		if found {
@@ -84,7 +84,7 @@ func (step AcrossStep) Run(ctx context.Context, state RunState) (bool, error) {
 	return succeeded, nil
 }
 
-func (step AcrossStep) acrossStepExecutor(state RunState, varValues [][]interface{}, varIndex int, steps []atc.VarScopedPlan) parallelExecutor {
+func (step AcrossStep) acrossStepExecutor(state RunState, varValues [][]any, varIndex int, steps []atc.VarScopedPlan) parallelExecutor {
 	if varIndex == len(step.plan.Vars)-1 {
 		return step.acrossStepLeafExecutor(state, steps)
 	}
@@ -142,20 +142,21 @@ func (step AcrossStep) acrossStepLeafExecutor(state RunState, steps []atc.VarSco
 // result[i][j] is the value of the j'th variable in combination i
 //
 // e.g. cartesianProduct([["a1", "a2"], ["b1"], ["c1", "c2"]])
-//      = [
-//          ["a1", "b1", "c1"],
-//          ["a1", "b1", "c2"],
-//          ["a2", "b1", "c1"],
-//          ["a2", "b1", "c2"],
-//        ]
-func cartesianProduct(varValues [][]interface{}) [][]interface{} {
+//
+//	= [
+//	    ["a1", "b1", "c1"],
+//	    ["a1", "b1", "c2"],
+//	    ["a2", "b1", "c1"],
+//	    ["a2", "b1", "c2"],
+//	  ]
+func cartesianProduct(varValues [][]any) [][]any {
 	if len(varValues) == 0 {
-		return make([][]interface{}, 1)
+		return make([][]any, 1)
 	}
-	var product [][]interface{}
+	var product [][]any
 	subProduct := cartesianProduct(varValues[:len(varValues)-1])
 	for _, vec := range subProduct {
-		vec_copy := make([]interface{}, len(vec))
+		vec_copy := make([]any, len(vec))
 		_ = copy(vec_copy, vec)
 		for _, val := range varValues[len(varValues)-1] {
 			product = append(product, append(vec_copy, val))

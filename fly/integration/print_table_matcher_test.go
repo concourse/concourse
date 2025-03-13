@@ -27,7 +27,7 @@ func PrintTableWithHeaders(table ui.Table) *PrintTableMatcher {
 	return &PrintTableMatcher{table: table, printHeaders: true}
 }
 
-func (matcher *PrintTableMatcher) Match(actual interface{}) (bool, error) {
+func (matcher *PrintTableMatcher) Match(actual any) (bool, error) {
 	buf := new(bytes.Buffer)
 
 	switch v := actual.(type) {
@@ -96,10 +96,10 @@ func (matcher *PrintTableMatcher) compareDurations() error {
 	return nil
 }
 
-func (matcher *PrintTableMatcher) FailureMessage(actual interface{}) string {
+func (matcher *PrintTableMatcher) FailureMessage(actual any) string {
 	return fmt.Sprintf("Expected\n%s\n(%q)\nTo contain the table\n%s\n(%q)\n", format.IndentString(matcher.actual, 1), matcher.actual, format.IndentString(matcher.expected, 1), matcher.expected)
 }
 
-func (matcher *PrintTableMatcher) NegatedFailureMessage(actual interface{}) string {
+func (matcher *PrintTableMatcher) NegatedFailureMessage(actual any) string {
 	return fmt.Sprintf("Expected\n%s\n(%q)\nTo not contain the table\n%s\n(%q)\n", format.IndentString(matcher.actual, 1), matcher.actual, format.IndentString(matcher.expected, 1), matcher.expected)
 }

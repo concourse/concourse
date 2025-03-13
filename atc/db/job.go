@@ -855,7 +855,7 @@ func (j *job) CreateBuild(createdBy string) (Build, error) {
 	}
 
 	build := newEmptyBuild(j.conn, j.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(tx, build, map[string]any{
 		"name":               buildName,
 		"job_id":             j.id,
 		"pipeline_id":        j.pipelineID,
@@ -925,7 +925,7 @@ func (j *job) tryRerunBuild(buildToRerun Build, createdBy string) (Build, error)
 	}
 
 	rerunBuild := newEmptyBuild(j.conn, j.lockFactory)
-	err = createBuild(tx, rerunBuild, map[string]interface{}{
+	err = createBuild(tx, rerunBuild, map[string]any{
 		"name":         rerunBuildName,
 		"job_id":       j.id,
 		"pipeline_id":  j.pipelineID,

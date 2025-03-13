@@ -757,7 +757,7 @@ var _ = Describe("Container Placement Strategies", func() {
 	})
 })
 
-func BeOneOf(vals ...interface{}) types.GomegaMatcher {
+func BeOneOf(vals ...any) types.GomegaMatcher {
 	matchers := make([]types.GomegaMatcher, len(vals))
 	for i, v := range vals {
 		matchers[i] = Equal(v)

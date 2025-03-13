@@ -189,7 +189,7 @@ func (te TaskEnv) Env() []string {
 type CoercedString string
 
 func (cs *CoercedString) UnmarshalJSON(p []byte) error {
-	var raw interface{}
+	var raw any
 	dec := json.NewDecoder(bytes.NewReader(p))
 	dec.UseNumber()
 	err := dec.Decode(&raw)

@@ -434,7 +434,7 @@ func (validator *StepValidator) recordError(message string) {
 	validator.Errors = append(validator.Errors, validator.annotate(message))
 }
 
-func (validator *StepValidator) recordErrorf(message string, args ...interface{}) {
+func (validator *StepValidator) recordErrorf(message string, args ...any) {
 	validator.Errors = append(validator.Errors, validator.annotate(fmt.Sprintf(message, args...)))
 }
 
@@ -446,7 +446,7 @@ func (validator *StepValidator) pushContext(ctx string) {
 	validator.context = append(validator.context, ctx)
 }
 
-func (validator *StepValidator) pushContextf(ctx string, args ...interface{}) {
+func (validator *StepValidator) pushContextf(ctx string, args ...any) {
 	validator.context = append(validator.context, fmt.Sprintf(ctx, args...))
 }
 

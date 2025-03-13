@@ -48,32 +48,32 @@ func (c *logDbConn) BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error
 	return &logDbTx{Tx: tx, logger: c.logger}, nil
 }
 
-func (c *logDbConn) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (c *logDbConn) Query(query string, args ...any) (*sql.Rows, error) {
 	c.logger.Debug("query", lager.Data{"query": strip(query)})
 	return c.DbConn.Query(query, args...)
 }
 
-func (c *logDbConn) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (c *logDbConn) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	c.logger.Debug("query-context", lager.Data{"query": strip(query)})
 	return c.DbConn.QueryContext(ctx, query, args...)
 }
 
-func (c *logDbConn) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (c *logDbConn) QueryRow(query string, args ...any) squirrel.RowScanner {
 	c.logger.Debug("query-row", lager.Data{"query": strip(query)})
 	return c.DbConn.QueryRow(query, args...)
 }
 
-func (c *logDbConn) QueryRowContext(ctx context.Context, query string, args ...interface{}) squirrel.RowScanner {
+func (c *logDbConn) QueryRowContext(ctx context.Context, query string, args ...any) squirrel.RowScanner {
 	c.logger.Debug("query-row-context", lager.Data{"query": strip(query)})
 	return c.DbConn.QueryRowContext(ctx, query, args...)
 }
 
-func (c *logDbConn) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (c *logDbConn) Exec(query string, args ...any) (sql.Result, error) {
 	c.logger.Debug("exec", lager.Data{"query": strip(query)})
 	return c.DbConn.Exec(query, args...)
 }
 
-func (c *logDbConn) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (c *logDbConn) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	c.logger.Debug("exec-context", lager.Data{"query": strip(query)})
 	return c.DbConn.ExecContext(ctx, query, args...)
 }
@@ -114,32 +114,32 @@ type logDbTx struct {
 	logger lager.Logger
 }
 
-func (t *logDbTx) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (t *logDbTx) Query(query string, args ...any) (*sql.Rows, error) {
 	t.logger.Debug("tx-query", lager.Data{"query": strip(query)})
 	return t.Tx.Query(query, args...)
 }
 
-func (t *logDbTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (t *logDbTx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	t.logger.Debug("tx-query-context", lager.Data{"query": strip(query)})
 	return t.Tx.QueryContext(ctx, query, args...)
 }
 
-func (t *logDbTx) QueryRow(query string, args ...interface{}) squirrel.RowScanner {
+func (t *logDbTx) QueryRow(query string, args ...any) squirrel.RowScanner {
 	t.logger.Debug("tx-query-row", lager.Data{"query": strip(query)})
 	return t.Tx.QueryRow(query, args...)
 }
 
-func (t *logDbTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) squirrel.RowScanner {
+func (t *logDbTx) QueryRowContext(ctx context.Context, query string, args ...any) squirrel.RowScanner {
 	t.logger.Debug("tx-query-row-context", lager.Data{"query": strip(query)})
 	return t.Tx.QueryRowContext(ctx, query, args...)
 }
 
-func (t *logDbTx) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (t *logDbTx) Exec(query string, args ...any) (sql.Result, error) {
 	t.logger.Debug("tx-exec", lager.Data{"query": strip(query)})
 	return t.Tx.Exec(query, args...)
 }
 
-func (t *logDbTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (t *logDbTx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	t.logger.Debug("tx-exec-context", lager.Data{"query": strip(query)})
 	return t.Tx.ExecContext(ctx, query, args...)
 }

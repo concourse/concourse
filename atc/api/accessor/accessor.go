@@ -35,7 +35,7 @@ type Claims struct {
 type Verification struct {
 	HasToken     bool
 	IsTokenValid bool
-	RawClaims    map[string]interface{}
+	RawClaims    map[string]any
 }
 
 type access struct {
@@ -207,20 +207,20 @@ func (a *access) hasRequiredRole(role string) bool {
 	}
 }
 
-func (a *access) claims() map[string]interface{} {
+func (a *access) claims() map[string]any {
 	if a.IsAuthenticated() {
 		return a.verification.RawClaims
 	}
-	return map[string]interface{}{}
+	return map[string]any{}
 }
 
-func (a *access) federatedClaims() map[string]interface{} {
+func (a *access) federatedClaims() map[string]any {
 	if raw, ok := a.claims()["federated_claims"]; ok {
-		if claim, ok := raw.(map[string]interface{}); ok {
+		if claim, ok := raw.(map[string]any); ok {
 			return claim
 		}
 	}
-	return map[string]interface{}{}
+	return map[string]any{}
 }
 
 func (a *access) federatedClaim(name string) string {
@@ -260,7 +260,7 @@ func (a *access) connectorID() string {
 func (a *access) groups() []string {
 	groups := []string{}
 	if raw, ok := a.claims()["groups"]; ok {
-		if rawGroups, ok := raw.([]interface{}); ok {
+		if rawGroups, ok := raw.([]any); ok {
 			for _, rawGroup := range rawGroups {
 				if group, ok := rawGroup.(string); ok {
 					groups = append(groups, group)

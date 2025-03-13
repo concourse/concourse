@@ -64,7 +64,7 @@ func (repository *containerRepository) queryContainerHandles(tx Tx, cond sq.Eq) 
 
 	for rows.Next() {
 		var handle string
-		columns := []interface{}{&handle}
+		columns := []any{&handle}
 
 		err = rows.Scan(columns...)
 		if err != nil {
@@ -312,7 +312,7 @@ func scanContainer(row sq.RowScanner, conn DbConn) (CreatingContainer, CreatedCo
 		metadata ContainerMetadata
 	)
 
-	columns := []interface{}{&id, &handle, &workerName, &lastHijack, &state}
+	columns := []any{&id, &handle, &workerName, &lastHijack, &state}
 	columns = append(columns, metadata.ScanTargets()...)
 
 	err := row.Scan(columns...)

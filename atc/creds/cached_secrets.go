@@ -20,7 +20,7 @@ type CachedSecrets struct {
 }
 
 type CacheEntry struct {
-	value      interface{}
+	value      any
 	expiration *time.Time
 	found      bool
 }
@@ -36,7 +36,7 @@ func NewCachedSecrets(secrets Secrets, cacheConfig SecretCacheConfig) *CachedSec
 	}
 }
 
-func (cs *CachedSecrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (cs *CachedSecrets) Get(secretPath string) (any, *time.Time, bool, error) {
 	// if there is a corresponding entry in the cache, return it
 	entry, found := cs.cache.Get(secretPath)
 	if found {

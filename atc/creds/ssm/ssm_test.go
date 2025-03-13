@@ -133,7 +133,7 @@ var _ = Describe("Ssm", func() {
 				}
 			}
 			value, found, err := variables.Get(vars.Reference{Path: "user"})
-			Expect(value).To(BeEquivalentTo(map[string]interface{}{
+			Expect(value).To(BeEquivalentTo(map[string]any{
 				"name": "yours",
 				"pass": "truely",
 			}))
