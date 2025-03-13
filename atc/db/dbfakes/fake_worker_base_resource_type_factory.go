@@ -24,7 +24,7 @@ type FakeWorkerBaseResourceTypeFactory struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -37,7 +37,7 @@ func (fake *FakeWorkerBaseResourceTypeFactory) Find(arg1 string, arg2 db.Worker)
 	}{arg1, arg2})
 	stub := fake.FindStub
 	fakeReturns := fake.findReturns
-	fake.recordInvocation("Find", []any{arg1, arg2})
+	fake.recordInvocation("Find", []interface{}{arg1, arg2})
 	fake.findMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -96,26 +96,26 @@ func (fake *FakeWorkerBaseResourceTypeFactory) FindReturnsOnCall(i int, result1 
 	}{result1, result2, result3}
 }
 
-func (fake *FakeWorkerBaseResourceTypeFactory) Invocations() map[string][][]any {
+func (fake *FakeWorkerBaseResourceTypeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeWorkerBaseResourceTypeFactory) recordInvocation(key string, args []any) {
+func (fake *FakeWorkerBaseResourceTypeFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

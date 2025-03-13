@@ -97,7 +97,7 @@ type FakePool struct {
 		arg3 runtime.Worker
 		arg4 worker.PlacementStrategy
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -114,7 +114,7 @@ func (fake *FakePool) FindOrSelectWorker(arg1 context.Context, arg2 db.Container
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	stub := fake.FindOrSelectWorkerStub
 	fakeReturns := fake.findOrSelectWorkerReturns
-	fake.recordInvocation("FindOrSelectWorker", []any{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("FindOrSelectWorker", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.findOrSelectWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
@@ -182,7 +182,7 @@ func (fake *FakePool) FindResourceCacheVolume(arg1 context.Context, arg2 int, ar
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.FindResourceCacheVolumeStub
 	fakeReturns := fake.findResourceCacheVolumeReturns
-	fake.recordInvocation("FindResourceCacheVolume", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("FindResourceCacheVolume", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findResourceCacheVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -253,7 +253,7 @@ func (fake *FakePool) FindResourceCacheVolumeOnWorker(arg1 context.Context, arg2
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.FindResourceCacheVolumeOnWorkerStub
 	fakeReturns := fake.findResourceCacheVolumeOnWorkerReturns
-	fake.recordInvocation("FindResourceCacheVolumeOnWorker", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("FindResourceCacheVolumeOnWorker", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.findResourceCacheVolumeOnWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -322,7 +322,7 @@ func (fake *FakePool) LocateVolume(arg1 context.Context, arg2 int, arg3 string) 
 	}{arg1, arg2, arg3})
 	stub := fake.LocateVolumeStub
 	fakeReturns := fake.locateVolumeReturns
-	fake.recordInvocation("LocateVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("LocateVolume", []interface{}{arg1, arg2, arg3})
 	fake.locateVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -393,7 +393,7 @@ func (fake *FakePool) ReleaseWorker(arg1 lager.Logger, arg2 runtime.ContainerSpe
 		arg4 worker.PlacementStrategy
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.ReleaseWorkerStub
-	fake.recordInvocation("ReleaseWorker", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("ReleaseWorker", []interface{}{arg1, arg2, arg3, arg4})
 	fake.releaseWorkerMutex.Unlock()
 	if stub != nil {
 		fake.ReleaseWorkerStub(arg1, arg2, arg3, arg4)
@@ -419,7 +419,7 @@ func (fake *FakePool) ReleaseWorkerArgsForCall(i int) (lager.Logger, runtime.Con
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakePool) Invocations() map[string][][]any {
+func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.findOrSelectWorkerMutex.RLock()
@@ -432,21 +432,21 @@ func (fake *FakePool) Invocations() map[string][][]any {
 	defer fake.locateVolumeMutex.RUnlock()
 	fake.releaseWorkerMutex.RLock()
 	defer fake.releaseWorkerMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePool) recordInvocation(key string, args []any) {
+func (fake *FakePool) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

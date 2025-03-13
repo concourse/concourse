@@ -72,7 +72,7 @@ type FakeInfluxDBClient struct {
 	writeReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -83,7 +83,7 @@ func (fake *FakeInfluxDBClient) Close() error {
 	}{})
 	stub := fake.CloseStub
 	fakeReturns := fake.closeReturns
-	fake.recordInvocation("Close", []any{})
+	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -137,7 +137,7 @@ func (fake *FakeInfluxDBClient) Ping(arg1 time.Duration) (time.Duration, string,
 	}{arg1})
 	stub := fake.PingStub
 	fakeReturns := fake.pingReturns
-	fake.recordInvocation("Ping", []any{arg1})
+	fake.recordInvocation("Ping", []interface{}{arg1})
 	fake.pingMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -204,7 +204,7 @@ func (fake *FakeInfluxDBClient) Query(arg1 client.Query) (*client.Response, erro
 	}{arg1})
 	stub := fake.QueryStub
 	fakeReturns := fake.queryReturns
-	fake.recordInvocation("Query", []any{arg1})
+	fake.recordInvocation("Query", []interface{}{arg1})
 	fake.queryMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -268,7 +268,7 @@ func (fake *FakeInfluxDBClient) QueryAsChunk(arg1 client.Query) (*client.Chunked
 	}{arg1})
 	stub := fake.QueryAsChunkStub
 	fakeReturns := fake.queryAsChunkReturns
-	fake.recordInvocation("QueryAsChunk", []any{arg1})
+	fake.recordInvocation("QueryAsChunk", []interface{}{arg1})
 	fake.queryAsChunkMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -332,7 +332,7 @@ func (fake *FakeInfluxDBClient) Write(arg1 client.BatchPoints) error {
 	}{arg1})
 	stub := fake.WriteStub
 	fakeReturns := fake.writeReturns
-	fake.recordInvocation("Write", []any{arg1})
+	fake.recordInvocation("Write", []interface{}{arg1})
 	fake.writeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -385,7 +385,7 @@ func (fake *FakeInfluxDBClient) WriteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeInfluxDBClient) Invocations() map[string][][]any {
+func (fake *FakeInfluxDBClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.closeMutex.RLock()
@@ -398,21 +398,21 @@ func (fake *FakeInfluxDBClient) Invocations() map[string][][]any {
 	defer fake.queryAsChunkMutex.RUnlock()
 	fake.writeMutex.RLock()
 	defer fake.writeMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeInfluxDBClient) recordInvocation(key string, args []any) {
+func (fake *FakeInfluxDBClient) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -45,7 +45,7 @@ type FakePipelineFactory struct {
 		result1 []db.Pipeline
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -56,7 +56,7 @@ func (fake *FakePipelineFactory) AllPipelines() ([]db.Pipeline, error) {
 	}{})
 	stub := fake.AllPipelinesStub
 	fakeReturns := fake.allPipelinesReturns
-	fake.recordInvocation("AllPipelines", []any{})
+	fake.recordInvocation("AllPipelines", []interface{}{})
 	fake.allPipelinesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -112,7 +112,7 @@ func (fake *FakePipelineFactory) PipelinesToSchedule() ([]db.Pipeline, error) {
 	}{})
 	stub := fake.PipelinesToScheduleStub
 	fakeReturns := fake.pipelinesToScheduleReturns
-	fake.recordInvocation("PipelinesToSchedule", []any{})
+	fake.recordInvocation("PipelinesToSchedule", []interface{}{})
 	fake.pipelinesToScheduleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -174,7 +174,7 @@ func (fake *FakePipelineFactory) VisiblePipelines(arg1 []string) ([]db.Pipeline,
 	}{arg1Copy})
 	stub := fake.VisiblePipelinesStub
 	fakeReturns := fake.visiblePipelinesReturns
-	fake.recordInvocation("VisiblePipelines", []any{arg1Copy})
+	fake.recordInvocation("VisiblePipelines", []interface{}{arg1Copy})
 	fake.visiblePipelinesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -230,7 +230,7 @@ func (fake *FakePipelineFactory) VisiblePipelinesReturnsOnCall(i int, result1 []
 	}{result1, result2}
 }
 
-func (fake *FakePipelineFactory) Invocations() map[string][][]any {
+func (fake *FakePipelineFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.allPipelinesMutex.RLock()
@@ -239,21 +239,21 @@ func (fake *FakePipelineFactory) Invocations() map[string][][]any {
 	defer fake.pipelinesToScheduleMutex.RUnlock()
 	fake.visiblePipelinesMutex.RLock()
 	defer fake.visiblePipelinesMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePipelineFactory) recordInvocation(key string, args []any) {
+func (fake *FakePipelineFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

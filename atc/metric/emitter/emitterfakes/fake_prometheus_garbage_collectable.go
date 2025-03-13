@@ -69,7 +69,7 @@ type FakePrometheusGarbageCollectable struct {
 	workerVolumesLabelsReturnsOnCall map[int]struct {
 		result1 map[string]map[string]prometheus.Labels
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -80,7 +80,7 @@ func (fake *FakePrometheusGarbageCollectable) WorkerContainers() *prometheus.Gau
 	}{})
 	stub := fake.WorkerContainersStub
 	fakeReturns := fake.workerContainersReturns
-	fake.recordInvocation("WorkerContainers", []any{})
+	fake.recordInvocation("WorkerContainers", []interface{}{})
 	fake.workerContainersMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -133,7 +133,7 @@ func (fake *FakePrometheusGarbageCollectable) WorkerContainersLabels() map[strin
 	}{})
 	stub := fake.WorkerContainersLabelsStub
 	fakeReturns := fake.workerContainersLabelsReturns
-	fake.recordInvocation("WorkerContainersLabels", []any{})
+	fake.recordInvocation("WorkerContainersLabels", []interface{}{})
 	fake.workerContainersLabelsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -186,7 +186,7 @@ func (fake *FakePrometheusGarbageCollectable) WorkerTasks() *prometheus.GaugeVec
 	}{})
 	stub := fake.WorkerTasksStub
 	fakeReturns := fake.workerTasksReturns
-	fake.recordInvocation("WorkerTasks", []any{})
+	fake.recordInvocation("WorkerTasks", []interface{}{})
 	fake.workerTasksMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -239,7 +239,7 @@ func (fake *FakePrometheusGarbageCollectable) WorkerTasksLabels() map[string]map
 	}{})
 	stub := fake.WorkerTasksLabelsStub
 	fakeReturns := fake.workerTasksLabelsReturns
-	fake.recordInvocation("WorkerTasksLabels", []any{})
+	fake.recordInvocation("WorkerTasksLabels", []interface{}{})
 	fake.workerTasksLabelsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -292,7 +292,7 @@ func (fake *FakePrometheusGarbageCollectable) WorkerVolumes() *prometheus.GaugeV
 	}{})
 	stub := fake.WorkerVolumesStub
 	fakeReturns := fake.workerVolumesReturns
-	fake.recordInvocation("WorkerVolumes", []any{})
+	fake.recordInvocation("WorkerVolumes", []interface{}{})
 	fake.workerVolumesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -345,7 +345,7 @@ func (fake *FakePrometheusGarbageCollectable) WorkerVolumesLabels() map[string]m
 	}{})
 	stub := fake.WorkerVolumesLabelsStub
 	fakeReturns := fake.workerVolumesLabelsReturns
-	fake.recordInvocation("WorkerVolumesLabels", []any{})
+	fake.recordInvocation("WorkerVolumesLabels", []interface{}{})
 	fake.workerVolumesLabelsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -391,7 +391,7 @@ func (fake *FakePrometheusGarbageCollectable) WorkerVolumesLabelsReturnsOnCall(i
 	}{result1}
 }
 
-func (fake *FakePrometheusGarbageCollectable) Invocations() map[string][][]any {
+func (fake *FakePrometheusGarbageCollectable) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.workerContainersMutex.RLock()
@@ -406,21 +406,21 @@ func (fake *FakePrometheusGarbageCollectable) Invocations() map[string][][]any {
 	defer fake.workerVolumesMutex.RUnlock()
 	fake.workerVolumesLabelsMutex.RLock()
 	defer fake.workerVolumesLabelsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePrometheusGarbageCollectable) recordInvocation(key string, args []any) {
+func (fake *FakePrometheusGarbageCollectable) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

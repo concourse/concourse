@@ -92,7 +92,7 @@ type FakeTeamFactory struct {
 	notifyResourceScannerReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -103,7 +103,7 @@ func (fake *FakeTeamFactory) CreateDefaultTeamIfNotExists() (db.Team, error) {
 	}{})
 	stub := fake.CreateDefaultTeamIfNotExistsStub
 	fakeReturns := fake.createDefaultTeamIfNotExistsReturns
-	fake.recordInvocation("CreateDefaultTeamIfNotExists", []any{})
+	fake.recordInvocation("CreateDefaultTeamIfNotExists", []interface{}{})
 	fake.createDefaultTeamIfNotExistsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -160,7 +160,7 @@ func (fake *FakeTeamFactory) CreateTeam(arg1 atc.Team) (db.Team, error) {
 	}{arg1})
 	stub := fake.CreateTeamStub
 	fakeReturns := fake.createTeamReturns
-	fake.recordInvocation("CreateTeam", []any{arg1})
+	fake.recordInvocation("CreateTeam", []interface{}{arg1})
 	fake.createTeamMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -224,7 +224,7 @@ func (fake *FakeTeamFactory) FindTeam(arg1 string) (db.Team, bool, error) {
 	}{arg1})
 	stub := fake.FindTeamStub
 	fakeReturns := fake.findTeamReturns
-	fake.recordInvocation("FindTeam", []any{arg1})
+	fake.recordInvocation("FindTeam", []interface{}{arg1})
 	fake.findTeamMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -291,7 +291,7 @@ func (fake *FakeTeamFactory) GetByID(arg1 int) db.Team {
 	}{arg1})
 	stub := fake.GetByIDStub
 	fakeReturns := fake.getByIDReturns
-	fake.recordInvocation("GetByID", []any{arg1})
+	fake.recordInvocation("GetByID", []interface{}{arg1})
 	fake.getByIDMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -351,7 +351,7 @@ func (fake *FakeTeamFactory) GetTeams() ([]db.Team, error) {
 	}{})
 	stub := fake.GetTeamsStub
 	fakeReturns := fake.getTeamsReturns
-	fake.recordInvocation("GetTeams", []any{})
+	fake.recordInvocation("GetTeams", []interface{}{})
 	fake.getTeamsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -407,7 +407,7 @@ func (fake *FakeTeamFactory) NotifyCacher() error {
 	}{})
 	stub := fake.NotifyCacherStub
 	fakeReturns := fake.notifyCacherReturns
-	fake.recordInvocation("NotifyCacher", []any{})
+	fake.recordInvocation("NotifyCacher", []interface{}{})
 	fake.notifyCacherMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -460,7 +460,7 @@ func (fake *FakeTeamFactory) NotifyResourceScanner() error {
 	}{})
 	stub := fake.NotifyResourceScannerStub
 	fakeReturns := fake.notifyResourceScannerReturns
-	fake.recordInvocation("NotifyResourceScanner", []any{})
+	fake.recordInvocation("NotifyResourceScanner", []interface{}{})
 	fake.notifyResourceScannerMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -506,7 +506,7 @@ func (fake *FakeTeamFactory) NotifyResourceScannerReturnsOnCall(i int, result1 e
 	}{result1}
 }
 
-func (fake *FakeTeamFactory) Invocations() map[string][][]any {
+func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createDefaultTeamIfNotExistsMutex.RLock()
@@ -523,21 +523,21 @@ func (fake *FakeTeamFactory) Invocations() map[string][][]any {
 	defer fake.notifyCacherMutex.RUnlock()
 	fake.notifyResourceScannerMutex.RLock()
 	defer fake.notifyResourceScannerMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTeamFactory) recordInvocation(key string, args []any) {
+func (fake *FakeTeamFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

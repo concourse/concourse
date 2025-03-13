@@ -18,7 +18,7 @@ type FakeGoroutineCounter struct {
 	numGoroutineReturnsOnCall map[int]struct {
 		result1 int
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -29,7 +29,7 @@ func (fake *FakeGoroutineCounter) NumGoroutine() int {
 	}{})
 	stub := fake.NumGoroutineStub
 	fakeReturns := fake.numGoroutineReturns
-	fake.recordInvocation("NumGoroutine", []any{})
+	fake.recordInvocation("NumGoroutine", []interface{}{})
 	fake.numGoroutineMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -75,26 +75,26 @@ func (fake *FakeGoroutineCounter) NumGoroutineReturnsOnCall(i int, result1 int) 
 	}{result1}
 }
 
-func (fake *FakeGoroutineCounter) Invocations() map[string][][]any {
+func (fake *FakeGoroutineCounter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.numGoroutineMutex.RLock()
 	defer fake.numGoroutineMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeGoroutineCounter) recordInvocation(key string, args []any) {
+func (fake *FakeGoroutineCounter) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -66,7 +66,7 @@ type FakePool struct {
 		result3 bool
 		result4 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -79,7 +79,7 @@ func (fake *FakePool) CreateVolumeForArtifact(arg1 context.Context, arg2 worker.
 	}{arg1, arg2})
 	stub := fake.CreateVolumeForArtifactStub
 	fakeReturns := fake.createVolumeForArtifactReturns
-	fake.recordInvocation("CreateVolumeForArtifact", []any{arg1, arg2})
+	fake.recordInvocation("CreateVolumeForArtifact", []interface{}{arg1, arg2})
 	fake.createVolumeForArtifactMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -148,7 +148,7 @@ func (fake *FakePool) LocateContainer(arg1 context.Context, arg2 int, arg3 strin
 	}{arg1, arg2, arg3})
 	stub := fake.LocateContainerStub
 	fakeReturns := fake.locateContainerReturns
-	fake.recordInvocation("LocateContainer", []any{arg1, arg2, arg3})
+	fake.recordInvocation("LocateContainer", []interface{}{arg1, arg2, arg3})
 	fake.locateContainerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -220,7 +220,7 @@ func (fake *FakePool) LocateVolume(arg1 context.Context, arg2 int, arg3 string) 
 	}{arg1, arg2, arg3})
 	stub := fake.LocateVolumeStub
 	fakeReturns := fake.locateVolumeReturns
-	fake.recordInvocation("LocateVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("LocateVolume", []interface{}{arg1, arg2, arg3})
 	fake.locateVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -282,7 +282,7 @@ func (fake *FakePool) LocateVolumeReturnsOnCall(i int, result1 runtime.Volume, r
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakePool) Invocations() map[string][][]any {
+func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createVolumeForArtifactMutex.RLock()
@@ -291,21 +291,21 @@ func (fake *FakePool) Invocations() map[string][][]any {
 	defer fake.locateContainerMutex.RUnlock()
 	fake.locateVolumeMutex.RLock()
 	defer fake.locateVolumeMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePool) recordInvocation(key string, args []any) {
+func (fake *FakePool) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

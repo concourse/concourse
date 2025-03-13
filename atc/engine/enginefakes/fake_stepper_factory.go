@@ -23,7 +23,7 @@ type FakeStepperFactory struct {
 		result1 exec.Stepper
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -35,7 +35,7 @@ func (fake *FakeStepperFactory) StepperForBuild(arg1 db.Build) (exec.Stepper, er
 	}{arg1})
 	stub := fake.StepperForBuildStub
 	fakeReturns := fake.stepperForBuildReturns
-	fake.recordInvocation("StepperForBuild", []any{arg1})
+	fake.recordInvocation("StepperForBuild", []interface{}{arg1})
 	fake.stepperForBuildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -91,26 +91,26 @@ func (fake *FakeStepperFactory) StepperForBuildReturnsOnCall(i int, result1 exec
 	}{result1, result2}
 }
 
-func (fake *FakeStepperFactory) Invocations() map[string][][]any {
+func (fake *FakeStepperFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.stepperForBuildMutex.RLock()
 	defer fake.stepperForBuildMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeStepperFactory) recordInvocation(key string, args []any) {
+func (fake *FakeStepperFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

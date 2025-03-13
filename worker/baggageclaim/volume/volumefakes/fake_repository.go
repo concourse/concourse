@@ -189,7 +189,7 @@ type FakeRepository struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -205,7 +205,7 @@ func (fake *FakeRepository) CreateVolume(arg1 context.Context, arg2 string, arg3
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.CreateVolumeStub
 	fakeReturns := fake.createVolumeReturns
-	fake.recordInvocation("CreateVolume", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.createVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -270,7 +270,7 @@ func (fake *FakeRepository) DestroyVolume(arg1 context.Context, arg2 string) err
 	}{arg1, arg2})
 	stub := fake.DestroyVolumeStub
 	fakeReturns := fake.destroyVolumeReturns
-	fake.recordInvocation("DestroyVolume", []any{arg1, arg2})
+	fake.recordInvocation("DestroyVolume", []interface{}{arg1, arg2})
 	fake.destroyVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -332,7 +332,7 @@ func (fake *FakeRepository) DestroyVolumeAndDescendants(arg1 context.Context, ar
 	}{arg1, arg2})
 	stub := fake.DestroyVolumeAndDescendantsStub
 	fakeReturns := fake.destroyVolumeAndDescendantsReturns
-	fake.recordInvocation("DestroyVolumeAndDescendants", []any{arg1, arg2})
+	fake.recordInvocation("DestroyVolumeAndDescendants", []interface{}{arg1, arg2})
 	fake.destroyVolumeAndDescendantsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -394,7 +394,7 @@ func (fake *FakeRepository) GetPrivileged(arg1 context.Context, arg2 string) (bo
 	}{arg1, arg2})
 	stub := fake.GetPrivilegedStub
 	fakeReturns := fake.getPrivilegedReturns
-	fake.recordInvocation("GetPrivileged", []any{arg1, arg2})
+	fake.recordInvocation("GetPrivileged", []interface{}{arg1, arg2})
 	fake.getPrivilegedMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -459,7 +459,7 @@ func (fake *FakeRepository) GetVolume(arg1 context.Context, arg2 string) (volume
 	}{arg1, arg2})
 	stub := fake.GetVolumeStub
 	fakeReturns := fake.getVolumeReturns
-	fake.recordInvocation("GetVolume", []any{arg1, arg2})
+	fake.recordInvocation("GetVolume", []interface{}{arg1, arg2})
 	fake.getVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -527,7 +527,7 @@ func (fake *FakeRepository) ListVolumes(arg1 context.Context, arg2 volume.Proper
 	}{arg1, arg2})
 	stub := fake.ListVolumesStub
 	fakeReturns := fake.listVolumesReturns
-	fake.recordInvocation("ListVolumes", []any{arg1, arg2})
+	fake.recordInvocation("ListVolumes", []interface{}{arg1, arg2})
 	fake.listVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -596,7 +596,7 @@ func (fake *FakeRepository) SetPrivileged(arg1 context.Context, arg2 string, arg
 	}{arg1, arg2, arg3})
 	stub := fake.SetPrivilegedStub
 	fakeReturns := fake.setPrivilegedReturns
-	fake.recordInvocation("SetPrivileged", []any{arg1, arg2, arg3})
+	fake.recordInvocation("SetPrivileged", []interface{}{arg1, arg2, arg3})
 	fake.setPrivilegedMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -660,7 +660,7 @@ func (fake *FakeRepository) SetProperty(arg1 context.Context, arg2 string, arg3 
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.SetPropertyStub
 	fakeReturns := fake.setPropertyReturns
-	fake.recordInvocation("SetProperty", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("SetProperty", []interface{}{arg1, arg2, arg3, arg4})
 	fake.setPropertyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -726,7 +726,7 @@ func (fake *FakeRepository) StreamIn(arg1 context.Context, arg2 string, arg3 str
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	stub := fake.StreamInStub
 	fakeReturns := fake.streamInReturns
-	fake.recordInvocation("StreamIn", []any{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.streamInMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
@@ -794,7 +794,7 @@ func (fake *FakeRepository) StreamOut(arg1 context.Context, arg2 string, arg3 st
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.StreamOutStub
 	fakeReturns := fake.streamOutReturns
-	fake.recordInvocation("StreamOut", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamOutMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -859,7 +859,7 @@ func (fake *FakeRepository) StreamP2pOut(arg1 context.Context, arg2 string, arg3
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.StreamP2pOutStub
 	fakeReturns := fake.streamP2pOutReturns
-	fake.recordInvocation("StreamP2pOut", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("StreamP2pOut", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamP2pOutMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -921,7 +921,7 @@ func (fake *FakeRepository) VolumeParent(arg1 context.Context, arg2 string) (vol
 	}{arg1, arg2})
 	stub := fake.VolumeParentStub
 	fakeReturns := fake.volumeParentReturns
-	fake.recordInvocation("VolumeParent", []any{arg1, arg2})
+	fake.recordInvocation("VolumeParent", []interface{}{arg1, arg2})
 	fake.volumeParentMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -980,7 +980,7 @@ func (fake *FakeRepository) VolumeParentReturnsOnCall(i int, result1 volume.Volu
 	}{result1, result2, result3}
 }
 
-func (fake *FakeRepository) Invocations() map[string][][]any {
+func (fake *FakeRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createVolumeMutex.RLock()
@@ -1007,21 +1007,21 @@ func (fake *FakeRepository) Invocations() map[string][][]any {
 	defer fake.streamP2pOutMutex.RUnlock()
 	fake.volumeParentMutex.RLock()
 	defer fake.volumeParentMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeRepository) recordInvocation(key string, args []any) {
+func (fake *FakeRepository) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

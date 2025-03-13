@@ -37,7 +37,7 @@ type FakeTaskConfigSource struct {
 	warningsReturnsOnCall map[int]struct {
 		result1 []string
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -51,7 +51,7 @@ func (fake *FakeTaskConfigSource) FetchConfig(arg1 context.Context, arg2 lager.L
 	}{arg1, arg2, arg3})
 	stub := fake.FetchConfigStub
 	fakeReturns := fake.fetchConfigReturns
-	fake.recordInvocation("FetchConfig", []any{arg1, arg2, arg3})
+	fake.recordInvocation("FetchConfig", []interface{}{arg1, arg2, arg3})
 	fake.fetchConfigMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -114,7 +114,7 @@ func (fake *FakeTaskConfigSource) Warnings() []string {
 	}{})
 	stub := fake.WarningsStub
 	fakeReturns := fake.warningsReturns
-	fake.recordInvocation("Warnings", []any{})
+	fake.recordInvocation("Warnings", []interface{}{})
 	fake.warningsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -160,28 +160,28 @@ func (fake *FakeTaskConfigSource) WarningsReturnsOnCall(i int, result1 []string)
 	}{result1}
 }
 
-func (fake *FakeTaskConfigSource) Invocations() map[string][][]any {
+func (fake *FakeTaskConfigSource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.fetchConfigMutex.RLock()
 	defer fake.fetchConfigMutex.RUnlock()
 	fake.warningsMutex.RLock()
 	defer fake.warningsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTaskConfigSource) recordInvocation(key string, args []any) {
+func (fake *FakeTaskConfigSource) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

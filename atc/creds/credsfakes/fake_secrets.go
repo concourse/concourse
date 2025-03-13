@@ -39,7 +39,7 @@ type FakeSecrets struct {
 	newSecretLookupPathsReturnsOnCall map[int]struct {
 		result1 []creds.SecretLookupPath
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -51,7 +51,7 @@ func (fake *FakeSecrets) Get(arg1 string) (any, *time.Time, bool, error) {
 	}{arg1})
 	stub := fake.GetStub
 	fakeReturns := fake.getReturns
-	fake.recordInvocation("Get", []any{arg1})
+	fake.recordInvocation("Get", []interface{}{arg1})
 	fake.getMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -123,7 +123,7 @@ func (fake *FakeSecrets) NewSecretLookupPaths(arg1 string, arg2 string, arg3 boo
 	}{arg1, arg2, arg3})
 	stub := fake.NewSecretLookupPathsStub
 	fakeReturns := fake.newSecretLookupPathsReturns
-	fake.recordInvocation("NewSecretLookupPaths", []any{arg1, arg2, arg3})
+	fake.recordInvocation("NewSecretLookupPaths", []interface{}{arg1, arg2, arg3})
 	fake.newSecretLookupPathsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -176,28 +176,28 @@ func (fake *FakeSecrets) NewSecretLookupPathsReturnsOnCall(i int, result1 []cred
 	}{result1}
 }
 
-func (fake *FakeSecrets) Invocations() map[string][][]any {
+func (fake *FakeSecrets) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.newSecretLookupPathsMutex.RLock()
 	defer fake.newSecretLookupPathsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeSecrets) recordInvocation(key string, args []any) {
+func (fake *FakeSecrets) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

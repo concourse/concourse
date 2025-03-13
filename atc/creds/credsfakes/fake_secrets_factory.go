@@ -18,7 +18,7 @@ type FakeSecretsFactory struct {
 	newSecretsReturnsOnCall map[int]struct {
 		result1 creds.Secrets
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -29,7 +29,7 @@ func (fake *FakeSecretsFactory) NewSecrets() creds.Secrets {
 	}{})
 	stub := fake.NewSecretsStub
 	fakeReturns := fake.newSecretsReturns
-	fake.recordInvocation("NewSecrets", []any{})
+	fake.recordInvocation("NewSecrets", []interface{}{})
 	fake.newSecretsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -75,26 +75,26 @@ func (fake *FakeSecretsFactory) NewSecretsReturnsOnCall(i int, result1 creds.Sec
 	}{result1}
 }
 
-func (fake *FakeSecretsFactory) Invocations() map[string][][]any {
+func (fake *FakeSecretsFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.newSecretsMutex.RLock()
 	defer fake.newSecretsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeSecretsFactory) recordInvocation(key string, args []any) {
+func (fake *FakeSecretsFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

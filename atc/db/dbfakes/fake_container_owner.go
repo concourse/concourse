@@ -38,7 +38,7 @@ type FakeContainerOwner struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -51,7 +51,7 @@ func (fake *FakeContainerOwner) Create(arg1 db.Tx, arg2 string) (map[string]any,
 	}{arg1, arg2})
 	stub := fake.CreateStub
 	fakeReturns := fake.createReturns
-	fake.recordInvocation("Create", []any{arg1, arg2})
+	fake.recordInvocation("Create", []interface{}{arg1, arg2})
 	fake.createMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -115,7 +115,7 @@ func (fake *FakeContainerOwner) Find(arg1 db.DbConn) (squirrel.Eq, bool, error) 
 	}{arg1})
 	stub := fake.FindStub
 	fakeReturns := fake.findReturns
-	fake.recordInvocation("Find", []any{arg1})
+	fake.recordInvocation("Find", []interface{}{arg1})
 	fake.findMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -174,28 +174,28 @@ func (fake *FakeContainerOwner) FindReturnsOnCall(i int, result1 squirrel.Eq, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerOwner) Invocations() map[string][][]any {
+func (fake *FakeContainerOwner) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeContainerOwner) recordInvocation(key string, args []any) {
+func (fake *FakeContainerOwner) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

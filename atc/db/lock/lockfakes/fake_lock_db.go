@@ -34,7 +34,7 @@ type FakeLockDB struct {
 		result1 bool
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -46,7 +46,7 @@ func (fake *FakeLockDB) Acquire(arg1 lock.LockID) (bool, error) {
 	}{arg1})
 	stub := fake.AcquireStub
 	fakeReturns := fake.acquireReturns
-	fake.recordInvocation("Acquire", []any{arg1})
+	fake.recordInvocation("Acquire", []interface{}{arg1})
 	fake.acquireMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -110,7 +110,7 @@ func (fake *FakeLockDB) Release(arg1 lock.LockID) (bool, error) {
 	}{arg1})
 	stub := fake.ReleaseStub
 	fakeReturns := fake.releaseReturns
-	fake.recordInvocation("Release", []any{arg1})
+	fake.recordInvocation("Release", []interface{}{arg1})
 	fake.releaseMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -166,28 +166,28 @@ func (fake *FakeLockDB) ReleaseReturnsOnCall(i int, result1 bool, result2 error)
 	}{result1, result2}
 }
 
-func (fake *FakeLockDB) Invocations() map[string][][]any {
+func (fake *FakeLockDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.acquireMutex.RLock()
 	defer fake.acquireMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeLockDB) recordInvocation(key string, args []any) {
+func (fake *FakeLockDB) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

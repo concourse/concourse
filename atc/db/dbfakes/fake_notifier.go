@@ -28,7 +28,7 @@ type FakeNotifier struct {
 	notifyReturnsOnCall map[int]struct {
 		result1 <-chan struct{}
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -39,7 +39,7 @@ func (fake *FakeNotifier) Close() error {
 	}{})
 	stub := fake.CloseStub
 	fakeReturns := fake.closeReturns
-	fake.recordInvocation("Close", []any{})
+	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -92,7 +92,7 @@ func (fake *FakeNotifier) Notify() <-chan struct{} {
 	}{})
 	stub := fake.NotifyStub
 	fakeReturns := fake.notifyReturns
-	fake.recordInvocation("Notify", []any{})
+	fake.recordInvocation("Notify", []interface{}{})
 	fake.notifyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -138,28 +138,28 @@ func (fake *FakeNotifier) NotifyReturnsOnCall(i int, result1 <-chan struct{}) {
 	}{result1}
 }
 
-func (fake *FakeNotifier) Invocations() map[string][][]any {
+func (fake *FakeNotifier) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	fake.notifyMutex.RLock()
 	defer fake.notifyMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeNotifier) recordInvocation(key string, args []any) {
+func (fake *FakeNotifier) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

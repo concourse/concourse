@@ -182,7 +182,7 @@ type FakeTarget struct {
 		result1 string
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -193,7 +193,7 @@ func (fake *FakeTarget) CACert() string {
 	}{})
 	stub := fake.CACertStub
 	fakeReturns := fake.cACertReturns
-	fake.recordInvocation("CACert", []any{})
+	fake.recordInvocation("CACert", []interface{}{})
 	fake.cACertMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -246,7 +246,7 @@ func (fake *FakeTarget) Client() concourse.Client {
 	}{})
 	stub := fake.ClientStub
 	fakeReturns := fake.clientReturns
-	fake.recordInvocation("Client", []any{})
+	fake.recordInvocation("Client", []interface{}{})
 	fake.clientMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -299,7 +299,7 @@ func (fake *FakeTarget) ClientCertPath() string {
 	}{})
 	stub := fake.ClientCertPathStub
 	fakeReturns := fake.clientCertPathReturns
-	fake.recordInvocation("ClientCertPath", []any{})
+	fake.recordInvocation("ClientCertPath", []interface{}{})
 	fake.clientCertPathMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -352,7 +352,7 @@ func (fake *FakeTarget) ClientCertificate() []tls.Certificate {
 	}{})
 	stub := fake.ClientCertificateStub
 	fakeReturns := fake.clientCertificateReturns
-	fake.recordInvocation("ClientCertificate", []any{})
+	fake.recordInvocation("ClientCertificate", []interface{}{})
 	fake.clientCertificateMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -405,7 +405,7 @@ func (fake *FakeTarget) ClientKeyPath() string {
 	}{})
 	stub := fake.ClientKeyPathStub
 	fakeReturns := fake.clientKeyPathReturns
-	fake.recordInvocation("ClientKeyPath", []any{})
+	fake.recordInvocation("ClientKeyPath", []interface{}{})
 	fake.clientKeyPathMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -459,7 +459,7 @@ func (fake *FakeTarget) FindTeam(arg1 string) (concourse.Team, error) {
 	}{arg1})
 	stub := fake.FindTeamStub
 	fakeReturns := fake.findTeamReturns
-	fake.recordInvocation("FindTeam", []any{arg1})
+	fake.recordInvocation("FindTeam", []interface{}{arg1})
 	fake.findTeamMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -523,7 +523,7 @@ func (fake *FakeTarget) IsWorkerVersionCompatible(arg1 string) (bool, error) {
 	}{arg1})
 	stub := fake.IsWorkerVersionCompatibleStub
 	fakeReturns := fake.isWorkerVersionCompatibleReturns
-	fake.recordInvocation("IsWorkerVersionCompatible", []any{arg1})
+	fake.recordInvocation("IsWorkerVersionCompatible", []interface{}{arg1})
 	fake.isWorkerVersionCompatibleMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -586,7 +586,7 @@ func (fake *FakeTarget) TLSConfig() *tls.Config {
 	}{})
 	stub := fake.TLSConfigStub
 	fakeReturns := fake.tLSConfigReturns
-	fake.recordInvocation("TLSConfig", []any{})
+	fake.recordInvocation("TLSConfig", []interface{}{})
 	fake.tLSConfigMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -639,7 +639,7 @@ func (fake *FakeTarget) Team() concourse.Team {
 	}{})
 	stub := fake.TeamStub
 	fakeReturns := fake.teamReturns
-	fake.recordInvocation("Team", []any{})
+	fake.recordInvocation("Team", []interface{}{})
 	fake.teamMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -692,7 +692,7 @@ func (fake *FakeTarget) Token() *rc.TargetToken {
 	}{})
 	stub := fake.TokenStub
 	fakeReturns := fake.tokenReturns
-	fake.recordInvocation("Token", []any{})
+	fake.recordInvocation("Token", []interface{}{})
 	fake.tokenMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -745,7 +745,7 @@ func (fake *FakeTarget) TokenAuthorization() (string, bool) {
 	}{})
 	stub := fake.TokenAuthorizationStub
 	fakeReturns := fake.tokenAuthorizationReturns
-	fake.recordInvocation("TokenAuthorization", []any{})
+	fake.recordInvocation("TokenAuthorization", []interface{}{})
 	fake.tokenAuthorizationMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -801,7 +801,7 @@ func (fake *FakeTarget) URL() string {
 	}{})
 	stub := fake.URLStub
 	fakeReturns := fake.uRLReturns
-	fake.recordInvocation("URL", []any{})
+	fake.recordInvocation("URL", []interface{}{})
 	fake.uRLMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -854,7 +854,7 @@ func (fake *FakeTarget) Validate() error {
 	}{})
 	stub := fake.ValidateStub
 	fakeReturns := fake.validateReturns
-	fake.recordInvocation("Validate", []any{})
+	fake.recordInvocation("Validate", []interface{}{})
 	fake.validateMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -907,7 +907,7 @@ func (fake *FakeTarget) ValidateWithWarningOnly() error {
 	}{})
 	stub := fake.ValidateWithWarningOnlyStub
 	fakeReturns := fake.validateWithWarningOnlyReturns
-	fake.recordInvocation("ValidateWithWarningOnly", []any{})
+	fake.recordInvocation("ValidateWithWarningOnly", []interface{}{})
 	fake.validateWithWarningOnlyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -960,7 +960,7 @@ func (fake *FakeTarget) Version() (string, error) {
 	}{})
 	stub := fake.VersionStub
 	fakeReturns := fake.versionReturns
-	fake.recordInvocation("Version", []any{})
+	fake.recordInvocation("Version", []interface{}{})
 	fake.versionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1016,7 +1016,7 @@ func (fake *FakeTarget) WorkerVersion() (string, error) {
 	}{})
 	stub := fake.WorkerVersionStub
 	fakeReturns := fake.workerVersionReturns
-	fake.recordInvocation("WorkerVersion", []any{})
+	fake.recordInvocation("WorkerVersion", []interface{}{})
 	fake.workerVersionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1065,7 +1065,7 @@ func (fake *FakeTarget) WorkerVersionReturnsOnCall(i int, result1 string, result
 	}{result1, result2}
 }
 
-func (fake *FakeTarget) Invocations() map[string][][]any {
+func (fake *FakeTarget) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.cACertMutex.RLock()
@@ -1100,21 +1100,21 @@ func (fake *FakeTarget) Invocations() map[string][][]any {
 	defer fake.versionMutex.RUnlock()
 	fake.workerVersionMutex.RLock()
 	defer fake.workerVersionMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTarget) recordInvocation(key string, args []any) {
+func (fake *FakeTarget) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

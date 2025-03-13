@@ -15,7 +15,7 @@ type FakeEmitter struct {
 		arg1 lager.Logger
 		arg2 metric.Event
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -26,7 +26,7 @@ func (fake *FakeEmitter) Emit(arg1 lager.Logger, arg2 metric.Event) {
 		arg2 metric.Event
 	}{arg1, arg2})
 	stub := fake.EmitStub
-	fake.recordInvocation("Emit", []any{arg1, arg2})
+	fake.recordInvocation("Emit", []interface{}{arg1, arg2})
 	fake.emitMutex.Unlock()
 	if stub != nil {
 		fake.EmitStub(arg1, arg2)
@@ -52,26 +52,26 @@ func (fake *FakeEmitter) EmitArgsForCall(i int) (lager.Logger, metric.Event) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeEmitter) Invocations() map[string][][]any {
+func (fake *FakeEmitter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.emitMutex.RLock()
 	defer fake.emitMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeEmitter) recordInvocation(key string, args []any) {
+func (fake *FakeEmitter) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

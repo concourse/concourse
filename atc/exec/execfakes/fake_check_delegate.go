@@ -236,7 +236,7 @@ type FakeCheckDelegate struct {
 	waitingForWorkerArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -248,7 +248,7 @@ func (fake *FakeCheckDelegate) BeforeSelectWorker(arg1 lager.Logger) error {
 	}{arg1})
 	stub := fake.BeforeSelectWorkerStub
 	fakeReturns := fake.beforeSelectWorkerReturns
-	fake.recordInvocation("BeforeSelectWorker", []any{arg1})
+	fake.recordInvocation("BeforeSelectWorker", []interface{}{arg1})
 	fake.beforeSelectWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -308,7 +308,7 @@ func (fake *FakeCheckDelegate) BuildStartTime() time.Time {
 	}{})
 	stub := fake.BuildStartTimeStub
 	fakeReturns := fake.buildStartTimeReturns
-	fake.recordInvocation("BuildStartTime", []any{})
+	fake.recordInvocation("BuildStartTime", []interface{}{})
 	fake.buildStartTimeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -379,7 +379,7 @@ func (fake *FakeCheckDelegate) ConstructAcrossSubsteps(arg1 []byte, arg2 []atc.A
 	}{arg1Copy, arg2Copy, arg3Copy})
 	stub := fake.ConstructAcrossSubstepsStub
 	fakeReturns := fake.constructAcrossSubstepsReturns
-	fake.recordInvocation("ConstructAcrossSubsteps", []any{arg1Copy, arg2Copy, arg3Copy})
+	fake.recordInvocation("ConstructAcrossSubsteps", []interface{}{arg1Copy, arg2Copy, arg3Copy})
 	fake.constructAcrossSubstepsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -443,7 +443,7 @@ func (fake *FakeCheckDelegate) ContainerOwner(arg1 atc.PlanID) db.ContainerOwner
 	}{arg1})
 	stub := fake.ContainerOwnerStub
 	fakeReturns := fake.containerOwnerReturns
-	fake.recordInvocation("ContainerOwner", []any{arg1})
+	fake.recordInvocation("ContainerOwner", []interface{}{arg1})
 	fake.containerOwnerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -503,7 +503,7 @@ func (fake *FakeCheckDelegate) Errored(arg1 lager.Logger, arg2 string) {
 		arg2 string
 	}{arg1, arg2})
 	stub := fake.ErroredStub
-	fake.recordInvocation("Errored", []any{arg1, arg2})
+	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
 	fake.erroredMutex.Unlock()
 	if stub != nil {
 		fake.ErroredStub(arg1, arg2)
@@ -540,7 +540,7 @@ func (fake *FakeCheckDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, a
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.FetchImageStub
 	fakeReturns := fake.fetchImageReturns
-	fake.recordInvocation("FetchImage", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
 	fake.fetchImageMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -607,7 +607,7 @@ func (fake *FakeCheckDelegate) FindOrCreateScope(arg1 db.ResourceConfig) (db.Res
 	}{arg1})
 	stub := fake.FindOrCreateScopeStub
 	fakeReturns := fake.findOrCreateScopeReturns
-	fake.recordInvocation("FindOrCreateScope", []any{arg1})
+	fake.recordInvocation("FindOrCreateScope", []interface{}{arg1})
 	fake.findOrCreateScopeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -670,7 +670,7 @@ func (fake *FakeCheckDelegate) Finished(arg1 lager.Logger, arg2 bool) {
 		arg2 bool
 	}{arg1, arg2})
 	stub := fake.FinishedStub
-	fake.recordInvocation("Finished", []any{arg1, arg2})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2})
 	fake.finishedMutex.Unlock()
 	if stub != nil {
 		fake.FinishedStub(arg1, arg2)
@@ -702,7 +702,7 @@ func (fake *FakeCheckDelegate) Initializing(arg1 lager.Logger) {
 		arg1 lager.Logger
 	}{arg1})
 	stub := fake.InitializingStub
-	fake.recordInvocation("Initializing", []any{arg1})
+	fake.recordInvocation("Initializing", []interface{}{arg1})
 	fake.initializingMutex.Unlock()
 	if stub != nil {
 		fake.InitializingStub(arg1)
@@ -736,7 +736,7 @@ func (fake *FakeCheckDelegate) PointToCheckedConfig(arg1 db.ResourceConfigScope)
 	}{arg1})
 	stub := fake.PointToCheckedConfigStub
 	fakeReturns := fake.pointToCheckedConfigReturns
-	fake.recordInvocation("PointToCheckedConfig", []any{arg1})
+	fake.recordInvocation("PointToCheckedConfig", []interface{}{arg1})
 	fake.pointToCheckedConfigMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -796,7 +796,7 @@ func (fake *FakeCheckDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
 		arg2 string
 	}{arg1, arg2})
 	stub := fake.SelectedWorkerStub
-	fake.recordInvocation("SelectedWorker", []any{arg1, arg2})
+	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
 	fake.selectedWorkerMutex.Unlock()
 	if stub != nil {
 		fake.SelectedWorkerStub(arg1, arg2)
@@ -832,7 +832,7 @@ func (fake *FakeCheckDelegate) StartSpan(arg1 context.Context, arg2 string, arg3
 	}{arg1, arg2, arg3})
 	stub := fake.StartSpanStub
 	fakeReturns := fake.startSpanReturns
-	fake.recordInvocation("StartSpan", []any{arg1, arg2, arg3})
+	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
 	fake.startSpanMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -894,7 +894,7 @@ func (fake *FakeCheckDelegate) Starting(arg1 lager.Logger) {
 		arg1 lager.Logger
 	}{arg1})
 	stub := fake.StartingStub
-	fake.recordInvocation("Starting", []any{arg1})
+	fake.recordInvocation("Starting", []interface{}{arg1})
 	fake.startingMutex.Unlock()
 	if stub != nil {
 		fake.StartingStub(arg1)
@@ -927,7 +927,7 @@ func (fake *FakeCheckDelegate) Stderr() io.Writer {
 	}{})
 	stub := fake.StderrStub
 	fakeReturns := fake.stderrReturns
-	fake.recordInvocation("Stderr", []any{})
+	fake.recordInvocation("Stderr", []interface{}{})
 	fake.stderrMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -980,7 +980,7 @@ func (fake *FakeCheckDelegate) Stdout() io.Writer {
 	}{})
 	stub := fake.StdoutStub
 	fakeReturns := fake.stdoutReturns
-	fake.recordInvocation("Stdout", []any{})
+	fake.recordInvocation("Stdout", []interface{}{})
 	fake.stdoutMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1035,7 +1035,7 @@ func (fake *FakeCheckDelegate) StreamingVolume(arg1 lager.Logger, arg2 string, a
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.StreamingVolumeStub
-	fake.recordInvocation("StreamingVolume", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("StreamingVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.streamingVolumeMutex.Unlock()
 	if stub != nil {
 		fake.StreamingVolumeStub(arg1, arg2, arg3, arg4)
@@ -1070,7 +1070,7 @@ func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTime(arg1 db.ResourceConfi
 	}{arg1, arg2})
 	stub := fake.UpdateScopeLastCheckEndTimeStub
 	fakeReturns := fake.updateScopeLastCheckEndTimeReturns
-	fake.recordInvocation("UpdateScopeLastCheckEndTime", []any{arg1, arg2})
+	fake.recordInvocation("UpdateScopeLastCheckEndTime", []interface{}{arg1, arg2})
 	fake.updateScopeLastCheckEndTimeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1135,7 +1135,7 @@ func (fake *FakeCheckDelegate) UpdateScopeLastCheckStartTime(arg1 db.ResourceCon
 	}{arg1, arg2})
 	stub := fake.UpdateScopeLastCheckStartTimeStub
 	fakeReturns := fake.updateScopeLastCheckStartTimeReturns
-	fake.recordInvocation("UpdateScopeLastCheckStartTime", []any{arg1, arg2})
+	fake.recordInvocation("UpdateScopeLastCheckStartTime", []interface{}{arg1, arg2})
 	fake.updateScopeLastCheckStartTimeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1203,7 +1203,7 @@ func (fake *FakeCheckDelegate) WaitToRun(arg1 context.Context, arg2 db.ResourceC
 	}{arg1, arg2})
 	stub := fake.WaitToRunStub
 	fakeReturns := fake.waitToRunReturns
-	fake.recordInvocation("WaitToRun", []any{arg1, arg2})
+	fake.recordInvocation("WaitToRun", []interface{}{arg1, arg2})
 	fake.waitToRunMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1270,7 +1270,7 @@ func (fake *FakeCheckDelegate) WaitingForStreamedVolume(arg1 lager.Logger, arg2 
 		arg3 string
 	}{arg1, arg2, arg3})
 	stub := fake.WaitingForStreamedVolumeStub
-	fake.recordInvocation("WaitingForStreamedVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("WaitingForStreamedVolume", []interface{}{arg1, arg2, arg3})
 	fake.waitingForStreamedVolumeMutex.Unlock()
 	if stub != nil {
 		fake.WaitingForStreamedVolumeStub(arg1, arg2, arg3)
@@ -1302,7 +1302,7 @@ func (fake *FakeCheckDelegate) WaitingForWorker(arg1 lager.Logger) {
 		arg1 lager.Logger
 	}{arg1})
 	stub := fake.WaitingForWorkerStub
-	fake.recordInvocation("WaitingForWorker", []any{arg1})
+	fake.recordInvocation("WaitingForWorker", []interface{}{arg1})
 	fake.waitingForWorkerMutex.Unlock()
 	if stub != nil {
 		fake.WaitingForWorkerStub(arg1)
@@ -1328,7 +1328,7 @@ func (fake *FakeCheckDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakeCheckDelegate) Invocations() map[string][][]any {
+func (fake *FakeCheckDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.beforeSelectWorkerMutex.RLock()
@@ -1373,21 +1373,21 @@ func (fake *FakeCheckDelegate) Invocations() map[string][][]any {
 	defer fake.waitingForStreamedVolumeMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()
 	defer fake.waitingForWorkerMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCheckDelegate) recordInvocation(key string, args []any) {
+func (fake *FakeCheckDelegate) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

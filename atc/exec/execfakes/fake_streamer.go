@@ -26,7 +26,7 @@ type FakeStreamer struct {
 		result1 io.ReadCloser
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -40,7 +40,7 @@ func (fake *FakeStreamer) StreamFile(arg1 context.Context, arg2 runtime.Artifact
 	}{arg1, arg2, arg3})
 	stub := fake.StreamFileStub
 	fakeReturns := fake.streamFileReturns
-	fake.recordInvocation("StreamFile", []any{arg1, arg2, arg3})
+	fake.recordInvocation("StreamFile", []interface{}{arg1, arg2, arg3})
 	fake.streamFileMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -96,26 +96,26 @@ func (fake *FakeStreamer) StreamFileReturnsOnCall(i int, result1 io.ReadCloser, 
 	}{result1, result2}
 }
 
-func (fake *FakeStreamer) Invocations() map[string][][]any {
+func (fake *FakeStreamer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.streamFileMutex.RLock()
 	defer fake.streamFileMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeStreamer) recordInvocation(key string, args []any) {
+func (fake *FakeStreamer) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

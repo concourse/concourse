@@ -150,7 +150,7 @@ type FakeVolume struct {
 	streamP2pOutReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -162,7 +162,7 @@ func (fake *FakeVolume) Destroy(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.DestroyStub
 	fakeReturns := fake.destroyReturns
-	fake.recordInvocation("Destroy", []any{arg1})
+	fake.recordInvocation("Destroy", []interface{}{arg1})
 	fake.destroyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -223,7 +223,7 @@ func (fake *FakeVolume) GetPrivileged(arg1 context.Context) (bool, error) {
 	}{arg1})
 	stub := fake.GetPrivilegedStub
 	fakeReturns := fake.getPrivilegedReturns
-	fake.recordInvocation("GetPrivileged", []any{arg1})
+	fake.recordInvocation("GetPrivileged", []interface{}{arg1})
 	fake.getPrivilegedMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -288,7 +288,7 @@ func (fake *FakeVolume) GetStreamInP2pUrl(arg1 context.Context, arg2 string) (st
 	}{arg1, arg2})
 	stub := fake.GetStreamInP2pUrlStub
 	fakeReturns := fake.getStreamInP2pUrlReturns
-	fake.recordInvocation("GetStreamInP2pUrl", []any{arg1, arg2})
+	fake.recordInvocation("GetStreamInP2pUrl", []interface{}{arg1, arg2})
 	fake.getStreamInP2pUrlMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -351,7 +351,7 @@ func (fake *FakeVolume) Handle() string {
 	}{})
 	stub := fake.HandleStub
 	fakeReturns := fake.handleReturns
-	fake.recordInvocation("Handle", []any{})
+	fake.recordInvocation("Handle", []interface{}{})
 	fake.handleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -404,7 +404,7 @@ func (fake *FakeVolume) Path() string {
 	}{})
 	stub := fake.PathStub
 	fakeReturns := fake.pathReturns
-	fake.recordInvocation("Path", []any{})
+	fake.recordInvocation("Path", []interface{}{})
 	fake.pathMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -458,7 +458,7 @@ func (fake *FakeVolume) Properties(arg1 context.Context) (baggageclaim.VolumePro
 	}{arg1})
 	stub := fake.PropertiesStub
 	fakeReturns := fake.propertiesReturns
-	fake.recordInvocation("Properties", []any{arg1})
+	fake.recordInvocation("Properties", []interface{}{arg1})
 	fake.propertiesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -523,7 +523,7 @@ func (fake *FakeVolume) SetPrivileged(arg1 context.Context, arg2 bool) error {
 	}{arg1, arg2})
 	stub := fake.SetPrivilegedStub
 	fakeReturns := fake.setPrivilegedReturns
-	fake.recordInvocation("SetPrivileged", []any{arg1, arg2})
+	fake.recordInvocation("SetPrivileged", []interface{}{arg1, arg2})
 	fake.setPrivilegedMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -586,7 +586,7 @@ func (fake *FakeVolume) SetProperty(arg1 context.Context, arg2 string, arg3 stri
 	}{arg1, arg2, arg3})
 	stub := fake.SetPropertyStub
 	fakeReturns := fake.setPropertyReturns
-	fake.recordInvocation("SetProperty", []any{arg1, arg2, arg3})
+	fake.recordInvocation("SetProperty", []interface{}{arg1, arg2, arg3})
 	fake.setPropertyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -651,7 +651,7 @@ func (fake *FakeVolume) StreamIn(arg1 context.Context, arg2 string, arg3 baggage
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.StreamInStub
 	fakeReturns := fake.streamInReturns
-	fake.recordInvocation("StreamIn", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("StreamIn", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.streamInMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -714,7 +714,7 @@ func (fake *FakeVolume) StreamOut(arg1 context.Context, arg2 string, arg3 baggag
 	}{arg1, arg2, arg3})
 	stub := fake.StreamOutStub
 	fakeReturns := fake.streamOutReturns
-	fake.recordInvocation("StreamOut", []any{arg1, arg2, arg3})
+	fake.recordInvocation("StreamOut", []interface{}{arg1, arg2, arg3})
 	fake.streamOutMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -781,7 +781,7 @@ func (fake *FakeVolume) StreamP2pOut(arg1 context.Context, arg2 string, arg3 str
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.StreamP2pOutStub
 	fakeReturns := fake.streamP2pOutReturns
-	fake.recordInvocation("StreamP2pOut", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("StreamP2pOut", []interface{}{arg1, arg2, arg3, arg4})
 	fake.streamP2pOutMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -834,7 +834,7 @@ func (fake *FakeVolume) StreamP2pOutReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeVolume) Invocations() map[string][][]any {
+func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyMutex.RLock()
@@ -859,21 +859,21 @@ func (fake *FakeVolume) Invocations() map[string][][]any {
 	defer fake.streamOutMutex.RUnlock()
 	fake.streamP2pOutMutex.RLock()
 	defer fake.streamP2pOutMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeVolume) recordInvocation(key string, args []any) {
+func (fake *FakeVolume) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

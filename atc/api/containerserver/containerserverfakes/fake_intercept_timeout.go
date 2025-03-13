@@ -33,7 +33,7 @@ type FakeInterceptTimeout struct {
 	resetMutex       sync.RWMutex
 	resetArgsForCall []struct {
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -44,7 +44,7 @@ func (fake *FakeInterceptTimeout) Channel() <-chan time.Time {
 	}{})
 	stub := fake.ChannelStub
 	fakeReturns := fake.channelReturns
-	fake.recordInvocation("Channel", []any{})
+	fake.recordInvocation("Channel", []interface{}{})
 	fake.channelMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -97,7 +97,7 @@ func (fake *FakeInterceptTimeout) Error() error {
 	}{})
 	stub := fake.ErrorStub
 	fakeReturns := fake.errorReturns
-	fake.recordInvocation("Error", []any{})
+	fake.recordInvocation("Error", []interface{}{})
 	fake.errorMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -148,7 +148,7 @@ func (fake *FakeInterceptTimeout) Reset() {
 	fake.resetArgsForCall = append(fake.resetArgsForCall, struct {
 	}{})
 	stub := fake.ResetStub
-	fake.recordInvocation("Reset", []any{})
+	fake.recordInvocation("Reset", []interface{}{})
 	fake.resetMutex.Unlock()
 	if stub != nil {
 		fake.ResetStub()
@@ -167,7 +167,7 @@ func (fake *FakeInterceptTimeout) ResetCalls(stub func()) {
 	fake.ResetStub = stub
 }
 
-func (fake *FakeInterceptTimeout) Invocations() map[string][][]any {
+func (fake *FakeInterceptTimeout) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.channelMutex.RLock()
@@ -176,21 +176,21 @@ func (fake *FakeInterceptTimeout) Invocations() map[string][][]any {
 	defer fake.errorMutex.RUnlock()
 	fake.resetMutex.RLock()
 	defer fake.resetMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeInterceptTimeout) recordInvocation(key string, args []any) {
+func (fake *FakeInterceptTimeout) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

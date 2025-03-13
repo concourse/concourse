@@ -123,7 +123,7 @@ type FakeRunState struct {
 		arg1 atc.PlanID
 		arg2 any
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -135,7 +135,7 @@ func (fake *FakeRunState) AddLocalVar(arg1 string, arg2 any, arg3 bool) {
 		arg3 bool
 	}{arg1, arg2, arg3})
 	stub := fake.AddLocalVarStub
-	fake.recordInvocation("AddLocalVar", []any{arg1, arg2, arg3})
+	fake.recordInvocation("AddLocalVar", []interface{}{arg1, arg2, arg3})
 	fake.addLocalVarMutex.Unlock()
 	if stub != nil {
 		fake.AddLocalVarStub(arg1, arg2, arg3)
@@ -168,7 +168,7 @@ func (fake *FakeRunState) ArtifactRepository() *build.Repository {
 	}{})
 	stub := fake.ArtifactRepositoryStub
 	fakeReturns := fake.artifactRepositoryReturns
-	fake.recordInvocation("ArtifactRepository", []any{})
+	fake.recordInvocation("ArtifactRepository", []interface{}{})
 	fake.artifactRepositoryMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -222,7 +222,7 @@ func (fake *FakeRunState) Get(arg1 vars.Reference) (any, bool, error) {
 	}{arg1})
 	stub := fake.GetStub
 	fakeReturns := fake.getReturns
-	fake.recordInvocation("Get", []any{arg1})
+	fake.recordInvocation("Get", []interface{}{arg1})
 	fake.getMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -287,7 +287,7 @@ func (fake *FakeRunState) IterateInterpolatedCreds(arg1 vars.TrackedVarsIterator
 		arg1 vars.TrackedVarsIterator
 	}{arg1})
 	stub := fake.IterateInterpolatedCredsStub
-	fake.recordInvocation("IterateInterpolatedCreds", []any{arg1})
+	fake.recordInvocation("IterateInterpolatedCreds", []interface{}{arg1})
 	fake.iterateInterpolatedCredsMutex.Unlock()
 	if stub != nil {
 		fake.IterateInterpolatedCredsStub(arg1)
@@ -320,7 +320,7 @@ func (fake *FakeRunState) List() ([]vars.Reference, error) {
 	}{})
 	stub := fake.ListStub
 	fakeReturns := fake.listReturns
-	fake.recordInvocation("List", []any{})
+	fake.recordInvocation("List", []interface{}{})
 	fake.listMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -376,7 +376,7 @@ func (fake *FakeRunState) NewLocalScope() exec.RunState {
 	}{})
 	stub := fake.NewLocalScopeStub
 	fakeReturns := fake.newLocalScopeReturns
-	fake.recordInvocation("NewLocalScope", []any{})
+	fake.recordInvocation("NewLocalScope", []interface{}{})
 	fake.newLocalScopeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -429,7 +429,7 @@ func (fake *FakeRunState) Parent() exec.RunState {
 	}{})
 	stub := fake.ParentStub
 	fakeReturns := fake.parentReturns
-	fake.recordInvocation("Parent", []any{})
+	fake.recordInvocation("Parent", []interface{}{})
 	fake.parentMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -482,7 +482,7 @@ func (fake *FakeRunState) RedactionEnabled() bool {
 	}{})
 	stub := fake.RedactionEnabledStub
 	fakeReturns := fake.redactionEnabledReturns
-	fake.recordInvocation("RedactionEnabled", []any{})
+	fake.recordInvocation("RedactionEnabled", []interface{}{})
 	fake.redactionEnabledMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -537,7 +537,7 @@ func (fake *FakeRunState) Result(arg1 atc.PlanID, arg2 any) bool {
 	}{arg1, arg2})
 	stub := fake.ResultStub
 	fakeReturns := fake.resultReturns
-	fake.recordInvocation("Result", []any{arg1, arg2})
+	fake.recordInvocation("Result", []interface{}{arg1, arg2})
 	fake.resultMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -599,7 +599,7 @@ func (fake *FakeRunState) Run(arg1 context.Context, arg2 atc.Plan) (bool, error)
 	}{arg1, arg2})
 	stub := fake.RunStub
 	fakeReturns := fake.runReturns
-	fake.recordInvocation("Run", []any{arg1, arg2})
+	fake.recordInvocation("Run", []interface{}{arg1, arg2})
 	fake.runMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -662,7 +662,7 @@ func (fake *FakeRunState) StoreResult(arg1 atc.PlanID, arg2 any) {
 		arg2 any
 	}{arg1, arg2})
 	stub := fake.StoreResultStub
-	fake.recordInvocation("StoreResult", []any{arg1, arg2})
+	fake.recordInvocation("StoreResult", []interface{}{arg1, arg2})
 	fake.storeResultMutex.Unlock()
 	if stub != nil {
 		fake.StoreResultStub(arg1, arg2)
@@ -688,7 +688,7 @@ func (fake *FakeRunState) StoreResultArgsForCall(i int) (atc.PlanID, any) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeRunState) Invocations() map[string][][]any {
+func (fake *FakeRunState) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.addLocalVarMutex.RLock()
@@ -713,21 +713,21 @@ func (fake *FakeRunState) Invocations() map[string][][]any {
 	defer fake.runMutex.RUnlock()
 	fake.storeResultMutex.RLock()
 	defer fake.storeResultMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeRunState) recordInvocation(key string, args []any) {
+func (fake *FakeRunState) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -25,7 +25,7 @@ type FakeBuildStarter struct {
 		result1 bool
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -39,7 +39,7 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJob(arg1 lager.Logger, arg
 	}{arg1, arg2, arg3})
 	stub := fake.TryStartPendingBuildsForJobStub
 	fakeReturns := fake.tryStartPendingBuildsForJobReturns
-	fake.recordInvocation("TryStartPendingBuildsForJob", []any{arg1, arg2, arg3})
+	fake.recordInvocation("TryStartPendingBuildsForJob", []interface{}{arg1, arg2, arg3})
 	fake.tryStartPendingBuildsForJobMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -95,26 +95,26 @@ func (fake *FakeBuildStarter) TryStartPendingBuildsForJobReturnsOnCall(i int, re
 	}{result1, result2}
 }
 
-func (fake *FakeBuildStarter) Invocations() map[string][][]any {
+func (fake *FakeBuildStarter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.tryStartPendingBuildsForJobMutex.RLock()
 	defer fake.tryStartPendingBuildsForJobMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeBuildStarter) recordInvocation(key string, args []any) {
+func (fake *FakeBuildStarter) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -72,7 +72,7 @@ type FakeResourceConfig struct {
 	originBaseResourceTypeReturnsOnCall map[int]struct {
 		result1 *db.UsedBaseResourceType
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -83,7 +83,7 @@ func (fake *FakeResourceConfig) CreatedByBaseResourceType() *db.UsedBaseResource
 	}{})
 	stub := fake.CreatedByBaseResourceTypeStub
 	fakeReturns := fake.createdByBaseResourceTypeReturns
-	fake.recordInvocation("CreatedByBaseResourceType", []any{})
+	fake.recordInvocation("CreatedByBaseResourceType", []interface{}{})
 	fake.createdByBaseResourceTypeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -136,7 +136,7 @@ func (fake *FakeResourceConfig) CreatedByResourceCache() db.ResourceCache {
 	}{})
 	stub := fake.CreatedByResourceCacheStub
 	fakeReturns := fake.createdByResourceCacheReturns
-	fake.recordInvocation("CreatedByResourceCache", []any{})
+	fake.recordInvocation("CreatedByResourceCache", []interface{}{})
 	fake.createdByResourceCacheMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -190,7 +190,7 @@ func (fake *FakeResourceConfig) FindOrCreateScope(arg1 *int) (db.ResourceConfigS
 	}{arg1})
 	stub := fake.FindOrCreateScopeStub
 	fakeReturns := fake.findOrCreateScopeReturns
-	fake.recordInvocation("FindOrCreateScope", []any{arg1})
+	fake.recordInvocation("FindOrCreateScope", []interface{}{arg1})
 	fake.findOrCreateScopeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -253,7 +253,7 @@ func (fake *FakeResourceConfig) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []any{})
+	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -306,7 +306,7 @@ func (fake *FakeResourceConfig) LastReferenced() time.Time {
 	}{})
 	stub := fake.LastReferencedStub
 	fakeReturns := fake.lastReferencedReturns
-	fake.recordInvocation("LastReferenced", []any{})
+	fake.recordInvocation("LastReferenced", []interface{}{})
 	fake.lastReferencedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -359,7 +359,7 @@ func (fake *FakeResourceConfig) OriginBaseResourceType() *db.UsedBaseResourceTyp
 	}{})
 	stub := fake.OriginBaseResourceTypeStub
 	fakeReturns := fake.originBaseResourceTypeReturns
-	fake.recordInvocation("OriginBaseResourceType", []any{})
+	fake.recordInvocation("OriginBaseResourceType", []interface{}{})
 	fake.originBaseResourceTypeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -405,7 +405,7 @@ func (fake *FakeResourceConfig) OriginBaseResourceTypeReturnsOnCall(i int, resul
 	}{result1}
 }
 
-func (fake *FakeResourceConfig) Invocations() map[string][][]any {
+func (fake *FakeResourceConfig) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createdByBaseResourceTypeMutex.RLock()
@@ -420,21 +420,21 @@ func (fake *FakeResourceConfig) Invocations() map[string][][]any {
 	defer fake.lastReferencedMutex.RUnlock()
 	fake.originBaseResourceTypeMutex.RLock()
 	defer fake.originBaseResourceTypeMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeResourceConfig) recordInvocation(key string, args []any) {
+func (fake *FakeResourceConfig) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

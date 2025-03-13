@@ -118,7 +118,7 @@ type FakeBuildFactory struct {
 		result2 db.Pagination
 		result3 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -130,7 +130,7 @@ func (fake *FakeBuildFactory) AllBuilds(arg1 db.Page) ([]db.BuildForAPI, db.Pagi
 	}{arg1})
 	stub := fake.AllBuildsStub
 	fakeReturns := fake.allBuildsReturns
-	fake.recordInvocation("AllBuilds", []any{arg1})
+	fake.recordInvocation("AllBuilds", []interface{}{arg1})
 	fake.allBuildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -197,7 +197,7 @@ func (fake *FakeBuildFactory) Build(arg1 int) (db.Build, bool, error) {
 	}{arg1})
 	stub := fake.BuildStub
 	fakeReturns := fake.buildReturns
-	fake.recordInvocation("Build", []any{arg1})
+	fake.recordInvocation("Build", []interface{}{arg1})
 	fake.buildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -264,7 +264,7 @@ func (fake *FakeBuildFactory) BuildForAPI(arg1 int) (db.BuildForAPI, bool, error
 	}{arg1})
 	stub := fake.BuildForAPIStub
 	fakeReturns := fake.buildForAPIReturns
-	fake.recordInvocation("BuildForAPI", []any{arg1})
+	fake.recordInvocation("BuildForAPI", []interface{}{arg1})
 	fake.buildForAPIMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -330,7 +330,7 @@ func (fake *FakeBuildFactory) GetAllStartedBuilds() ([]db.Build, error) {
 	}{})
 	stub := fake.GetAllStartedBuildsStub
 	fakeReturns := fake.getAllStartedBuildsReturns
-	fake.recordInvocation("GetAllStartedBuilds", []any{})
+	fake.recordInvocation("GetAllStartedBuilds", []interface{}{})
 	fake.getAllStartedBuildsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -386,7 +386,7 @@ func (fake *FakeBuildFactory) GetDrainableBuilds() ([]db.Build, error) {
 	}{})
 	stub := fake.GetDrainableBuildsStub
 	fakeReturns := fake.getDrainableBuildsReturns
-	fake.recordInvocation("GetDrainableBuilds", []any{})
+	fake.recordInvocation("GetDrainableBuilds", []interface{}{})
 	fake.getDrainableBuildsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -442,7 +442,7 @@ func (fake *FakeBuildFactory) MarkNonInterceptibleBuilds() error {
 	}{})
 	stub := fake.MarkNonInterceptibleBuildsStub
 	fakeReturns := fake.markNonInterceptibleBuildsReturns
-	fake.recordInvocation("MarkNonInterceptibleBuilds", []any{})
+	fake.recordInvocation("MarkNonInterceptibleBuilds", []interface{}{})
 	fake.markNonInterceptibleBuildsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -496,7 +496,7 @@ func (fake *FakeBuildFactory) PublicBuilds(arg1 db.Page) ([]db.BuildForAPI, db.P
 	}{arg1})
 	stub := fake.PublicBuildsStub
 	fakeReturns := fake.publicBuildsReturns
-	fake.recordInvocation("PublicBuilds", []any{arg1})
+	fake.recordInvocation("PublicBuilds", []interface{}{arg1})
 	fake.publicBuildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -569,7 +569,7 @@ func (fake *FakeBuildFactory) VisibleBuilds(arg1 []string, arg2 db.Page) ([]db.B
 	}{arg1Copy, arg2})
 	stub := fake.VisibleBuildsStub
 	fakeReturns := fake.visibleBuildsReturns
-	fake.recordInvocation("VisibleBuilds", []any{arg1Copy, arg2})
+	fake.recordInvocation("VisibleBuilds", []interface{}{arg1Copy, arg2})
 	fake.visibleBuildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -628,7 +628,7 @@ func (fake *FakeBuildFactory) VisibleBuildsReturnsOnCall(i int, result1 []db.Bui
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBuildFactory) Invocations() map[string][][]any {
+func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.allBuildsMutex.RLock()
@@ -647,21 +647,21 @@ func (fake *FakeBuildFactory) Invocations() map[string][][]any {
 	defer fake.publicBuildsMutex.RUnlock()
 	fake.visibleBuildsMutex.RLock()
 	defer fake.visibleBuildsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeBuildFactory) recordInvocation(key string, args []any) {
+func (fake *FakeBuildFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

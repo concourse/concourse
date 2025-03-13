@@ -51,7 +51,7 @@ type FakeListener struct {
 	unlistenReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -62,7 +62,7 @@ func (fake *FakeListener) Close() error {
 	}{})
 	stub := fake.CloseStub
 	fakeReturns := fake.closeReturns
-	fake.recordInvocation("Close", []any{})
+	fake.recordInvocation("Close", []interface{}{})
 	fake.closeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -116,7 +116,7 @@ func (fake *FakeListener) Listen(arg1 string) error {
 	}{arg1})
 	stub := fake.ListenStub
 	fakeReturns := fake.listenReturns
-	fake.recordInvocation("Listen", []any{arg1})
+	fake.recordInvocation("Listen", []interface{}{arg1})
 	fake.listenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -176,7 +176,7 @@ func (fake *FakeListener) NotificationChannel() <-chan *pgconn.Notification {
 	}{})
 	stub := fake.NotificationChannelStub
 	fakeReturns := fake.notificationChannelReturns
-	fake.recordInvocation("NotificationChannel", []any{})
+	fake.recordInvocation("NotificationChannel", []interface{}{})
 	fake.notificationChannelMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -230,7 +230,7 @@ func (fake *FakeListener) Unlisten(arg1 string) error {
 	}{arg1})
 	stub := fake.UnlistenStub
 	fakeReturns := fake.unlistenReturns
-	fake.recordInvocation("Unlisten", []any{arg1})
+	fake.recordInvocation("Unlisten", []interface{}{arg1})
 	fake.unlistenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -283,7 +283,7 @@ func (fake *FakeListener) UnlistenReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeListener) Invocations() map[string][][]any {
+func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.closeMutex.RLock()
@@ -294,21 +294,21 @@ func (fake *FakeListener) Invocations() map[string][][]any {
 	defer fake.notificationChannelMutex.RUnlock()
 	fake.unlistenMutex.RLock()
 	defer fake.unlistenMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeListener) recordInvocation(key string, args []any) {
+func (fake *FakeListener) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

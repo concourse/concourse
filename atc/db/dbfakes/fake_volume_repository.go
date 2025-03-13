@@ -337,7 +337,7 @@ type FakeVolumeRepository struct {
 	updateVolumesMissingSinceReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -349,7 +349,7 @@ func (fake *FakeVolumeRepository) CreateBaseResourceTypeVolume(arg1 *db.UsedWork
 	}{arg1})
 	stub := fake.CreateBaseResourceTypeVolumeStub
 	fakeReturns := fake.createBaseResourceTypeVolumeReturns
-	fake.recordInvocation("CreateBaseResourceTypeVolume", []any{arg1})
+	fake.recordInvocation("CreateBaseResourceTypeVolume", []interface{}{arg1})
 	fake.createBaseResourceTypeVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -416,7 +416,7 @@ func (fake *FakeVolumeRepository) CreateContainerVolume(arg1 int, arg2 string, a
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.CreateContainerVolumeStub
 	fakeReturns := fake.createContainerVolumeReturns
-	fake.recordInvocation("CreateContainerVolume", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CreateContainerVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createContainerVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -481,7 +481,7 @@ func (fake *FakeVolumeRepository) CreateResourceCertsVolume(arg1 string, arg2 *d
 	}{arg1, arg2})
 	stub := fake.CreateResourceCertsVolumeStub
 	fakeReturns := fake.createResourceCertsVolumeReturns
-	fake.recordInvocation("CreateResourceCertsVolume", []any{arg1, arg2})
+	fake.recordInvocation("CreateResourceCertsVolume", []interface{}{arg1, arg2})
 	fake.createResourceCertsVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -546,7 +546,7 @@ func (fake *FakeVolumeRepository) CreateTaskCacheVolume(arg1 int, arg2 *db.UsedW
 	}{arg1, arg2})
 	stub := fake.CreateTaskCacheVolumeStub
 	fakeReturns := fake.createTaskCacheVolumeReturns
-	fake.recordInvocation("CreateTaskCacheVolume", []any{arg1, arg2})
+	fake.recordInvocation("CreateTaskCacheVolume", []interface{}{arg1, arg2})
 	fake.createTaskCacheVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -612,7 +612,7 @@ func (fake *FakeVolumeRepository) CreateVolume(arg1 int, arg2 string, arg3 db.Vo
 	}{arg1, arg2, arg3})
 	stub := fake.CreateVolumeStub
 	fakeReturns := fake.createVolumeReturns
-	fake.recordInvocation("CreateVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3})
 	fake.createVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -679,7 +679,7 @@ func (fake *FakeVolumeRepository) CreateVolumeWithHandle(arg1 string, arg2 int, 
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.CreateVolumeWithHandleStub
 	fakeReturns := fake.createVolumeWithHandleReturns
-	fake.recordInvocation("CreateVolumeWithHandle", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CreateVolumeWithHandle", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createVolumeWithHandleMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -742,7 +742,7 @@ func (fake *FakeVolumeRepository) DestroyFailedVolumes() (int, error) {
 	}{})
 	stub := fake.DestroyFailedVolumesStub
 	fakeReturns := fake.destroyFailedVolumesReturns
-	fake.recordInvocation("DestroyFailedVolumes", []any{})
+	fake.recordInvocation("DestroyFailedVolumes", []interface{}{})
 	fake.destroyFailedVolumesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -805,7 +805,7 @@ func (fake *FakeVolumeRepository) DestroyUnknownVolumes(arg1 string, arg2 []stri
 	}{arg1, arg2Copy})
 	stub := fake.DestroyUnknownVolumesStub
 	fakeReturns := fake.destroyUnknownVolumesReturns
-	fake.recordInvocation("DestroyUnknownVolumes", []any{arg1, arg2Copy})
+	fake.recordInvocation("DestroyUnknownVolumes", []interface{}{arg1, arg2Copy})
 	fake.destroyUnknownVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -869,7 +869,7 @@ func (fake *FakeVolumeRepository) FindBaseResourceTypeVolume(arg1 *db.UsedWorker
 	}{arg1})
 	stub := fake.FindBaseResourceTypeVolumeStub
 	fakeReturns := fake.findBaseResourceTypeVolumeReturns
-	fake.recordInvocation("FindBaseResourceTypeVolume", []any{arg1})
+	fake.recordInvocation("FindBaseResourceTypeVolume", []interface{}{arg1})
 	fake.findBaseResourceTypeVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -939,7 +939,7 @@ func (fake *FakeVolumeRepository) FindContainerVolume(arg1 int, arg2 string, arg
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.FindContainerVolumeStub
 	fakeReturns := fake.findContainerVolumeReturns
-	fake.recordInvocation("FindContainerVolume", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FindContainerVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.findContainerVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -1008,7 +1008,7 @@ func (fake *FakeVolumeRepository) FindResourceCacheVolume(arg1 string, arg2 db.R
 	}{arg1, arg2, arg3})
 	stub := fake.FindResourceCacheVolumeStub
 	fakeReturns := fake.findResourceCacheVolumeReturns
-	fake.recordInvocation("FindResourceCacheVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("FindResourceCacheVolume", []interface{}{arg1, arg2, arg3})
 	fake.findResourceCacheVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -1076,7 +1076,7 @@ func (fake *FakeVolumeRepository) FindResourceCertsVolume(arg1 string, arg2 *db.
 	}{arg1, arg2})
 	stub := fake.FindResourceCertsVolumeStub
 	fakeReturns := fake.findResourceCertsVolumeReturns
-	fake.recordInvocation("FindResourceCertsVolume", []any{arg1, arg2})
+	fake.recordInvocation("FindResourceCertsVolume", []interface{}{arg1, arg2})
 	fake.findResourceCertsVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1145,7 +1145,7 @@ func (fake *FakeVolumeRepository) FindTaskCacheVolume(arg1 int, arg2 string, arg
 	}{arg1, arg2, arg3})
 	stub := fake.FindTaskCacheVolumeStub
 	fakeReturns := fake.findTaskCacheVolumeReturns
-	fake.recordInvocation("FindTaskCacheVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("FindTaskCacheVolume", []interface{}{arg1, arg2, arg3})
 	fake.findTaskCacheVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -1212,7 +1212,7 @@ func (fake *FakeVolumeRepository) FindVolume(arg1 string) (db.CreatedVolume, boo
 	}{arg1})
 	stub := fake.FindVolumeStub
 	fakeReturns := fake.findVolumeReturns
-	fake.recordInvocation("FindVolume", []any{arg1})
+	fake.recordInvocation("FindVolume", []interface{}{arg1})
 	fake.findVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1279,7 +1279,7 @@ func (fake *FakeVolumeRepository) FindVolumesForContainer(arg1 db.CreatedContain
 	}{arg1})
 	stub := fake.FindVolumesForContainerStub
 	fakeReturns := fake.findVolumesForContainerReturns
-	fake.recordInvocation("FindVolumesForContainer", []any{arg1})
+	fake.recordInvocation("FindVolumesForContainer", []interface{}{arg1})
 	fake.findVolumesForContainerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1343,7 +1343,7 @@ func (fake *FakeVolumeRepository) FindWorkersForResourceCache(arg1 db.ResourceCa
 	}{arg1})
 	stub := fake.FindWorkersForResourceCacheStub
 	fakeReturns := fake.findWorkersForResourceCacheReturns
-	fake.recordInvocation("FindWorkersForResourceCache", []any{arg1})
+	fake.recordInvocation("FindWorkersForResourceCache", []interface{}{arg1})
 	fake.findWorkersForResourceCacheMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1407,7 +1407,7 @@ func (fake *FakeVolumeRepository) FindWorkersForTaskCache(arg1 db.UsedTaskCache)
 	}{arg1})
 	stub := fake.FindWorkersForTaskCacheStub
 	fakeReturns := fake.findWorkersForTaskCacheReturns
-	fake.recordInvocation("FindWorkersForTaskCache", []any{arg1})
+	fake.recordInvocation("FindWorkersForTaskCache", []interface{}{arg1})
 	fake.findWorkersForTaskCacheMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1471,7 +1471,7 @@ func (fake *FakeVolumeRepository) GetDestroyingVolumes(arg1 string) ([]string, e
 	}{arg1})
 	stub := fake.GetDestroyingVolumesStub
 	fakeReturns := fake.getDestroyingVolumesReturns
-	fake.recordInvocation("GetDestroyingVolumes", []any{arg1})
+	fake.recordInvocation("GetDestroyingVolumes", []interface{}{arg1})
 	fake.getDestroyingVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1534,7 +1534,7 @@ func (fake *FakeVolumeRepository) GetOrphanedVolumes() ([]db.CreatedVolume, erro
 	}{})
 	stub := fake.GetOrphanedVolumesStub
 	fakeReturns := fake.getOrphanedVolumesReturns
-	fake.recordInvocation("GetOrphanedVolumes", []any{})
+	fake.recordInvocation("GetOrphanedVolumes", []interface{}{})
 	fake.getOrphanedVolumesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1591,7 +1591,7 @@ func (fake *FakeVolumeRepository) GetTeamVolumes(arg1 int) ([]db.CreatedVolume, 
 	}{arg1})
 	stub := fake.GetTeamVolumesStub
 	fakeReturns := fake.getTeamVolumesReturns
-	fake.recordInvocation("GetTeamVolumes", []any{arg1})
+	fake.recordInvocation("GetTeamVolumes", []interface{}{arg1})
 	fake.getTeamVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1661,7 +1661,7 @@ func (fake *FakeVolumeRepository) RemoveDestroyingVolumes(arg1 string, arg2 []st
 	}{arg1, arg2Copy})
 	stub := fake.RemoveDestroyingVolumesStub
 	fakeReturns := fake.removeDestroyingVolumesReturns
-	fake.recordInvocation("RemoveDestroyingVolumes", []any{arg1, arg2Copy})
+	fake.recordInvocation("RemoveDestroyingVolumes", []interface{}{arg1, arg2Copy})
 	fake.removeDestroyingVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1725,7 +1725,7 @@ func (fake *FakeVolumeRepository) RemoveMissingVolumes(arg1 time.Duration) (int,
 	}{arg1})
 	stub := fake.RemoveMissingVolumesStub
 	fakeReturns := fake.removeMissingVolumesReturns
-	fake.recordInvocation("RemoveMissingVolumes", []any{arg1})
+	fake.recordInvocation("RemoveMissingVolumes", []interface{}{arg1})
 	fake.removeMissingVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1795,7 +1795,7 @@ func (fake *FakeVolumeRepository) UpdateVolumesMissingSince(arg1 string, arg2 []
 	}{arg1, arg2Copy})
 	stub := fake.UpdateVolumesMissingSinceStub
 	fakeReturns := fake.updateVolumesMissingSinceReturns
-	fake.recordInvocation("UpdateVolumesMissingSince", []any{arg1, arg2Copy})
+	fake.recordInvocation("UpdateVolumesMissingSince", []interface{}{arg1, arg2Copy})
 	fake.updateVolumesMissingSinceMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1848,7 +1848,7 @@ func (fake *FakeVolumeRepository) UpdateVolumesMissingSinceReturnsOnCall(i int, 
 	}{result1}
 }
 
-func (fake *FakeVolumeRepository) Invocations() map[string][][]any {
+func (fake *FakeVolumeRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createBaseResourceTypeVolumeMutex.RLock()
@@ -1897,21 +1897,21 @@ func (fake *FakeVolumeRepository) Invocations() map[string][][]any {
 	defer fake.removeMissingVolumesMutex.RUnlock()
 	fake.updateVolumesMissingSinceMutex.RLock()
 	defer fake.updateVolumesMissingSinceMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeVolumeRepository) recordInvocation(key string, args []any) {
+func (fake *FakeVolumeRepository) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

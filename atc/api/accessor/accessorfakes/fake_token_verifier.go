@@ -22,7 +22,7 @@ type FakeTokenVerifier struct {
 		result1 map[string]any
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -34,7 +34,7 @@ func (fake *FakeTokenVerifier) Verify(arg1 *http.Request) (map[string]any, error
 	}{arg1})
 	stub := fake.VerifyStub
 	fakeReturns := fake.verifyReturns
-	fake.recordInvocation("Verify", []any{arg1})
+	fake.recordInvocation("Verify", []interface{}{arg1})
 	fake.verifyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -90,26 +90,26 @@ func (fake *FakeTokenVerifier) VerifyReturnsOnCall(i int, result1 map[string]any
 	}{result1, result2}
 }
 
-func (fake *FakeTokenVerifier) Invocations() map[string][][]any {
+func (fake *FakeTokenVerifier) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.verifyMutex.RLock()
 	defer fake.verifyMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTokenVerifier) recordInvocation(key string, args []any) {
+func (fake *FakeTokenVerifier) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

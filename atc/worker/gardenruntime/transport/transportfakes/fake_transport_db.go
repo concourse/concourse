@@ -24,7 +24,7 @@ type FakeTransportDB struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -36,7 +36,7 @@ func (fake *FakeTransportDB) GetWorker(arg1 string) (db.Worker, bool, error) {
 	}{arg1})
 	stub := fake.GetWorkerStub
 	fakeReturns := fake.getWorkerReturns
-	fake.recordInvocation("GetWorker", []any{arg1})
+	fake.recordInvocation("GetWorker", []interface{}{arg1})
 	fake.getWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -95,26 +95,26 @@ func (fake *FakeTransportDB) GetWorkerReturnsOnCall(i int, result1 db.Worker, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeTransportDB) Invocations() map[string][][]any {
+func (fake *FakeTransportDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getWorkerMutex.RLock()
 	defer fake.getWorkerMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTransportDB) recordInvocation(key string, args []any) {
+func (fake *FakeTransportDB) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

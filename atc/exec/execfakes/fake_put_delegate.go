@@ -150,7 +150,7 @@ type FakePutDelegate struct {
 	waitingForWorkerArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -162,7 +162,7 @@ func (fake *FakePutDelegate) BeforeSelectWorker(arg1 lager.Logger) error {
 	}{arg1})
 	stub := fake.BeforeSelectWorkerStub
 	fakeReturns := fake.beforeSelectWorkerReturns
-	fake.recordInvocation("BeforeSelectWorker", []any{arg1})
+	fake.recordInvocation("BeforeSelectWorker", []interface{}{arg1})
 	fake.beforeSelectWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -222,7 +222,7 @@ func (fake *FakePutDelegate) BuildStartTime() time.Time {
 	}{})
 	stub := fake.BuildStartTimeStub
 	fakeReturns := fake.buildStartTimeReturns
-	fake.recordInvocation("BuildStartTime", []any{})
+	fake.recordInvocation("BuildStartTime", []interface{}{})
 	fake.buildStartTimeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -275,7 +275,7 @@ func (fake *FakePutDelegate) Errored(arg1 lager.Logger, arg2 string) {
 		arg2 string
 	}{arg1, arg2})
 	stub := fake.ErroredStub
-	fake.recordInvocation("Errored", []any{arg1, arg2})
+	fake.recordInvocation("Errored", []interface{}{arg1, arg2})
 	fake.erroredMutex.Unlock()
 	if stub != nil {
 		fake.ErroredStub(arg1, arg2)
@@ -312,7 +312,7 @@ func (fake *FakePutDelegate) FetchImage(arg1 context.Context, arg2 atc.Plan, arg
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.FetchImageStub
 	fakeReturns := fake.fetchImageReturns
-	fake.recordInvocation("FetchImage", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("FetchImage", []interface{}{arg1, arg2, arg3, arg4})
 	fake.fetchImageMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -379,7 +379,7 @@ func (fake *FakePutDelegate) Finished(arg1 lager.Logger, arg2 exec.ExitStatus, a
 		arg3 resource.VersionResult
 	}{arg1, arg2, arg3})
 	stub := fake.FinishedStub
-	fake.recordInvocation("Finished", []any{arg1, arg2, arg3})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3})
 	fake.finishedMutex.Unlock()
 	if stub != nil {
 		fake.FinishedStub(arg1, arg2, arg3)
@@ -411,7 +411,7 @@ func (fake *FakePutDelegate) Initializing(arg1 lager.Logger) {
 		arg1 lager.Logger
 	}{arg1})
 	stub := fake.InitializingStub
-	fake.recordInvocation("Initializing", []any{arg1})
+	fake.recordInvocation("Initializing", []interface{}{arg1})
 	fake.initializingMutex.Unlock()
 	if stub != nil {
 		fake.InitializingStub(arg1)
@@ -447,7 +447,7 @@ func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg
 		arg5 resource.VersionResult
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.SaveOutputStub
-	fake.recordInvocation("SaveOutput", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("SaveOutput", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.saveOutputMutex.Unlock()
 	if stub != nil {
 		fake.SaveOutputStub(arg1, arg2, arg3, arg4, arg5)
@@ -480,7 +480,7 @@ func (fake *FakePutDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {
 		arg2 string
 	}{arg1, arg2})
 	stub := fake.SelectedWorkerStub
-	fake.recordInvocation("SelectedWorker", []any{arg1, arg2})
+	fake.recordInvocation("SelectedWorker", []interface{}{arg1, arg2})
 	fake.selectedWorkerMutex.Unlock()
 	if stub != nil {
 		fake.SelectedWorkerStub(arg1, arg2)
@@ -516,7 +516,7 @@ func (fake *FakePutDelegate) StartSpan(arg1 context.Context, arg2 string, arg3 t
 	}{arg1, arg2, arg3})
 	stub := fake.StartSpanStub
 	fakeReturns := fake.startSpanReturns
-	fake.recordInvocation("StartSpan", []any{arg1, arg2, arg3})
+	fake.recordInvocation("StartSpan", []interface{}{arg1, arg2, arg3})
 	fake.startSpanMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -578,7 +578,7 @@ func (fake *FakePutDelegate) Starting(arg1 lager.Logger) {
 		arg1 lager.Logger
 	}{arg1})
 	stub := fake.StartingStub
-	fake.recordInvocation("Starting", []any{arg1})
+	fake.recordInvocation("Starting", []interface{}{arg1})
 	fake.startingMutex.Unlock()
 	if stub != nil {
 		fake.StartingStub(arg1)
@@ -611,7 +611,7 @@ func (fake *FakePutDelegate) Stderr() io.Writer {
 	}{})
 	stub := fake.StderrStub
 	fakeReturns := fake.stderrReturns
-	fake.recordInvocation("Stderr", []any{})
+	fake.recordInvocation("Stderr", []interface{}{})
 	fake.stderrMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -664,7 +664,7 @@ func (fake *FakePutDelegate) Stdout() io.Writer {
 	}{})
 	stub := fake.StdoutStub
 	fakeReturns := fake.stdoutReturns
-	fake.recordInvocation("Stdout", []any{})
+	fake.recordInvocation("Stdout", []interface{}{})
 	fake.stdoutMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -719,7 +719,7 @@ func (fake *FakePutDelegate) StreamingVolume(arg1 lager.Logger, arg2 string, arg
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.StreamingVolumeStub
-	fake.recordInvocation("StreamingVolume", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("StreamingVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.streamingVolumeMutex.Unlock()
 	if stub != nil {
 		fake.StreamingVolumeStub(arg1, arg2, arg3, arg4)
@@ -753,7 +753,7 @@ func (fake *FakePutDelegate) WaitingForStreamedVolume(arg1 lager.Logger, arg2 st
 		arg3 string
 	}{arg1, arg2, arg3})
 	stub := fake.WaitingForStreamedVolumeStub
-	fake.recordInvocation("WaitingForStreamedVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("WaitingForStreamedVolume", []interface{}{arg1, arg2, arg3})
 	fake.waitingForStreamedVolumeMutex.Unlock()
 	if stub != nil {
 		fake.WaitingForStreamedVolumeStub(arg1, arg2, arg3)
@@ -785,7 +785,7 @@ func (fake *FakePutDelegate) WaitingForWorker(arg1 lager.Logger) {
 		arg1 lager.Logger
 	}{arg1})
 	stub := fake.WaitingForWorkerStub
-	fake.recordInvocation("WaitingForWorker", []any{arg1})
+	fake.recordInvocation("WaitingForWorker", []interface{}{arg1})
 	fake.waitingForWorkerMutex.Unlock()
 	if stub != nil {
 		fake.WaitingForWorkerStub(arg1)
@@ -811,7 +811,7 @@ func (fake *FakePutDelegate) WaitingForWorkerArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakePutDelegate) Invocations() map[string][][]any {
+func (fake *FakePutDelegate) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.beforeSelectWorkerMutex.RLock()
@@ -844,21 +844,21 @@ func (fake *FakePutDelegate) Invocations() map[string][][]any {
 	defer fake.waitingForStreamedVolumeMutex.RUnlock()
 	fake.waitingForWorkerMutex.RLock()
 	defer fake.waitingForWorkerMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePutDelegate) recordInvocation(key string, args []any) {
+func (fake *FakePutDelegate) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

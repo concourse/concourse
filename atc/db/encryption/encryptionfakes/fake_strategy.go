@@ -37,7 +37,7 @@ type FakeStrategy struct {
 		result2 *string
 		result3 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -50,7 +50,7 @@ func (fake *FakeStrategy) Decrypt(arg1 string, arg2 *string) ([]byte, error) {
 	}{arg1, arg2})
 	stub := fake.DecryptStub
 	fakeReturns := fake.decryptReturns
-	fake.recordInvocation("Decrypt", []any{arg1, arg2})
+	fake.recordInvocation("Decrypt", []interface{}{arg1, arg2})
 	fake.decryptMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -119,7 +119,7 @@ func (fake *FakeStrategy) Encrypt(arg1 []byte) (string, *string, error) {
 	}{arg1Copy})
 	stub := fake.EncryptStub
 	fakeReturns := fake.encryptReturns
-	fake.recordInvocation("Encrypt", []any{arg1Copy})
+	fake.recordInvocation("Encrypt", []interface{}{arg1Copy})
 	fake.encryptMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -178,28 +178,28 @@ func (fake *FakeStrategy) EncryptReturnsOnCall(i int, result1 string, result2 *s
 	}{result1, result2, result3}
 }
 
-func (fake *FakeStrategy) Invocations() map[string][][]any {
+func (fake *FakeStrategy) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.decryptMutex.RLock()
 	defer fake.decryptMutex.RUnlock()
 	fake.encryptMutex.RLock()
 	defer fake.encryptMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeStrategy) recordInvocation(key string, args []any) {
+func (fake *FakeStrategy) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

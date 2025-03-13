@@ -26,7 +26,7 @@ type FakeBuildScheduler struct {
 		result1 bool
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -40,7 +40,7 @@ func (fake *FakeBuildScheduler) Schedule(arg1 context.Context, arg2 lager.Logger
 	}{arg1, arg2, arg3})
 	stub := fake.ScheduleStub
 	fakeReturns := fake.scheduleReturns
-	fake.recordInvocation("Schedule", []any{arg1, arg2, arg3})
+	fake.recordInvocation("Schedule", []interface{}{arg1, arg2, arg3})
 	fake.scheduleMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -96,26 +96,26 @@ func (fake *FakeBuildScheduler) ScheduleReturnsOnCall(i int, result1 bool, resul
 	}{result1, result2}
 }
 
-func (fake *FakeBuildScheduler) Invocations() map[string][][]any {
+func (fake *FakeBuildScheduler) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.scheduleMutex.RLock()
 	defer fake.scheduleMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeBuildScheduler) recordInvocation(key string, args []any) {
+func (fake *FakeBuildScheduler) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

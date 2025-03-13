@@ -78,7 +78,7 @@ type FakeClient struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -92,7 +92,7 @@ func (fake *FakeClient) CreateVolume(arg1 context.Context, arg2 string, arg3 bag
 	}{arg1, arg2, arg3})
 	stub := fake.CreateVolumeStub
 	fakeReturns := fake.createVolumeReturns
-	fake.recordInvocation("CreateVolume", []any{arg1, arg2, arg3})
+	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3})
 	fake.createVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -157,7 +157,7 @@ func (fake *FakeClient) DestroyVolume(arg1 context.Context, arg2 string) error {
 	}{arg1, arg2})
 	stub := fake.DestroyVolumeStub
 	fakeReturns := fake.destroyVolumeReturns
-	fake.recordInvocation("DestroyVolume", []any{arg1, arg2})
+	fake.recordInvocation("DestroyVolume", []interface{}{arg1, arg2})
 	fake.destroyVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -224,7 +224,7 @@ func (fake *FakeClient) DestroyVolumes(arg1 context.Context, arg2 []string) erro
 	}{arg1, arg2Copy})
 	stub := fake.DestroyVolumesStub
 	fakeReturns := fake.destroyVolumesReturns
-	fake.recordInvocation("DestroyVolumes", []any{arg1, arg2Copy})
+	fake.recordInvocation("DestroyVolumes", []interface{}{arg1, arg2Copy})
 	fake.destroyVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -286,7 +286,7 @@ func (fake *FakeClient) ListVolumes(arg1 context.Context, arg2 baggageclaim.Volu
 	}{arg1, arg2})
 	stub := fake.ListVolumesStub
 	fakeReturns := fake.listVolumesReturns
-	fake.recordInvocation("ListVolumes", []any{arg1, arg2})
+	fake.recordInvocation("ListVolumes", []interface{}{arg1, arg2})
 	fake.listVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -351,7 +351,7 @@ func (fake *FakeClient) LookupVolume(arg1 context.Context, arg2 string) (baggage
 	}{arg1, arg2})
 	stub := fake.LookupVolumeStub
 	fakeReturns := fake.lookupVolumeReturns
-	fake.recordInvocation("LookupVolume", []any{arg1, arg2})
+	fake.recordInvocation("LookupVolume", []interface{}{arg1, arg2})
 	fake.lookupVolumeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -410,7 +410,7 @@ func (fake *FakeClient) LookupVolumeReturnsOnCall(i int, result1 baggageclaim.Vo
 	}{result1, result2, result3}
 }
 
-func (fake *FakeClient) Invocations() map[string][][]any {
+func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createVolumeMutex.RLock()
@@ -423,21 +423,21 @@ func (fake *FakeClient) Invocations() map[string][][]any {
 	defer fake.listVolumesMutex.RUnlock()
 	fake.lookupVolumeMutex.RLock()
 	defer fake.lookupVolumeMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeClient) recordInvocation(key string, args []any) {
+func (fake *FakeClient) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

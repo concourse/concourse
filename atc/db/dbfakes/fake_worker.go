@@ -332,7 +332,7 @@ type FakeWorker struct {
 	versionReturnsOnCall map[int]struct {
 		result1 *string
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -343,7 +343,7 @@ func (fake *FakeWorker) ActiveContainers() int {
 	}{})
 	stub := fake.ActiveContainersStub
 	fakeReturns := fake.activeContainersReturns
-	fake.recordInvocation("ActiveContainers", []any{})
+	fake.recordInvocation("ActiveContainers", []interface{}{})
 	fake.activeContainersMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -396,7 +396,7 @@ func (fake *FakeWorker) ActiveTasks() (int, error) {
 	}{})
 	stub := fake.ActiveTasksStub
 	fakeReturns := fake.activeTasksReturns
-	fake.recordInvocation("ActiveTasks", []any{})
+	fake.recordInvocation("ActiveTasks", []interface{}{})
 	fake.activeTasksMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -452,7 +452,7 @@ func (fake *FakeWorker) ActiveVolumes() int {
 	}{})
 	stub := fake.ActiveVolumesStub
 	fakeReturns := fake.activeVolumesReturns
-	fake.recordInvocation("ActiveVolumes", []any{})
+	fake.recordInvocation("ActiveVolumes", []interface{}{})
 	fake.activeVolumesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -505,7 +505,7 @@ func (fake *FakeWorker) BaggageclaimURL() *string {
 	}{})
 	stub := fake.BaggageclaimURLStub
 	fakeReturns := fake.baggageclaimURLReturns
-	fake.recordInvocation("BaggageclaimURL", []any{})
+	fake.recordInvocation("BaggageclaimURL", []interface{}{})
 	fake.baggageclaimURLMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -558,7 +558,7 @@ func (fake *FakeWorker) CertsPath() *string {
 	}{})
 	stub := fake.CertsPathStub
 	fakeReturns := fake.certsPathReturns
-	fake.recordInvocation("CertsPath", []any{})
+	fake.recordInvocation("CertsPath", []interface{}{})
 	fake.certsPathMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -613,7 +613,7 @@ func (fake *FakeWorker) CreateContainer(arg1 db.ContainerOwner, arg2 db.Containe
 	}{arg1, arg2})
 	stub := fake.CreateContainerStub
 	fakeReturns := fake.createContainerReturns
-	fake.recordInvocation("CreateContainer", []any{arg1, arg2})
+	fake.recordInvocation("CreateContainer", []interface{}{arg1, arg2})
 	fake.createContainerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -676,7 +676,7 @@ func (fake *FakeWorker) DecreaseActiveTasks() (int, error) {
 	}{})
 	stub := fake.DecreaseActiveTasksStub
 	fakeReturns := fake.decreaseActiveTasksReturns
-	fake.recordInvocation("DecreaseActiveTasks", []any{})
+	fake.recordInvocation("DecreaseActiveTasks", []interface{}{})
 	fake.decreaseActiveTasksMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -732,7 +732,7 @@ func (fake *FakeWorker) Delete() error {
 	}{})
 	stub := fake.DeleteStub
 	fakeReturns := fake.deleteReturns
-	fake.recordInvocation("Delete", []any{})
+	fake.recordInvocation("Delete", []interface{}{})
 	fake.deleteMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -785,7 +785,7 @@ func (fake *FakeWorker) Ephemeral() bool {
 	}{})
 	stub := fake.EphemeralStub
 	fakeReturns := fake.ephemeralReturns
-	fake.recordInvocation("Ephemeral", []any{})
+	fake.recordInvocation("Ephemeral", []interface{}{})
 	fake.ephemeralMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -838,7 +838,7 @@ func (fake *FakeWorker) ExpiresAt() time.Time {
 	}{})
 	stub := fake.ExpiresAtStub
 	fakeReturns := fake.expiresAtReturns
-	fake.recordInvocation("ExpiresAt", []any{})
+	fake.recordInvocation("ExpiresAt", []interface{}{})
 	fake.expiresAtMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -892,7 +892,7 @@ func (fake *FakeWorker) FindContainer(arg1 db.ContainerOwner) (db.CreatingContai
 	}{arg1})
 	stub := fake.FindContainerStub
 	fakeReturns := fake.findContainerReturns
-	fake.recordInvocation("FindContainer", []any{arg1})
+	fake.recordInvocation("FindContainer", []interface{}{arg1})
 	fake.findContainerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -958,7 +958,7 @@ func (fake *FakeWorker) GardenAddr() *string {
 	}{})
 	stub := fake.GardenAddrStub
 	fakeReturns := fake.gardenAddrReturns
-	fake.recordInvocation("GardenAddr", []any{})
+	fake.recordInvocation("GardenAddr", []interface{}{})
 	fake.gardenAddrMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1011,7 +1011,7 @@ func (fake *FakeWorker) HTTPProxyURL() string {
 	}{})
 	stub := fake.HTTPProxyURLStub
 	fakeReturns := fake.hTTPProxyURLReturns
-	fake.recordInvocation("HTTPProxyURL", []any{})
+	fake.recordInvocation("HTTPProxyURL", []interface{}{})
 	fake.hTTPProxyURLMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1064,7 +1064,7 @@ func (fake *FakeWorker) HTTPSProxyURL() string {
 	}{})
 	stub := fake.HTTPSProxyURLStub
 	fakeReturns := fake.hTTPSProxyURLReturns
-	fake.recordInvocation("HTTPSProxyURL", []any{})
+	fake.recordInvocation("HTTPSProxyURL", []interface{}{})
 	fake.hTTPSProxyURLMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1118,7 +1118,7 @@ func (fake *FakeWorker) IncreaseActiveTasks(arg1 int) (int, error) {
 	}{arg1})
 	stub := fake.IncreaseActiveTasksStub
 	fakeReturns := fake.increaseActiveTasksReturns
-	fake.recordInvocation("IncreaseActiveTasks", []any{arg1})
+	fake.recordInvocation("IncreaseActiveTasks", []interface{}{arg1})
 	fake.increaseActiveTasksMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1181,7 +1181,7 @@ func (fake *FakeWorker) Land() error {
 	}{})
 	stub := fake.LandStub
 	fakeReturns := fake.landReturns
-	fake.recordInvocation("Land", []any{})
+	fake.recordInvocation("Land", []interface{}{})
 	fake.landMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1234,7 +1234,7 @@ func (fake *FakeWorker) Name() string {
 	}{})
 	stub := fake.NameStub
 	fakeReturns := fake.nameReturns
-	fake.recordInvocation("Name", []any{})
+	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1287,7 +1287,7 @@ func (fake *FakeWorker) NoProxy() string {
 	}{})
 	stub := fake.NoProxyStub
 	fakeReturns := fake.noProxyReturns
-	fake.recordInvocation("NoProxy", []any{})
+	fake.recordInvocation("NoProxy", []interface{}{})
 	fake.noProxyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1340,7 +1340,7 @@ func (fake *FakeWorker) Platform() string {
 	}{})
 	stub := fake.PlatformStub
 	fakeReturns := fake.platformReturns
-	fake.recordInvocation("Platform", []any{})
+	fake.recordInvocation("Platform", []interface{}{})
 	fake.platformMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1393,7 +1393,7 @@ func (fake *FakeWorker) Prune() error {
 	}{})
 	stub := fake.PruneStub
 	fakeReturns := fake.pruneReturns
-	fake.recordInvocation("Prune", []any{})
+	fake.recordInvocation("Prune", []interface{}{})
 	fake.pruneMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1446,7 +1446,7 @@ func (fake *FakeWorker) Reload() (bool, error) {
 	}{})
 	stub := fake.ReloadStub
 	fakeReturns := fake.reloadReturns
-	fake.recordInvocation("Reload", []any{})
+	fake.recordInvocation("Reload", []interface{}{})
 	fake.reloadMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1502,7 +1502,7 @@ func (fake *FakeWorker) ResourceCerts() (*db.UsedWorkerResourceCerts, bool, erro
 	}{})
 	stub := fake.ResourceCertsStub
 	fakeReturns := fake.resourceCertsReturns
-	fake.recordInvocation("ResourceCerts", []any{})
+	fake.recordInvocation("ResourceCerts", []interface{}{})
 	fake.resourceCertsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1561,7 +1561,7 @@ func (fake *FakeWorker) ResourceTypes() []atc.WorkerResourceType {
 	}{})
 	stub := fake.ResourceTypesStub
 	fakeReturns := fake.resourceTypesReturns
-	fake.recordInvocation("ResourceTypes", []any{})
+	fake.recordInvocation("ResourceTypes", []interface{}{})
 	fake.resourceTypesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1614,7 +1614,7 @@ func (fake *FakeWorker) Retire() error {
 	}{})
 	stub := fake.RetireStub
 	fakeReturns := fake.retireReturns
-	fake.recordInvocation("Retire", []any{})
+	fake.recordInvocation("Retire", []interface{}{})
 	fake.retireMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1667,7 +1667,7 @@ func (fake *FakeWorker) StartTime() time.Time {
 	}{})
 	stub := fake.StartTimeStub
 	fakeReturns := fake.startTimeReturns
-	fake.recordInvocation("StartTime", []any{})
+	fake.recordInvocation("StartTime", []interface{}{})
 	fake.startTimeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1720,7 +1720,7 @@ func (fake *FakeWorker) State() db.WorkerState {
 	}{})
 	stub := fake.StateStub
 	fakeReturns := fake.stateReturns
-	fake.recordInvocation("State", []any{})
+	fake.recordInvocation("State", []interface{}{})
 	fake.stateMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1773,7 +1773,7 @@ func (fake *FakeWorker) Tags() []string {
 	}{})
 	stub := fake.TagsStub
 	fakeReturns := fake.tagsReturns
-	fake.recordInvocation("Tags", []any{})
+	fake.recordInvocation("Tags", []interface{}{})
 	fake.tagsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1826,7 +1826,7 @@ func (fake *FakeWorker) TeamID() int {
 	}{})
 	stub := fake.TeamIDStub
 	fakeReturns := fake.teamIDReturns
-	fake.recordInvocation("TeamID", []any{})
+	fake.recordInvocation("TeamID", []interface{}{})
 	fake.teamIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1879,7 +1879,7 @@ func (fake *FakeWorker) TeamName() string {
 	}{})
 	stub := fake.TeamNameStub
 	fakeReturns := fake.teamNameReturns
-	fake.recordInvocation("TeamName", []any{})
+	fake.recordInvocation("TeamName", []interface{}{})
 	fake.teamNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1932,7 +1932,7 @@ func (fake *FakeWorker) Version() *string {
 	}{})
 	stub := fake.VersionStub
 	fakeReturns := fake.versionReturns
-	fake.recordInvocation("Version", []any{})
+	fake.recordInvocation("Version", []interface{}{})
 	fake.versionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1978,7 +1978,7 @@ func (fake *FakeWorker) VersionReturnsOnCall(i int, result1 *string) {
 	}{result1}
 }
 
-func (fake *FakeWorker) Invocations() map[string][][]any {
+func (fake *FakeWorker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.activeContainersMutex.RLock()
@@ -2041,21 +2041,21 @@ func (fake *FakeWorker) Invocations() map[string][][]any {
 	defer fake.teamNameMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeWorker) recordInvocation(key string, args []any) {
+func (fake *FakeWorker) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

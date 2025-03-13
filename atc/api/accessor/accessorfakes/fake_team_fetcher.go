@@ -21,7 +21,7 @@ type FakeTeamFetcher struct {
 		result1 []db.Team
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -32,7 +32,7 @@ func (fake *FakeTeamFetcher) GetTeams() ([]db.Team, error) {
 	}{})
 	stub := fake.GetTeamsStub
 	fakeReturns := fake.getTeamsReturns
-	fake.recordInvocation("GetTeams", []any{})
+	fake.recordInvocation("GetTeams", []interface{}{})
 	fake.getTeamsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -81,26 +81,26 @@ func (fake *FakeTeamFetcher) GetTeamsReturnsOnCall(i int, result1 []db.Team, res
 	}{result1, result2}
 }
 
-func (fake *FakeTeamFetcher) Invocations() map[string][][]any {
+func (fake *FakeTeamFetcher) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getTeamsMutex.RLock()
 	defer fake.getTeamsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTeamFetcher) recordInvocation(key string, args []any) {
+func (fake *FakeTeamFetcher) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

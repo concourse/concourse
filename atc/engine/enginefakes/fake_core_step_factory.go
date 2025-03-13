@@ -131,7 +131,7 @@ type FakeCoreStepFactory struct {
 	taskStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -144,7 +144,7 @@ func (fake *FakeCoreStepFactory) ArtifactInputStep(arg1 atc.Plan, arg2 db.Build)
 	}{arg1, arg2})
 	stub := fake.ArtifactInputStepStub
 	fakeReturns := fake.artifactInputStepReturns
-	fake.recordInvocation("ArtifactInputStep", []any{arg1, arg2})
+	fake.recordInvocation("ArtifactInputStep", []interface{}{arg1, arg2})
 	fake.artifactInputStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -206,7 +206,7 @@ func (fake *FakeCoreStepFactory) ArtifactOutputStep(arg1 atc.Plan, arg2 db.Build
 	}{arg1, arg2})
 	stub := fake.ArtifactOutputStepStub
 	fakeReturns := fake.artifactOutputStepReturns
-	fake.recordInvocation("ArtifactOutputStep", []any{arg1, arg2})
+	fake.recordInvocation("ArtifactOutputStep", []interface{}{arg1, arg2})
 	fake.artifactOutputStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -270,7 +270,7 @@ func (fake *FakeCoreStepFactory) CheckStep(arg1 atc.Plan, arg2 exec.StepMetadata
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.CheckStepStub
 	fakeReturns := fake.checkStepReturns
-	fake.recordInvocation("CheckStep", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CheckStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.checkStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -334,7 +334,7 @@ func (fake *FakeCoreStepFactory) GetStep(arg1 atc.Plan, arg2 exec.StepMetadata, 
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.GetStepStub
 	fakeReturns := fake.getStepReturns
-	fake.recordInvocation("GetStep", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("GetStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.getStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -397,7 +397,7 @@ func (fake *FakeCoreStepFactory) LoadVarStep(arg1 atc.Plan, arg2 exec.StepMetada
 	}{arg1, arg2, arg3})
 	stub := fake.LoadVarStepStub
 	fakeReturns := fake.loadVarStepReturns
-	fake.recordInvocation("LoadVarStep", []any{arg1, arg2, arg3})
+	fake.recordInvocation("LoadVarStep", []interface{}{arg1, arg2, arg3})
 	fake.loadVarStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -461,7 +461,7 @@ func (fake *FakeCoreStepFactory) PutStep(arg1 atc.Plan, arg2 exec.StepMetadata, 
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.PutStepStub
 	fakeReturns := fake.putStepReturns
-	fake.recordInvocation("PutStep", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("PutStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.putStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -525,7 +525,7 @@ func (fake *FakeCoreStepFactory) RunStep(arg1 atc.Plan, arg2 exec.StepMetadata, 
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.RunStepStub
 	fakeReturns := fake.runStepReturns
-	fake.recordInvocation("RunStep", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("RunStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.runStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -588,7 +588,7 @@ func (fake *FakeCoreStepFactory) SetPipelineStep(arg1 atc.Plan, arg2 exec.StepMe
 	}{arg1, arg2, arg3})
 	stub := fake.SetPipelineStepStub
 	fakeReturns := fake.setPipelineStepReturns
-	fake.recordInvocation("SetPipelineStep", []any{arg1, arg2, arg3})
+	fake.recordInvocation("SetPipelineStep", []interface{}{arg1, arg2, arg3})
 	fake.setPipelineStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -652,7 +652,7 @@ func (fake *FakeCoreStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata,
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.TaskStepStub
 	fakeReturns := fake.taskStepReturns
-	fake.recordInvocation("TaskStep", []any{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("TaskStep", []interface{}{arg1, arg2, arg3, arg4})
 	fake.taskStepMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -705,7 +705,7 @@ func (fake *FakeCoreStepFactory) TaskStepReturnsOnCall(i int, result1 exec.Step)
 	}{result1}
 }
 
-func (fake *FakeCoreStepFactory) Invocations() map[string][][]any {
+func (fake *FakeCoreStepFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.artifactInputStepMutex.RLock()
@@ -726,21 +726,21 @@ func (fake *FakeCoreStepFactory) Invocations() map[string][][]any {
 	defer fake.setPipelineStepMutex.RUnlock()
 	fake.taskStepMutex.RLock()
 	defer fake.taskStepMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCoreStepFactory) recordInvocation(key string, args []any) {
+func (fake *FakeCoreStepFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

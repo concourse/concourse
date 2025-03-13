@@ -614,7 +614,7 @@ type FakePipeline struct {
 		result1 vars.Variables
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -625,7 +625,7 @@ func (fake *FakePipeline) Archive() error {
 	}{})
 	stub := fake.ArchiveStub
 	fakeReturns := fake.archiveReturns
-	fake.recordInvocation("Archive", []any{})
+	fake.recordInvocation("Archive", []interface{}{})
 	fake.archiveMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -678,7 +678,7 @@ func (fake *FakePipeline) Archived() bool {
 	}{})
 	stub := fake.ArchivedStub
 	fakeReturns := fake.archivedReturns
-	fake.recordInvocation("Archived", []any{})
+	fake.recordInvocation("Archived", []interface{}{})
 	fake.archivedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -732,7 +732,7 @@ func (fake *FakePipeline) Builds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination,
 	}{arg1})
 	stub := fake.BuildsStub
 	fakeReturns := fake.buildsReturns
-	fake.recordInvocation("Builds", []any{arg1})
+	fake.recordInvocation("Builds", []interface{}{arg1})
 	fake.buildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -799,7 +799,7 @@ func (fake *FakePipeline) BuildsWithTime(arg1 db.Page) ([]db.BuildForAPI, db.Pag
 	}{arg1})
 	stub := fake.BuildsWithTimeStub
 	fakeReturns := fake.buildsWithTimeReturns
-	fake.recordInvocation("BuildsWithTime", []any{arg1})
+	fake.recordInvocation("BuildsWithTime", []interface{}{arg1})
 	fake.buildsWithTimeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -865,7 +865,7 @@ func (fake *FakePipeline) CheckPaused() (bool, error) {
 	}{})
 	stub := fake.CheckPausedStub
 	fakeReturns := fake.checkPausedReturns
-	fake.recordInvocation("CheckPaused", []any{})
+	fake.recordInvocation("CheckPaused", []interface{}{})
 	fake.checkPausedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -921,7 +921,7 @@ func (fake *FakePipeline) Config() (atc.Config, error) {
 	}{})
 	stub := fake.ConfigStub
 	fakeReturns := fake.configReturns
-	fake.recordInvocation("Config", []any{})
+	fake.recordInvocation("Config", []interface{}{})
 	fake.configMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -977,7 +977,7 @@ func (fake *FakePipeline) ConfigVersion() db.ConfigVersion {
 	}{})
 	stub := fake.ConfigVersionStub
 	fakeReturns := fake.configVersionReturns
-	fake.recordInvocation("ConfigVersion", []any{})
+	fake.recordInvocation("ConfigVersion", []interface{}{})
 	fake.configVersionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1030,7 +1030,7 @@ func (fake *FakePipeline) CreateOneOffBuild() (db.Build, error) {
 	}{})
 	stub := fake.CreateOneOffBuildStub
 	fakeReturns := fake.createOneOffBuildReturns
-	fake.recordInvocation("CreateOneOffBuild", []any{})
+	fake.recordInvocation("CreateOneOffBuild", []interface{}{})
 	fake.createOneOffBuildMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1087,7 +1087,7 @@ func (fake *FakePipeline) CreateStartedBuild(arg1 atc.Plan) (db.Build, error) {
 	}{arg1})
 	stub := fake.CreateStartedBuildStub
 	fakeReturns := fake.createStartedBuildReturns
-	fake.recordInvocation("CreateStartedBuild", []any{arg1})
+	fake.recordInvocation("CreateStartedBuild", []interface{}{arg1})
 	fake.createStartedBuildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1150,7 +1150,7 @@ func (fake *FakePipeline) Dashboard() ([]atc.JobSummary, error) {
 	}{})
 	stub := fake.DashboardStub
 	fakeReturns := fake.dashboardReturns
-	fake.recordInvocation("Dashboard", []any{})
+	fake.recordInvocation("Dashboard", []interface{}{})
 	fake.dashboardMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1212,7 +1212,7 @@ func (fake *FakePipeline) DeleteBuildEventsByBuildIDs(arg1 []int) error {
 	}{arg1Copy})
 	stub := fake.DeleteBuildEventsByBuildIDsStub
 	fakeReturns := fake.deleteBuildEventsByBuildIDsReturns
-	fake.recordInvocation("DeleteBuildEventsByBuildIDs", []any{arg1Copy})
+	fake.recordInvocation("DeleteBuildEventsByBuildIDs", []interface{}{arg1Copy})
 	fake.deleteBuildEventsByBuildIDsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1272,7 +1272,7 @@ func (fake *FakePipeline) Destroy() error {
 	}{})
 	stub := fake.DestroyStub
 	fakeReturns := fake.destroyReturns
-	fake.recordInvocation("Destroy", []any{})
+	fake.recordInvocation("Destroy", []interface{}{})
 	fake.destroyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1325,7 +1325,7 @@ func (fake *FakePipeline) Display() *atc.DisplayConfig {
 	}{})
 	stub := fake.DisplayStub
 	fakeReturns := fake.displayReturns
-	fake.recordInvocation("Display", []any{})
+	fake.recordInvocation("Display", []interface{}{})
 	fake.displayMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1378,7 +1378,7 @@ func (fake *FakePipeline) Expose() error {
 	}{})
 	stub := fake.ExposeStub
 	fakeReturns := fake.exposeReturns
-	fake.recordInvocation("Expose", []any{})
+	fake.recordInvocation("Expose", []interface{}{})
 	fake.exposeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1433,7 +1433,7 @@ func (fake *FakePipeline) GetBuildsWithVersionAsInput(arg1 int, arg2 int) ([]db.
 	}{arg1, arg2})
 	stub := fake.GetBuildsWithVersionAsInputStub
 	fakeReturns := fake.getBuildsWithVersionAsInputReturns
-	fake.recordInvocation("GetBuildsWithVersionAsInput", []any{arg1, arg2})
+	fake.recordInvocation("GetBuildsWithVersionAsInput", []interface{}{arg1, arg2})
 	fake.getBuildsWithVersionAsInputMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1498,7 +1498,7 @@ func (fake *FakePipeline) GetBuildsWithVersionAsOutput(arg1 int, arg2 int) ([]db
 	}{arg1, arg2})
 	stub := fake.GetBuildsWithVersionAsOutputStub
 	fakeReturns := fake.getBuildsWithVersionAsOutputReturns
-	fake.recordInvocation("GetBuildsWithVersionAsOutput", []any{arg1, arg2})
+	fake.recordInvocation("GetBuildsWithVersionAsOutput", []interface{}{arg1, arg2})
 	fake.getBuildsWithVersionAsOutputMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1561,7 +1561,7 @@ func (fake *FakePipeline) Groups() atc.GroupConfigs {
 	}{})
 	stub := fake.GroupsStub
 	fakeReturns := fake.groupsReturns
-	fake.recordInvocation("Groups", []any{})
+	fake.recordInvocation("Groups", []interface{}{})
 	fake.groupsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1614,7 +1614,7 @@ func (fake *FakePipeline) Hide() error {
 	}{})
 	stub := fake.HideStub
 	fakeReturns := fake.hideReturns
-	fake.recordInvocation("Hide", []any{})
+	fake.recordInvocation("Hide", []interface{}{})
 	fake.hideMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1667,7 +1667,7 @@ func (fake *FakePipeline) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []any{})
+	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1720,7 +1720,7 @@ func (fake *FakePipeline) InstanceVars() atc.InstanceVars {
 	}{})
 	stub := fake.InstanceVarsStub
 	fakeReturns := fake.instanceVarsReturns
-	fake.recordInvocation("InstanceVars", []any{})
+	fake.recordInvocation("InstanceVars", []interface{}{})
 	fake.instanceVarsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1774,7 +1774,7 @@ func (fake *FakePipeline) Job(arg1 string) (db.Job, bool, error) {
 	}{arg1})
 	stub := fake.JobStub
 	fakeReturns := fake.jobReturns
-	fake.recordInvocation("Job", []any{arg1})
+	fake.recordInvocation("Job", []interface{}{arg1})
 	fake.jobMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1840,7 +1840,7 @@ func (fake *FakePipeline) Jobs() (db.Jobs, error) {
 	}{})
 	stub := fake.JobsStub
 	fakeReturns := fake.jobsReturns
-	fake.recordInvocation("Jobs", []any{})
+	fake.recordInvocation("Jobs", []interface{}{})
 	fake.jobsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1896,7 +1896,7 @@ func (fake *FakePipeline) LastUpdated() time.Time {
 	}{})
 	stub := fake.LastUpdatedStub
 	fakeReturns := fake.lastUpdatedReturns
-	fake.recordInvocation("LastUpdated", []any{})
+	fake.recordInvocation("LastUpdated", []interface{}{})
 	fake.lastUpdatedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1949,7 +1949,7 @@ func (fake *FakePipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 	}{})
 	stub := fake.LoadDebugVersionsDBStub
 	fakeReturns := fake.loadDebugVersionsDBReturns
-	fake.recordInvocation("LoadDebugVersionsDB", []any{})
+	fake.recordInvocation("LoadDebugVersionsDB", []interface{}{})
 	fake.loadDebugVersionsDBMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2005,7 +2005,7 @@ func (fake *FakePipeline) Name() string {
 	}{})
 	stub := fake.NameStub
 	fakeReturns := fake.nameReturns
-	fake.recordInvocation("Name", []any{})
+	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2058,7 +2058,7 @@ func (fake *FakePipeline) ParentBuildID() int {
 	}{})
 	stub := fake.ParentBuildIDStub
 	fakeReturns := fake.parentBuildIDReturns
-	fake.recordInvocation("ParentBuildID", []any{})
+	fake.recordInvocation("ParentBuildID", []interface{}{})
 	fake.parentBuildIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2111,7 +2111,7 @@ func (fake *FakePipeline) ParentJobID() int {
 	}{})
 	stub := fake.ParentJobIDStub
 	fakeReturns := fake.parentJobIDReturns
-	fake.recordInvocation("ParentJobID", []any{})
+	fake.recordInvocation("ParentJobID", []interface{}{})
 	fake.parentJobIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2165,7 +2165,7 @@ func (fake *FakePipeline) Pause(arg1 string) error {
 	}{arg1})
 	stub := fake.PauseStub
 	fakeReturns := fake.pauseReturns
-	fake.recordInvocation("Pause", []any{arg1})
+	fake.recordInvocation("Pause", []interface{}{arg1})
 	fake.pauseMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2225,7 +2225,7 @@ func (fake *FakePipeline) Paused() bool {
 	}{})
 	stub := fake.PausedStub
 	fakeReturns := fake.pausedReturns
-	fake.recordInvocation("Paused", []any{})
+	fake.recordInvocation("Paused", []interface{}{})
 	fake.pausedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2278,7 +2278,7 @@ func (fake *FakePipeline) PausedAt() time.Time {
 	}{})
 	stub := fake.PausedAtStub
 	fakeReturns := fake.pausedAtReturns
-	fake.recordInvocation("PausedAt", []any{})
+	fake.recordInvocation("PausedAt", []interface{}{})
 	fake.pausedAtMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2331,7 +2331,7 @@ func (fake *FakePipeline) PausedBy() string {
 	}{})
 	stub := fake.PausedByStub
 	fakeReturns := fake.pausedByReturns
-	fake.recordInvocation("PausedBy", []any{})
+	fake.recordInvocation("PausedBy", []interface{}{})
 	fake.pausedByMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2385,7 +2385,7 @@ func (fake *FakePipeline) Prototype(arg1 string) (db.Prototype, bool, error) {
 	}{arg1})
 	stub := fake.PrototypeStub
 	fakeReturns := fake.prototypeReturns
-	fake.recordInvocation("Prototype", []any{arg1})
+	fake.recordInvocation("Prototype", []interface{}{arg1})
 	fake.prototypeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2451,7 +2451,7 @@ func (fake *FakePipeline) Prototypes() (db.Prototypes, error) {
 	}{})
 	stub := fake.PrototypesStub
 	fakeReturns := fake.prototypesReturns
-	fake.recordInvocation("Prototypes", []any{})
+	fake.recordInvocation("Prototypes", []interface{}{})
 	fake.prototypesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2507,7 +2507,7 @@ func (fake *FakePipeline) Public() bool {
 	}{})
 	stub := fake.PublicStub
 	fakeReturns := fake.publicReturns
-	fake.recordInvocation("Public", []any{})
+	fake.recordInvocation("Public", []interface{}{})
 	fake.publicMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2560,7 +2560,7 @@ func (fake *FakePipeline) Reload() (bool, error) {
 	}{})
 	stub := fake.ReloadStub
 	fakeReturns := fake.reloadReturns
-	fake.recordInvocation("Reload", []any{})
+	fake.recordInvocation("Reload", []interface{}{})
 	fake.reloadMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2617,7 +2617,7 @@ func (fake *FakePipeline) Resource(arg1 string) (db.Resource, bool, error) {
 	}{arg1})
 	stub := fake.ResourceStub
 	fakeReturns := fake.resourceReturns
-	fake.recordInvocation("Resource", []any{arg1})
+	fake.recordInvocation("Resource", []interface{}{arg1})
 	fake.resourceMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2684,7 +2684,7 @@ func (fake *FakePipeline) ResourceByID(arg1 int) (db.Resource, bool, error) {
 	}{arg1})
 	stub := fake.ResourceByIDStub
 	fakeReturns := fake.resourceByIDReturns
-	fake.recordInvocation("ResourceByID", []any{arg1})
+	fake.recordInvocation("ResourceByID", []interface{}{arg1})
 	fake.resourceByIDMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2751,7 +2751,7 @@ func (fake *FakePipeline) ResourceID(arg1 string) (int, bool, error) {
 	}{arg1})
 	stub := fake.ResourceIDStub
 	fakeReturns := fake.resourceIDReturns
-	fake.recordInvocation("ResourceID", []any{arg1})
+	fake.recordInvocation("ResourceID", []interface{}{arg1})
 	fake.resourceIDMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2818,7 +2818,7 @@ func (fake *FakePipeline) ResourceType(arg1 string) (db.ResourceType, bool, erro
 	}{arg1})
 	stub := fake.ResourceTypeStub
 	fakeReturns := fake.resourceTypeReturns
-	fake.recordInvocation("ResourceType", []any{arg1})
+	fake.recordInvocation("ResourceType", []interface{}{arg1})
 	fake.resourceTypeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2884,7 +2884,7 @@ func (fake *FakePipeline) ResourceTypes() (db.ResourceTypes, error) {
 	}{})
 	stub := fake.ResourceTypesStub
 	fakeReturns := fake.resourceTypesReturns
-	fake.recordInvocation("ResourceTypes", []any{})
+	fake.recordInvocation("ResourceTypes", []interface{}{})
 	fake.resourceTypesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2941,7 +2941,7 @@ func (fake *FakePipeline) ResourceVersion(arg1 int) (atc.ResourceVersion, bool, 
 	}{arg1})
 	stub := fake.ResourceVersionStub
 	fakeReturns := fake.resourceVersionReturns
-	fake.recordInvocation("ResourceVersion", []any{arg1})
+	fake.recordInvocation("ResourceVersion", []interface{}{arg1})
 	fake.resourceVersionMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -3007,7 +3007,7 @@ func (fake *FakePipeline) Resources() (db.Resources, error) {
 	}{})
 	stub := fake.ResourcesStub
 	fakeReturns := fake.resourcesReturns
-	fake.recordInvocation("Resources", []any{})
+	fake.recordInvocation("Resources", []interface{}{})
 	fake.resourcesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -3065,7 +3065,7 @@ func (fake *FakePipeline) SetParentIDs(arg1 int, arg2 int) error {
 	}{arg1, arg2})
 	stub := fake.SetParentIDsStub
 	fakeReturns := fake.setParentIDsReturns
-	fake.recordInvocation("SetParentIDs", []any{arg1, arg2})
+	fake.recordInvocation("SetParentIDs", []interface{}{arg1, arg2})
 	fake.setParentIDsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -3127,7 +3127,7 @@ func (fake *FakePipeline) SetResourceConfigScopeForPrototype(arg1 string, arg2 d
 	}{arg1, arg2})
 	stub := fake.SetResourceConfigScopeForPrototypeStub
 	fakeReturns := fake.setResourceConfigScopeForPrototypeReturns
-	fake.recordInvocation("SetResourceConfigScopeForPrototype", []any{arg1, arg2})
+	fake.recordInvocation("SetResourceConfigScopeForPrototype", []interface{}{arg1, arg2})
 	fake.setResourceConfigScopeForPrototypeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -3189,7 +3189,7 @@ func (fake *FakePipeline) SetResourceConfigScopeForResource(arg1 string, arg2 db
 	}{arg1, arg2})
 	stub := fake.SetResourceConfigScopeForResourceStub
 	fakeReturns := fake.setResourceConfigScopeForResourceReturns
-	fake.recordInvocation("SetResourceConfigScopeForResource", []any{arg1, arg2})
+	fake.recordInvocation("SetResourceConfigScopeForResource", []interface{}{arg1, arg2})
 	fake.setResourceConfigScopeForResourceMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -3251,7 +3251,7 @@ func (fake *FakePipeline) SetResourceConfigScopeForResourceType(arg1 string, arg
 	}{arg1, arg2})
 	stub := fake.SetResourceConfigScopeForResourceTypeStub
 	fakeReturns := fake.setResourceConfigScopeForResourceTypeReturns
-	fake.recordInvocation("SetResourceConfigScopeForResourceType", []any{arg1, arg2})
+	fake.recordInvocation("SetResourceConfigScopeForResourceType", []interface{}{arg1, arg2})
 	fake.setResourceConfigScopeForResourceTypeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -3311,7 +3311,7 @@ func (fake *FakePipeline) TeamID() int {
 	}{})
 	stub := fake.TeamIDStub
 	fakeReturns := fake.teamIDReturns
-	fake.recordInvocation("TeamID", []any{})
+	fake.recordInvocation("TeamID", []interface{}{})
 	fake.teamIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -3364,7 +3364,7 @@ func (fake *FakePipeline) TeamName() string {
 	}{})
 	stub := fake.TeamNameStub
 	fakeReturns := fake.teamNameReturns
-	fake.recordInvocation("TeamName", []any{})
+	fake.recordInvocation("TeamName", []interface{}{})
 	fake.teamNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -3417,7 +3417,7 @@ func (fake *FakePipeline) Unpause() error {
 	}{})
 	stub := fake.UnpauseStub
 	fakeReturns := fake.unpauseReturns
-	fake.recordInvocation("Unpause", []any{})
+	fake.recordInvocation("Unpause", []interface{}{})
 	fake.unpauseMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -3470,7 +3470,7 @@ func (fake *FakePipeline) VarSources() atc.VarSourceConfigs {
 	}{})
 	stub := fake.VarSourcesStub
 	fakeReturns := fake.varSourcesReturns
-	fake.recordInvocation("VarSources", []any{})
+	fake.recordInvocation("VarSources", []interface{}{})
 	fake.varSourcesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -3526,7 +3526,7 @@ func (fake *FakePipeline) Variables(arg1 lager.Logger, arg2 creds.Secrets, arg3 
 	}{arg1, arg2, arg3})
 	stub := fake.VariablesStub
 	fakeReturns := fake.variablesReturns
-	fake.recordInvocation("Variables", []any{arg1, arg2, arg3})
+	fake.recordInvocation("Variables", []interface{}{arg1, arg2, arg3})
 	fake.variablesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -3582,7 +3582,7 @@ func (fake *FakePipeline) VariablesReturnsOnCall(i int, result1 vars.Variables, 
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) Invocations() map[string][][]any {
+func (fake *FakePipeline) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.archiveMutex.RLock()
@@ -3687,21 +3687,21 @@ func (fake *FakePipeline) Invocations() map[string][][]any {
 	defer fake.varSourcesMutex.RUnlock()
 	fake.variablesMutex.RLock()
 	defer fake.variablesMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePipeline) recordInvocation(key string, args []any) {
+func (fake *FakePipeline) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

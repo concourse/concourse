@@ -23,7 +23,7 @@ type FakeDisplayUserIdGenerator struct {
 	displayUserIdReturnsOnCall map[int]struct {
 		result1 string
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -39,7 +39,7 @@ func (fake *FakeDisplayUserIdGenerator) DisplayUserId(arg1 string, arg2 string, 
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.DisplayUserIdStub
 	fakeReturns := fake.displayUserIdReturns
-	fake.recordInvocation("DisplayUserId", []any{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("DisplayUserId", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.displayUserIdMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -92,26 +92,26 @@ func (fake *FakeDisplayUserIdGenerator) DisplayUserIdReturnsOnCall(i int, result
 	}{result1}
 }
 
-func (fake *FakeDisplayUserIdGenerator) Invocations() map[string][][]any {
+func (fake *FakeDisplayUserIdGenerator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.displayUserIdMutex.RLock()
 	defer fake.displayUserIdMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeDisplayUserIdGenerator) recordInvocation(key string, args []any) {
+func (fake *FakeDisplayUserIdGenerator) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

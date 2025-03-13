@@ -28,7 +28,7 @@ type FakeResourceConfigCheckSessionLifecycle struct {
 	cleanInactiveResourceConfigCheckSessionsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -39,7 +39,7 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanExpiredResourceConfigC
 	}{})
 	stub := fake.CleanExpiredResourceConfigCheckSessionsStub
 	fakeReturns := fake.cleanExpiredResourceConfigCheckSessionsReturns
-	fake.recordInvocation("CleanExpiredResourceConfigCheckSessions", []any{})
+	fake.recordInvocation("CleanExpiredResourceConfigCheckSessions", []interface{}{})
 	fake.cleanExpiredResourceConfigCheckSessionsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -92,7 +92,7 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 	}{})
 	stub := fake.CleanInactiveResourceConfigCheckSessionsStub
 	fakeReturns := fake.cleanInactiveResourceConfigCheckSessionsReturns
-	fake.recordInvocation("CleanInactiveResourceConfigCheckSessions", []any{})
+	fake.recordInvocation("CleanInactiveResourceConfigCheckSessions", []interface{}{})
 	fake.cleanInactiveResourceConfigCheckSessionsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -138,28 +138,28 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 	}{result1}
 }
 
-func (fake *FakeResourceConfigCheckSessionLifecycle) Invocations() map[string][][]any {
+func (fake *FakeResourceConfigCheckSessionLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.cleanExpiredResourceConfigCheckSessionsMutex.RLock()
 	defer fake.cleanExpiredResourceConfigCheckSessionsMutex.RUnlock()
 	fake.cleanInactiveResourceConfigCheckSessionsMutex.RLock()
 	defer fake.cleanInactiveResourceConfigCheckSessionsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeResourceConfigCheckSessionLifecycle) recordInvocation(key string, args []any) {
+func (fake *FakeResourceConfigCheckSessionLifecycle) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

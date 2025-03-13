@@ -46,7 +46,7 @@ type FakeJobFactory struct {
 		result1 []atc.JobSummary
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -57,7 +57,7 @@ func (fake *FakeJobFactory) AllActiveJobs() ([]atc.JobSummary, error) {
 	}{})
 	stub := fake.AllActiveJobsStub
 	fakeReturns := fake.allActiveJobsReturns
-	fake.recordInvocation("AllActiveJobs", []any{})
+	fake.recordInvocation("AllActiveJobs", []interface{}{})
 	fake.allActiveJobsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -113,7 +113,7 @@ func (fake *FakeJobFactory) JobsToSchedule() (db.SchedulerJobs, error) {
 	}{})
 	stub := fake.JobsToScheduleStub
 	fakeReturns := fake.jobsToScheduleReturns
-	fake.recordInvocation("JobsToSchedule", []any{})
+	fake.recordInvocation("JobsToSchedule", []interface{}{})
 	fake.jobsToScheduleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -175,7 +175,7 @@ func (fake *FakeJobFactory) VisibleJobs(arg1 []string) ([]atc.JobSummary, error)
 	}{arg1Copy})
 	stub := fake.VisibleJobsStub
 	fakeReturns := fake.visibleJobsReturns
-	fake.recordInvocation("VisibleJobs", []any{arg1Copy})
+	fake.recordInvocation("VisibleJobs", []interface{}{arg1Copy})
 	fake.visibleJobsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -231,7 +231,7 @@ func (fake *FakeJobFactory) VisibleJobsReturnsOnCall(i int, result1 []atc.JobSum
 	}{result1, result2}
 }
 
-func (fake *FakeJobFactory) Invocations() map[string][][]any {
+func (fake *FakeJobFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.allActiveJobsMutex.RLock()
@@ -240,21 +240,21 @@ func (fake *FakeJobFactory) Invocations() map[string][][]any {
 	defer fake.jobsToScheduleMutex.RUnlock()
 	fake.visibleJobsMutex.RLock()
 	defer fake.visibleJobsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeJobFactory) recordInvocation(key string, args []any) {
+func (fake *FakeJobFactory) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

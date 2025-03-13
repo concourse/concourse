@@ -105,7 +105,7 @@ type FakeTSAClient struct {
 		result1 []string
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -117,7 +117,7 @@ func (fake *FakeTSAClient) ContainersToDestroy(arg1 context.Context) ([]string, 
 	}{arg1})
 	stub := fake.ContainersToDestroyStub
 	fakeReturns := fake.containersToDestroyReturns
-	fake.recordInvocation("ContainersToDestroy", []any{arg1})
+	fake.recordInvocation("ContainersToDestroy", []interface{}{arg1})
 	fake.containersToDestroyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -181,7 +181,7 @@ func (fake *FakeTSAClient) Delete(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.DeleteStub
 	fakeReturns := fake.deleteReturns
-	fake.recordInvocation("Delete", []any{arg1})
+	fake.recordInvocation("Delete", []interface{}{arg1})
 	fake.deleteMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -242,7 +242,7 @@ func (fake *FakeTSAClient) Land(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.LandStub
 	fakeReturns := fake.landReturns
-	fake.recordInvocation("Land", []any{arg1})
+	fake.recordInvocation("Land", []interface{}{arg1})
 	fake.landMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -304,7 +304,7 @@ func (fake *FakeTSAClient) Register(arg1 context.Context, arg2 tsa.RegisterOptio
 	}{arg1, arg2})
 	stub := fake.RegisterStub
 	fakeReturns := fake.registerReturns
-	fake.recordInvocation("Register", []any{arg1, arg2})
+	fake.recordInvocation("Register", []interface{}{arg1, arg2})
 	fake.registerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -371,7 +371,7 @@ func (fake *FakeTSAClient) ReportContainers(arg1 context.Context, arg2 []string)
 	}{arg1, arg2Copy})
 	stub := fake.ReportContainersStub
 	fakeReturns := fake.reportContainersReturns
-	fake.recordInvocation("ReportContainers", []any{arg1, arg2Copy})
+	fake.recordInvocation("ReportContainers", []interface{}{arg1, arg2Copy})
 	fake.reportContainersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -438,7 +438,7 @@ func (fake *FakeTSAClient) ReportVolumes(arg1 context.Context, arg2 []string) er
 	}{arg1, arg2Copy})
 	stub := fake.ReportVolumesStub
 	fakeReturns := fake.reportVolumesReturns
-	fake.recordInvocation("ReportVolumes", []any{arg1, arg2Copy})
+	fake.recordInvocation("ReportVolumes", []interface{}{arg1, arg2Copy})
 	fake.reportVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -499,7 +499,7 @@ func (fake *FakeTSAClient) Retire(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.RetireStub
 	fakeReturns := fake.retireReturns
-	fake.recordInvocation("Retire", []any{arg1})
+	fake.recordInvocation("Retire", []interface{}{arg1})
 	fake.retireMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -560,7 +560,7 @@ func (fake *FakeTSAClient) VolumesToDestroy(arg1 context.Context) ([]string, err
 	}{arg1})
 	stub := fake.VolumesToDestroyStub
 	fakeReturns := fake.volumesToDestroyReturns
-	fake.recordInvocation("VolumesToDestroy", []any{arg1})
+	fake.recordInvocation("VolumesToDestroy", []interface{}{arg1})
 	fake.volumesToDestroyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -616,7 +616,7 @@ func (fake *FakeTSAClient) VolumesToDestroyReturnsOnCall(i int, result1 []string
 	}{result1, result2}
 }
 
-func (fake *FakeTSAClient) Invocations() map[string][][]any {
+func (fake *FakeTSAClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.containersToDestroyMutex.RLock()
@@ -635,21 +635,21 @@ func (fake *FakeTSAClient) Invocations() map[string][][]any {
 	defer fake.retireMutex.RUnlock()
 	fake.volumesToDestroyMutex.RLock()
 	defer fake.volumesToDestroyMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTSAClient) recordInvocation(key string, args []any) {
+func (fake *FakeTSAClient) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

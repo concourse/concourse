@@ -16,7 +16,7 @@ type FakeAuditor struct {
 		arg2 string
 		arg3 *http.Request
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -28,7 +28,7 @@ func (fake *FakeAuditor) Audit(arg1 string, arg2 string, arg3 *http.Request) {
 		arg3 *http.Request
 	}{arg1, arg2, arg3})
 	stub := fake.AuditStub
-	fake.recordInvocation("Audit", []any{arg1, arg2, arg3})
+	fake.recordInvocation("Audit", []interface{}{arg1, arg2, arg3})
 	fake.auditMutex.Unlock()
 	if stub != nil {
 		fake.AuditStub(arg1, arg2, arg3)
@@ -54,26 +54,26 @@ func (fake *FakeAuditor) AuditArgsForCall(i int) (string, string, *http.Request)
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeAuditor) Invocations() map[string][][]any {
+func (fake *FakeAuditor) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.auditMutex.RLock()
 	defer fake.auditMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeAuditor) recordInvocation(key string, args []any) {
+func (fake *FakeAuditor) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -22,7 +22,7 @@ type FakeGenerator struct {
 		result1 string
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -34,7 +34,7 @@ func (fake *FakeGenerator) GenerateAccessToken(arg1 db.Claims) (string, error) {
 	}{arg1})
 	stub := fake.GenerateAccessTokenStub
 	fakeReturns := fake.generateAccessTokenReturns
-	fake.recordInvocation("GenerateAccessToken", []any{arg1})
+	fake.recordInvocation("GenerateAccessToken", []interface{}{arg1})
 	fake.generateAccessTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -90,26 +90,26 @@ func (fake *FakeGenerator) GenerateAccessTokenReturnsOnCall(i int, result1 strin
 	}{result1, result2}
 }
 
-func (fake *FakeGenerator) Invocations() map[string][][]any {
+func (fake *FakeGenerator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.generateAccessTokenMutex.RLock()
 	defer fake.generateAccessTokenMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeGenerator) recordInvocation(key string, args []any) {
+func (fake *FakeGenerator) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

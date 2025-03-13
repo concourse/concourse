@@ -23,7 +23,7 @@ type FakeExecutor struct {
 		result1 sql.Result
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -36,7 +36,7 @@ func (fake *FakeExecutor) Exec(arg1 string, arg2 ...any) (sql.Result, error) {
 	}{arg1, arg2})
 	stub := fake.ExecStub
 	fakeReturns := fake.execReturns
-	fake.recordInvocation("Exec", []any{arg1, arg2})
+	fake.recordInvocation("Exec", []interface{}{arg1, arg2})
 	fake.execMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -92,26 +92,26 @@ func (fake *FakeExecutor) ExecReturnsOnCall(i int, result1 sql.Result, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeExecutor) Invocations() map[string][][]any {
+func (fake *FakeExecutor) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeExecutor) recordInvocation(key string, args []any) {
+func (fake *FakeExecutor) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

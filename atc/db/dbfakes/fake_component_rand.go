@@ -18,7 +18,7 @@ type FakeComponentRand struct {
 	intReturnsOnCall map[int]struct {
 		result1 int
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -29,7 +29,7 @@ func (fake *FakeComponentRand) Int() int {
 	}{})
 	stub := fake.IntStub
 	fakeReturns := fake.intReturns
-	fake.recordInvocation("Int", []any{})
+	fake.recordInvocation("Int", []interface{}{})
 	fake.intMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -75,26 +75,26 @@ func (fake *FakeComponentRand) IntReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeComponentRand) Invocations() map[string][][]any {
+func (fake *FakeComponentRand) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.intMutex.RLock()
 	defer fake.intMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeComponentRand) recordInvocation(key string, args []any) {
+func (fake *FakeComponentRand) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

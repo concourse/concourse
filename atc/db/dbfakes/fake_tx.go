@@ -163,7 +163,7 @@ type FakeTx struct {
 	stmtReturnsOnCall map[int]struct {
 		result1 *sql.Stmt
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -174,7 +174,7 @@ func (fake *FakeTx) Commit() error {
 	}{})
 	stub := fake.CommitStub
 	fakeReturns := fake.commitReturns
-	fake.recordInvocation("Commit", []any{})
+	fake.recordInvocation("Commit", []interface{}{})
 	fake.commitMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -227,7 +227,7 @@ func (fake *FakeTx) EncryptionStrategy() encryption.Strategy {
 	}{})
 	stub := fake.EncryptionStrategyStub
 	fakeReturns := fake.encryptionStrategyReturns
-	fake.recordInvocation("EncryptionStrategy", []any{})
+	fake.recordInvocation("EncryptionStrategy", []interface{}{})
 	fake.encryptionStrategyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -282,7 +282,7 @@ func (fake *FakeTx) Exec(arg1 string, arg2 ...any) (sql.Result, error) {
 	}{arg1, arg2})
 	stub := fake.ExecStub
 	fakeReturns := fake.execReturns
-	fake.recordInvocation("Exec", []any{arg1, arg2})
+	fake.recordInvocation("Exec", []interface{}{arg1, arg2})
 	fake.execMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -348,7 +348,7 @@ func (fake *FakeTx) ExecContext(arg1 context.Context, arg2 string, arg3 ...any) 
 	}{arg1, arg2, arg3})
 	stub := fake.ExecContextStub
 	fakeReturns := fake.execContextReturns
-	fake.recordInvocation("ExecContext", []any{arg1, arg2, arg3})
+	fake.recordInvocation("ExecContext", []interface{}{arg1, arg2, arg3})
 	fake.execContextMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3...)
@@ -412,7 +412,7 @@ func (fake *FakeTx) Prepare(arg1 string) (*sql.Stmt, error) {
 	}{arg1})
 	stub := fake.PrepareStub
 	fakeReturns := fake.prepareReturns
-	fake.recordInvocation("Prepare", []any{arg1})
+	fake.recordInvocation("Prepare", []interface{}{arg1})
 	fake.prepareMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -477,7 +477,7 @@ func (fake *FakeTx) PrepareContext(arg1 context.Context, arg2 string) (*sql.Stmt
 	}{arg1, arg2})
 	stub := fake.PrepareContextStub
 	fakeReturns := fake.prepareContextReturns
-	fake.recordInvocation("PrepareContext", []any{arg1, arg2})
+	fake.recordInvocation("PrepareContext", []interface{}{arg1, arg2})
 	fake.prepareContextMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -542,7 +542,7 @@ func (fake *FakeTx) Query(arg1 string, arg2 ...any) (*sql.Rows, error) {
 	}{arg1, arg2})
 	stub := fake.QueryStub
 	fakeReturns := fake.queryReturns
-	fake.recordInvocation("Query", []any{arg1, arg2})
+	fake.recordInvocation("Query", []interface{}{arg1, arg2})
 	fake.queryMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -608,7 +608,7 @@ func (fake *FakeTx) QueryContext(arg1 context.Context, arg2 string, arg3 ...any)
 	}{arg1, arg2, arg3})
 	stub := fake.QueryContextStub
 	fakeReturns := fake.queryContextReturns
-	fake.recordInvocation("QueryContext", []any{arg1, arg2, arg3})
+	fake.recordInvocation("QueryContext", []interface{}{arg1, arg2, arg3})
 	fake.queryContextMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3...)
@@ -673,7 +673,7 @@ func (fake *FakeTx) QueryRow(arg1 string, arg2 ...any) squirrel.RowScanner {
 	}{arg1, arg2})
 	stub := fake.QueryRowStub
 	fakeReturns := fake.queryRowReturns
-	fake.recordInvocation("QueryRow", []any{arg1, arg2})
+	fake.recordInvocation("QueryRow", []interface{}{arg1, arg2})
 	fake.queryRowMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -736,7 +736,7 @@ func (fake *FakeTx) QueryRowContext(arg1 context.Context, arg2 string, arg3 ...a
 	}{arg1, arg2, arg3})
 	stub := fake.QueryRowContextStub
 	fakeReturns := fake.queryRowContextReturns
-	fake.recordInvocation("QueryRowContext", []any{arg1, arg2, arg3})
+	fake.recordInvocation("QueryRowContext", []interface{}{arg1, arg2, arg3})
 	fake.queryRowContextMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3...)
@@ -796,7 +796,7 @@ func (fake *FakeTx) Rollback() error {
 	}{})
 	stub := fake.RollbackStub
 	fakeReturns := fake.rollbackReturns
-	fake.recordInvocation("Rollback", []any{})
+	fake.recordInvocation("Rollback", []interface{}{})
 	fake.rollbackMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -850,7 +850,7 @@ func (fake *FakeTx) Stmt(arg1 *sql.Stmt) *sql.Stmt {
 	}{arg1})
 	stub := fake.StmtStub
 	fakeReturns := fake.stmtReturns
-	fake.recordInvocation("Stmt", []any{arg1})
+	fake.recordInvocation("Stmt", []interface{}{arg1})
 	fake.stmtMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -903,7 +903,7 @@ func (fake *FakeTx) StmtReturnsOnCall(i int, result1 *sql.Stmt) {
 	}{result1}
 }
 
-func (fake *FakeTx) Invocations() map[string][][]any {
+func (fake *FakeTx) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.commitMutex.RLock()
@@ -930,21 +930,21 @@ func (fake *FakeTx) Invocations() map[string][][]any {
 	defer fake.rollbackMutex.RUnlock()
 	fake.stmtMutex.RLock()
 	defer fake.stmtMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTx) recordInvocation(key string, args []any) {
+func (fake *FakeTx) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
