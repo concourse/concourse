@@ -9,18 +9,18 @@ import (
 )
 
 type FakeContainerOwner struct {
-	CreateStub        func(db.Tx, string) (map[string]interface{}, error)
+	CreateStub        func(db.Tx, string) (map[string]any, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 db.Tx
 		arg2 string
 	}
 	createReturns struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}
 	createReturnsOnCall map[int]struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}
 	FindStub        func(db.DbConn) (squirrel.Eq, bool, error)
@@ -38,11 +38,11 @@ type FakeContainerOwner struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainerOwner) Create(arg1 db.Tx, arg2 string) (map[string]interface{}, error) {
+func (fake *FakeContainerOwner) Create(arg1 db.Tx, arg2 string) (map[string]any, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
@@ -51,7 +51,7 @@ func (fake *FakeContainerOwner) Create(arg1 db.Tx, arg2 string) (map[string]inte
 	}{arg1, arg2})
 	stub := fake.CreateStub
 	fakeReturns := fake.createReturns
-	fake.recordInvocation("Create", []interface{}{arg1, arg2})
+	fake.recordInvocation("Create", []any{arg1, arg2})
 	fake.createMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -68,7 +68,7 @@ func (fake *FakeContainerOwner) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeContainerOwner) CreateCalls(stub func(db.Tx, string) (map[string]interface{}, error)) {
+func (fake *FakeContainerOwner) CreateCalls(stub func(db.Tx, string) (map[string]any, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
@@ -81,28 +81,28 @@ func (fake *FakeContainerOwner) CreateArgsForCall(i int) (db.Tx, string) {
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeContainerOwner) CreateReturns(result1 map[string]interface{}, result2 error) {
+func (fake *FakeContainerOwner) CreateReturns(result1 map[string]any, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainerOwner) CreateReturnsOnCall(i int, result1 map[string]interface{}, result2 error) {
+func (fake *FakeContainerOwner) CreateReturnsOnCall(i int, result1 map[string]any, result2 error) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
-			result1 map[string]interface{}
+			result1 map[string]any
 			result2 error
 		})
 	}
 	fake.createReturnsOnCall[i] = struct {
-		result1 map[string]interface{}
+		result1 map[string]any
 		result2 error
 	}{result1, result2}
 }
@@ -115,7 +115,7 @@ func (fake *FakeContainerOwner) Find(arg1 db.DbConn) (squirrel.Eq, bool, error) 
 	}{arg1})
 	stub := fake.FindStub
 	fakeReturns := fake.findReturns
-	fake.recordInvocation("Find", []interface{}{arg1})
+	fake.recordInvocation("Find", []any{arg1})
 	fake.findMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -174,28 +174,28 @@ func (fake *FakeContainerOwner) FindReturnsOnCall(i int, result1 squirrel.Eq, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeContainerOwner) Invocations() map[string][][]interface{} {
+func (fake *FakeContainerOwner) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeContainerOwner) recordInvocation(key string, args []interface{}) {
+func (fake *FakeContainerOwner) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

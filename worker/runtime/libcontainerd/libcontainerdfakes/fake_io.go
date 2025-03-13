@@ -36,7 +36,7 @@ type FakeIO struct {
 	waitMutex       sync.RWMutex
 	waitArgsForCall []struct {
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -45,7 +45,7 @@ func (fake *FakeIO) Cancel() {
 	fake.cancelArgsForCall = append(fake.cancelArgsForCall, struct {
 	}{})
 	stub := fake.CancelStub
-	fake.recordInvocation("Cancel", []interface{}{})
+	fake.recordInvocation("Cancel", []any{})
 	fake.cancelMutex.Unlock()
 	if stub != nil {
 		fake.CancelStub()
@@ -71,7 +71,7 @@ func (fake *FakeIO) Close() error {
 	}{})
 	stub := fake.CloseStub
 	fakeReturns := fake.closeReturns
-	fake.recordInvocation("Close", []interface{}{})
+	fake.recordInvocation("Close", []any{})
 	fake.closeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -124,7 +124,7 @@ func (fake *FakeIO) Config() cio.Config {
 	}{})
 	stub := fake.ConfigStub
 	fakeReturns := fake.configReturns
-	fake.recordInvocation("Config", []interface{}{})
+	fake.recordInvocation("Config", []any{})
 	fake.configMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -175,7 +175,7 @@ func (fake *FakeIO) Wait() {
 	fake.waitArgsForCall = append(fake.waitArgsForCall, struct {
 	}{})
 	stub := fake.WaitStub
-	fake.recordInvocation("Wait", []interface{}{})
+	fake.recordInvocation("Wait", []any{})
 	fake.waitMutex.Unlock()
 	if stub != nil {
 		fake.WaitStub()
@@ -194,7 +194,7 @@ func (fake *FakeIO) WaitCalls(stub func()) {
 	fake.WaitStub = stub
 }
 
-func (fake *FakeIO) Invocations() map[string][][]interface{} {
+func (fake *FakeIO) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.cancelMutex.RLock()
@@ -205,21 +205,21 @@ func (fake *FakeIO) Invocations() map[string][][]interface{} {
 	defer fake.configMutex.RUnlock()
 	fake.waitMutex.RLock()
 	defer fake.waitMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeIO) recordInvocation(key string, args []interface{}) {
+func (fake *FakeIO) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

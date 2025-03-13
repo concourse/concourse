@@ -38,7 +38,7 @@ type FakePolicyCheckResult struct {
 	shouldBlockReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -49,7 +49,7 @@ func (fake *FakePolicyCheckResult) Allowed() bool {
 	}{})
 	stub := fake.AllowedStub
 	fakeReturns := fake.allowedReturns
-	fake.recordInvocation("Allowed", []interface{}{})
+	fake.recordInvocation("Allowed", []any{})
 	fake.allowedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -102,7 +102,7 @@ func (fake *FakePolicyCheckResult) Messages() []string {
 	}{})
 	stub := fake.MessagesStub
 	fakeReturns := fake.messagesReturns
-	fake.recordInvocation("Messages", []interface{}{})
+	fake.recordInvocation("Messages", []any{})
 	fake.messagesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -155,7 +155,7 @@ func (fake *FakePolicyCheckResult) ShouldBlock() bool {
 	}{})
 	stub := fake.ShouldBlockStub
 	fakeReturns := fake.shouldBlockReturns
-	fake.recordInvocation("ShouldBlock", []interface{}{})
+	fake.recordInvocation("ShouldBlock", []any{})
 	fake.shouldBlockMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -201,7 +201,7 @@ func (fake *FakePolicyCheckResult) ShouldBlockReturnsOnCall(i int, result1 bool)
 	}{result1}
 }
 
-func (fake *FakePolicyCheckResult) Invocations() map[string][][]interface{} {
+func (fake *FakePolicyCheckResult) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.allowedMutex.RLock()
@@ -210,21 +210,21 @@ func (fake *FakePolicyCheckResult) Invocations() map[string][][]interface{} {
 	defer fake.messagesMutex.RUnlock()
 	fake.shouldBlockMutex.RLock()
 	defer fake.shouldBlockMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePolicyCheckResult) recordInvocation(key string, args []interface{}) {
+func (fake *FakePolicyCheckResult) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -40,7 +40,7 @@ type FakeDestroyingVolume struct {
 	workerNameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -51,7 +51,7 @@ func (fake *FakeDestroyingVolume) Destroy() (bool, error) {
 	}{})
 	stub := fake.DestroyStub
 	fakeReturns := fake.destroyReturns
-	fake.recordInvocation("Destroy", []interface{}{})
+	fake.recordInvocation("Destroy", []any{})
 	fake.destroyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -107,7 +107,7 @@ func (fake *FakeDestroyingVolume) Handle() string {
 	}{})
 	stub := fake.HandleStub
 	fakeReturns := fake.handleReturns
-	fake.recordInvocation("Handle", []interface{}{})
+	fake.recordInvocation("Handle", []any{})
 	fake.handleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -160,7 +160,7 @@ func (fake *FakeDestroyingVolume) WorkerName() string {
 	}{})
 	stub := fake.WorkerNameStub
 	fakeReturns := fake.workerNameReturns
-	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.recordInvocation("WorkerName", []any{})
 	fake.workerNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -206,7 +206,7 @@ func (fake *FakeDestroyingVolume) WorkerNameReturnsOnCall(i int, result1 string)
 	}{result1}
 }
 
-func (fake *FakeDestroyingVolume) Invocations() map[string][][]interface{} {
+func (fake *FakeDestroyingVolume) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyMutex.RLock()
@@ -215,21 +215,21 @@ func (fake *FakeDestroyingVolume) Invocations() map[string][][]interface{} {
 	defer fake.handleMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeDestroyingVolume) recordInvocation(key string, args []interface{}) {
+func (fake *FakeDestroyingVolume) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

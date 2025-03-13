@@ -18,9 +18,9 @@ import (
 type Example struct {
 	Setup func()
 
-	Template interface{}
+	Template any
 
-	Result interface{}
+	Result any
 	Err    error
 }
 
@@ -29,7 +29,7 @@ func (example Example) Assert(vs vars.Variables) {
 		example.Setup()
 	}
 
-	var res interface{}
+	var res any
 	var err error
 
 	switch t := example.Template.(type) {
@@ -123,7 +123,7 @@ var _ = Describe("Kubernetes", func() {
 				"some-source": "((" + secretName + "))",
 			},
 			Result: atc.Source{
-				"some-source": map[string]interface{}{
+				"some-source": map[string]any{
 					"some-field": "some-field-value",
 				},
 			},

@@ -36,7 +36,7 @@ func (secrets Secrets) NewSecretLookupPaths(teamName string, pipelineName string
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (secrets Secrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (secrets Secrets) Get(secretPath string) (any, *time.Time, bool, error) {
 	parts := strings.Split(secretPath, "/")
 	if len(parts) != 2 {
 		return nil, nil, false, fmt.Errorf("unable to split kubernetes secret path into [namespace]/[secret]: %s", secretPath)
@@ -66,14 +66,14 @@ func (secrets Secrets) Get(secretPath string) (interface{}, *time.Time, bool, er
 	return nil, nil, false, nil
 }
 
-func (secrets Secrets) getValueFromSecret(secret *v1.Secret) (interface{}, *time.Time, bool, error) {
+func (secrets Secrets) getValueFromSecret(secret *v1.Secret) (any, *time.Time, bool, error) {
 	val, found := secret.Data["value"]
 	if found {
 		return string(val), nil, true, nil
 	}
 
 	// TODO: make this smarter since we now have access to ref.Fields
-	stringified := map[string]interface{}{}
+	stringified := map[string]any{}
 	for k, v := range secret.Data {
 		stringified[k] = string(v)
 	}

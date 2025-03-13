@@ -8,18 +8,18 @@ import (
 )
 
 type FakeVariables struct {
-	GetStub        func(vars.Reference) (interface{}, bool, error)
+	GetStub        func(vars.Reference) (any, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 vars.Reference
 	}
 	getReturns struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}
@@ -35,11 +35,11 @@ type FakeVariables struct {
 		result1 []vars.Reference
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVariables) Get(arg1 vars.Reference) (interface{}, bool, error) {
+func (fake *FakeVariables) Get(arg1 vars.Reference) (any, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -47,7 +47,7 @@ func (fake *FakeVariables) Get(arg1 vars.Reference) (interface{}, bool, error) {
 	}{arg1})
 	stub := fake.GetStub
 	fakeReturns := fake.getReturns
-	fake.recordInvocation("Get", []interface{}{arg1})
+	fake.recordInvocation("Get", []any{arg1})
 	fake.getMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -64,7 +64,7 @@ func (fake *FakeVariables) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeVariables) GetCalls(stub func(vars.Reference) (interface{}, bool, error)) {
+func (fake *FakeVariables) GetCalls(stub func(vars.Reference) (any, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
@@ -77,30 +77,30 @@ func (fake *FakeVariables) GetArgsForCall(i int) vars.Reference {
 	return argsForCall.arg1
 }
 
-func (fake *FakeVariables) GetReturns(result1 interface{}, result2 bool, result3 error) {
+func (fake *FakeVariables) GetReturns(result1 any, result2 bool, result3 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *FakeVariables) GetReturnsOnCall(i int, result1 interface{}, result2 bool, result3 error) {
+func (fake *FakeVariables) GetReturnsOnCall(i int, result1 any, result2 bool, result3 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 interface{}
+			result1 any
 			result2 bool
 			result3 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 interface{}
+		result1 any
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
@@ -113,7 +113,7 @@ func (fake *FakeVariables) List() ([]vars.Reference, error) {
 	}{})
 	stub := fake.ListStub
 	fakeReturns := fake.listReturns
-	fake.recordInvocation("List", []interface{}{})
+	fake.recordInvocation("List", []any{})
 	fake.listMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -162,28 +162,28 @@ func (fake *FakeVariables) ListReturnsOnCall(i int, result1 []vars.Reference, re
 	}{result1, result2}
 }
 
-func (fake *FakeVariables) Invocations() map[string][][]interface{} {
+func (fake *FakeVariables) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeVariables) recordInvocation(key string, args []interface{}) {
+func (fake *FakeVariables) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

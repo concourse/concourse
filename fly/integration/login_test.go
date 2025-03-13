@@ -654,7 +654,7 @@ var _ = Describe("login Command", func() {
 						tokenHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/user"),
-							ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+							ghttp.RespondWithJSONEncoded(200, map[string]any{
 								"user_name": "user",
 								"teams": map[string][]string{
 									"other_team": {"owner"},
@@ -681,7 +681,7 @@ var _ = Describe("login Command", func() {
 						tokenHandler(),
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/api/v1/user"),
-							ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+							ghttp.RespondWithJSONEncoded(200, map[string]any{
 								"a-key": "a-value",
 							}),
 						),
@@ -707,7 +707,7 @@ var _ = Describe("login Command", func() {
 					tokenHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/user"),
-						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+						ghttp.RespondWithJSONEncoded(200, map[string]any{
 							"user_name": "admin_user",
 							"is_admin":  true,
 						}),
@@ -745,7 +745,7 @@ var _ = Describe("login Command", func() {
 					tokenHandler(),
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/user"),
-						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{
+						ghttp.RespondWithJSONEncoded(200, map[string]any{
 							"user_name": "admin_user",
 							"is_admin":  true,
 						}),

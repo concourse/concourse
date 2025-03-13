@@ -65,7 +65,7 @@ type FakeResourceCacheLifecycle struct {
 	cleanUsesForFinishedBuildsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -77,7 +77,7 @@ func (fake *FakeResourceCacheLifecycle) CleanBuildImageResourceCaches(arg1 lager
 	}{arg1})
 	stub := fake.CleanBuildImageResourceCachesStub
 	fakeReturns := fake.cleanBuildImageResourceCachesReturns
-	fake.recordInvocation("CleanBuildImageResourceCaches", []interface{}{arg1})
+	fake.recordInvocation("CleanBuildImageResourceCaches", []any{arg1})
 	fake.cleanBuildImageResourceCachesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -138,7 +138,7 @@ func (fake *FakeResourceCacheLifecycle) CleanDirtyInMemoryBuildUses(arg1 lager.L
 	}{arg1})
 	stub := fake.CleanDirtyInMemoryBuildUsesStub
 	fakeReturns := fake.cleanDirtyInMemoryBuildUsesReturns
-	fake.recordInvocation("CleanDirtyInMemoryBuildUses", []interface{}{arg1})
+	fake.recordInvocation("CleanDirtyInMemoryBuildUses", []any{arg1})
 	fake.cleanDirtyInMemoryBuildUsesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -200,7 +200,7 @@ func (fake *FakeResourceCacheLifecycle) CleanInvalidWorkerResourceCaches(arg1 la
 	}{arg1, arg2})
 	stub := fake.CleanInvalidWorkerResourceCachesStub
 	fakeReturns := fake.cleanInvalidWorkerResourceCachesReturns
-	fake.recordInvocation("CleanInvalidWorkerResourceCaches", []interface{}{arg1, arg2})
+	fake.recordInvocation("CleanInvalidWorkerResourceCaches", []any{arg1, arg2})
 	fake.cleanInvalidWorkerResourceCachesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -261,7 +261,7 @@ func (fake *FakeResourceCacheLifecycle) CleanUpInvalidCaches(arg1 lager.Logger) 
 	}{arg1})
 	stub := fake.CleanUpInvalidCachesStub
 	fakeReturns := fake.cleanUpInvalidCachesReturns
-	fake.recordInvocation("CleanUpInvalidCaches", []interface{}{arg1})
+	fake.recordInvocation("CleanUpInvalidCaches", []any{arg1})
 	fake.cleanUpInvalidCachesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -322,7 +322,7 @@ func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuilds(arg1 lager.Lo
 	}{arg1})
 	stub := fake.CleanUsesForFinishedBuildsStub
 	fakeReturns := fake.cleanUsesForFinishedBuildsReturns
-	fake.recordInvocation("CleanUsesForFinishedBuilds", []interface{}{arg1})
+	fake.recordInvocation("CleanUsesForFinishedBuilds", []any{arg1})
 	fake.cleanUsesForFinishedBuildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -375,7 +375,7 @@ func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsReturnsOnCall(
 	}{result1}
 }
 
-func (fake *FakeResourceCacheLifecycle) Invocations() map[string][][]interface{} {
+func (fake *FakeResourceCacheLifecycle) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.cleanBuildImageResourceCachesMutex.RLock()
@@ -388,21 +388,21 @@ func (fake *FakeResourceCacheLifecycle) Invocations() map[string][][]interface{}
 	defer fake.cleanUpInvalidCachesMutex.RUnlock()
 	fake.cleanUsesForFinishedBuildsMutex.RLock()
 	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeResourceCacheLifecycle) recordInvocation(key string, args []interface{}) {
+func (fake *FakeResourceCacheLifecycle) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

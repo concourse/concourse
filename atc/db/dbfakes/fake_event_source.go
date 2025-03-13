@@ -31,7 +31,7 @@ type FakeEventSource struct {
 		result1 event.Envelope
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -42,7 +42,7 @@ func (fake *FakeEventSource) Close() error {
 	}{})
 	stub := fake.CloseStub
 	fakeReturns := fake.closeReturns
-	fake.recordInvocation("Close", []interface{}{})
+	fake.recordInvocation("Close", []any{})
 	fake.closeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -95,7 +95,7 @@ func (fake *FakeEventSource) Next() (event.Envelope, error) {
 	}{})
 	stub := fake.NextStub
 	fakeReturns := fake.nextReturns
-	fake.recordInvocation("Next", []interface{}{})
+	fake.recordInvocation("Next", []any{})
 	fake.nextMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -144,28 +144,28 @@ func (fake *FakeEventSource) NextReturnsOnCall(i int, result1 event.Envelope, re
 	}{result1, result2}
 }
 
-func (fake *FakeEventSource) Invocations() map[string][][]interface{} {
+func (fake *FakeEventSource) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	fake.nextMutex.RLock()
 	defer fake.nextMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeEventSource) recordInvocation(key string, args []interface{}) {
+func (fake *FakeEventSource) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

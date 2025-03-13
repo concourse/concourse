@@ -48,8 +48,8 @@ func ContainerTypeFromString(containerType string) (ContainerType, error) {
 	}
 }
 
-func (metadata ContainerMetadata) SQLMap() map[string]interface{} {
-	m := map[string]interface{}{}
+func (metadata ContainerMetadata) SQLMap() map[string]any {
+	m := map[string]any{}
 
 	if metadata.Type != "" {
 		m["meta_type"] = string(metadata.Type)
@@ -117,8 +117,8 @@ var containerMetadataColumns = []string{
 	"meta_build_name",
 }
 
-func (metadata *ContainerMetadata) ScanTargets() []interface{} {
-	return []interface{}{
+func (metadata *ContainerMetadata) ScanTargets() []any {
+	return []any{
 		&metadata.Type,
 		&metadata.StepName,
 		&metadata.Attempt,

@@ -9,11 +9,11 @@ import (
 )
 
 type FakeExecutor struct {
-	ExecStub        func(string, ...interface{}) (sql.Result, error)
+	ExecStub        func(string, ...any) (sql.Result, error)
 	execMutex       sync.RWMutex
 	execArgsForCall []struct {
 		arg1 string
-		arg2 []interface{}
+		arg2 []any
 	}
 	execReturns struct {
 		result1 sql.Result
@@ -23,20 +23,20 @@ type FakeExecutor struct {
 		result1 sql.Result
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeExecutor) Exec(arg1 string, arg2 ...interface{}) (sql.Result, error) {
+func (fake *FakeExecutor) Exec(arg1 string, arg2 ...any) (sql.Result, error) {
 	fake.execMutex.Lock()
 	ret, specificReturn := fake.execReturnsOnCall[len(fake.execArgsForCall)]
 	fake.execArgsForCall = append(fake.execArgsForCall, struct {
 		arg1 string
-		arg2 []interface{}
+		arg2 []any
 	}{arg1, arg2})
 	stub := fake.ExecStub
 	fakeReturns := fake.execReturns
-	fake.recordInvocation("Exec", []interface{}{arg1, arg2})
+	fake.recordInvocation("Exec", []any{arg1, arg2})
 	fake.execMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -53,13 +53,13 @@ func (fake *FakeExecutor) ExecCallCount() int {
 	return len(fake.execArgsForCall)
 }
 
-func (fake *FakeExecutor) ExecCalls(stub func(string, ...interface{}) (sql.Result, error)) {
+func (fake *FakeExecutor) ExecCalls(stub func(string, ...any) (sql.Result, error)) {
 	fake.execMutex.Lock()
 	defer fake.execMutex.Unlock()
 	fake.ExecStub = stub
 }
 
-func (fake *FakeExecutor) ExecArgsForCall(i int) (string, []interface{}) {
+func (fake *FakeExecutor) ExecArgsForCall(i int) (string, []any) {
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
 	argsForCall := fake.execArgsForCall[i]
@@ -92,26 +92,26 @@ func (fake *FakeExecutor) ExecReturnsOnCall(i int, result1 sql.Result, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeExecutor) Invocations() map[string][][]interface{} {
+func (fake *FakeExecutor) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.execMutex.RLock()
 	defer fake.execMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeExecutor) recordInvocation(key string, args []interface{}) {
+func (fake *FakeExecutor) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

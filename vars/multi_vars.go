@@ -10,7 +10,7 @@ func NewMultiVars(varss []Variables) MultiVars {
 
 var _ Variables = MultiVars{}
 
-func (m MultiVars) Get(ref Reference) (interface{}, bool, error) {
+func (m MultiVars) Get(ref Reference) (any, bool, error) {
 	for _, vars := range m.varss {
 		val, found, err := vars.Get(ref)
 		if found || err != nil {

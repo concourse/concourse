@@ -14,7 +14,7 @@ type StepMetadata struct {
 	JobName              string
 	PipelineID           int
 	PipelineName         string
-	PipelineInstanceVars map[string]interface{}
+	PipelineInstanceVars map[string]any
 	ExternalURL          string
 	CreatedBy            string
 }

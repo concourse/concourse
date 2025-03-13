@@ -52,43 +52,43 @@ var _ = Describe("Config", func() {
 		vs1 := VarSourceConfig{
 			Name: "vs1",
 			Type: "dummy",
-			Config: map[string]interface{}{
-				"vars": map[string]interface{}{"pk": "pv"},
+			Config: map[string]any{
+				"vars": map[string]any{"pk": "pv"},
 			},
 		}
 		vs1_5 := VarSourceConfig{
 			Name: "vs1",
 			Type: "dummy",
-			Config: map[string]interface{}{
-				"vars": map[string]interface{}{"pk": "((vs5:pk))"},
+			Config: map[string]any{
+				"vars": map[string]any{"pk": "((vs5:pk))"},
 			},
 		}
 		vs2 := VarSourceConfig{
 			Name: "vs2",
 			Type: "dummy",
-			Config: map[string]interface{}{
-				"vars": map[string]interface{}{"pk": "pv"},
+			Config: map[string]any{
+				"vars": map[string]any{"pk": "pv"},
 			},
 		}
 		vs3 := VarSourceConfig{
 			Name: "vs3",
 			Type: "dummy",
-			Config: map[string]interface{}{
-				"vars": map[string]interface{}{"pk": "((vs1:pk))"},
+			Config: map[string]any{
+				"vars": map[string]any{"pk": "((vs1:pk))"},
 			},
 		}
 		vs4 := VarSourceConfig{
 			Name: "vs4",
 			Type: "dummy",
-			Config: map[string]interface{}{
-				"vars": map[string]interface{}{"pk": "((vs2:pk))"},
+			Config: map[string]any{
+				"vars": map[string]any{"pk": "((vs2:pk))"},
 			},
 		}
 		vs5 := VarSourceConfig{
 			Name: "vs5",
 			Type: "dummy",
-			Config: map[string]interface{}{
-				"vars": map[string]interface{}{"pk": "((vs3:pk))", "pk2": "((vs4:pk))"},
+			Config: map[string]any{
+				"vars": map[string]any{"pk": "((vs3:pk))", "pk2": "((vs4:pk))"},
 			},
 		}
 

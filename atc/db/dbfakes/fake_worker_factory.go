@@ -103,7 +103,7 @@ type FakeWorkerFactory struct {
 		result1 []db.Worker
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -114,7 +114,7 @@ func (fake *FakeWorkerFactory) BuildContainersCountPerWorker() (map[string]int, 
 	}{})
 	stub := fake.BuildContainersCountPerWorkerStub
 	fakeReturns := fake.buildContainersCountPerWorkerReturns
-	fake.recordInvocation("BuildContainersCountPerWorker", []interface{}{})
+	fake.recordInvocation("BuildContainersCountPerWorker", []any{})
 	fake.buildContainersCountPerWorkerMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -171,7 +171,7 @@ func (fake *FakeWorkerFactory) FindWorkersForContainerByOwner(arg1 db.ContainerO
 	}{arg1})
 	stub := fake.FindWorkersForContainerByOwnerStub
 	fakeReturns := fake.findWorkersForContainerByOwnerReturns
-	fake.recordInvocation("FindWorkersForContainerByOwner", []interface{}{arg1})
+	fake.recordInvocation("FindWorkersForContainerByOwner", []any{arg1})
 	fake.findWorkersForContainerByOwnerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -235,7 +235,7 @@ func (fake *FakeWorkerFactory) GetWorker(arg1 string) (db.Worker, bool, error) {
 	}{arg1})
 	stub := fake.GetWorkerStub
 	fakeReturns := fake.getWorkerReturns
-	fake.recordInvocation("GetWorker", []interface{}{arg1})
+	fake.recordInvocation("GetWorker", []any{arg1})
 	fake.getWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -303,7 +303,7 @@ func (fake *FakeWorkerFactory) HeartbeatWorker(arg1 atc.Worker, arg2 time.Durati
 	}{arg1, arg2})
 	stub := fake.HeartbeatWorkerStub
 	fakeReturns := fake.heartbeatWorkerReturns
-	fake.recordInvocation("HeartbeatWorker", []interface{}{arg1, arg2})
+	fake.recordInvocation("HeartbeatWorker", []any{arg1, arg2})
 	fake.heartbeatWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -368,7 +368,7 @@ func (fake *FakeWorkerFactory) SaveWorker(arg1 atc.Worker, arg2 time.Duration) (
 	}{arg1, arg2})
 	stub := fake.SaveWorkerStub
 	fakeReturns := fake.saveWorkerReturns
-	fake.recordInvocation("SaveWorker", []interface{}{arg1, arg2})
+	fake.recordInvocation("SaveWorker", []any{arg1, arg2})
 	fake.saveWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -437,7 +437,7 @@ func (fake *FakeWorkerFactory) VisibleWorkers(arg1 []string) ([]db.Worker, error
 	}{arg1Copy})
 	stub := fake.VisibleWorkersStub
 	fakeReturns := fake.visibleWorkersReturns
-	fake.recordInvocation("VisibleWorkers", []interface{}{arg1Copy})
+	fake.recordInvocation("VisibleWorkers", []any{arg1Copy})
 	fake.visibleWorkersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -500,7 +500,7 @@ func (fake *FakeWorkerFactory) Workers() ([]db.Worker, error) {
 	}{})
 	stub := fake.WorkersStub
 	fakeReturns := fake.workersReturns
-	fake.recordInvocation("Workers", []interface{}{})
+	fake.recordInvocation("Workers", []any{})
 	fake.workersMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -549,7 +549,7 @@ func (fake *FakeWorkerFactory) WorkersReturnsOnCall(i int, result1 []db.Worker, 
 	}{result1, result2}
 }
 
-func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeWorkerFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.buildContainersCountPerWorkerMutex.RLock()
@@ -566,21 +566,21 @@ func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	defer fake.visibleWorkersMutex.RUnlock()
 	fake.workersMutex.RLock()
 	defer fake.workersMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeWorkerFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeWorkerFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

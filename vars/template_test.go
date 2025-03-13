@@ -50,7 +50,7 @@ var _ = Describe("Template", func() {
 	})
 
 	It("can interpolate a different data types into a byte slice", func() {
-		hashValue := map[string]interface{}{"key2": []string{"value1", "value2"}}
+		hashValue := map[string]any{"key2": []string{"value1", "value2"}}
 		template := NewTemplate([]byte("name1: ((name1))\nname2: ((name2))\nname3: ((name3))\nname4: ((name4))\nname5: ((name5))\nname6: ((name6))\n1234: value\n"))
 		vars := StaticVariables{
 			"name1": 1,
@@ -58,7 +58,7 @@ var _ = Describe("Template", func() {
 			"name3": true,
 			"name4": "",
 			"name5": nil,
-			"name6": map[string]interface{}{"key": hashValue},
+			"name6": map[string]any{"key": hashValue},
 		}
 
 		result, err := template.Evaluate(vars, EvaluateOpts{})
@@ -208,7 +208,7 @@ dup-key: ((key3))
 		template := NewTemplate([]byte("bar: ((foo:\"with.dot:colon\".buzz))"))
 		vars := NamedVariables{
 			"foo": StaticVariables{
-				"with.dot:colon": map[string]interface{}{
+				"with.dot:colon": map[string]any{
 					"buzz": "fuzz",
 				},
 			},
@@ -233,7 +233,7 @@ dup-key: ((key3))
 	It("can interpolate quoted keys with dot in subkey into a byte slice", func() {
 		template := NewTemplate([]byte("bar: ((secret-name.\"secret.field\"))"))
 		vars := StaticVariables{
-			"secret-name": map[string]interface{}{
+			"secret-name": map[string]any{
 				"secret.field": "topsekrit",
 			},
 		}
@@ -374,7 +374,7 @@ dup-key: ((key3))
 	It("allows to access sub key of an interpolated value via dot syntax", func() {
 		template := NewTemplate([]byte("((key.subkey))"))
 		vars := StaticVariables{
-			"key": map[interface{}]interface{}{"subkey": "e"},
+			"key": map[any]any{"subkey": "e"},
 		}
 
 		result, err := template.Evaluate(vars, EvaluateOpts{})
@@ -394,7 +394,7 @@ dup-key: ((key3))
 	It("returns an error if accessing sub key of an interpolated value fails", func() {
 		template := NewTemplate([]byte("((key.subkey_not_found))"))
 		vars := StaticVariables{
-			"key": map[interface{}]interface{}{"subkey": "e"},
+			"key": map[any]any{"subkey": "e"},
 		}
 
 		_, err := template.Evaluate(vars, EvaluateOpts{ExpectAllKeys: true})

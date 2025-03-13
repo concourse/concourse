@@ -91,7 +91,7 @@ type FakeComponent struct {
 	updateLastRanReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -102,7 +102,7 @@ func (fake *FakeComponent) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -155,7 +155,7 @@ func (fake *FakeComponent) Interval() time.Duration {
 	}{})
 	stub := fake.IntervalStub
 	fakeReturns := fake.intervalReturns
-	fake.recordInvocation("Interval", []interface{}{})
+	fake.recordInvocation("Interval", []any{})
 	fake.intervalMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -208,7 +208,7 @@ func (fake *FakeComponent) IntervalElapsed() bool {
 	}{})
 	stub := fake.IntervalElapsedStub
 	fakeReturns := fake.intervalElapsedReturns
-	fake.recordInvocation("IntervalElapsed", []interface{}{})
+	fake.recordInvocation("IntervalElapsed", []any{})
 	fake.intervalElapsedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -261,7 +261,7 @@ func (fake *FakeComponent) LastRan() time.Time {
 	}{})
 	stub := fake.LastRanStub
 	fakeReturns := fake.lastRanReturns
-	fake.recordInvocation("LastRan", []interface{}{})
+	fake.recordInvocation("LastRan", []any{})
 	fake.lastRanMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -314,7 +314,7 @@ func (fake *FakeComponent) Name() string {
 	}{})
 	stub := fake.NameStub
 	fakeReturns := fake.nameReturns
-	fake.recordInvocation("Name", []interface{}{})
+	fake.recordInvocation("Name", []any{})
 	fake.nameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -367,7 +367,7 @@ func (fake *FakeComponent) Paused() bool {
 	}{})
 	stub := fake.PausedStub
 	fakeReturns := fake.pausedReturns
-	fake.recordInvocation("Paused", []interface{}{})
+	fake.recordInvocation("Paused", []any{})
 	fake.pausedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -420,7 +420,7 @@ func (fake *FakeComponent) Reload() (bool, error) {
 	}{})
 	stub := fake.ReloadStub
 	fakeReturns := fake.reloadReturns
-	fake.recordInvocation("Reload", []interface{}{})
+	fake.recordInvocation("Reload", []any{})
 	fake.reloadMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -476,7 +476,7 @@ func (fake *FakeComponent) UpdateLastRan() error {
 	}{})
 	stub := fake.UpdateLastRanStub
 	fakeReturns := fake.updateLastRanReturns
-	fake.recordInvocation("UpdateLastRan", []interface{}{})
+	fake.recordInvocation("UpdateLastRan", []any{})
 	fake.updateLastRanMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -522,7 +522,7 @@ func (fake *FakeComponent) UpdateLastRanReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeComponent) Invocations() map[string][][]interface{} {
+func (fake *FakeComponent) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.iDMutex.RLock()
@@ -541,21 +541,21 @@ func (fake *FakeComponent) Invocations() map[string][][]interface{} {
 	defer fake.reloadMutex.RUnlock()
 	fake.updateLastRanMutex.RLock()
 	defer fake.updateLastRanMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeComponent) recordInvocation(key string, args []interface{}) {
+func (fake *FakeComponent) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -33,16 +33,16 @@ type Filter struct {
 }
 
 type PolicyCheckInput struct {
-	Service        string      `json:"service"`
-	ClusterName    string      `json:"cluster_name"`
-	ClusterVersion string      `json:"cluster_version"`
-	HttpMethod     string      `json:"http_method,omitempty"`
-	Action         string      `json:"action"`
-	User           string      `json:"user,omitempty"`
-	Team           string      `json:"team,omitempty"`
-	Roles          []string    `json:"roles,omitempty"`
-	Pipeline       string      `json:"pipeline,omitempty"`
-	Data           interface{} `json:"data,omitempty"`
+	Service        string   `json:"service"`
+	ClusterName    string   `json:"cluster_name"`
+	ClusterVersion string   `json:"cluster_version"`
+	HttpMethod     string   `json:"http_method,omitempty"`
+	Action         string   `json:"action"`
+	User           string   `json:"user,omitempty"`
+	Team           string   `json:"team,omitempty"`
+	Roles          []string `json:"roles,omitempty"`
+	Pipeline       string   `json:"pipeline,omitempty"`
+	Data           any      `json:"data,omitempty"`
 }
 
 //counterfeiter:generate . PolicyCheckResult

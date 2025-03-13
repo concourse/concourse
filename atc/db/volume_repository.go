@@ -78,7 +78,7 @@ func (repository *volumeRepository) queryVolumeHandles(tx Tx, cond sq.Eq) ([]str
 
 	for rows.Next() {
 		var handle = "handle"
-		columns := []interface{}{&handle}
+		columns := []any{&handle}
 
 		err = rows.Scan(columns...)
 		if err != nil {
@@ -264,7 +264,7 @@ func (repository *volumeRepository) CreateBaseResourceTypeVolume(uwbrt *UsedWork
 	volume, err := repository.createVolume(
 		noTeam,
 		uwbrt.WorkerName,
-		map[string]interface{}{
+		map[string]any{
 			"worker_base_resource_type_id": uwbrt.ID,
 		},
 		VolumeTypeResourceType,
@@ -281,7 +281,7 @@ func (repository *volumeRepository) CreateVolume(teamID int, workerName string, 
 	volume, err := repository.createVolume(
 		teamID,
 		workerName,
-		map[string]interface{}{},
+		map[string]any{},
 		volumeType,
 	)
 	if err != nil {
@@ -296,7 +296,7 @@ func (repository *volumeRepository) CreateVolumeWithHandle(handle string, teamID
 		handle,
 		teamID,
 		workerName,
-		map[string]interface{}{},
+		map[string]any{},
 		volumeType,
 	)
 	if err != nil {
@@ -310,7 +310,7 @@ func (repository *volumeRepository) CreateContainerVolume(teamID int, workerName
 	volume, err := repository.createVolume(
 		teamID,
 		workerName,
-		map[string]interface{}{
+		map[string]any{
 			"container_id": container.ID(),
 			"path":         mountPath,
 		},
@@ -362,14 +362,14 @@ func (repository *volumeRepository) FindVolumesForContainer(container CreatedCon
 }
 
 func (repository *volumeRepository) FindContainerVolume(teamID int, workerName string, container CreatingContainer, mountPath string) (CreatingVolume, CreatedVolume, error) {
-	return repository.findVolume(teamID, workerName, map[string]interface{}{
+	return repository.findVolume(teamID, workerName, map[string]any{
 		"v.container_id": container.ID(),
 		"v.path":         mountPath,
 	})
 }
 
 func (repository *volumeRepository) FindBaseResourceTypeVolume(uwbrt *UsedWorkerBaseResourceType) (CreatingVolume, CreatedVolume, error) {
-	return repository.findVolume(0, uwbrt.WorkerName, map[string]interface{}{
+	return repository.findVolume(0, uwbrt.WorkerName, map[string]any{
 		"v.worker_base_resource_type_id": uwbrt.ID,
 	})
 }
@@ -388,7 +388,7 @@ func (repository *volumeRepository) FindTaskCacheVolume(teamID int, workerName s
 		return nil, false, nil
 	}
 
-	_, createdVolume, err := repository.findVolume(teamID, workerName, map[string]interface{}{
+	_, createdVolume, err := repository.findVolume(teamID, workerName, map[string]any{
 		"v.worker_task_cache_id": usedWorkerTaskCache.ID,
 	})
 	if err != nil {
@@ -406,7 +406,7 @@ func (repository *volumeRepository) CreateTaskCacheVolume(teamID int, uwtc *Used
 	volume, err := repository.createVolume(
 		teamID,
 		uwtc.WorkerName,
-		map[string]interface{}{
+		map[string]any{
 			"worker_task_cache_id": uwtc.ID,
 		},
 		VolumeTypeTaskCache,
@@ -420,7 +420,7 @@ func (repository *volumeRepository) CreateTaskCacheVolume(teamID int, uwtc *Used
 }
 
 func (repository *volumeRepository) FindResourceCertsVolume(workerName string, uwrc *UsedWorkerResourceCerts) (CreatingVolume, CreatedVolume, error) {
-	return repository.findVolume(0, workerName, map[string]interface{}{
+	return repository.findVolume(0, workerName, map[string]any{
 		"v.worker_resource_certs_id": uwrc.ID,
 	})
 }
@@ -429,7 +429,7 @@ func (repository *volumeRepository) CreateResourceCertsVolume(workerName string,
 	volume, err := repository.createVolume(
 		noTeam,
 		workerName,
-		map[string]interface{}{
+		map[string]any{
 			"worker_resource_certs_id": uwrc.ID,
 		},
 		VolumeTypeResourceCerts,
@@ -457,7 +457,7 @@ func (repository *volumeRepository) FindResourceCacheVolume(workerName string, r
 		return nil, false, nil
 	}
 
-	_, createdVolume, err := repository.findVolume(0, workerName, map[string]interface{}{
+	_, createdVolume, err := repository.findVolume(0, workerName, map[string]any{
 		"v.worker_resource_cache_id": workerResourceCache.ID,
 	})
 	if err != nil {
@@ -524,7 +524,7 @@ func (repository *volumeRepository) FindWorkersForTaskCache(taskCache UsedTaskCa
 }
 
 func (repository *volumeRepository) FindVolume(handle string) (CreatedVolume, bool, error) {
-	_, createdVolume, err := getVolume(repository.conn, map[string]interface{}{
+	_, createdVolume, err := getVolume(repository.conn, map[string]any{
 		"v.handle": handle,
 	})
 	if err != nil {
@@ -701,7 +701,7 @@ func (repository *volumeRepository) DestroyUnknownVolumes(workerName string, rep
 func (repository *volumeRepository) createVolume(
 	teamID int,
 	workerName string,
-	columns map[string]interface{},
+	columns map[string]any,
 	volumeType VolumeType,
 ) (*creatingVolume, error) {
 	handle, err := uuid.NewRandom()
@@ -715,11 +715,11 @@ func (repository *volumeRepository) createVolumeWithHandle(
 	handle string,
 	teamID int,
 	workerName string,
-	columns map[string]interface{},
+	columns map[string]any,
 	volumeType VolumeType,
 ) (*creatingVolume, error) {
 	var volumeID int
-	values := map[string]interface{}{
+	values := map[string]any{
 		"worker_name": workerName,
 		"handle":      handle,
 	}
@@ -753,7 +753,7 @@ func (repository *volumeRepository) createVolumeWithHandle(
 	}, nil
 }
 
-func (repository *volumeRepository) findVolume(teamID int, workerName string, columns map[string]interface{}) (CreatingVolume, CreatedVolume, error) {
+func (repository *volumeRepository) findVolume(teamID int, workerName string, columns map[string]any) (CreatingVolume, CreatedVolume, error) {
 	whereClause := sq.Eq{}
 	if teamID != 0 {
 		whereClause["v.team_id"] = teamID
@@ -769,7 +769,7 @@ func (repository *volumeRepository) findVolume(teamID int, workerName string, co
 	return getVolume(repository.conn, whereClause)
 }
 
-func getVolume(conn DbConn, where map[string]interface{}) (CreatingVolume, CreatedVolume, error) {
+func getVolume(conn DbConn, where map[string]any) (CreatingVolume, CreatedVolume, error) {
 	row := psql.Select(volumeColumns...).
 		From("volumes v").
 		LeftJoin("workers w ON v.worker_name = w.name").

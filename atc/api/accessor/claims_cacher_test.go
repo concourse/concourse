@@ -56,7 +56,7 @@ var _ = Describe("ClaimsCacher", func() {
 
 	It("doesn't cache claims when cache size is exceeded", func() {
 		fakeAccessTokenFetcher.GetAccessTokenReturns(db.AccessToken{
-			Claims: db.Claims{RawClaims: map[string]interface{}{"a": stringWithLen(2000)}},
+			Claims: db.Claims{RawClaims: map[string]any{"a": stringWithLen(2000)}},
 		}, true, nil)
 		claimsCacher.GetAccessToken("token")
 		claimsCacher.GetAccessToken("token")
@@ -65,7 +65,7 @@ var _ = Describe("ClaimsCacher", func() {
 
 	It("evicts the least recently used access token when size limit exceeded", func() {
 		fakeAccessTokenFetcher.GetAccessTokenReturns(db.AccessToken{
-			Claims: db.Claims{RawClaims: map[string]interface{}{"a": stringWithLen(400)}},
+			Claims: db.Claims{RawClaims: map[string]any{"a": stringWithLen(400)}},
 		}, true, nil)
 
 		By("filling the cache")

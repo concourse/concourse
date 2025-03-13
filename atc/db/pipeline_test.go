@@ -49,8 +49,8 @@ var _ = Describe("Pipeline", func() {
 				{
 					Name: "some-var-source",
 					Type: "dummy",
-					Config: map[string]interface{}{
-						"vars": map[string]interface{}{"pk": "pv"},
+					Config: map[string]any{
+						"vars": map[string]any{"pk": "pv"},
 					},
 				},
 			},
@@ -102,7 +102,7 @@ var _ = Describe("Pipeline", func() {
 								Name:     "some-pipeline",
 								File:     "some-file",
 								VarFiles: []string{"var-file1", "var-file2"},
-								Vars: map[string]interface{}{
+								Vars: map[string]any{
 									"k1": "v1",
 									"k2": "v2",
 								},
@@ -2145,7 +2145,7 @@ var _ = Describe("Pipeline", func() {
 
 		JustBeforeEach(func() {
 			fakeGlobalSecrets = new(credsfakes.FakeSecrets)
-			fakeGlobalSecrets.GetStub = func(key string) (interface{}, *time.Time, bool, error) {
+			fakeGlobalSecrets.GetStub = func(key string) (any, *time.Time, bool, error) {
 				if key == "gk" {
 					return "gv", nil, true, nil
 				}
@@ -2192,8 +2192,8 @@ var _ = Describe("Pipeline", func() {
 				pipelineConfig.VarSources = append(pipelineConfig.VarSources, atc.VarSourceConfig{
 					Name: "second-var-source",
 					Type: "dummy",
-					Config: map[string]interface{}{
-						"vars": map[string]interface{}{"pk": "((some-var-source:pk))"},
+					Config: map[string]any{
+						"vars": map[string]any{"pk": "((some-var-source:pk))"},
 					},
 				})
 

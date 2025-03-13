@@ -11,8 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func makeGetStub(name string, value interface{}, expiration *time.Time, found bool, err error, cntReads *int, cntMisses *int) func(string) (interface{}, *time.Time, bool, error) {
-	return func(secretPath string) (interface{}, *time.Time, bool, error) {
+func makeGetStub(name string, value any, expiration *time.Time, found bool, err error, cntReads *int, cntMisses *int) func(string) (any, *time.Time, bool, error) {
+	return func(secretPath string) (any, *time.Time, bool, error) {
 		if secretPath == name {
 			*cntReads++
 			return value, expiration, found, err
@@ -161,7 +161,6 @@ var _ = Describe("Caching of secrets", func() {
 		Expect(underlyingReads).To(BeIdenticalTo(1))
 		Expect(underlyingMisses).To(BeIdenticalTo(4))
 	})
-
 
 	It("should not cache longer than default duration if durarion is 0 or less", func() {
 		secretManager.GetStub = makeGetStub("foo", "value", &time.Time{}, true, nil, &underlyingReads, &underlyingMisses)

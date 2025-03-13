@@ -115,7 +115,7 @@ type FakeContainerRepository struct {
 	updateContainersMissingSinceReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -126,7 +126,7 @@ func (fake *FakeContainerRepository) DestroyDirtyInMemoryBuildContainers() (int,
 	}{})
 	stub := fake.DestroyDirtyInMemoryBuildContainersStub
 	fakeReturns := fake.destroyDirtyInMemoryBuildContainersReturns
-	fake.recordInvocation("DestroyDirtyInMemoryBuildContainers", []interface{}{})
+	fake.recordInvocation("DestroyDirtyInMemoryBuildContainers", []any{})
 	fake.destroyDirtyInMemoryBuildContainersMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -182,7 +182,7 @@ func (fake *FakeContainerRepository) DestroyFailedContainers() (int, error) {
 	}{})
 	stub := fake.DestroyFailedContainersStub
 	fakeReturns := fake.destroyFailedContainersReturns
-	fake.recordInvocation("DestroyFailedContainers", []interface{}{})
+	fake.recordInvocation("DestroyFailedContainers", []any{})
 	fake.destroyFailedContainersMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -245,7 +245,7 @@ func (fake *FakeContainerRepository) DestroyUnknownContainers(arg1 string, arg2 
 	}{arg1, arg2Copy})
 	stub := fake.DestroyUnknownContainersStub
 	fakeReturns := fake.destroyUnknownContainersReturns
-	fake.recordInvocation("DestroyUnknownContainers", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("DestroyUnknownContainers", []any{arg1, arg2Copy})
 	fake.destroyUnknownContainersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -309,7 +309,7 @@ func (fake *FakeContainerRepository) FindDestroyingContainers(arg1 string) ([]st
 	}{arg1})
 	stub := fake.FindDestroyingContainersStub
 	fakeReturns := fake.findDestroyingContainersReturns
-	fake.recordInvocation("FindDestroyingContainers", []interface{}{arg1})
+	fake.recordInvocation("FindDestroyingContainers", []any{arg1})
 	fake.findDestroyingContainersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -372,7 +372,7 @@ func (fake *FakeContainerRepository) FindOrphanedContainers() ([]db.CreatingCont
 	}{})
 	stub := fake.FindOrphanedContainersStub
 	fakeReturns := fake.findOrphanedContainersReturns
-	fake.recordInvocation("FindOrphanedContainers", []interface{}{})
+	fake.recordInvocation("FindOrphanedContainers", []any{})
 	fake.findOrphanedContainersMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -441,7 +441,7 @@ func (fake *FakeContainerRepository) RemoveDestroyingContainers(arg1 string, arg
 	}{arg1, arg2Copy})
 	stub := fake.RemoveDestroyingContainersStub
 	fakeReturns := fake.removeDestroyingContainersReturns
-	fake.recordInvocation("RemoveDestroyingContainers", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("RemoveDestroyingContainers", []any{arg1, arg2Copy})
 	fake.removeDestroyingContainersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -505,7 +505,7 @@ func (fake *FakeContainerRepository) RemoveMissingContainers(arg1 time.Duration)
 	}{arg1})
 	stub := fake.RemoveMissingContainersStub
 	fakeReturns := fake.removeMissingContainersReturns
-	fake.recordInvocation("RemoveMissingContainers", []interface{}{arg1})
+	fake.recordInvocation("RemoveMissingContainers", []any{arg1})
 	fake.removeMissingContainersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -575,7 +575,7 @@ func (fake *FakeContainerRepository) UpdateContainersMissingSince(arg1 string, a
 	}{arg1, arg2Copy})
 	stub := fake.UpdateContainersMissingSinceStub
 	fakeReturns := fake.updateContainersMissingSinceReturns
-	fake.recordInvocation("UpdateContainersMissingSince", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("UpdateContainersMissingSince", []any{arg1, arg2Copy})
 	fake.updateContainersMissingSinceMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -628,7 +628,7 @@ func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturnsOnCall(i
 	}{result1}
 }
 
-func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
+func (fake *FakeContainerRepository) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyDirtyInMemoryBuildContainersMutex.RLock()
@@ -647,21 +647,21 @@ func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	defer fake.removeMissingContainersMutex.RUnlock()
 	fake.updateContainersMissingSinceMutex.RLock()
 	defer fake.updateContainersMissingSinceMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeContainerRepository) recordInvocation(key string, args []interface{}) {
+func (fake *FakeContainerRepository) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

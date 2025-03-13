@@ -75,7 +75,7 @@ var _ = Describe("VaultManager", func() {
 	})
 
 	Describe("Config", func() {
-		var config map[string]interface{}
+		var config map[string]any
 		var fakeVault *httptest.Server
 
 		var configErr error
@@ -124,7 +124,7 @@ var _ = Describe("VaultManager", func() {
 
 			fakeVault = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				err := json.NewEncoder(w).Encode(api.Secret{
-					Data: map[string]interface{}{"value": "foo"},
+					Data: map[string]any{"value": "foo"},
 				})
 				Expect(err).ToNot(HaveOccurred())
 			}))
@@ -138,7 +138,7 @@ var _ = Describe("VaultManager", func() {
 
 			fakeVault.StartTLS()
 
-			config = map[string]interface{}{
+			config = map[string]any{
 				"url":                fakeVault.URL,
 				"disable_srv_lookup": true,
 				"path_prefix":        "/path-prefix",
@@ -180,7 +180,7 @@ var _ = Describe("VaultManager", func() {
 			secret, err := manager.Client.Read("some/path")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(secret).ToNot(BeNil())
-			Expect(secret.Data).To(Equal(map[string]interface{}{"value": "foo"}))
+			Expect(secret.Data).To(Equal(map[string]any{"value": "foo"}))
 		})
 
 		It("configures all attributes appropriately", func() {

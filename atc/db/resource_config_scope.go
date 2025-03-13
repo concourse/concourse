@@ -204,7 +204,7 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime(buildId int, publicPlan *
 
 	defer Rollback(tx)
 
-	var buildIdValue interface{}
+	var buildIdValue any
 	if buildId != 0 {
 		buildIdValue = buildId
 	}

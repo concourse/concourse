@@ -110,9 +110,9 @@ var (
 )
 
 type CNINetworkConfiguration struct {
-	Name       string        `json:"name"`
-	CNIVersion string        `json:"cniVersion"`
-	Plugins    []interface{} `json:"plugins"`
+	Name       string `json:"name"`
+	CNIVersion string `json:"cniVersion"`
+	Plugins    []any  `json:"plugins"`
 }
 
 type Plugin struct {
@@ -174,7 +174,7 @@ func (c CNINetworkConfig) ToJSONv4() string {
 	netConfig := CNINetworkConfiguration{
 		Name:       c.NetworkName,
 		CNIVersion: "0.4.0",
-		Plugins: []interface{}{
+		Plugins: []any{
 			bridgePlugin,
 			defaultFirewallPlugin,
 		},
@@ -216,7 +216,7 @@ func (c CNINetworkConfig) ToJSONv6() string {
 	netConfig := CNINetworkConfiguration{
 		Name:       c.NetworkName,
 		CNIVersion: "0.4.0",
-		Plugins: []interface{}{
+		Plugins: []any{
 			bridgePlugin,
 			defaultFirewallPlugin,
 		},

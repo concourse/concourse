@@ -547,7 +547,7 @@ type FakeJob struct {
 	updateLastScheduledReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -559,7 +559,7 @@ func (fake *FakeJob) AcquireSchedulingLock(arg1 lager.Logger) (lock.Lock, bool, 
 	}{arg1})
 	stub := fake.AcquireSchedulingLockStub
 	fakeReturns := fake.acquireSchedulingLockReturns
-	fake.recordInvocation("AcquireSchedulingLock", []interface{}{arg1})
+	fake.recordInvocation("AcquireSchedulingLock", []any{arg1})
 	fake.acquireSchedulingLockMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -625,7 +625,7 @@ func (fake *FakeJob) AlgorithmInputs() (db.InputConfigs, error) {
 	}{})
 	stub := fake.AlgorithmInputsStub
 	fakeReturns := fake.algorithmInputsReturns
-	fake.recordInvocation("AlgorithmInputs", []interface{}{})
+	fake.recordInvocation("AlgorithmInputs", []any{})
 	fake.algorithmInputsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -682,7 +682,7 @@ func (fake *FakeJob) Build(arg1 string) (db.Build, bool, error) {
 	}{arg1})
 	stub := fake.BuildStub
 	fakeReturns := fake.buildReturns
-	fake.recordInvocation("Build", []interface{}{arg1})
+	fake.recordInvocation("Build", []any{arg1})
 	fake.buildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -749,7 +749,7 @@ func (fake *FakeJob) Builds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination, erro
 	}{arg1})
 	stub := fake.BuildsStub
 	fakeReturns := fake.buildsReturns
-	fake.recordInvocation("Builds", []interface{}{arg1})
+	fake.recordInvocation("Builds", []any{arg1})
 	fake.buildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -816,7 +816,7 @@ func (fake *FakeJob) BuildsWithTime(arg1 db.Page) ([]db.BuildForAPI, db.Paginati
 	}{arg1})
 	stub := fake.BuildsWithTimeStub
 	fakeReturns := fake.buildsWithTimeReturns
-	fake.recordInvocation("BuildsWithTime", []interface{}{arg1})
+	fake.recordInvocation("BuildsWithTime", []any{arg1})
 	fake.buildsWithTimeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -883,7 +883,7 @@ func (fake *FakeJob) ChronoBuilds(arg1 db.Page) ([]db.BuildForAPI, db.Pagination
 	}{arg1})
 	stub := fake.ChronoBuildsStub
 	fakeReturns := fake.chronoBuildsReturns
-	fake.recordInvocation("ChronoBuilds", []interface{}{arg1})
+	fake.recordInvocation("ChronoBuilds", []any{arg1})
 	fake.chronoBuildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -951,7 +951,7 @@ func (fake *FakeJob) ClearTaskCache(arg1 string, arg2 string) (int64, error) {
 	}{arg1, arg2})
 	stub := fake.ClearTaskCacheStub
 	fakeReturns := fake.clearTaskCacheReturns
-	fake.recordInvocation("ClearTaskCache", []interface{}{arg1, arg2})
+	fake.recordInvocation("ClearTaskCache", []any{arg1, arg2})
 	fake.clearTaskCacheMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1014,7 +1014,7 @@ func (fake *FakeJob) Config() (atc.JobConfig, error) {
 	}{})
 	stub := fake.ConfigStub
 	fakeReturns := fake.configReturns
-	fake.recordInvocation("Config", []interface{}{})
+	fake.recordInvocation("Config", []any{})
 	fake.configMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1071,7 +1071,7 @@ func (fake *FakeJob) CreateBuild(arg1 string) (db.Build, error) {
 	}{arg1})
 	stub := fake.CreateBuildStub
 	fakeReturns := fake.createBuildReturns
-	fake.recordInvocation("CreateBuild", []interface{}{arg1})
+	fake.recordInvocation("CreateBuild", []any{arg1})
 	fake.createBuildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1134,7 +1134,7 @@ func (fake *FakeJob) DisableManualTrigger() bool {
 	}{})
 	stub := fake.DisableManualTriggerStub
 	fakeReturns := fake.disableManualTriggerReturns
-	fake.recordInvocation("DisableManualTrigger", []interface{}{})
+	fake.recordInvocation("DisableManualTrigger", []any{})
 	fake.disableManualTriggerMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1188,7 +1188,7 @@ func (fake *FakeJob) EnsurePendingBuildExists(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.EnsurePendingBuildExistsStub
 	fakeReturns := fake.ensurePendingBuildExistsReturns
-	fake.recordInvocation("EnsurePendingBuildExists", []interface{}{arg1})
+	fake.recordInvocation("EnsurePendingBuildExists", []any{arg1})
 	fake.ensurePendingBuildExistsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1248,7 +1248,7 @@ func (fake *FakeJob) FinishedAndNextBuild() (db.Build, db.Build, error) {
 	}{})
 	stub := fake.FinishedAndNextBuildStub
 	fakeReturns := fake.finishedAndNextBuildReturns
-	fake.recordInvocation("FinishedAndNextBuild", []interface{}{})
+	fake.recordInvocation("FinishedAndNextBuild", []any{})
 	fake.finishedAndNextBuildMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1307,7 +1307,7 @@ func (fake *FakeJob) FirstLoggedBuildID() int {
 	}{})
 	stub := fake.FirstLoggedBuildIDStub
 	fakeReturns := fake.firstLoggedBuildIDReturns
-	fake.recordInvocation("FirstLoggedBuildID", []interface{}{})
+	fake.recordInvocation("FirstLoggedBuildID", []any{})
 	fake.firstLoggedBuildIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1360,7 +1360,7 @@ func (fake *FakeJob) GetFullNextBuildInputs() ([]db.BuildInput, bool, error) {
 	}{})
 	stub := fake.GetFullNextBuildInputsStub
 	fakeReturns := fake.getFullNextBuildInputsReturns
-	fake.recordInvocation("GetFullNextBuildInputs", []interface{}{})
+	fake.recordInvocation("GetFullNextBuildInputs", []any{})
 	fake.getFullNextBuildInputsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1419,7 +1419,7 @@ func (fake *FakeJob) GetNextBuildInputs() ([]db.BuildInput, error) {
 	}{})
 	stub := fake.GetNextBuildInputsStub
 	fakeReturns := fake.getNextBuildInputsReturns
-	fake.recordInvocation("GetNextBuildInputs", []interface{}{})
+	fake.recordInvocation("GetNextBuildInputs", []any{})
 	fake.getNextBuildInputsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1475,7 +1475,7 @@ func (fake *FakeJob) GetPendingBuilds() ([]db.Build, error) {
 	}{})
 	stub := fake.GetPendingBuildsStub
 	fakeReturns := fake.getPendingBuildsReturns
-	fake.recordInvocation("GetPendingBuilds", []interface{}{})
+	fake.recordInvocation("GetPendingBuilds", []any{})
 	fake.getPendingBuildsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1531,7 +1531,7 @@ func (fake *FakeJob) HasNewInputs() bool {
 	}{})
 	stub := fake.HasNewInputsStub
 	fakeReturns := fake.hasNewInputsReturns
-	fake.recordInvocation("HasNewInputs", []interface{}{})
+	fake.recordInvocation("HasNewInputs", []any{})
 	fake.hasNewInputsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1584,7 +1584,7 @@ func (fake *FakeJob) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1637,7 +1637,7 @@ func (fake *FakeJob) Inputs() ([]atc.JobInput, error) {
 	}{})
 	stub := fake.InputsStub
 	fakeReturns := fake.inputsReturns
-	fake.recordInvocation("Inputs", []interface{}{})
+	fake.recordInvocation("Inputs", []any{})
 	fake.inputsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1693,7 +1693,7 @@ func (fake *FakeJob) LatestCompletedBuildId() (int, error) {
 	}{})
 	stub := fake.LatestCompletedBuildIdStub
 	fakeReturns := fake.latestCompletedBuildIdReturns
-	fake.recordInvocation("LatestCompletedBuildId", []interface{}{})
+	fake.recordInvocation("LatestCompletedBuildId", []any{})
 	fake.latestCompletedBuildIdMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1749,7 +1749,7 @@ func (fake *FakeJob) MaxInFlight() int {
 	}{})
 	stub := fake.MaxInFlightStub
 	fakeReturns := fake.maxInFlightReturns
-	fake.recordInvocation("MaxInFlight", []interface{}{})
+	fake.recordInvocation("MaxInFlight", []any{})
 	fake.maxInFlightMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1802,7 +1802,7 @@ func (fake *FakeJob) Name() string {
 	}{})
 	stub := fake.NameStub
 	fakeReturns := fake.nameReturns
-	fake.recordInvocation("Name", []interface{}{})
+	fake.recordInvocation("Name", []any{})
 	fake.nameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1855,7 +1855,7 @@ func (fake *FakeJob) Outputs() ([]atc.JobOutput, error) {
 	}{})
 	stub := fake.OutputsStub
 	fakeReturns := fake.outputsReturns
-	fake.recordInvocation("Outputs", []interface{}{})
+	fake.recordInvocation("Outputs", []any{})
 	fake.outputsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1912,7 +1912,7 @@ func (fake *FakeJob) Pause(arg1 string) error {
 	}{arg1})
 	stub := fake.PauseStub
 	fakeReturns := fake.pauseReturns
-	fake.recordInvocation("Pause", []interface{}{arg1})
+	fake.recordInvocation("Pause", []any{arg1})
 	fake.pauseMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1972,7 +1972,7 @@ func (fake *FakeJob) Paused() bool {
 	}{})
 	stub := fake.PausedStub
 	fakeReturns := fake.pausedReturns
-	fake.recordInvocation("Paused", []interface{}{})
+	fake.recordInvocation("Paused", []any{})
 	fake.pausedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2025,7 +2025,7 @@ func (fake *FakeJob) PausedAt() time.Time {
 	}{})
 	stub := fake.PausedAtStub
 	fakeReturns := fake.pausedAtReturns
-	fake.recordInvocation("PausedAt", []interface{}{})
+	fake.recordInvocation("PausedAt", []any{})
 	fake.pausedAtMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2078,7 +2078,7 @@ func (fake *FakeJob) PausedBy() string {
 	}{})
 	stub := fake.PausedByStub
 	fakeReturns := fake.pausedByReturns
-	fake.recordInvocation("PausedBy", []interface{}{})
+	fake.recordInvocation("PausedBy", []any{})
 	fake.pausedByMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2131,7 +2131,7 @@ func (fake *FakeJob) Pipeline() (db.Pipeline, bool, error) {
 	}{})
 	stub := fake.PipelineStub
 	fakeReturns := fake.pipelineReturns
-	fake.recordInvocation("Pipeline", []interface{}{})
+	fake.recordInvocation("Pipeline", []any{})
 	fake.pipelineMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2190,7 +2190,7 @@ func (fake *FakeJob) PipelineID() int {
 	}{})
 	stub := fake.PipelineIDStub
 	fakeReturns := fake.pipelineIDReturns
-	fake.recordInvocation("PipelineID", []interface{}{})
+	fake.recordInvocation("PipelineID", []any{})
 	fake.pipelineIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2243,7 +2243,7 @@ func (fake *FakeJob) PipelineInstanceVars() atc.InstanceVars {
 	}{})
 	stub := fake.PipelineInstanceVarsStub
 	fakeReturns := fake.pipelineInstanceVarsReturns
-	fake.recordInvocation("PipelineInstanceVars", []interface{}{})
+	fake.recordInvocation("PipelineInstanceVars", []any{})
 	fake.pipelineInstanceVarsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2296,7 +2296,7 @@ func (fake *FakeJob) PipelineName() string {
 	}{})
 	stub := fake.PipelineNameStub
 	fakeReturns := fake.pipelineNameReturns
-	fake.recordInvocation("PipelineName", []interface{}{})
+	fake.recordInvocation("PipelineName", []any{})
 	fake.pipelineNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2349,7 +2349,7 @@ func (fake *FakeJob) PipelineRef() atc.PipelineRef {
 	}{})
 	stub := fake.PipelineRefStub
 	fakeReturns := fake.pipelineRefReturns
-	fake.recordInvocation("PipelineRef", []interface{}{})
+	fake.recordInvocation("PipelineRef", []any{})
 	fake.pipelineRefMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2402,7 +2402,7 @@ func (fake *FakeJob) Public() bool {
 	}{})
 	stub := fake.PublicStub
 	fakeReturns := fake.publicReturns
-	fake.recordInvocation("Public", []interface{}{})
+	fake.recordInvocation("Public", []any{})
 	fake.publicMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2455,7 +2455,7 @@ func (fake *FakeJob) Reload() (bool, error) {
 	}{})
 	stub := fake.ReloadStub
 	fakeReturns := fake.reloadReturns
-	fake.recordInvocation("Reload", []interface{}{})
+	fake.recordInvocation("Reload", []any{})
 	fake.reloadMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2511,7 +2511,7 @@ func (fake *FakeJob) RequestSchedule() error {
 	}{})
 	stub := fake.RequestScheduleStub
 	fakeReturns := fake.requestScheduleReturns
-	fake.recordInvocation("RequestSchedule", []interface{}{})
+	fake.recordInvocation("RequestSchedule", []any{})
 	fake.requestScheduleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2566,7 +2566,7 @@ func (fake *FakeJob) RerunBuild(arg1 db.Build, arg2 string) (db.Build, error) {
 	}{arg1, arg2})
 	stub := fake.RerunBuildStub
 	fakeReturns := fake.rerunBuildReturns
-	fake.recordInvocation("RerunBuild", []interface{}{arg1, arg2})
+	fake.recordInvocation("RerunBuild", []any{arg1, arg2})
 	fake.rerunBuildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -2631,7 +2631,7 @@ func (fake *FakeJob) SaveNextInputMapping(arg1 db.InputMapping, arg2 bool) error
 	}{arg1, arg2})
 	stub := fake.SaveNextInputMappingStub
 	fakeReturns := fake.saveNextInputMappingReturns
-	fake.recordInvocation("SaveNextInputMapping", []interface{}{arg1, arg2})
+	fake.recordInvocation("SaveNextInputMapping", []any{arg1, arg2})
 	fake.saveNextInputMappingMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -2692,7 +2692,7 @@ func (fake *FakeJob) ScheduleBuild(arg1 db.Build) (bool, error) {
 	}{arg1})
 	stub := fake.ScheduleBuildStub
 	fakeReturns := fake.scheduleBuildReturns
-	fake.recordInvocation("ScheduleBuild", []interface{}{arg1})
+	fake.recordInvocation("ScheduleBuild", []any{arg1})
 	fake.scheduleBuildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2755,7 +2755,7 @@ func (fake *FakeJob) ScheduleRequestedTime() time.Time {
 	}{})
 	stub := fake.ScheduleRequestedTimeStub
 	fakeReturns := fake.scheduleRequestedTimeReturns
-	fake.recordInvocation("ScheduleRequestedTime", []interface{}{})
+	fake.recordInvocation("ScheduleRequestedTime", []any{})
 	fake.scheduleRequestedTimeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2809,7 +2809,7 @@ func (fake *FakeJob) SetHasNewInputs(arg1 bool) error {
 	}{arg1})
 	stub := fake.SetHasNewInputsStub
 	fakeReturns := fake.setHasNewInputsReturns
-	fake.recordInvocation("SetHasNewInputs", []interface{}{arg1})
+	fake.recordInvocation("SetHasNewInputs", []any{arg1})
 	fake.setHasNewInputsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -2869,7 +2869,7 @@ func (fake *FakeJob) Tags() []string {
 	}{})
 	stub := fake.TagsStub
 	fakeReturns := fake.tagsReturns
-	fake.recordInvocation("Tags", []interface{}{})
+	fake.recordInvocation("Tags", []any{})
 	fake.tagsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2922,7 +2922,7 @@ func (fake *FakeJob) TeamID() int {
 	}{})
 	stub := fake.TeamIDStub
 	fakeReturns := fake.teamIDReturns
-	fake.recordInvocation("TeamID", []interface{}{})
+	fake.recordInvocation("TeamID", []any{})
 	fake.teamIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -2975,7 +2975,7 @@ func (fake *FakeJob) TeamName() string {
 	}{})
 	stub := fake.TeamNameStub
 	fakeReturns := fake.teamNameReturns
-	fake.recordInvocation("TeamName", []interface{}{})
+	fake.recordInvocation("TeamName", []any{})
 	fake.teamNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -3028,7 +3028,7 @@ func (fake *FakeJob) Unpause() error {
 	}{})
 	stub := fake.UnpauseStub
 	fakeReturns := fake.unpauseReturns
-	fake.recordInvocation("Unpause", []interface{}{})
+	fake.recordInvocation("Unpause", []any{})
 	fake.unpauseMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -3082,7 +3082,7 @@ func (fake *FakeJob) UpdateFirstLoggedBuildID(arg1 int) error {
 	}{arg1})
 	stub := fake.UpdateFirstLoggedBuildIDStub
 	fakeReturns := fake.updateFirstLoggedBuildIDReturns
-	fake.recordInvocation("UpdateFirstLoggedBuildID", []interface{}{arg1})
+	fake.recordInvocation("UpdateFirstLoggedBuildID", []any{arg1})
 	fake.updateFirstLoggedBuildIDMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -3143,7 +3143,7 @@ func (fake *FakeJob) UpdateLastScheduled(arg1 time.Time) error {
 	}{arg1})
 	stub := fake.UpdateLastScheduledStub
 	fakeReturns := fake.updateLastScheduledReturns
-	fake.recordInvocation("UpdateLastScheduled", []interface{}{arg1})
+	fake.recordInvocation("UpdateLastScheduled", []any{arg1})
 	fake.updateLastScheduledMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -3196,7 +3196,7 @@ func (fake *FakeJob) UpdateLastScheduledReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeJob) Invocations() map[string][][]interface{} {
+func (fake *FakeJob) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.acquireSchedulingLockMutex.RLock()
@@ -3291,21 +3291,21 @@ func (fake *FakeJob) Invocations() map[string][][]interface{} {
 	defer fake.updateFirstLoggedBuildIDMutex.RUnlock()
 	fake.updateLastScheduledMutex.RLock()
 	defer fake.updateLastScheduledMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeJob) recordInvocation(key string, args []interface{}) {
+func (fake *FakeJob) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

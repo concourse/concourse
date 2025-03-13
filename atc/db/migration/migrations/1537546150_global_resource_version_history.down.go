@@ -17,9 +17,9 @@ type ResourceConfig struct {
 	Version      Version  `json:"version,omitempty"`
 }
 
-type Source map[string]interface{}
+type Source map[string]any
 
-type Params map[string]interface{}
+type Params map[string]any
 
 type Version map[string]string
 

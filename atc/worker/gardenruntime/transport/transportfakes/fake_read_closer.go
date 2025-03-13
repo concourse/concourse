@@ -31,7 +31,7 @@ type FakeReadCloser struct {
 		result1 int
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -42,7 +42,7 @@ func (fake *FakeReadCloser) Close() error {
 	}{})
 	stub := fake.CloseStub
 	fakeReturns := fake.closeReturns
-	fake.recordInvocation("Close", []interface{}{})
+	fake.recordInvocation("Close", []any{})
 	fake.closeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -101,7 +101,7 @@ func (fake *FakeReadCloser) Read(arg1 []byte) (int, error) {
 	}{arg1Copy})
 	stub := fake.ReadStub
 	fakeReturns := fake.readReturns
-	fake.recordInvocation("Read", []interface{}{arg1Copy})
+	fake.recordInvocation("Read", []any{arg1Copy})
 	fake.readMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -157,28 +157,28 @@ func (fake *FakeReadCloser) ReadReturnsOnCall(i int, result1 int, result2 error)
 	}{result1, result2}
 }
 
-func (fake *FakeReadCloser) Invocations() map[string][][]interface{} {
+func (fake *FakeReadCloser) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.closeMutex.RLock()
 	defer fake.closeMutex.RUnlock()
 	fake.readMutex.RLock()
 	defer fake.readMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeReadCloser) recordInvocation(key string, args []interface{}) {
+func (fake *FakeReadCloser) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

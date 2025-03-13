@@ -42,14 +42,14 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 	return Cmd{vault}
 }
 
-func (cmd Cmd) Write(t *testing.T, path string, val interface{}) {
+func (cmd Cmd) Write(t *testing.T, path string, val any) {
 	cmd.WithArgs("write", path).Run(t, writeArgs(val)...)
 }
 
-func writeArgs(val interface{}) []string {
+func writeArgs(val any) []string {
 	vals := []string{}
 	switch x := val.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		for k, v := range x {
 			vals = append(vals, fmt.Sprintf("%s=%s", k, v))
 		}

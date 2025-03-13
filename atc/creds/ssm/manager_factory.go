@@ -27,7 +27,7 @@ func (factory *ssmManagerFactory) AddConfig(group *flags.Group) creds.Manager {
 	return manager
 }
 
-func (factory *ssmManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
+func (factory *ssmManagerFactory) NewInstance(config any) (creds.Manager, error) {
 	manager := &SsmManager{
 		TeamSecretTemplate:     DefaultTeamSecretTemplate,
 		PipelineSecretTemplate: DefaultPipelineSecretTemplate,

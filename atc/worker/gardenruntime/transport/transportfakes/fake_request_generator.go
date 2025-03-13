@@ -26,7 +26,7 @@ type FakeRequestGenerator struct {
 		result1 *http.Request
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -40,7 +40,7 @@ func (fake *FakeRequestGenerator) CreateRequest(arg1 string, arg2 rata.Params, a
 	}{arg1, arg2, arg3})
 	stub := fake.CreateRequestStub
 	fakeReturns := fake.createRequestReturns
-	fake.recordInvocation("CreateRequest", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("CreateRequest", []any{arg1, arg2, arg3})
 	fake.createRequestMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -96,26 +96,26 @@ func (fake *FakeRequestGenerator) CreateRequestReturnsOnCall(i int, result1 *htt
 	}{result1, result2}
 }
 
-func (fake *FakeRequestGenerator) Invocations() map[string][][]interface{} {
+func (fake *FakeRequestGenerator) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createRequestMutex.RLock()
 	defer fake.createRequestMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeRequestGenerator) recordInvocation(key string, args []interface{}) {
+func (fake *FakeRequestGenerator) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -122,7 +122,7 @@ func attachOrRun(ctx context.Context, container runtime.Container, spec runtime.
 	return container.Run(ctx, spec, io)
 }
 
-func (resource Resource) run(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, stderr io.Writer, attach bool, output interface{}) (runtime.ProcessResult, error) {
+func (resource Resource) run(ctx context.Context, container runtime.Container, spec runtime.ProcessSpec, stderr io.Writer, attach bool, output any) (runtime.ProcessResult, error) {
 	input, err := resource.Signature()
 	if err != nil {
 		return runtime.ProcessResult{}, err

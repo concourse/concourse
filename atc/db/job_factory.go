@@ -274,12 +274,12 @@ type dashboardFactory struct {
 	// Constraints that are used by the dashboard queries. For example, a job ID
 	// constraint so that the dashboard will only return the job I have access to
 	// see.
-	pred interface{}
+	pred any
 
 	tx Tx
 }
 
-func newDashboardFactory(tx Tx, pred interface{}) dashboardFactory {
+func newDashboardFactory(tx Tx, pred any) dashboardFactory {
 	return dashboardFactory{
 		pred: pred,
 		tx:   tx,

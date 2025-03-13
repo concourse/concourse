@@ -27,7 +27,7 @@ type FakeNamespacer struct {
 	namespacePathReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -37,7 +37,7 @@ func (fake *FakeNamespacer) NamespaceCommand(arg1 *exec.Cmd) {
 		arg1 *exec.Cmd
 	}{arg1})
 	stub := fake.NamespaceCommandStub
-	fake.recordInvocation("NamespaceCommand", []interface{}{arg1})
+	fake.recordInvocation("NamespaceCommand", []any{arg1})
 	fake.namespaceCommandMutex.Unlock()
 	if stub != nil {
 		fake.NamespaceCommandStub(arg1)
@@ -72,7 +72,7 @@ func (fake *FakeNamespacer) NamespacePath(arg1 lager.Logger, arg2 string) error 
 	}{arg1, arg2})
 	stub := fake.NamespacePathStub
 	fakeReturns := fake.namespacePathReturns
-	fake.recordInvocation("NamespacePath", []interface{}{arg1, arg2})
+	fake.recordInvocation("NamespacePath", []any{arg1, arg2})
 	fake.namespacePathMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -125,28 +125,28 @@ func (fake *FakeNamespacer) NamespacePathReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeNamespacer) Invocations() map[string][][]interface{} {
+func (fake *FakeNamespacer) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.namespaceCommandMutex.RLock()
 	defer fake.namespaceCommandMutex.RUnlock()
 	fake.namespacePathMutex.RLock()
 	defer fake.namespacePathMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeNamespacer) recordInvocation(key string, args []interface{}) {
+func (fake *FakeNamespacer) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

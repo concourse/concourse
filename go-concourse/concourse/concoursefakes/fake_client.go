@@ -290,7 +290,7 @@ type FakeClient struct {
 		result1 atc.UserInfo
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -302,7 +302,7 @@ func (fake *FakeClient) AbortBuild(arg1 string) error {
 	}{arg1})
 	stub := fake.AbortBuildStub
 	fakeReturns := fake.abortBuildReturns
-	fake.recordInvocation("AbortBuild", []interface{}{arg1})
+	fake.recordInvocation("AbortBuild", []any{arg1})
 	fake.abortBuildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -363,7 +363,7 @@ func (fake *FakeClient) Build(arg1 string) (atc.Build, bool, error) {
 	}{arg1})
 	stub := fake.BuildStub
 	fakeReturns := fake.buildReturns
-	fake.recordInvocation("Build", []interface{}{arg1})
+	fake.recordInvocation("Build", []any{arg1})
 	fake.buildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -430,7 +430,7 @@ func (fake *FakeClient) BuildEvents(arg1 string) (concourse.Events, error) {
 	}{arg1})
 	stub := fake.BuildEventsStub
 	fakeReturns := fake.buildEventsReturns
-	fake.recordInvocation("BuildEvents", []interface{}{arg1})
+	fake.recordInvocation("BuildEvents", []any{arg1})
 	fake.buildEventsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -494,7 +494,7 @@ func (fake *FakeClient) BuildPlan(arg1 int) (atc.PublicBuildPlan, bool, error) {
 	}{arg1})
 	stub := fake.BuildPlanStub
 	fakeReturns := fake.buildPlanReturns
-	fake.recordInvocation("BuildPlan", []interface{}{arg1})
+	fake.recordInvocation("BuildPlan", []any{arg1})
 	fake.buildPlanMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -561,7 +561,7 @@ func (fake *FakeClient) BuildResources(arg1 int) (atc.BuildInputsOutputs, bool, 
 	}{arg1})
 	stub := fake.BuildResourcesStub
 	fakeReturns := fake.buildResourcesReturns
-	fake.recordInvocation("BuildResources", []interface{}{arg1})
+	fake.recordInvocation("BuildResources", []any{arg1})
 	fake.buildResourcesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -628,7 +628,7 @@ func (fake *FakeClient) Builds(arg1 concourse.Page) ([]atc.Build, concourse.Pagi
 	}{arg1})
 	stub := fake.BuildsStub
 	fakeReturns := fake.buildsReturns
-	fake.recordInvocation("Builds", []interface{}{arg1})
+	fake.recordInvocation("Builds", []any{arg1})
 	fake.buildsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -695,7 +695,7 @@ func (fake *FakeClient) FindTeam(arg1 string) (concourse.Team, error) {
 	}{arg1})
 	stub := fake.FindTeamStub
 	fakeReturns := fake.findTeamReturns
-	fake.recordInvocation("FindTeam", []interface{}{arg1})
+	fake.recordInvocation("FindTeam", []any{arg1})
 	fake.findTeamMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -760,7 +760,7 @@ func (fake *FakeClient) GetCLIReader(arg1 string, arg2 string) (io.ReadCloser, h
 	}{arg1, arg2})
 	stub := fake.GetCLIReaderStub
 	fakeReturns := fake.getCLIReaderReturns
-	fake.recordInvocation("GetCLIReader", []interface{}{arg1, arg2})
+	fake.recordInvocation("GetCLIReader", []any{arg1, arg2})
 	fake.getCLIReaderMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -826,7 +826,7 @@ func (fake *FakeClient) GetInfo() (atc.Info, error) {
 	}{})
 	stub := fake.GetInfoStub
 	fakeReturns := fake.getInfoReturns
-	fake.recordInvocation("GetInfo", []interface{}{})
+	fake.recordInvocation("GetInfo", []any{})
 	fake.getInfoMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -882,7 +882,7 @@ func (fake *FakeClient) HTTPClient() *http.Client {
 	}{})
 	stub := fake.HTTPClientStub
 	fakeReturns := fake.hTTPClientReturns
-	fake.recordInvocation("HTTPClient", []interface{}{})
+	fake.recordInvocation("HTTPClient", []any{})
 	fake.hTTPClientMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -936,7 +936,7 @@ func (fake *FakeClient) LandWorker(arg1 string) error {
 	}{arg1})
 	stub := fake.LandWorkerStub
 	fakeReturns := fake.landWorkerReturns
-	fake.recordInvocation("LandWorker", []interface{}{arg1})
+	fake.recordInvocation("LandWorker", []any{arg1})
 	fake.landWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -997,7 +997,7 @@ func (fake *FakeClient) ListActiveUsersSince(arg1 time.Time) ([]atc.User, error)
 	}{arg1})
 	stub := fake.ListActiveUsersSinceStub
 	fakeReturns := fake.listActiveUsersSinceReturns
-	fake.recordInvocation("ListActiveUsersSince", []interface{}{arg1})
+	fake.recordInvocation("ListActiveUsersSince", []any{arg1})
 	fake.listActiveUsersSinceMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1060,7 +1060,7 @@ func (fake *FakeClient) ListAllJobs() ([]atc.Job, error) {
 	}{})
 	stub := fake.ListAllJobsStub
 	fakeReturns := fake.listAllJobsReturns
-	fake.recordInvocation("ListAllJobs", []interface{}{})
+	fake.recordInvocation("ListAllJobs", []any{})
 	fake.listAllJobsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1117,7 +1117,7 @@ func (fake *FakeClient) ListBuildArtifacts(arg1 string) ([]atc.WorkerArtifact, e
 	}{arg1})
 	stub := fake.ListBuildArtifactsStub
 	fakeReturns := fake.listBuildArtifactsReturns
-	fake.recordInvocation("ListBuildArtifacts", []interface{}{arg1})
+	fake.recordInvocation("ListBuildArtifacts", []any{arg1})
 	fake.listBuildArtifactsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1180,7 +1180,7 @@ func (fake *FakeClient) ListPipelines() ([]atc.Pipeline, error) {
 	}{})
 	stub := fake.ListPipelinesStub
 	fakeReturns := fake.listPipelinesReturns
-	fake.recordInvocation("ListPipelines", []interface{}{})
+	fake.recordInvocation("ListPipelines", []any{})
 	fake.listPipelinesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1236,7 +1236,7 @@ func (fake *FakeClient) ListTeams() ([]atc.Team, error) {
 	}{})
 	stub := fake.ListTeamsStub
 	fakeReturns := fake.listTeamsReturns
-	fake.recordInvocation("ListTeams", []interface{}{})
+	fake.recordInvocation("ListTeams", []any{})
 	fake.listTeamsMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1292,7 +1292,7 @@ func (fake *FakeClient) ListWorkers() ([]atc.Worker, error) {
 	}{})
 	stub := fake.ListWorkersStub
 	fakeReturns := fake.listWorkersReturns
-	fake.recordInvocation("ListWorkers", []interface{}{})
+	fake.recordInvocation("ListWorkers", []any{})
 	fake.listWorkersMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1349,7 +1349,7 @@ func (fake *FakeClient) PruneWorker(arg1 string) error {
 	}{arg1})
 	stub := fake.PruneWorkerStub
 	fakeReturns := fake.pruneWorkerReturns
-	fake.recordInvocation("PruneWorker", []interface{}{arg1})
+	fake.recordInvocation("PruneWorker", []any{arg1})
 	fake.pruneWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1411,7 +1411,7 @@ func (fake *FakeClient) SaveWorker(arg1 atc.Worker, arg2 *time.Duration) (*atc.W
 	}{arg1, arg2})
 	stub := fake.SaveWorkerStub
 	fakeReturns := fake.saveWorkerReturns
-	fake.recordInvocation("SaveWorker", []interface{}{arg1, arg2})
+	fake.recordInvocation("SaveWorker", []any{arg1, arg2})
 	fake.saveWorkerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -1475,7 +1475,7 @@ func (fake *FakeClient) Team(arg1 string) concourse.Team {
 	}{arg1})
 	stub := fake.TeamStub
 	fakeReturns := fake.teamReturns
-	fake.recordInvocation("Team", []interface{}{arg1})
+	fake.recordInvocation("Team", []any{arg1})
 	fake.teamMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -1535,7 +1535,7 @@ func (fake *FakeClient) URL() string {
 	}{})
 	stub := fake.URLStub
 	fakeReturns := fake.uRLReturns
-	fake.recordInvocation("URL", []interface{}{})
+	fake.recordInvocation("URL", []any{})
 	fake.uRLMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1588,7 +1588,7 @@ func (fake *FakeClient) UserInfo() (atc.UserInfo, error) {
 	}{})
 	stub := fake.UserInfoStub
 	fakeReturns := fake.userInfoReturns
-	fake.recordInvocation("UserInfo", []interface{}{})
+	fake.recordInvocation("UserInfo", []any{})
 	fake.userInfoMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1637,7 +1637,7 @@ func (fake *FakeClient) UserInfoReturnsOnCall(i int, result1 atc.UserInfo, resul
 	}{result1, result2}
 }
 
-func (fake *FakeClient) Invocations() map[string][][]interface{} {
+func (fake *FakeClient) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.abortBuildMutex.RLock()
@@ -1684,21 +1684,21 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.uRLMutex.RUnlock()
 	fake.userInfoMutex.RLock()
 	defer fake.userInfoMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeClient) recordInvocation(key string, args []interface{}) {
+func (fake *FakeClient) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

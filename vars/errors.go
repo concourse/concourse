@@ -42,7 +42,7 @@ func (err MissingFieldError) Error() string {
 type InvalidFieldError struct {
 	Name  string
 	Field string
-	Value interface{}
+	Value any
 }
 
 func (err InvalidFieldError) Error() string {
@@ -51,7 +51,7 @@ func (err InvalidFieldError) Error() string {
 
 type InvalidInterpolationError struct {
 	Name  string
-	Value interface{}
+	Value any
 }
 
 func (err InvalidInterpolationError) Error() string {

@@ -17,7 +17,7 @@ type Manager interface {
 
 type ManagerFactory interface {
 	AddConfig(*flags.Group) Manager
-	NewInstance(interface{}) (Manager, error)
+	NewInstance(any) (Manager, error)
 }
 
 type Managers map[string]Manager
@@ -38,9 +38,9 @@ func (c CredentialManagementConfig) NewSecrets(secretsFactory SecretsFactory) Se
 }
 
 type HealthResponse struct {
-	Response interface{} `json:"response,omitempty"`
-	Error    string      `json:"error,omitempty"`
-	Method   string      `json:"method,omitempty"`
+	Response any    `json:"response,omitempty"`
+	Error    string `json:"error,omitempty"`
+	Method   string `json:"method,omitempty"`
 }
 
 var managerFactories = map[string]ManagerFactory{}

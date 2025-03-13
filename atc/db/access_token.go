@@ -20,10 +20,10 @@ func scanAccessToken(rcv *AccessToken, scan scannable) error {
 type Claims struct {
 	jwt.Claims
 	FederatedClaims   `json:"federated_claims"`
-	RawClaims         map[string]interface{} `json:"-"`
-	Username          string                 `json:"name"`
-	PreferredUsername string                 `json:"preferred_username"`
-	Email             string                 `json:"email"`
+	RawClaims         map[string]any `json:"-"`
+	Username          string         `json:"name"`
+	PreferredUsername string         `json:"preferred_username"`
+	Email             string         `json:"email"`
 }
 
 type FederatedClaims struct {
@@ -53,7 +53,7 @@ func (c Claims) Value() (driver.Value, error) {
 	return json.Marshal(c)
 }
 
-func (c *Claims) Scan(value interface{}) error {
+func (c *Claims) Scan(value any) error {
 	b, ok := value.([]byte)
 	if !ok {
 		return fmt.Errorf("invalid claims: expected []byte, got %T", value)

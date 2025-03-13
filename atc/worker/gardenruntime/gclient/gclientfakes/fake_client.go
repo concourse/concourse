@@ -107,7 +107,7 @@ type FakeClient struct {
 	pingReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -124,7 +124,7 @@ func (fake *FakeClient) BulkInfo(arg1 []string) (map[string]garden.ContainerInfo
 	}{arg1Copy})
 	stub := fake.BulkInfoStub
 	fakeReturns := fake.bulkInfoReturns
-	fake.recordInvocation("BulkInfo", []interface{}{arg1Copy})
+	fake.recordInvocation("BulkInfo", []any{arg1Copy})
 	fake.bulkInfoMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -193,7 +193,7 @@ func (fake *FakeClient) BulkMetrics(arg1 []string) (map[string]garden.ContainerM
 	}{arg1Copy})
 	stub := fake.BulkMetricsStub
 	fakeReturns := fake.bulkMetricsReturns
-	fake.recordInvocation("BulkMetrics", []interface{}{arg1Copy})
+	fake.recordInvocation("BulkMetrics", []any{arg1Copy})
 	fake.bulkMetricsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -256,7 +256,7 @@ func (fake *FakeClient) Capacity() (garden.Capacity, error) {
 	}{})
 	stub := fake.CapacityStub
 	fakeReturns := fake.capacityReturns
-	fake.recordInvocation("Capacity", []interface{}{})
+	fake.recordInvocation("Capacity", []any{})
 	fake.capacityMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -313,7 +313,7 @@ func (fake *FakeClient) Containers(arg1 garden.Properties) ([]gclient.Container,
 	}{arg1})
 	stub := fake.ContainersStub
 	fakeReturns := fake.containersReturns
-	fake.recordInvocation("Containers", []interface{}{arg1})
+	fake.recordInvocation("Containers", []any{arg1})
 	fake.containersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -377,7 +377,7 @@ func (fake *FakeClient) Create(arg1 garden.ContainerSpec) (gclient.Container, er
 	}{arg1})
 	stub := fake.CreateStub
 	fakeReturns := fake.createReturns
-	fake.recordInvocation("Create", []interface{}{arg1})
+	fake.recordInvocation("Create", []any{arg1})
 	fake.createMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -441,7 +441,7 @@ func (fake *FakeClient) Destroy(arg1 string) error {
 	}{arg1})
 	stub := fake.DestroyStub
 	fakeReturns := fake.destroyReturns
-	fake.recordInvocation("Destroy", []interface{}{arg1})
+	fake.recordInvocation("Destroy", []any{arg1})
 	fake.destroyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -502,7 +502,7 @@ func (fake *FakeClient) Lookup(arg1 string) (gclient.Container, error) {
 	}{arg1})
 	stub := fake.LookupStub
 	fakeReturns := fake.lookupReturns
-	fake.recordInvocation("Lookup", []interface{}{arg1})
+	fake.recordInvocation("Lookup", []any{arg1})
 	fake.lookupMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -565,7 +565,7 @@ func (fake *FakeClient) Ping() error {
 	}{})
 	stub := fake.PingStub
 	fakeReturns := fake.pingReturns
-	fake.recordInvocation("Ping", []interface{}{})
+	fake.recordInvocation("Ping", []any{})
 	fake.pingMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -611,7 +611,7 @@ func (fake *FakeClient) PingReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) Invocations() map[string][][]interface{} {
+func (fake *FakeClient) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.bulkInfoMutex.RLock()
@@ -630,21 +630,21 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.lookupMutex.RUnlock()
 	fake.pingMutex.RLock()
 	defer fake.pingMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeClient) recordInvocation(key string, args []interface{}) {
+func (fake *FakeClient) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

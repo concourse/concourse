@@ -336,7 +336,7 @@ var _ = Describe("BuildStepDelegate", func() {
 							Action:   policy.ActionUseImage,
 							Team:     "some-team",
 							Pipeline: "some-pipeline",
-							Data: map[string]interface{}{
+							Data: map[string]any{
 								"image_type":   "docker",
 								"image_source": atc.Source{"some": "((source-var))"},
 								"privileged":   false,
@@ -358,7 +358,7 @@ var _ = Describe("BuildStepDelegate", func() {
 								Action:   policy.ActionUseImage,
 								Team:     "some-team",
 								Pipeline: "some-pipeline",
-								Data: map[string]interface{}{
+								Data: map[string]any{
 									"image_type":   "docker",
 									"image_source": atc.Source{"some": "((redacted))"},
 									"privileged":   false,
@@ -379,7 +379,7 @@ var _ = Describe("BuildStepDelegate", func() {
 								Action:   policy.ActionUseImage,
 								Team:     "some-team",
 								Pipeline: "some-pipeline",
-								Data: map[string]interface{}{
+								Data: map[string]any{
 									"image_type":   "docker",
 									"image_source": atc.Source{"some": "((source-var))"},
 									"privileged":   true,
@@ -439,7 +439,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				{Var: "v1"},
 				{Var: "v2"},
 				{Var: "v3"},
-			}, [][]interface{}{
+			}, [][]any{
 				{"a1", "b1", "c1"},
 				{"a1", "b1", "c2"},
 			})
@@ -447,7 +447,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 			expectedSubstepPlans := []atc.VarScopedPlan{
 				{
-					Values: []interface{}{"a1", "b1", "c1"},
+					Values: []any{"a1", "b1", "c1"},
 					Step: atc.Plan{
 						ID: "some-plan-id/0/0",
 						OnSuccess: &atc.OnSuccessPlan{
@@ -475,7 +475,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					},
 				},
 				{
-					Values: []interface{}{"a1", "b1", "c2"},
+					Values: []any{"a1", "b1", "c2"},
 					Step: atc.Plan{
 						ID: "some-plan-id/1/0",
 						OnSuccess: &atc.OnSuccessPlan{
@@ -532,14 +532,14 @@ var _ = Describe("BuildStepDelegate", func() {
 			}`)
 			substeps, err := delegate.ConstructAcrossSubsteps(template, []atc.AcrossVar{
 				{Var: "v1"},
-			}, [][]interface{}{
+			}, [][]any{
 				{"a1"},
 			})
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedSubstepPlans := []atc.VarScopedPlan{
 				{
-					Values: []interface{}{"a1"},
+					Values: []any{"a1"},
 					Step: atc.Plan{
 						ID: "some-plan-id/0/0",
 						Get: &atc.GetPlan{

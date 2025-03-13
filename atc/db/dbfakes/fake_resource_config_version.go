@@ -71,7 +71,7 @@ type FakeResourceConfigVersion struct {
 	versionReturnsOnCall map[int]struct {
 		result1 db.Version
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -82,7 +82,7 @@ func (fake *FakeResourceConfigVersion) CheckOrder() int {
 	}{})
 	stub := fake.CheckOrderStub
 	fakeReturns := fake.checkOrderReturns
-	fake.recordInvocation("CheckOrder", []interface{}{})
+	fake.recordInvocation("CheckOrder", []any{})
 	fake.checkOrderMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -135,7 +135,7 @@ func (fake *FakeResourceConfigVersion) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -188,7 +188,7 @@ func (fake *FakeResourceConfigVersion) Metadata() db.ResourceConfigMetadataField
 	}{})
 	stub := fake.MetadataStub
 	fakeReturns := fake.metadataReturns
-	fake.recordInvocation("Metadata", []interface{}{})
+	fake.recordInvocation("Metadata", []any{})
 	fake.metadataMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -241,7 +241,7 @@ func (fake *FakeResourceConfigVersion) Reload() (bool, error) {
 	}{})
 	stub := fake.ReloadStub
 	fakeReturns := fake.reloadReturns
-	fake.recordInvocation("Reload", []interface{}{})
+	fake.recordInvocation("Reload", []any{})
 	fake.reloadMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -297,7 +297,7 @@ func (fake *FakeResourceConfigVersion) SpanContext() propagation.TextMapCarrier 
 	}{})
 	stub := fake.SpanContextStub
 	fakeReturns := fake.spanContextReturns
-	fake.recordInvocation("SpanContext", []interface{}{})
+	fake.recordInvocation("SpanContext", []any{})
 	fake.spanContextMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -350,7 +350,7 @@ func (fake *FakeResourceConfigVersion) Version() db.Version {
 	}{})
 	stub := fake.VersionStub
 	fakeReturns := fake.versionReturns
-	fake.recordInvocation("Version", []interface{}{})
+	fake.recordInvocation("Version", []any{})
 	fake.versionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -396,7 +396,7 @@ func (fake *FakeResourceConfigVersion) VersionReturnsOnCall(i int, result1 db.Ve
 	}{result1}
 }
 
-func (fake *FakeResourceConfigVersion) Invocations() map[string][][]interface{} {
+func (fake *FakeResourceConfigVersion) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkOrderMutex.RLock()
@@ -411,21 +411,21 @@ func (fake *FakeResourceConfigVersion) Invocations() map[string][][]interface{} 
 	defer fake.spanContextMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeResourceConfigVersion) recordInvocation(key string, args []interface{}) {
+func (fake *FakeResourceConfigVersion) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

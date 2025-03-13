@@ -29,7 +29,7 @@ func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVari
 	}
 }
 
-func (b *buildVariables) Get(ref vars.Reference) (interface{}, bool, error) {
+func (b *buildVariables) Get(ref vars.Reference) (any, bool, error) {
 	if ref.Source == "." {
 		b.lock.RLock()
 		val, found, err := b.localVars.Get(ref.WithoutSource())
@@ -67,7 +67,7 @@ func (b *buildVariables) NewLocalScope() *buildVariables {
 	}
 }
 
-func (b *buildVariables) AddLocalVar(name string, val interface{}, redact bool) {
+func (b *buildVariables) AddLocalVar(name string, val any, redact bool) {
 	b.lock.Lock()
 	b.localVars[name] = val
 	b.lock.Unlock()

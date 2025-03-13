@@ -341,11 +341,11 @@ var _ = Describe("PutStep", func() {
 			Context("when the params have maps and slices", func() {
 				BeforeEach(func() {
 					putPlan.Params = atc.Params{
-						"some-slice": []interface{}{
-							[]interface{}{"input1/source", "does-not-exist", 123},
-							[]interface{}{"does not exist-2"},
+						"some-slice": []any{
+							[]any{"input1/source", "does-not-exist", 123},
+							[]any{"does not exist-2"},
 						},
-						"some-map": map[string]interface{}{
+						"some-map": map[string]any{
 							"key": "input2/source",
 						},
 					}
@@ -371,7 +371,7 @@ var _ = Describe("PutStep", func() {
 				BeforeEach(func() {
 					putPlan.Params = atc.Params{
 						"some-param": "./input1/source",
-						"some-map": map[string]interface{}{
+						"some-map": map[string]any{
 							"key": "../input2/source",
 						},
 					}

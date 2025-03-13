@@ -35,7 +35,7 @@ func (a *artifact) BuildID() int         { return a.buildID }
 func (a *artifact) CreatedAt() time.Time { return a.createdAt }
 
 func (a *artifact) Volume(teamID int) (CreatedVolume, bool, error) {
-	where := map[string]interface{}{
+	where := map[string]any{
 		"v.team_id":            teamID,
 		"v.worker_artifact_id": a.id,
 	}
@@ -56,7 +56,7 @@ func saveWorkerArtifact(tx Tx, conn DbConn, atcArtifact atc.WorkerArtifact) (Wor
 
 	var artifactID int
 
-	values := map[string]interface{}{
+	values := map[string]any{
 		"name": atcArtifact.Name,
 	}
 

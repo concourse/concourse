@@ -9,19 +9,19 @@ import (
 )
 
 type FakeSecrets struct {
-	GetStub        func(string) (interface{}, *time.Time, bool, error)
+	GetStub        func(string) (any, *time.Time, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 string
 	}
 	getReturns struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error
 	}
 	getReturnsOnCall map[int]struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error
@@ -39,11 +39,11 @@ type FakeSecrets struct {
 	newSecretLookupPathsReturnsOnCall map[int]struct {
 		result1 []creds.SecretLookupPath
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSecrets) Get(arg1 string) (interface{}, *time.Time, bool, error) {
+func (fake *FakeSecrets) Get(arg1 string) (any, *time.Time, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -51,7 +51,7 @@ func (fake *FakeSecrets) Get(arg1 string) (interface{}, *time.Time, bool, error)
 	}{arg1})
 	stub := fake.GetStub
 	fakeReturns := fake.getReturns
-	fake.recordInvocation("Get", []interface{}{arg1})
+	fake.recordInvocation("Get", []any{arg1})
 	fake.getMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -68,7 +68,7 @@ func (fake *FakeSecrets) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeSecrets) GetCalls(stub func(string) (interface{}, *time.Time, bool, error)) {
+func (fake *FakeSecrets) GetCalls(stub func(string) (any, *time.Time, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
@@ -81,32 +81,32 @@ func (fake *FakeSecrets) GetArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeSecrets) GetReturns(result1 interface{}, result2 *time.Time, result3 bool, result4 error) {
+func (fake *FakeSecrets) GetReturns(result1 any, result2 *time.Time, result3 bool, result4 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	fake.getReturns = struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeSecrets) GetReturnsOnCall(i int, result1 interface{}, result2 *time.Time, result3 bool, result4 error) {
+func (fake *FakeSecrets) GetReturnsOnCall(i int, result1 any, result2 *time.Time, result3 bool, result4 error) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
-			result1 interface{}
+			result1 any
 			result2 *time.Time
 			result3 bool
 			result4 error
 		})
 	}
 	fake.getReturnsOnCall[i] = struct {
-		result1 interface{}
+		result1 any
 		result2 *time.Time
 		result3 bool
 		result4 error
@@ -123,7 +123,7 @@ func (fake *FakeSecrets) NewSecretLookupPaths(arg1 string, arg2 string, arg3 boo
 	}{arg1, arg2, arg3})
 	stub := fake.NewSecretLookupPathsStub
 	fakeReturns := fake.newSecretLookupPathsReturns
-	fake.recordInvocation("NewSecretLookupPaths", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("NewSecretLookupPaths", []any{arg1, arg2, arg3})
 	fake.newSecretLookupPathsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -176,28 +176,28 @@ func (fake *FakeSecrets) NewSecretLookupPathsReturnsOnCall(i int, result1 []cred
 	}{result1}
 }
 
-func (fake *FakeSecrets) Invocations() map[string][][]interface{} {
+func (fake *FakeSecrets) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	fake.newSecretLookupPathsMutex.RLock()
 	defer fake.newSecretLookupPathsMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeSecrets) recordInvocation(key string, args []interface{}) {
+func (fake *FakeSecrets) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

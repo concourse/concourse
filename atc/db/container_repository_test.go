@@ -370,7 +370,7 @@ var _ = Describe("ContainerRepository", func() {
 		Context("when there are failed containers", func() {
 			BeforeEach(func() {
 				result, err := psql.Insert("containers").
-					SetMap(map[string]interface{}{
+					SetMap(map[string]any{
 						"state":       atc.ContainerStateFailed,
 						"handle":      "123-456-abc-def",
 						"worker_name": defaultWorker.Name(),
@@ -435,7 +435,7 @@ var _ = Describe("ContainerRepository", func() {
 
 		Context("when there are destroying containers", func() {
 			BeforeEach(func() {
-				result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+				result, err := psql.Insert("containers").SetMap(map[string]any{
 					"state":       "destroying",
 					"handle":      "123-456-abc-def",
 					"worker_name": defaultWorker.Name(),
@@ -478,7 +478,7 @@ var _ = Describe("ContainerRepository", func() {
 			Context("when there is an error iterating through the rows", func() {
 				BeforeEach(func() {
 					By("adding a row without expected values")
-					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+					result, err := psql.Insert("containers").SetMap(map[string]any{
 						"state":  "destroying",
 						"handle": "123-456-abc-def",
 					}).RunWith(dbConn).Exec()
@@ -508,20 +508,20 @@ var _ = Describe("ContainerRepository", func() {
 		BeforeEach(func() {
 			today = time.Now()
 
-			_, err = psql.Insert("workers").SetMap(map[string]interface{}{
+			_, err = psql.Insert("workers").SetMap(map[string]any{
 				"name":  "running-worker",
 				"state": "running",
 			}).RunWith(dbConn).Exec()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+			_, err = psql.Insert("containers").SetMap(map[string]any{
 				"handle":      "created-handle-1",
 				"state":       atc.ContainerStateCreated,
 				"worker_name": "running-worker",
 			}).RunWith(dbConn).Exec()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+			_, err = psql.Insert("containers").SetMap(map[string]any{
 				"handle":        "created-handle-2",
 				"state":         atc.ContainerStateCreated,
 				"worker_name":   "running-worker",
@@ -529,7 +529,7 @@ var _ = Describe("ContainerRepository", func() {
 			}).RunWith(dbConn).Exec()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+			_, err = psql.Insert("containers").SetMap(map[string]any{
 				"handle":        "failed-handle-3",
 				"state":         atc.ContainerStateFailed,
 				"worker_name":   "running-worker",
@@ -537,7 +537,7 @@ var _ = Describe("ContainerRepository", func() {
 			}).RunWith(dbConn).Exec()
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+			_, err = psql.Insert("containers").SetMap(map[string]any{
 				"handle":        "destroying-handle-4",
 				"state":         atc.ContainerStateDestroying,
 				"worker_name":   "running-worker",
@@ -598,13 +598,13 @@ var _ = Describe("ContainerRepository", func() {
 			BeforeEach(func() {
 				gracePeriod = 3 * time.Minute
 
-				_, err = psql.Insert("workers").SetMap(map[string]interface{}{
+				_, err = psql.Insert("workers").SetMap(map[string]any{
 					"name":  "stalled-worker",
 					"state": "stalled",
 				}).RunWith(dbConn).Exec()
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = psql.Insert("containers").SetMap(map[string]interface{}{
+				_, err = psql.Insert("containers").SetMap(map[string]any{
 					"handle":        "stalled-handle-5",
 					"state":         atc.ContainerStateCreated,
 					"worker_name":   "stalled-worker",
@@ -679,7 +679,7 @@ var _ = Describe("ContainerRepository", func() {
 			Context("when container is in destroying state", func() {
 				BeforeEach(func() {
 					handles = []string{"some-handle1", "some-handle2"}
-					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+					result, err := psql.Insert("containers").SetMap(map[string]any{
 						"state":       atc.ContainerStateDestroying,
 						"handle":      "123-456-abc-def",
 						"worker_name": defaultWorker.Name(),
@@ -706,7 +706,7 @@ var _ = Describe("ContainerRepository", func() {
 			Context("when handles are empty list", func() {
 				BeforeEach(func() {
 					handles = []string{}
-					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+					result, err := psql.Insert("containers").SetMap(map[string]any{
 						"state":       atc.ContainerStateDestroying,
 						"handle":      "123-456-abc-def",
 						"worker_name": defaultWorker.Name(),
@@ -736,7 +736,7 @@ var _ = Describe("ContainerRepository", func() {
 			Context("when container is in create/creating state", func() {
 				BeforeEach(func() {
 					handles = []string{"some-handle1", "some-handle2"}
-					result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+					result, err := psql.Insert("containers").SetMap(map[string]any{
 						"state":       "creating",
 						"handle":      "123-456-abc-def",
 						"worker_name": defaultWorker.Name(),
@@ -766,7 +766,7 @@ var _ = Describe("ContainerRepository", func() {
 				handles = []string{"some-handle1", "some-handle2"}
 
 				result, err := psql.Insert("containers").SetMap(
-					map[string]interface{}{
+					map[string]any{
 						"state":       "destroying",
 						"handle":      "some-handle1",
 						"worker_name": defaultWorker.Name(),
@@ -776,7 +776,7 @@ var _ = Describe("ContainerRepository", func() {
 				Expect(result.RowsAffected()).To(Equal(int64(1)))
 
 				result, err = psql.Insert("containers").SetMap(
-					map[string]interface{}{
+					map[string]any{
 						"state":       "destroying",
 						"handle":      "some-handle2",
 						"worker_name": defaultWorker.Name(),
@@ -829,7 +829,7 @@ var _ = Describe("ContainerRepository", func() {
 		)
 
 		BeforeEach(func() {
-			result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+			result, err := psql.Insert("containers").SetMap(map[string]any{
 				"state":       atc.ContainerStateDestroying,
 				"handle":      "some-handle1",
 				"worker_name": defaultWorker.Name(),
@@ -838,7 +838,7 @@ var _ = Describe("ContainerRepository", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.RowsAffected()).To(Equal(int64(1)))
 
-			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+			result, err = psql.Insert("containers").SetMap(map[string]any{
 				"state":       atc.ContainerStateDestroying,
 				"handle":      "some-handle2",
 				"worker_name": defaultWorker.Name(),
@@ -849,7 +849,7 @@ var _ = Describe("ContainerRepository", func() {
 
 			today = time.Date(2018, 9, 24, 0, 0, 0, 0, time.UTC)
 
-			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+			result, err = psql.Insert("containers").SetMap(map[string]any{
 				"state":         atc.ContainerStateCreated,
 				"handle":        "some-handle3",
 				"worker_name":   defaultWorker.Name(),
@@ -873,7 +873,7 @@ var _ = Describe("ContainerRepository", func() {
 				BeforeEach(func() {
 					result, err := psql.Update("containers").
 						Where(sq.Eq{"handle": "some-handle3"}).
-						SetMap(map[string]interface{}{
+						SetMap(map[string]any{
 							"state":         atc.ContainerStateCreating,
 							"missing_since": nil,
 						}).RunWith(dbConn).Exec()
@@ -971,7 +971,7 @@ var _ = Describe("ContainerRepository", func() {
 		)
 
 		BeforeEach(func() {
-			result, err := psql.Insert("containers").SetMap(map[string]interface{}{
+			result, err := psql.Insert("containers").SetMap(map[string]any{
 				"state":       atc.ContainerStateDestroying,
 				"handle":      "some-handle1",
 				"worker_name": defaultWorker.Name(),
@@ -980,7 +980,7 @@ var _ = Describe("ContainerRepository", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.RowsAffected()).To(Equal(int64(1)))
 
-			result, err = psql.Insert("containers").SetMap(map[string]interface{}{
+			result, err = psql.Insert("containers").SetMap(map[string]any{
 				"state":       atc.ContainerStateCreated,
 				"handle":      "some-handle2",
 				"worker_name": defaultWorker.Name(),

@@ -293,7 +293,7 @@ var _ = Describe("GetStep", func() {
 				})
 
 				It("stores the resource cache as the step result", func() {
-					var val interface{}
+					var val any
 					Expect(runState.Result(planID, &val)).To(BeTrue())
 					Expect(val).To(Equal(exec.GetResult{Name: getPlan.Name, ResourceCache: fakeResourceCache}))
 				})
@@ -441,7 +441,7 @@ var _ = Describe("GetStep", func() {
 				})
 
 				It("stores the resource cache as the step result", func() {
-					var val interface{}
+					var val any
 					Expect(runState.Result(planID, &val)).To(BeTrue())
 					Expect(val).To(Equal(exec.GetResult{Name: getPlan.Name, ResourceCache: fakeResourceCache}))
 				})
@@ -713,7 +713,7 @@ var _ = Describe("GetStep", func() {
 		})
 
 		It("stores the resource cache as the step result", func() {
-			var val interface{}
+			var val any
 			Expect(runState.Result(planID, &val)).To(BeTrue())
 			Expect(val).To(Equal(exec.GetResult{Name: getPlan.Name, ResourceCache: fakeResourceCache}))
 		})

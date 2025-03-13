@@ -17,7 +17,7 @@ var _ = Describe("Evaluate", func() {
 			"some-param": "lol",
 		}
 		source = creds.NewSource(variables, atc.Source{
-			"some": map[string]interface{}{
+			"some": map[string]any{
 				"source-key": "((some-param))",
 			},
 		})
@@ -29,7 +29,7 @@ var _ = Describe("Evaluate", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result).To(Equal(atc.Source{
-				"some": map[string]interface{}{
+				"some": map[string]any{
 					"source-key": "lol",
 				},
 			}))

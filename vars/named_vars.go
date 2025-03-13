@@ -6,7 +6,7 @@ type NamedVariables map[string]Variables
 // A Reference with a var_source looks like "myvault:foo", where "myvault" is
 // the var_source name, and "foo" is the real var name that should be forwarded
 // to the underlying secret manager.
-func (m NamedVariables) Get(ref Reference) (interface{}, bool, error) {
+func (m NamedVariables) Get(ref Reference) (any, bool, error) {
 	if ref.Source == "" {
 		return nil, false, nil
 	}

@@ -20,7 +20,7 @@ type FakeCheckLifecycle struct {
 	deleteCompletedChecksReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -32,7 +32,7 @@ func (fake *FakeCheckLifecycle) DeleteCompletedChecks(arg1 lager.Logger) error {
 	}{arg1})
 	stub := fake.DeleteCompletedChecksStub
 	fakeReturns := fake.deleteCompletedChecksReturns
-	fake.recordInvocation("DeleteCompletedChecks", []interface{}{arg1})
+	fake.recordInvocation("DeleteCompletedChecks", []any{arg1})
 	fake.deleteCompletedChecksMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -85,26 +85,26 @@ func (fake *FakeCheckLifecycle) DeleteCompletedChecksReturnsOnCall(i int, result
 	}{result1}
 }
 
-func (fake *FakeCheckLifecycle) Invocations() map[string][][]interface{} {
+func (fake *FakeCheckLifecycle) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.deleteCompletedChecksMutex.RLock()
 	defer fake.deleteCompletedChecksMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCheckLifecycle) recordInvocation(key string, args []interface{}) {
+func (fake *FakeCheckLifecycle) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

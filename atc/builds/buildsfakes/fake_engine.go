@@ -26,7 +26,7 @@ type FakeEngine struct {
 	newBuildReturnsOnCall map[int]struct {
 		result1 builds.Runnable
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -36,7 +36,7 @@ func (fake *FakeEngine) Drain(arg1 context.Context) {
 		arg1 context.Context
 	}{arg1})
 	stub := fake.DrainStub
-	fake.recordInvocation("Drain", []interface{}{arg1})
+	fake.recordInvocation("Drain", []any{arg1})
 	fake.drainMutex.Unlock()
 	if stub != nil {
 		fake.DrainStub(arg1)
@@ -70,7 +70,7 @@ func (fake *FakeEngine) NewBuild(arg1 db.Build) builds.Runnable {
 	}{arg1})
 	stub := fake.NewBuildStub
 	fakeReturns := fake.newBuildReturns
-	fake.recordInvocation("NewBuild", []interface{}{arg1})
+	fake.recordInvocation("NewBuild", []any{arg1})
 	fake.newBuildMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -123,28 +123,28 @@ func (fake *FakeEngine) NewBuildReturnsOnCall(i int, result1 builds.Runnable) {
 	}{result1}
 }
 
-func (fake *FakeEngine) Invocations() map[string][][]interface{} {
+func (fake *FakeEngine) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.drainMutex.RLock()
 	defer fake.drainMutex.RUnlock()
 	fake.newBuildMutex.RLock()
 	defer fake.newBuildMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeEngine) recordInvocation(key string, args []interface{}) {
+func (fake *FakeEngine) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

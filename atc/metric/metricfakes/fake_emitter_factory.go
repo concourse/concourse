@@ -41,7 +41,7 @@ type FakeEmitterFactory struct {
 		result1 metric.Emitter
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -52,7 +52,7 @@ func (fake *FakeEmitterFactory) Description() string {
 	}{})
 	stub := fake.DescriptionStub
 	fakeReturns := fake.descriptionReturns
-	fake.recordInvocation("Description", []interface{}{})
+	fake.recordInvocation("Description", []any{})
 	fake.descriptionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -105,7 +105,7 @@ func (fake *FakeEmitterFactory) IsConfigured() bool {
 	}{})
 	stub := fake.IsConfiguredStub
 	fakeReturns := fake.isConfiguredReturns
-	fake.recordInvocation("IsConfigured", []interface{}{})
+	fake.recordInvocation("IsConfigured", []any{})
 	fake.isConfiguredMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -159,7 +159,7 @@ func (fake *FakeEmitterFactory) NewEmitter(arg1 map[string]string) (metric.Emitt
 	}{arg1})
 	stub := fake.NewEmitterStub
 	fakeReturns := fake.newEmitterReturns
-	fake.recordInvocation("NewEmitter", []interface{}{arg1})
+	fake.recordInvocation("NewEmitter", []any{arg1})
 	fake.newEmitterMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -215,7 +215,7 @@ func (fake *FakeEmitterFactory) NewEmitterReturnsOnCall(i int, result1 metric.Em
 	}{result1, result2}
 }
 
-func (fake *FakeEmitterFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeEmitterFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.descriptionMutex.RLock()
@@ -224,21 +224,21 @@ func (fake *FakeEmitterFactory) Invocations() map[string][][]interface{} {
 	defer fake.isConfiguredMutex.RUnlock()
 	fake.newEmitterMutex.RLock()
 	defer fake.newEmitterMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeEmitterFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeEmitterFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

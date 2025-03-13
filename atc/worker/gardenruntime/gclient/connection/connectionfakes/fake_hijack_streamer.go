@@ -51,7 +51,7 @@ type FakeHijackStreamer struct {
 		result1 io.ReadCloser
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -68,7 +68,7 @@ func (fake *FakeHijackStreamer) Hijack(arg1 context.Context, arg2 string, arg3 i
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	stub := fake.HijackStub
 	fakeReturns := fake.hijackReturns
-	fake.recordInvocation("Hijack", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("Hijack", []any{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.hijackMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
@@ -139,7 +139,7 @@ func (fake *FakeHijackStreamer) Stream(arg1 string, arg2 io.Reader, arg3 rata.Pa
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.StreamStub
 	fakeReturns := fake.streamReturns
-	fake.recordInvocation("Stream", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("Stream", []any{arg1, arg2, arg3, arg4, arg5})
 	fake.streamMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5)
@@ -195,28 +195,28 @@ func (fake *FakeHijackStreamer) StreamReturnsOnCall(i int, result1 io.ReadCloser
 	}{result1, result2}
 }
 
-func (fake *FakeHijackStreamer) Invocations() map[string][][]interface{} {
+func (fake *FakeHijackStreamer) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.hijackMutex.RLock()
 	defer fake.hijackMutex.RUnlock()
 	fake.streamMutex.RLock()
 	defer fake.streamMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeHijackStreamer) recordInvocation(key string, args []interface{}) {
+func (fake *FakeHijackStreamer) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

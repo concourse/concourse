@@ -22,7 +22,7 @@ func NewRetryableSecrets(secrets Secrets, retryConfig SecretRetryConfig) Secrets
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (rs RetryableSecrets) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (rs RetryableSecrets) Get(secretPath string) (any, *time.Time, bool, error) {
 	r := &retryhttp.DefaultRetryer{}
 	for i := 0; i < rs.retryConfig.Attempts-1; i++ {
 		result, expiration, exists, err := rs.secrets.Get(secretPath)

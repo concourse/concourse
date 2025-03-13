@@ -231,7 +231,7 @@ func (r *resourceType) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return setResourceConfigScopeForResourceType(r.conn, scope, sq.Eq{"id": r.id})
 }
 
-func setResourceConfigScopeForResourceType(conn sq.Runner, scope ResourceConfigScope, pred interface{}, args ...interface{}) error {
+func setResourceConfigScopeForResourceType(conn sq.Runner, scope ResourceConfigScope, pred any, args ...any) error {
 	_, err := psql.Update("resource_types").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
 		Where(pred, args...).
@@ -301,7 +301,7 @@ func (r *resourceType) CreateBuild(ctx context.Context, manuallyTriggered bool, 
 		Plan:              plan,
 		ManuallyTriggered: manuallyTriggered,
 		SpanContext:       NewSpanContext(ctx),
-		ExtraValues: map[string]interface{}{
+		ExtraValues: map[string]any{
 			"resource_type_id": r.id,
 		},
 	})

@@ -44,11 +44,11 @@ func (m *migrations) Up_1516643303() error {
 			return err
 		}
 
-		var authConfig map[string]interface{}
+		var authConfig map[string]any
 		json.Unmarshal(decryptedAuth, &authConfig)
 
 		if authConfig == nil {
-			authConfig = map[string]interface{}{}
+			authConfig = map[string]any{}
 		}
 
 		var basicAuthConfig map[string]string

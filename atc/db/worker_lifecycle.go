@@ -46,7 +46,7 @@ func (lifecycle *workerLifecycle) DeleteUnresponsiveEphemeralWorkers() ([]string
 
 func (lifecycle *workerLifecycle) StallUnresponsiveWorkers() ([]string, error) {
 	query, args, err := psql.Update("workers").
-		SetMap(map[string]interface{}{
+		SetMap(map[string]any{
 			"state":   string(WorkerStateStalled),
 			"expires": nil,
 		}).

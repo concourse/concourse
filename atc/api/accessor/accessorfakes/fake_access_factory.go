@@ -23,7 +23,7 @@ type FakeAccessFactory struct {
 		result1 accessor.Access
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -36,7 +36,7 @@ func (fake *FakeAccessFactory) Create(arg1 *http.Request, arg2 string) (accessor
 	}{arg1, arg2})
 	stub := fake.CreateStub
 	fakeReturns := fake.createReturns
-	fake.recordInvocation("Create", []interface{}{arg1, arg2})
+	fake.recordInvocation("Create", []any{arg1, arg2})
 	fake.createMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -92,26 +92,26 @@ func (fake *FakeAccessFactory) CreateReturnsOnCall(i int, result1 accessor.Acces
 	}{result1, result2}
 }
 
-func (fake *FakeAccessFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeAccessFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeAccessFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeAccessFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

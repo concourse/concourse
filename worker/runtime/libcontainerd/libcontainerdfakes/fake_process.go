@@ -130,7 +130,7 @@ type FakeProcess struct {
 		result1 <-chan containerd.ExitStatus
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -143,7 +143,7 @@ func (fake *FakeProcess) CloseIO(arg1 context.Context, arg2 ...containerd.IOClos
 	}{arg1, arg2})
 	stub := fake.CloseIOStub
 	fakeReturns := fake.closeIOReturns
-	fake.recordInvocation("CloseIO", []interface{}{arg1, arg2})
+	fake.recordInvocation("CloseIO", []any{arg1, arg2})
 	fake.closeIOMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -205,7 +205,7 @@ func (fake *FakeProcess) Delete(arg1 context.Context, arg2 ...containerd.Process
 	}{arg1, arg2})
 	stub := fake.DeleteStub
 	fakeReturns := fake.deleteReturns
-	fake.recordInvocation("Delete", []interface{}{arg1, arg2})
+	fake.recordInvocation("Delete", []any{arg1, arg2})
 	fake.deleteMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -268,7 +268,7 @@ func (fake *FakeProcess) ID() string {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -321,7 +321,7 @@ func (fake *FakeProcess) IO() cio.IO {
 	}{})
 	stub := fake.IOStub
 	fakeReturns := fake.iOReturns
-	fake.recordInvocation("IO", []interface{}{})
+	fake.recordInvocation("IO", []any{})
 	fake.iOMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -377,7 +377,7 @@ func (fake *FakeProcess) Kill(arg1 context.Context, arg2 syscall.Signal, arg3 ..
 	}{arg1, arg2, arg3})
 	stub := fake.KillStub
 	fakeReturns := fake.killReturns
-	fake.recordInvocation("Kill", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("Kill", []any{arg1, arg2, arg3})
 	fake.killMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3...)
@@ -437,7 +437,7 @@ func (fake *FakeProcess) Pid() uint32 {
 	}{})
 	stub := fake.PidStub
 	fakeReturns := fake.pidReturns
-	fake.recordInvocation("Pid", []interface{}{})
+	fake.recordInvocation("Pid", []any{})
 	fake.pidMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -493,7 +493,7 @@ func (fake *FakeProcess) Resize(arg1 context.Context, arg2 uint32, arg3 uint32) 
 	}{arg1, arg2, arg3})
 	stub := fake.ResizeStub
 	fakeReturns := fake.resizeReturns
-	fake.recordInvocation("Resize", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("Resize", []any{arg1, arg2, arg3})
 	fake.resizeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -554,7 +554,7 @@ func (fake *FakeProcess) Start(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.StartStub
 	fakeReturns := fake.startReturns
-	fake.recordInvocation("Start", []interface{}{arg1})
+	fake.recordInvocation("Start", []any{arg1})
 	fake.startMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -615,7 +615,7 @@ func (fake *FakeProcess) Status(arg1 context.Context) (containerd.Status, error)
 	}{arg1})
 	stub := fake.StatusStub
 	fakeReturns := fake.statusReturns
-	fake.recordInvocation("Status", []interface{}{arg1})
+	fake.recordInvocation("Status", []any{arg1})
 	fake.statusMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -679,7 +679,7 @@ func (fake *FakeProcess) Wait(arg1 context.Context) (<-chan containerd.ExitStatu
 	}{arg1})
 	stub := fake.WaitStub
 	fakeReturns := fake.waitReturns
-	fake.recordInvocation("Wait", []interface{}{arg1})
+	fake.recordInvocation("Wait", []any{arg1})
 	fake.waitMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -735,7 +735,7 @@ func (fake *FakeProcess) WaitReturnsOnCall(i int, result1 <-chan containerd.Exit
 	}{result1, result2}
 }
 
-func (fake *FakeProcess) Invocations() map[string][][]interface{} {
+func (fake *FakeProcess) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.closeIOMutex.RLock()
@@ -758,21 +758,21 @@ func (fake *FakeProcess) Invocations() map[string][][]interface{} {
 	defer fake.statusMutex.RUnlock()
 	fake.waitMutex.RLock()
 	defer fake.waitMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeProcess) recordInvocation(key string, args []interface{}) {
+func (fake *FakeProcess) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

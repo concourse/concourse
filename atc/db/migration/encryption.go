@@ -46,7 +46,7 @@ func (m migrator) encryptPlaintext(key *encryption.Key) error {
 
 		for rows.Next() {
 			var (
-				primaryKey interface{}
+				primaryKey any
 				val        sql.NullString
 			)
 
@@ -113,7 +113,7 @@ func (m migrator) decryptToPlaintext(oldKey *encryption.Key) error {
 
 		for rows.Next() {
 			var (
-				primaryKey interface{}
+				primaryKey any
 				val, nonce string
 			)
 
@@ -178,7 +178,7 @@ func (m migrator) encryptWithNewKey(newKey *encryption.Key, oldKey *encryption.K
 
 		for rows.Next() {
 			var (
-				primaryKey interface{}
+				primaryKey any
 				val, nonce string
 			)
 

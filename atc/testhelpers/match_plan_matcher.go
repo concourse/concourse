@@ -14,7 +14,7 @@ type PlanMatcher struct {
 	ExpectedPlan atc.Plan
 
 	failedMatcher types.GomegaMatcher
-	failedValue   interface{}
+	failedValue   any
 }
 
 func MatchPlan(plan atc.Plan) *PlanMatcher {
@@ -33,7 +33,7 @@ func VerifyPlan(expectedPlan atc.Plan) http.HandlerFunc {
 	}
 }
 
-func (matcher *PlanMatcher) Match(actual interface{}) (bool, error) {
+func (matcher *PlanMatcher) Match(actual any) (bool, error) {
 	actualPlan, ok := actual.(atc.Plan)
 	if !ok {
 		return false, fmt.Errorf("expected a %T, got a %T", matcher.ExpectedPlan, actual)
@@ -76,11 +76,11 @@ func idsAreUnique(ids []string) bool {
 	return true
 }
 
-func (matcher *PlanMatcher) FailureMessage(actual interface{}) string {
+func (matcher *PlanMatcher) FailureMessage(actual any) string {
 	return matcher.failedMatcher.FailureMessage(matcher.failedValue)
 }
 
-func (matcher *PlanMatcher) NegatedFailureMessage(actual interface{}) string {
+func (matcher *PlanMatcher) NegatedFailureMessage(actual any) string {
 	return matcher.failedMatcher.NegatedFailureMessage(matcher.failedValue)
 }
 

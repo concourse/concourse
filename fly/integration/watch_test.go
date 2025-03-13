@@ -133,7 +133,7 @@ var _ = Describe("Watching", func() {
 			expectedURL         string
 			expectedQueryParams string
 			expectedStatusCode  int
-			expectedResponse    interface{}
+			expectedResponse    any
 
 			webQueryParams string
 		)
@@ -256,7 +256,7 @@ var _ = Describe("Watching", func() {
 		Context("with a specific job and pipeline", func() {
 			var (
 				expectedURL      string
-				expectedResponse interface{}
+				expectedResponse any
 			)
 			BeforeEach(func() {
 				expectedURL = "/api/v1/teams/other-team/pipelines/some-pipeline/jobs/some-job/builds/3"

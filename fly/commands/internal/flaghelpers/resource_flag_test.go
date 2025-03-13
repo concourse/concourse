@@ -33,7 +33,7 @@ var _ = Describe("ResourceFlag", func() {
 			flag: "some-pipeline/branch:master,foo.bar:baz/some-resource",
 			pipelineRef: atc.PipelineRef{
 				Name:         "some-pipeline",
-				InstanceVars: atc.InstanceVars{"branch": "master", "foo": map[string]interface{}{"bar": "baz"}},
+				InstanceVars: atc.InstanceVars{"branch": "master", "foo": map[string]any{"bar": "baz"}},
 			},
 			resourceName: "some-resource",
 		},
@@ -52,7 +52,7 @@ var _ = Describe("ResourceFlag", func() {
 			pipelineRef: atc.PipelineRef{
 				Name: "some-pipeline",
 				InstanceVars: atc.InstanceVars{
-					"foo": map[string]interface{}{
+					"foo": map[string]any{
 						"bar.baz": "abc,def:ghi",
 					},
 				},

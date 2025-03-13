@@ -98,7 +98,7 @@ type FakeClient struct {
 	versionReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -111,7 +111,7 @@ func (fake *FakeClient) Containers(arg1 context.Context, arg2 ...string) ([]cont
 	}{arg1, arg2})
 	stub := fake.ContainersStub
 	fakeReturns := fake.containersReturns
-	fake.recordInvocation("Containers", []interface{}{arg1, arg2})
+	fake.recordInvocation("Containers", []any{arg1, arg2})
 	fake.containersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -176,7 +176,7 @@ func (fake *FakeClient) Destroy(arg1 context.Context, arg2 string) error {
 	}{arg1, arg2})
 	stub := fake.DestroyStub
 	fakeReturns := fake.destroyReturns
-	fake.recordInvocation("Destroy", []interface{}{arg1, arg2})
+	fake.recordInvocation("Destroy", []any{arg1, arg2})
 	fake.destroyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -238,7 +238,7 @@ func (fake *FakeClient) GetContainer(arg1 context.Context, arg2 string) (contain
 	}{arg1, arg2})
 	stub := fake.GetContainerStub
 	fakeReturns := fake.getContainerReturns
-	fake.recordInvocation("GetContainer", []interface{}{arg1, arg2})
+	fake.recordInvocation("GetContainer", []any{arg1, arg2})
 	fake.getContainerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -301,7 +301,7 @@ func (fake *FakeClient) Init() error {
 	}{})
 	stub := fake.InitStub
 	fakeReturns := fake.initReturns
-	fake.recordInvocation("Init", []interface{}{})
+	fake.recordInvocation("Init", []any{})
 	fake.initMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -358,7 +358,7 @@ func (fake *FakeClient) NewContainer(arg1 context.Context, arg2 string, arg3 map
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.NewContainerStub
 	fakeReturns := fake.newContainerReturns
-	fake.recordInvocation("NewContainer", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("NewContainer", []any{arg1, arg2, arg3, arg4})
 	fake.newContainerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -421,7 +421,7 @@ func (fake *FakeClient) Stop() error {
 	}{})
 	stub := fake.StopStub
 	fakeReturns := fake.stopReturns
-	fake.recordInvocation("Stop", []interface{}{})
+	fake.recordInvocation("Stop", []any{})
 	fake.stopMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -475,7 +475,7 @@ func (fake *FakeClient) Version(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.VersionStub
 	fakeReturns := fake.versionReturns
-	fake.recordInvocation("Version", []interface{}{arg1})
+	fake.recordInvocation("Version", []any{arg1})
 	fake.versionMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -528,7 +528,7 @@ func (fake *FakeClient) VersionReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) Invocations() map[string][][]interface{} {
+func (fake *FakeClient) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.containersMutex.RLock()
@@ -545,21 +545,21 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.stopMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeClient) recordInvocation(key string, args []interface{}) {
+func (fake *FakeClient) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

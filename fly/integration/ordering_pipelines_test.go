@@ -92,7 +92,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 								{Name: "beautiful-pipeline", Paused: false, Public: false},
 								{Name: "awesome-pipeline", Paused: true, Public: false},
-								{Name: "awesome-pipeline", InstanceVars: map[string]interface{}{"hello": "world"}, Paused: true, Public: false},
+								{Name: "awesome-pipeline", InstanceVars: map[string]any{"hello": "world"}, Paused: true, Public: false},
 								{Name: "delightful-pipeline", Paused: false, Public: true},
 								{Name: "charming-pipeline", Paused: false, Public: true},
 							}),
@@ -269,7 +269,7 @@ var _ = Describe("Fly CLI", func() {
 							ghttp.RespondWithJSONEncoded(200, []atc.Pipeline{
 								{Name: "beautiful-pipeline", Paused: false, Public: false},
 								{Name: "awesome-pipeline", Paused: true, Public: false},
-								{Name: "awesome-pipeline", InstanceVars: map[string]interface{}{"hello": "world"}, Paused: true, Public: false},
+								{Name: "awesome-pipeline", InstanceVars: map[string]any{"hello": "world"}, Paused: true, Public: false},
 								{Name: "delightful-pipeline", Paused: false, Public: true},
 								{Name: "charming-pipeline", Paused: false, Public: true},
 							}),

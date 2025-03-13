@@ -13,11 +13,11 @@ type FakeVarSourcePool struct {
 	closeMutex       sync.RWMutex
 	closeArgsForCall []struct {
 	}
-	FindOrCreateStub        func(lager.Logger, map[string]interface{}, creds.ManagerFactory) (creds.Secrets, error)
+	FindOrCreateStub        func(lager.Logger, map[string]any, creds.ManagerFactory) (creds.Secrets, error)
 	findOrCreateMutex       sync.RWMutex
 	findOrCreateArgsForCall []struct {
 		arg1 lager.Logger
-		arg2 map[string]interface{}
+		arg2 map[string]any
 		arg3 creds.ManagerFactory
 	}
 	findOrCreateReturns struct {
@@ -38,7 +38,7 @@ type FakeVarSourcePool struct {
 	sizeReturnsOnCall map[int]struct {
 		result1 int
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -47,7 +47,7 @@ func (fake *FakeVarSourcePool) Close() {
 	fake.closeArgsForCall = append(fake.closeArgsForCall, struct {
 	}{})
 	stub := fake.CloseStub
-	fake.recordInvocation("Close", []interface{}{})
+	fake.recordInvocation("Close", []any{})
 	fake.closeMutex.Unlock()
 	if stub != nil {
 		fake.CloseStub()
@@ -66,17 +66,17 @@ func (fake *FakeVarSourcePool) CloseCalls(stub func()) {
 	fake.CloseStub = stub
 }
 
-func (fake *FakeVarSourcePool) FindOrCreate(arg1 lager.Logger, arg2 map[string]interface{}, arg3 creds.ManagerFactory) (creds.Secrets, error) {
+func (fake *FakeVarSourcePool) FindOrCreate(arg1 lager.Logger, arg2 map[string]any, arg3 creds.ManagerFactory) (creds.Secrets, error) {
 	fake.findOrCreateMutex.Lock()
 	ret, specificReturn := fake.findOrCreateReturnsOnCall[len(fake.findOrCreateArgsForCall)]
 	fake.findOrCreateArgsForCall = append(fake.findOrCreateArgsForCall, struct {
 		arg1 lager.Logger
-		arg2 map[string]interface{}
+		arg2 map[string]any
 		arg3 creds.ManagerFactory
 	}{arg1, arg2, arg3})
 	stub := fake.FindOrCreateStub
 	fakeReturns := fake.findOrCreateReturns
-	fake.recordInvocation("FindOrCreate", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("FindOrCreate", []any{arg1, arg2, arg3})
 	fake.findOrCreateMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -93,13 +93,13 @@ func (fake *FakeVarSourcePool) FindOrCreateCallCount() int {
 	return len(fake.findOrCreateArgsForCall)
 }
 
-func (fake *FakeVarSourcePool) FindOrCreateCalls(stub func(lager.Logger, map[string]interface{}, creds.ManagerFactory) (creds.Secrets, error)) {
+func (fake *FakeVarSourcePool) FindOrCreateCalls(stub func(lager.Logger, map[string]any, creds.ManagerFactory) (creds.Secrets, error)) {
 	fake.findOrCreateMutex.Lock()
 	defer fake.findOrCreateMutex.Unlock()
 	fake.FindOrCreateStub = stub
 }
 
-func (fake *FakeVarSourcePool) FindOrCreateArgsForCall(i int) (lager.Logger, map[string]interface{}, creds.ManagerFactory) {
+func (fake *FakeVarSourcePool) FindOrCreateArgsForCall(i int) (lager.Logger, map[string]any, creds.ManagerFactory) {
 	fake.findOrCreateMutex.RLock()
 	defer fake.findOrCreateMutex.RUnlock()
 	argsForCall := fake.findOrCreateArgsForCall[i]
@@ -139,7 +139,7 @@ func (fake *FakeVarSourcePool) Size() int {
 	}{})
 	stub := fake.SizeStub
 	fakeReturns := fake.sizeReturns
-	fake.recordInvocation("Size", []interface{}{})
+	fake.recordInvocation("Size", []any{})
 	fake.sizeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -185,7 +185,7 @@ func (fake *FakeVarSourcePool) SizeReturnsOnCall(i int, result1 int) {
 	}{result1}
 }
 
-func (fake *FakeVarSourcePool) Invocations() map[string][][]interface{} {
+func (fake *FakeVarSourcePool) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.closeMutex.RLock()
@@ -194,21 +194,21 @@ func (fake *FakeVarSourcePool) Invocations() map[string][][]interface{} {
 	defer fake.findOrCreateMutex.RUnlock()
 	fake.sizeMutex.RLock()
 	defer fake.sizeMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeVarSourcePool) recordInvocation(key string, args []interface{}) {
+func (fake *FakeVarSourcePool) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

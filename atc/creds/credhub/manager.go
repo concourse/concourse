@@ -41,7 +41,7 @@ func (manager *CredHubManager) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"url":           manager.URL,
 		"path_prefix":   manager.PathPrefix,
 		"ca_certs":      manager.TLS.CACerts,

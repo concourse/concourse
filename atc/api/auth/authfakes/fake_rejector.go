@@ -21,7 +21,7 @@ type FakeRejector struct {
 		arg1 http.ResponseWriter
 		arg2 *http.Request
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -32,7 +32,7 @@ func (fake *FakeRejector) Forbidden(arg1 http.ResponseWriter, arg2 *http.Request
 		arg2 *http.Request
 	}{arg1, arg2})
 	stub := fake.ForbiddenStub
-	fake.recordInvocation("Forbidden", []interface{}{arg1, arg2})
+	fake.recordInvocation("Forbidden", []any{arg1, arg2})
 	fake.forbiddenMutex.Unlock()
 	if stub != nil {
 		fake.ForbiddenStub(arg1, arg2)
@@ -65,7 +65,7 @@ func (fake *FakeRejector) Unauthorized(arg1 http.ResponseWriter, arg2 *http.Requ
 		arg2 *http.Request
 	}{arg1, arg2})
 	stub := fake.UnauthorizedStub
-	fake.recordInvocation("Unauthorized", []interface{}{arg1, arg2})
+	fake.recordInvocation("Unauthorized", []any{arg1, arg2})
 	fake.unauthorizedMutex.Unlock()
 	if stub != nil {
 		fake.UnauthorizedStub(arg1, arg2)
@@ -91,28 +91,28 @@ func (fake *FakeRejector) UnauthorizedArgsForCall(i int) (http.ResponseWriter, *
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeRejector) Invocations() map[string][][]interface{} {
+func (fake *FakeRejector) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.forbiddenMutex.RLock()
 	defer fake.forbiddenMutex.RUnlock()
 	fake.unauthorizedMutex.RLock()
 	defer fake.unauthorizedMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeRejector) recordInvocation(key string, args []interface{}) {
+func (fake *FakeRejector) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

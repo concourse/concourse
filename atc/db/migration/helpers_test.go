@@ -44,7 +44,7 @@ func ExpectTeamWithUsersAndGroupsForRole(dbConn *sql.DB, team string, role strin
 
 	auth := fetchTeamAuth(dbConn, team)
 
-	authForRole := auth[role].(map[string]interface{})
+	authForRole := auth[role].(map[string]any)
 	Expect(authForRole["users"]).To(ConsistOf(users))
 	Expect(authForRole["groups"]).To(ConsistOf(groups))
 }
@@ -53,7 +53,7 @@ func ExpectTeamWithGithubProvider(dbConn *sql.DB, team, clientId, clientSecret s
 
 	auth := fetchTeamAuth(dbConn, team)
 
-	provider, _ := auth["github"].(map[string]interface{})
+	provider, _ := auth["github"].(map[string]any)
 	Expect(provider["client_id"]).To(Equal(clientId))
 	Expect(provider["client_secret"]).To(Equal(clientSecret))
 }
@@ -62,7 +62,7 @@ func ExpectTeamWithNoAuthProvider(dbConn *sql.DB, team string, noauth bool) {
 
 	auth := fetchTeamAuth(dbConn, team)
 
-	provider, _ := auth["noauth"].(map[string]interface{})
+	provider, _ := auth["noauth"].(map[string]any)
 	Expect(provider["noauth"]).To(Equal(noauth))
 }
 
@@ -70,7 +70,7 @@ func ExpectTeamWithBasicAuthProvider(dbConn *sql.DB, team, username, password st
 
 	auth := fetchTeamAuth(dbConn, team)
 
-	provider, _ := auth["basicauth"].(map[string]interface{})
+	provider, _ := auth["basicauth"].(map[string]any)
 	Expect(provider["username"]).To(Equal(username))
 	Expect(provider["password"]).To(Equal(password))
 }
@@ -79,7 +79,7 @@ func ExpectTeamWithoutNoAuthProvider(dbConn *sql.DB, team string) {
 
 	auth := fetchTeamAuth(dbConn, team)
 
-	provider, _ := auth["noauth"].(map[string]interface{})
+	provider, _ := auth["noauth"].(map[string]any)
 	Expect(provider).To(BeNil())
 }
 
@@ -87,7 +87,7 @@ func ExpectTeamWithoutBasicAuthProvider(dbConn *sql.DB, team string) {
 
 	auth := fetchTeamAuth(dbConn, team)
 
-	provider, _ := auth["basicauth"].(map[string]interface{})
+	provider, _ := auth["basicauth"].(map[string]any)
 	Expect(provider).To(BeNil())
 }
 
@@ -131,9 +131,9 @@ func readTeamAuth(dbConn *sql.DB, team string) []byte {
 	return auth
 }
 
-func fetchTeamAuth(dbConn *sql.DB, team string) map[string]interface{} {
+func fetchTeamAuth(dbConn *sql.DB, team string) map[string]any {
 	auth := readTeamAuth(dbConn, team)
-	var data map[string]interface{}
+	var data map[string]any
 	err := json.Unmarshal(auth, &data)
 	Expect(err).NotTo(HaveOccurred())
 	return data

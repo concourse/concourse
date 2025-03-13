@@ -23,7 +23,7 @@ var _ = Describe("Evaluate", func() {
 			Name:     "some-((pipeline-name))-ok",
 			File:     "some-((filename))-ok",
 			VarFiles: []string{"some-((varfile))-ok"},
-			Vars:     map[string]interface{}{"age": "((age))"},
+			Vars:     map[string]any{"age": "((age))"},
 		})
 	})
 
@@ -36,7 +36,7 @@ var _ = Describe("Evaluate", func() {
 				Name:     "some-((pipeline-name))-ok", // Name should not be interpolated.
 				File:     "some-fn-is-ok",
 				VarFiles: []string{"some-vf-is-ok"},
-				Vars:     map[string]interface{}{"age": "18"},
+				Vars:     map[string]any{"age": "18"},
 			}))
 		})
 	})

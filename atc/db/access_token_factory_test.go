@@ -20,22 +20,22 @@ var _ = Describe("Access Token Factory", func() {
 	It("can create and fetch access tokens", func() {
 		date := jwt.NumericDate(1234567890)
 		err := factory.CreateAccessToken("my-awesome-token", db.Claims{
-			RawClaims: map[string]interface{}{
+			RawClaims: map[string]any{
 				"iss": "issuer",
 				"sub": "subject",
-				"aud": []interface{}{"audience"},
+				"aud": []any{"audience"},
 				"exp": date,
 				"nbf": date,
 				"iat": date,
 				"jti": "id",
 
-				"federated_claims": map[string]interface{}{
+				"federated_claims": map[string]any{
 					"user_id":      "userid",
 					"connector_id": "github",
 					"other":        "blah",
 				},
 
-				"groups": []interface{}{"group1", "group2"},
+				"groups": []any{"group1", "group2"},
 			},
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -57,22 +57,22 @@ var _ = Describe("Access Token Factory", func() {
 				UserID:    "userid",
 				Connector: "github",
 			},
-			RawClaims: map[string]interface{}{
+			RawClaims: map[string]any{
 				"iss": "issuer",
 				"sub": "subject",
-				"aud": []interface{}{"audience"},
+				"aud": []any{"audience"},
 				"exp": float64(date),
 				"nbf": float64(date),
 				"iat": float64(date),
 				"jti": "id",
 
-				"federated_claims": map[string]interface{}{
+				"federated_claims": map[string]any{
 					"user_id":      "userid",
 					"connector_id": "github",
 					"other":        "blah",
 				},
 
-				"groups": []interface{}{"group1", "group2"},
+				"groups": []any{"group1", "group2"},
 			},
 		}))
 	})

@@ -14,7 +14,7 @@ type FakeRunnable struct {
 	runArgsForCall []struct {
 		arg1 context.Context
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -24,7 +24,7 @@ func (fake *FakeRunnable) Run(arg1 context.Context) {
 		arg1 context.Context
 	}{arg1})
 	stub := fake.RunStub
-	fake.recordInvocation("Run", []interface{}{arg1})
+	fake.recordInvocation("Run", []any{arg1})
 	fake.runMutex.Unlock()
 	if stub != nil {
 		fake.RunStub(arg1)
@@ -50,26 +50,26 @@ func (fake *FakeRunnable) RunArgsForCall(i int) context.Context {
 	return argsForCall.arg1
 }
 
-func (fake *FakeRunnable) Invocations() map[string][][]interface{} {
+func (fake *FakeRunnable) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeRunnable) recordInvocation(key string, args []interface{}) {
+func (fake *FakeRunnable) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

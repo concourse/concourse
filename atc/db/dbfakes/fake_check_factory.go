@@ -59,7 +59,7 @@ type FakeCheckFactory struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -68,7 +68,7 @@ func (fake *FakeCheckFactory) Drain() {
 	fake.drainArgsForCall = append(fake.drainArgsForCall, struct {
 	}{})
 	stub := fake.DrainStub
-	fake.recordInvocation("Drain", []interface{}{})
+	fake.recordInvocation("Drain", []any{})
 	fake.drainMutex.Unlock()
 	if stub != nil {
 		fake.DrainStub()
@@ -94,7 +94,7 @@ func (fake *FakeCheckFactory) ResourceTypesByPipeline() (map[int]db.ResourceType
 	}{})
 	stub := fake.ResourceTypesByPipelineStub
 	fakeReturns := fake.resourceTypesByPipelineReturns
-	fake.recordInvocation("ResourceTypesByPipeline", []interface{}{})
+	fake.recordInvocation("ResourceTypesByPipeline", []any{})
 	fake.resourceTypesByPipelineMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -150,7 +150,7 @@ func (fake *FakeCheckFactory) Resources() ([]db.Resource, error) {
 	}{})
 	stub := fake.ResourcesStub
 	fakeReturns := fake.resourcesReturns
-	fake.recordInvocation("Resources", []interface{}{})
+	fake.recordInvocation("Resources", []any{})
 	fake.resourcesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -213,7 +213,7 @@ func (fake *FakeCheckFactory) TryCreateCheck(arg1 context.Context, arg2 db.Check
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	stub := fake.TryCreateCheckStub
 	fakeReturns := fake.tryCreateCheckReturns
-	fake.recordInvocation("TryCreateCheck", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.recordInvocation("TryCreateCheck", []any{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
 	fake.tryCreateCheckMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
@@ -272,7 +272,7 @@ func (fake *FakeCheckFactory) TryCreateCheckReturnsOnCall(i int, result1 db.Buil
 	}{result1, result2, result3}
 }
 
-func (fake *FakeCheckFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeCheckFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.drainMutex.RLock()
@@ -283,21 +283,21 @@ func (fake *FakeCheckFactory) Invocations() map[string][][]interface{} {
 	defer fake.resourcesMutex.RUnlock()
 	fake.tryCreateCheckMutex.RLock()
 	defer fake.tryCreateCheckMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCheckFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeCheckFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

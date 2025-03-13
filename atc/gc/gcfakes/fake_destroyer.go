@@ -45,7 +45,7 @@ type FakeDestroyer struct {
 		result1 []string
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -63,7 +63,7 @@ func (fake *FakeDestroyer) DestroyContainers(arg1 string, arg2 []string) error {
 	}{arg1, arg2Copy})
 	stub := fake.DestroyContainersStub
 	fakeReturns := fake.destroyContainersReturns
-	fake.recordInvocation("DestroyContainers", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("DestroyContainers", []any{arg1, arg2Copy})
 	fake.destroyContainersMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -130,7 +130,7 @@ func (fake *FakeDestroyer) DestroyVolumes(arg1 string, arg2 []string) error {
 	}{arg1, arg2Copy})
 	stub := fake.DestroyVolumesStub
 	fakeReturns := fake.destroyVolumesReturns
-	fake.recordInvocation("DestroyVolumes", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("DestroyVolumes", []any{arg1, arg2Copy})
 	fake.destroyVolumesMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -191,7 +191,7 @@ func (fake *FakeDestroyer) FindDestroyingVolumesForGc(arg1 string) ([]string, er
 	}{arg1})
 	stub := fake.FindDestroyingVolumesForGcStub
 	fakeReturns := fake.findDestroyingVolumesForGcReturns
-	fake.recordInvocation("FindDestroyingVolumesForGc", []interface{}{arg1})
+	fake.recordInvocation("FindDestroyingVolumesForGc", []any{arg1})
 	fake.findDestroyingVolumesForGcMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -247,7 +247,7 @@ func (fake *FakeDestroyer) FindDestroyingVolumesForGcReturnsOnCall(i int, result
 	}{result1, result2}
 }
 
-func (fake *FakeDestroyer) Invocations() map[string][][]interface{} {
+func (fake *FakeDestroyer) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyContainersMutex.RLock()
@@ -256,21 +256,21 @@ func (fake *FakeDestroyer) Invocations() map[string][][]interface{} {
 	defer fake.destroyVolumesMutex.RUnlock()
 	fake.findDestroyingVolumesForGcMutex.RLock()
 	defer fake.findDestroyingVolumesForGcMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeDestroyer) recordInvocation(key string, args []interface{}) {
+func (fake *FakeDestroyer) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

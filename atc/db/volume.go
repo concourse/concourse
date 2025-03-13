@@ -636,7 +636,7 @@ func (volume *createdVolume) CreateChildForContainer(container CreatingContainer
 		"container_id",
 		"path",
 	}
-	columnValues := []interface{}{
+	columnValues := []any{
 		volume.workerName,
 		volume.id,
 		VolumeStateCreated,

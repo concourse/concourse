@@ -32,7 +32,7 @@ type FakePool struct {
 	tryAcquireReturnsOnCall map[int]struct {
 		result1 bool
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -41,7 +41,7 @@ func (fake *FakePool) Release() {
 	fake.releaseArgsForCall = append(fake.releaseArgsForCall, struct {
 	}{})
 	stub := fake.ReleaseStub
-	fake.recordInvocation("Release", []interface{}{})
+	fake.recordInvocation("Release", []any{})
 	fake.releaseMutex.Unlock()
 	if stub != nil {
 		fake.ReleaseStub()
@@ -67,7 +67,7 @@ func (fake *FakePool) Size() int {
 	}{})
 	stub := fake.SizeStub
 	fakeReturns := fake.sizeReturns
-	fake.recordInvocation("Size", []interface{}{})
+	fake.recordInvocation("Size", []any{})
 	fake.sizeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -120,7 +120,7 @@ func (fake *FakePool) TryAcquire() bool {
 	}{})
 	stub := fake.TryAcquireStub
 	fakeReturns := fake.tryAcquireReturns
-	fake.recordInvocation("TryAcquire", []interface{}{})
+	fake.recordInvocation("TryAcquire", []any{})
 	fake.tryAcquireMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -166,7 +166,7 @@ func (fake *FakePool) TryAcquireReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-func (fake *FakePool) Invocations() map[string][][]interface{} {
+func (fake *FakePool) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.releaseMutex.RLock()
@@ -175,21 +175,21 @@ func (fake *FakePool) Invocations() map[string][][]interface{} {
 	defer fake.sizeMutex.RUnlock()
 	fake.tryAcquireMutex.RLock()
 	defer fake.tryAcquireMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePool) recordInvocation(key string, args []interface{}) {
+func (fake *FakePool) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

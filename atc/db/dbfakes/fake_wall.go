@@ -42,7 +42,7 @@ type FakeWall struct {
 	setWallReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -53,7 +53,7 @@ func (fake *FakeWall) Clear() error {
 	}{})
 	stub := fake.ClearStub
 	fakeReturns := fake.clearReturns
-	fake.recordInvocation("Clear", []interface{}{})
+	fake.recordInvocation("Clear", []any{})
 	fake.clearMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -106,7 +106,7 @@ func (fake *FakeWall) GetWall() (atc.Wall, error) {
 	}{})
 	stub := fake.GetWallStub
 	fakeReturns := fake.getWallReturns
-	fake.recordInvocation("GetWall", []interface{}{})
+	fake.recordInvocation("GetWall", []any{})
 	fake.getWallMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -163,7 +163,7 @@ func (fake *FakeWall) SetWall(arg1 atc.Wall) error {
 	}{arg1})
 	stub := fake.SetWallStub
 	fakeReturns := fake.setWallReturns
-	fake.recordInvocation("SetWall", []interface{}{arg1})
+	fake.recordInvocation("SetWall", []any{arg1})
 	fake.setWallMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -216,7 +216,7 @@ func (fake *FakeWall) SetWallReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeWall) Invocations() map[string][][]interface{} {
+func (fake *FakeWall) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.clearMutex.RLock()
@@ -225,21 +225,21 @@ func (fake *FakeWall) Invocations() map[string][][]interface{} {
 	defer fake.getWallMutex.RUnlock()
 	fake.setWallMutex.RLock()
 	defer fake.setWallMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeWall) recordInvocation(key string, args []interface{}) {
+func (fake *FakeWall) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

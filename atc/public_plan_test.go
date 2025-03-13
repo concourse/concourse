@@ -516,8 +516,8 @@ var _ = Describe("Plan", func() {
 								Team:         "some-team",
 								File:         "some-file",
 								VarFiles:     []string{"vf"},
-								Vars:         map[string]interface{}{"k1": "v1"},
-								InstanceVars: map[string]interface{}{"branch": "feature/foo"},
+								Vars:         map[string]any{"k1": "v1"},
+								InstanceVars: map[string]any{"branch": "feature/foo"},
 							},
 						},
 						{
@@ -526,12 +526,12 @@ var _ = Describe("Plan", func() {
 								Vars: []atc.AcrossVar{
 									{
 										Var:         "v1",
-										Values:      []interface{}{"a"},
+										Values:      []any{"a"},
 										MaxInFlight: &atc.MaxInFlightConfig{Limit: 1},
 									},
 									{
 										Var:         "v2",
-										Values:      []interface{}{"b"},
+										Values:      []any{"b"},
 										MaxInFlight: &atc.MaxInFlightConfig{All: true},
 									},
 								},

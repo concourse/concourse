@@ -50,7 +50,7 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowR
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (v Vault) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (v Vault) Get(secretPath string) (any, *time.Time, bool, error) {
 	if v.LoggedIn != nil {
 		select {
 		case <-v.LoggedIn:

@@ -34,18 +34,18 @@ test "$(cat params-in-put/password)" = "put-get some password"
 echo all credentials matched expected values
 `
 
-var pipelineVars = map[string]interface{}{
+var pipelineVars = map[string]any{
 	"assertion_script":     assertionScript,
 	"check_failure":        "", // blank so the check doesn't fail
 	"resource_type_secret": "some resource type secret",
 	"resource_secret":      "some resource secret",
-	"job_secret": map[string]interface{}{
+	"job_secret": map[string]any{
 		"username": "some username",
 		"password": "some password",
 	},
 }
 
-var teamVars = map[string]interface{}{
+var teamVars = map[string]any{
 	"team_secret":      "some team secret",
 	"resource_version": "exposed some version not-so-secret",
 }
@@ -54,8 +54,8 @@ func testCredentialManagement(
 	t *testing.T,
 	fly flytest.Cmd,
 	dc dctest.Cmd,
-	setTeamVar func(string, string, interface{}),
-	setPipelineVar func(string, string, string, interface{}),
+	setTeamVar func(string, string, any),
+	setPipelineVar func(string, string, string, any),
 ) {
 	for name, val := range teamVars {
 		setTeamVar("main", name, val)
@@ -144,15 +144,15 @@ func testCredentialManagement(
 	})
 }
 
-func eachString(val interface{}, f func(string)) {
+func eachString(val any, f func(string)) {
 	switch x := val.(type) {
 	case string:
 		f(x)
-	case map[string]interface{}:
+	case map[string]any:
 		for _, v := range x {
 			eachString(v, f)
 		}
-	case []interface{}:
+	case []any:
 		for _, v := range x {
 			eachString(v, f)
 		}

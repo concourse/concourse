@@ -14,7 +14,7 @@ import (
 
 //counterfeiter:generate . VarSourcePool
 type VarSourcePool interface {
-	FindOrCreate(lager.Logger, map[string]interface{}, ManagerFactory) (Secrets, error)
+	FindOrCreate(lager.Logger, map[string]any, ManagerFactory) (Secrets, error)
 	Size() int
 	Close()
 }
@@ -79,7 +79,7 @@ func (pool *varSourcePool) Size() int {
 	return len(pool.pool)
 }
 
-func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]interface{}, factory ManagerFactory) (Secrets, error) {
+func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]any, factory ManagerFactory) (Secrets, error) {
 	b, err := json.Marshal(config)
 	if err != nil {
 		return nil, err

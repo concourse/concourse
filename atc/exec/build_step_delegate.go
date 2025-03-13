@@ -40,7 +40,7 @@ type BuildStepDelegate interface {
 	WaitingForStreamedVolume(lager.Logger, string, string)
 	BuildStartTime() time.Time
 
-	ConstructAcrossSubsteps([]byte, []atc.AcrossVar, [][]interface{}) ([]atc.VarScopedPlan, error)
+	ConstructAcrossSubsteps([]byte, []atc.AcrossVar, [][]any) ([]atc.VarScopedPlan, error)
 	ContainerOwner(planId atc.PlanID) db.ContainerOwner
 }
 

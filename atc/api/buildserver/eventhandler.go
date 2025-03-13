@@ -85,7 +85,7 @@ type eventWriter struct {
 	responseFlusher http.Flusher
 }
 
-func (writer eventWriter) WriteEvent(id uint, envelope interface{}) error {
+func (writer eventWriter) WriteEvent(id uint, envelope any) error {
 	payload, err := json.Marshal(envelope)
 	if err != nil {
 		return err

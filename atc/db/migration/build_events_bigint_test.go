@@ -18,7 +18,7 @@ var _ = Describe("build_events bigint indexes", func() {
 	var teamID int
 	var pipelineID int
 
-	explain := func(query string, params ...interface{}) string {
+	explain := func(query string, params ...any) string {
 		_, err := db.Exec("SET enable_seqscan = OFF")
 		Expect(err).ToNot(HaveOccurred())
 		rows, err := db.Query("EXPLAIN "+query, params...)

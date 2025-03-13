@@ -166,7 +166,7 @@ func findOrCreateResourceConfig(
 	if !found {
 		hash := mapHash(source)
 
-		valueMap := map[string]interface{}{
+		valueMap := map[string]any{
 			parentColumnName: parentID,
 			"source_hash":    hash,
 		}

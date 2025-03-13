@@ -48,7 +48,7 @@ func kvPreflightVersionRequest(client *api.Client, path string) (string, int, er
 	if options == nil {
 		return mountPath, 1, nil
 	}
-	versionRaw := options.(map[string]interface{})["version"]
+	versionRaw := options.(map[string]any)["version"]
 	if versionRaw == nil {
 		return mountPath, 1, nil
 	}

@@ -39,7 +39,7 @@ type RenameRequest struct {
 	NewName string `json:"name"`
 }
 
-type InstanceVars map[string]interface{}
+type InstanceVars map[string]any
 
 func (iv InstanceVars) String() string {
 	var parts []string
@@ -62,12 +62,12 @@ func (iv InstanceVars) sortedKVPairs() vars.KVPairs {
 	return kvPairs
 }
 
-func instanceVarValueRequiresQuoting(v interface{}) bool {
+func instanceVarValueRequiresQuoting(v any) bool {
 	str, ok := v.(string)
 	if !ok {
 		return false
 	}
-	var target interface{}
+	var target any
 	if err := yaml.Unmarshal([]byte(str), &target); err != nil {
 		return true
 	}
@@ -132,6 +132,6 @@ func InstanceVarsFromQueryParams(q url.Values) (InstanceVars, error) {
 	sort.Slice(kvPairs, func(i, j int) bool {
 		return kvPairs[i].Ref.String() < kvPairs[j].Ref.String()
 	})
-	instanceVars, _ := kvPairs.Expand()["vars"].(map[string]interface{})
+	instanceVars, _ := kvPairs.Expand()["vars"].(map[string]any)
 	return InstanceVars(instanceVars), nil
 }

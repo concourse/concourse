@@ -19,7 +19,7 @@ type FakeSetPipelineStepDelegateFactory struct {
 	setPipelineStepDelegateReturnsOnCall map[int]struct {
 		result1 exec.SetPipelineStepDelegate
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -31,7 +31,7 @@ func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegate(arg1 exe
 	}{arg1})
 	stub := fake.SetPipelineStepDelegateStub
 	fakeReturns := fake.setPipelineStepDelegateReturns
-	fake.recordInvocation("SetPipelineStepDelegate", []interface{}{arg1})
+	fake.recordInvocation("SetPipelineStepDelegate", []any{arg1})
 	fake.setPipelineStepDelegateMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -84,26 +84,26 @@ func (fake *FakeSetPipelineStepDelegateFactory) SetPipelineStepDelegateReturnsOn
 	}{result1}
 }
 
-func (fake *FakeSetPipelineStepDelegateFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeSetPipelineStepDelegateFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.setPipelineStepDelegateMutex.RLock()
 	defer fake.setPipelineStepDelegateMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeSetPipelineStepDelegateFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeSetPipelineStepDelegateFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

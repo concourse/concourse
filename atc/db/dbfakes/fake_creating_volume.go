@@ -64,7 +64,7 @@ type FakeCreatingVolume struct {
 		result1 db.WorkerArtifact
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -75,7 +75,7 @@ func (fake *FakeCreatingVolume) Created() (db.CreatedVolume, error) {
 	}{})
 	stub := fake.CreatedStub
 	fakeReturns := fake.createdReturns
-	fake.recordInvocation("Created", []interface{}{})
+	fake.recordInvocation("Created", []any{})
 	fake.createdMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -131,7 +131,7 @@ func (fake *FakeCreatingVolume) Failed() (db.FailedVolume, error) {
 	}{})
 	stub := fake.FailedStub
 	fakeReturns := fake.failedReturns
-	fake.recordInvocation("Failed", []interface{}{})
+	fake.recordInvocation("Failed", []any{})
 	fake.failedMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -187,7 +187,7 @@ func (fake *FakeCreatingVolume) Handle() string {
 	}{})
 	stub := fake.HandleStub
 	fakeReturns := fake.handleReturns
-	fake.recordInvocation("Handle", []interface{}{})
+	fake.recordInvocation("Handle", []any{})
 	fake.handleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -240,7 +240,7 @@ func (fake *FakeCreatingVolume) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -293,7 +293,7 @@ func (fake *FakeCreatingVolume) InitializeArtifact() (db.WorkerArtifact, error) 
 	}{})
 	stub := fake.InitializeArtifactStub
 	fakeReturns := fake.initializeArtifactReturns
-	fake.recordInvocation("InitializeArtifact", []interface{}{})
+	fake.recordInvocation("InitializeArtifact", []any{})
 	fake.initializeArtifactMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -342,7 +342,7 @@ func (fake *FakeCreatingVolume) InitializeArtifactReturnsOnCall(i int, result1 d
 	}{result1, result2}
 }
 
-func (fake *FakeCreatingVolume) Invocations() map[string][][]interface{} {
+func (fake *FakeCreatingVolume) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createdMutex.RLock()
@@ -355,21 +355,21 @@ func (fake *FakeCreatingVolume) Invocations() map[string][][]interface{} {
 	defer fake.iDMutex.RUnlock()
 	fake.initializeArtifactMutex.RLock()
 	defer fake.initializeArtifactMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCreatingVolume) recordInvocation(key string, args []interface{}) {
+func (fake *FakeCreatingVolume) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

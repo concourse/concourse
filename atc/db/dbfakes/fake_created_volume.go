@@ -231,7 +231,7 @@ type FakeCreatedVolume struct {
 	workerResourceCacheIDReturnsOnCall map[int]struct {
 		result1 int
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -242,7 +242,7 @@ func (fake *FakeCreatedVolume) BaseResourceType() (*db.UsedWorkerBaseResourceTyp
 	}{})
 	stub := fake.BaseResourceTypeStub
 	fakeReturns := fake.baseResourceTypeReturns
-	fake.recordInvocation("BaseResourceType", []interface{}{})
+	fake.recordInvocation("BaseResourceType", []any{})
 	fake.baseResourceTypeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -298,7 +298,7 @@ func (fake *FakeCreatedVolume) ContainerHandle() string {
 	}{})
 	stub := fake.ContainerHandleStub
 	fakeReturns := fake.containerHandleReturns
-	fake.recordInvocation("ContainerHandle", []interface{}{})
+	fake.recordInvocation("ContainerHandle", []any{})
 	fake.containerHandleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -353,7 +353,7 @@ func (fake *FakeCreatedVolume) CreateChildForContainer(arg1 db.CreatingContainer
 	}{arg1, arg2})
 	stub := fake.CreateChildForContainerStub
 	fakeReturns := fake.createChildForContainerReturns
-	fake.recordInvocation("CreateChildForContainer", []interface{}{arg1, arg2})
+	fake.recordInvocation("CreateChildForContainer", []any{arg1, arg2})
 	fake.createChildForContainerMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -416,7 +416,7 @@ func (fake *FakeCreatedVolume) Destroying() (db.DestroyingVolume, error) {
 	}{})
 	stub := fake.DestroyingStub
 	fakeReturns := fake.destroyingReturns
-	fake.recordInvocation("Destroying", []interface{}{})
+	fake.recordInvocation("Destroying", []any{})
 	fake.destroyingMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -472,7 +472,7 @@ func (fake *FakeCreatedVolume) GetResourceCacheID() int {
 	}{})
 	stub := fake.GetResourceCacheIDStub
 	fakeReturns := fake.getResourceCacheIDReturns
-	fake.recordInvocation("GetResourceCacheID", []interface{}{})
+	fake.recordInvocation("GetResourceCacheID", []any{})
 	fake.getResourceCacheIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -525,7 +525,7 @@ func (fake *FakeCreatedVolume) Handle() string {
 	}{})
 	stub := fake.HandleStub
 	fakeReturns := fake.handleReturns
-	fake.recordInvocation("Handle", []interface{}{})
+	fake.recordInvocation("Handle", []any{})
 	fake.handleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -580,7 +580,7 @@ func (fake *FakeCreatedVolume) InitializeArtifact(arg1 string, arg2 int) (db.Wor
 	}{arg1, arg2})
 	stub := fake.InitializeArtifactStub
 	fakeReturns := fake.initializeArtifactReturns
-	fake.recordInvocation("InitializeArtifact", []interface{}{arg1, arg2})
+	fake.recordInvocation("InitializeArtifact", []any{arg1, arg2})
 	fake.initializeArtifactMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -644,7 +644,7 @@ func (fake *FakeCreatedVolume) InitializeResourceCache(arg1 db.ResourceCache) (*
 	}{arg1})
 	stub := fake.InitializeResourceCacheStub
 	fakeReturns := fake.initializeResourceCacheReturns
-	fake.recordInvocation("InitializeResourceCache", []interface{}{arg1})
+	fake.recordInvocation("InitializeResourceCache", []any{arg1})
 	fake.initializeResourceCacheMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -709,7 +709,7 @@ func (fake *FakeCreatedVolume) InitializeStreamedResourceCache(arg1 db.ResourceC
 	}{arg1, arg2})
 	stub := fake.InitializeStreamedResourceCacheStub
 	fakeReturns := fake.initializeStreamedResourceCacheReturns
-	fake.recordInvocation("InitializeStreamedResourceCache", []interface{}{arg1, arg2})
+	fake.recordInvocation("InitializeStreamedResourceCache", []any{arg1, arg2})
 	fake.initializeStreamedResourceCacheMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -775,7 +775,7 @@ func (fake *FakeCreatedVolume) InitializeTaskCache(arg1 int, arg2 string, arg3 s
 	}{arg1, arg2, arg3})
 	stub := fake.InitializeTaskCacheStub
 	fakeReturns := fake.initializeTaskCacheReturns
-	fake.recordInvocation("InitializeTaskCache", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("InitializeTaskCache", []any{arg1, arg2, arg3})
 	fake.initializeTaskCacheMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -835,7 +835,7 @@ func (fake *FakeCreatedVolume) ParentHandle() string {
 	}{})
 	stub := fake.ParentHandleStub
 	fakeReturns := fake.parentHandleReturns
-	fake.recordInvocation("ParentHandle", []interface{}{})
+	fake.recordInvocation("ParentHandle", []any{})
 	fake.parentHandleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -888,7 +888,7 @@ func (fake *FakeCreatedVolume) Path() string {
 	}{})
 	stub := fake.PathStub
 	fakeReturns := fake.pathReturns
-	fake.recordInvocation("Path", []interface{}{})
+	fake.recordInvocation("Path", []any{})
 	fake.pathMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -941,7 +941,7 @@ func (fake *FakeCreatedVolume) ResourceType() (*db.VolumeResourceType, error) {
 	}{})
 	stub := fake.ResourceTypeStub
 	fakeReturns := fake.resourceTypeReturns
-	fake.recordInvocation("ResourceType", []interface{}{})
+	fake.recordInvocation("ResourceType", []any{})
 	fake.resourceTypeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -997,7 +997,7 @@ func (fake *FakeCreatedVolume) TaskIdentifier() (int, atc.PipelineRef, string, s
 	}{})
 	stub := fake.TaskIdentifierStub
 	fakeReturns := fake.taskIdentifierReturns
-	fake.recordInvocation("TaskIdentifier", []interface{}{})
+	fake.recordInvocation("TaskIdentifier", []any{})
 	fake.taskIdentifierMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1062,7 +1062,7 @@ func (fake *FakeCreatedVolume) TeamID() int {
 	}{})
 	stub := fake.TeamIDStub
 	fakeReturns := fake.teamIDReturns
-	fake.recordInvocation("TeamID", []interface{}{})
+	fake.recordInvocation("TeamID", []any{})
 	fake.teamIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1115,7 +1115,7 @@ func (fake *FakeCreatedVolume) Type() db.VolumeType {
 	}{})
 	stub := fake.TypeStub
 	fakeReturns := fake.typeReturns
-	fake.recordInvocation("Type", []interface{}{})
+	fake.recordInvocation("Type", []any{})
 	fake.typeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1168,7 +1168,7 @@ func (fake *FakeCreatedVolume) WorkerArtifactID() int {
 	}{})
 	stub := fake.WorkerArtifactIDStub
 	fakeReturns := fake.workerArtifactIDReturns
-	fake.recordInvocation("WorkerArtifactID", []interface{}{})
+	fake.recordInvocation("WorkerArtifactID", []any{})
 	fake.workerArtifactIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1221,7 +1221,7 @@ func (fake *FakeCreatedVolume) WorkerName() string {
 	}{})
 	stub := fake.WorkerNameStub
 	fakeReturns := fake.workerNameReturns
-	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.recordInvocation("WorkerName", []any{})
 	fake.workerNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1274,7 +1274,7 @@ func (fake *FakeCreatedVolume) WorkerResourceCacheID() int {
 	}{})
 	stub := fake.WorkerResourceCacheIDStub
 	fakeReturns := fake.workerResourceCacheIDReturns
-	fake.recordInvocation("WorkerResourceCacheID", []interface{}{})
+	fake.recordInvocation("WorkerResourceCacheID", []any{})
 	fake.workerResourceCacheIDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -1320,7 +1320,7 @@ func (fake *FakeCreatedVolume) WorkerResourceCacheIDReturnsOnCall(i int, result1
 	}{result1}
 }
 
-func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
+func (fake *FakeCreatedVolume) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.baseResourceTypeMutex.RLock()
@@ -1361,21 +1361,21 @@ func (fake *FakeCreatedVolume) Invocations() map[string][][]interface{} {
 	defer fake.workerNameMutex.RUnlock()
 	fake.workerResourceCacheIDMutex.RLock()
 	defer fake.workerResourceCacheIDMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCreatedVolume) recordInvocation(key string, args []interface{}) {
+func (fake *FakeCreatedVolume) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

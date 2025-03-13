@@ -537,7 +537,7 @@ var _ = Describe("WorkerFactory", func() {
 				"plan_id":  "simple-plan",
 				"team_id":  1,
 			}, true, nil)
-			fakeOwner.CreateReturns(map[string]interface{}{
+			fakeOwner.CreateReturns(map[string]any{
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 				"team_id":  1,
@@ -549,7 +549,7 @@ var _ = Describe("WorkerFactory", func() {
 				"plan_id":  "simple-plan",
 				"team_id":  2,
 			}, true, nil)
-			otherFakeOwner.CreateReturns(map[string]interface{}{
+			otherFakeOwner.CreateReturns(map[string]any{
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 				"team_id":  2,
@@ -696,7 +696,7 @@ var _ = Describe("WorkerFactory", func() {
 						"plan_id":  "how-could-this-happen-to-me",
 						"team_id":  1,
 					}, true, nil)
-					bogusOwner.CreateReturns(map[string]interface{}{
+					bogusOwner.CreateReturns(map[string]any{
 						"build_id": build.ID() + 1,
 						"plan_id":  "how-could-this-happen-to-me",
 						"team_id":  1,
@@ -732,7 +732,7 @@ var _ = Describe("WorkerFactory", func() {
 				"plan_id":  "simple-plan",
 				"team_id":  1,
 			}, true, nil)
-			fakeOwner.CreateReturns(map[string]interface{}{
+			fakeOwner.CreateReturns(map[string]any{
 				"build_id": build.ID(),
 				"plan_id":  "simple-plan",
 				"team_id":  1,
@@ -744,7 +744,7 @@ var _ = Describe("WorkerFactory", func() {
 				"plan_id":  "simple-plan",
 				"team_id":  1,
 			}, true, nil)
-			otherFakeOwner.CreateReturns(map[string]interface{}{
+			otherFakeOwner.CreateReturns(map[string]any{
 				"build_id": nil,
 				"plan_id":  "simple-plan",
 				"team_id":  1,

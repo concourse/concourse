@@ -18,7 +18,7 @@ type FakeLock struct {
 	releaseReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -29,7 +29,7 @@ func (fake *FakeLock) Release() error {
 	}{})
 	stub := fake.ReleaseStub
 	fakeReturns := fake.releaseReturns
-	fake.recordInvocation("Release", []interface{}{})
+	fake.recordInvocation("Release", []any{})
 	fake.releaseMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -75,26 +75,26 @@ func (fake *FakeLock) ReleaseReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeLock) Invocations() map[string][][]interface{} {
+func (fake *FakeLock) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.releaseMutex.RLock()
 	defer fake.releaseMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeLock) recordInvocation(key string, args []interface{}) {
+func (fake *FakeLock) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

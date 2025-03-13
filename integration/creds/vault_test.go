@@ -35,13 +35,13 @@ func TestVault(t *testing.T) {
 	setupVaultAuth(t, vault)
 
 	testCredentialManagement(t, fly, dc,
-		func(team, key string, val interface{}) {
+		func(team, key string, val any) {
 			vault.Write(t,
 				fmt.Sprintf("concourse/%s/%s", team, key),
 				val,
 			)
 		},
-		func(team, pipeline, key string, val interface{}) {
+		func(team, pipeline, key string, val any) {
 			vault.Write(t,
 				fmt.Sprintf("concourse/%s/%s/%s", team, pipeline, key),
 				val,
@@ -73,13 +73,13 @@ func TestVaultTokenPath(t *testing.T) {
 	fly := flytest.InitOverrideCredentials(t, dc)
 
 	testCredentialManagement(t, fly, dc,
-		func(team, key string, val interface{}) {
+		func(team, key string, val any) {
 			vault.Write(t,
 				fmt.Sprintf("concourse/%s/%s", team, key),
 				val,
 			)
 		},
-		func(team, pipeline, key string, val interface{}) {
+		func(team, pipeline, key string, val any) {
 			vault.Write(t,
 				fmt.Sprintf("concourse/%s/%s/%s", team, pipeline, key),
 				val,
@@ -118,7 +118,7 @@ func setupVaultAuth(t *testing.T, vault vaulttest.Cmd) {
 
 	// set up cert-based auth
 	vault.Run(t, "auth", "enable", "cert")
-	vault.Write(t, "auth/cert/certs/concourse", map[string]interface{}{
+	vault.Write(t, "auth/cert/certs/concourse", map[string]any{
 		"policies":    "concourse",
 		"certificate": "@/vault/certs/vault-ca.crt", // resolved within container
 		"ttl":         "1h",

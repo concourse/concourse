@@ -22,7 +22,7 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	return json.Marshal(&map[string]interface{}{
+	return json.Marshal(&map[string]any{
 		"health": health,
 	})
 }

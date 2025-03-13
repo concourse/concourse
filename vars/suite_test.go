@@ -15,13 +15,13 @@ func TestReg(t *testing.T) {
 }
 
 type FakeVariables struct {
-	GetFunc      func(Reference) (interface{}, bool, error)
+	GetFunc      func(Reference) (any, bool, error)
 	GetVarDef    Reference
 	GetErr       error
 	GetCallCount int
 }
 
-func (v *FakeVariables) Get(ref Reference) (interface{}, bool, error) {
+func (v *FakeVariables) Get(ref Reference) (any, bool, error) {
 	v.GetCallCount += 1
 	v.GetVarDef = ref
 	if v.GetFunc != nil {

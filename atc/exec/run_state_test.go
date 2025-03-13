@@ -178,7 +178,7 @@ var _ = Describe("RunState", func() {
 
 		Context("when local var subfield does not exist", func() {
 			It("errors", func() {
-				state.AddLocalVar("foo", map[string]interface{}{"bar": "baz"}, false)
+				state.AddLocalVar("foo", map[string]any{"bar": "baz"}, false)
 				_, _, err := state.Get(vars.Reference{Source: ".", Path: "foo", Fields: []string{"missing"}})
 				Expect(err).To(HaveOccurred())
 			})

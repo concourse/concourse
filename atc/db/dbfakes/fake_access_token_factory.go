@@ -35,7 +35,7 @@ type FakeAccessTokenFactory struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -48,7 +48,7 @@ func (fake *FakeAccessTokenFactory) CreateAccessToken(arg1 string, arg2 db.Claim
 	}{arg1, arg2})
 	stub := fake.CreateAccessTokenStub
 	fakeReturns := fake.createAccessTokenReturns
-	fake.recordInvocation("CreateAccessToken", []interface{}{arg1, arg2})
+	fake.recordInvocation("CreateAccessToken", []any{arg1, arg2})
 	fake.createAccessTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -109,7 +109,7 @@ func (fake *FakeAccessTokenFactory) GetAccessToken(arg1 string) (db.AccessToken,
 	}{arg1})
 	stub := fake.GetAccessTokenStub
 	fakeReturns := fake.getAccessTokenReturns
-	fake.recordInvocation("GetAccessToken", []interface{}{arg1})
+	fake.recordInvocation("GetAccessToken", []any{arg1})
 	fake.getAccessTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -168,28 +168,28 @@ func (fake *FakeAccessTokenFactory) GetAccessTokenReturnsOnCall(i int, result1 d
 	}{result1, result2, result3}
 }
 
-func (fake *FakeAccessTokenFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeAccessTokenFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.createAccessTokenMutex.RLock()
 	defer fake.createAccessTokenMutex.RUnlock()
 	fake.getAccessTokenMutex.RLock()
 	defer fake.getAccessTokenMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeAccessTokenFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeAccessTokenFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

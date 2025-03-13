@@ -82,7 +82,7 @@ var _ = Describe("SecretsManager", func() {
 			value, found, err := variables.Get(vars.Reference{Path: "user"})
 			Expect(err).To(BeNil())
 			Expect(found).To(BeTrue())
-			Expect(value).To(BeEquivalentTo(map[string]interface{}{
+			Expect(value).To(BeEquivalentTo(map[string]any{
 				"name": "yours",
 				"pass": "truely",
 			}))
@@ -97,7 +97,7 @@ var _ = Describe("SecretsManager", func() {
 			value, found, err := variables.Get(vars.Reference{Path: "user"})
 			Expect(err).To(BeNil())
 			Expect(found).To(BeTrue())
-			Expect(value).To(BeEquivalentTo(map[string]interface{}{
+			Expect(value).To(BeEquivalentTo(map[string]any{
 				"name": "yours",
 				"pass": "truely",
 			}))

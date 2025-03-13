@@ -66,7 +66,7 @@ func IndexHandler(logger lager.Logger, publicFS fs.FS, live bool) http.Handler {
 
 		funcs := template.FuncMap{
 			"asset": assets.asset,
-			"jsonMarshal": func(v interface{}) (template.JS, error) {
+			"jsonMarshal": func(v any) (template.JS, error) {
 				payload, err := json.Marshal(v)
 				if err != nil {
 					return "", err

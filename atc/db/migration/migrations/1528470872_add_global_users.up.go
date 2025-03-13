@@ -91,13 +91,13 @@ func (m *migrations) Up_1528470872() error {
 			return err
 		}
 
-		var authConfig map[string]interface{}
+		var authConfig map[string]any
 		if err = json.Unmarshal(decryptedAuth, &authConfig); err != nil {
 			return err
 		}
 
 		if authConfig == nil {
-			authConfig = map[string]interface{}{}
+			authConfig = map[string]any{}
 		}
 
 		newGroups := []string{}
@@ -106,7 +106,7 @@ func (m *migrations) Up_1528470872() error {
 		for provider, rawConfig := range authConfig {
 
 			for key, set := range mustBeSameAmongstAllTeams[provider] {
-				if parsedConfig, ok := rawConfig.(map[string]interface{}); ok {
+				if parsedConfig, ok := rawConfig.(map[string]any); ok {
 					if value, ok := parsedConfig[key].(string); ok {
 						_, valuePresent := set[value]
 						if valuePresent {
@@ -119,7 +119,7 @@ func (m *migrations) Up_1528470872() error {
 			}
 
 			for key, set := range mustBeUniqueAmongstAllTeams[provider] {
-				if parsedConfig, ok := rawConfig.(map[string]interface{}); ok {
+				if parsedConfig, ok := rawConfig.(map[string]any); ok {
 					if value, parseOk := parsedConfig[key].(string); parseOk {
 						_, valuePresent := set[value]
 						if valuePresent {

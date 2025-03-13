@@ -35,15 +35,15 @@ var _ = Describe("InstanceVarsFlag", func() {
 				flag: `branch:master,list:[1, "2"],other:{foo:bar: 123}`,
 				instanceVars: atc.InstanceVars{
 					"branch": "master",
-					"list":   []interface{}{json.Number("1"), "2"},
-					"other":  map[string]interface{}{"foo:bar": json.Number("123")},
+					"list":   []any{json.Number("1"), "2"},
+					"other":  map[string]any{"foo:bar": json.Number("123")},
 				},
 			},
 			{
 				desc: "quoted yaml brackets/braces with \"",
 				flag: `field1:{a: "{", b: "["},field2:hello`,
 				instanceVars: atc.InstanceVars{
-					"field1": map[string]interface{}{
+					"field1": map[string]any{
 						"a": "{",
 						"b": "[",
 					},
@@ -54,7 +54,7 @@ var _ = Describe("InstanceVarsFlag", func() {
 				desc: "quoted yaml brackets/braces with '",
 				flag: `field1:{a: '{', b: '['},field2:hello`,
 				instanceVars: atc.InstanceVars{
-					"field1": map[string]interface{}{
+					"field1": map[string]any{
 						"a": "{",
 						"b": "[",
 					},
@@ -74,8 +74,8 @@ var _ = Describe("InstanceVarsFlag", func() {
 				desc: "yaml list",
 				flag: `field:[{a: '{', b: '['}, 1]`,
 				instanceVars: atc.InstanceVars{
-					"field": []interface{}{
-						map[string]interface{}{
+					"field": []any{
+						map[string]any{
 							"a": "{",
 							"b": "[",
 						},
@@ -87,7 +87,7 @@ var _ = Describe("InstanceVarsFlag", func() {
 				desc: "indexing by numerical field still uses map",
 				flag: `field.0:0,field.1:1`,
 				instanceVars: atc.InstanceVars{
-					"field": map[string]interface{}{
+					"field": map[string]any{
 						"0": json.Number("0"),
 						"1": json.Number("1"),
 					},
@@ -120,8 +120,8 @@ var _ = Describe("InstanceVarsFlag", func() {
 				desc: "supports dot notation",
 				flag: `"my.field".subkey1."subkey:2":"my-value","my.field".other:'other-value'`,
 				instanceVars: atc.InstanceVars{
-					"my.field": map[string]interface{}{
-						"subkey1": map[string]interface{}{
+					"my.field": map[string]any{
+						"subkey1": map[string]any{
 							"subkey:2": "my-value",
 						},
 						"other": "other-value",

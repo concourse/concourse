@@ -25,7 +25,7 @@ type FakeLockFactory struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -38,7 +38,7 @@ func (fake *FakeLockFactory) Acquire(arg1 lager.Logger, arg2 lock.LockID) (lock.
 	}{arg1, arg2})
 	stub := fake.AcquireStub
 	fakeReturns := fake.acquireReturns
-	fake.recordInvocation("Acquire", []interface{}{arg1, arg2})
+	fake.recordInvocation("Acquire", []any{arg1, arg2})
 	fake.acquireMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -97,26 +97,26 @@ func (fake *FakeLockFactory) AcquireReturnsOnCall(i int, result1 lock.Lock, resu
 	}{result1, result2, result3}
 }
 
-func (fake *FakeLockFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeLockFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.acquireMutex.RLock()
 	defer fake.acquireMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeLockFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeLockFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

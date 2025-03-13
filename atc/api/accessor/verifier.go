@@ -36,7 +36,7 @@ type verifier struct {
 	audience           []string
 }
 
-func (v *verifier) Verify(r *http.Request) (map[string]interface{}, error) {
+func (v *verifier) Verify(r *http.Request) (map[string]any, error) {
 
 	header := r.Header.Get("Authorization")
 	if header == "" {
@@ -51,7 +51,7 @@ func (v *verifier) Verify(r *http.Request) (map[string]interface{}, error) {
 	return v.verify(parts[1])
 }
 
-func (v *verifier) verify(rawToken string) (map[string]interface{}, error) {
+func (v *verifier) verify(rawToken string) (map[string]any, error) {
 	token, found, err := v.accessTokenFetcher.GetAccessToken(rawToken)
 	if err != nil {
 		return nil, err

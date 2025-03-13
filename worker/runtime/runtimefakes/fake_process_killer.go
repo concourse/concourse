@@ -26,7 +26,7 @@ type FakeProcessKiller struct {
 	killReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -41,7 +41,7 @@ func (fake *FakeProcessKiller) Kill(arg1 context.Context, arg2 containerd.Proces
 	}{arg1, arg2, arg3, arg4})
 	stub := fake.KillStub
 	fakeReturns := fake.killReturns
-	fake.recordInvocation("Kill", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("Kill", []any{arg1, arg2, arg3, arg4})
 	fake.killMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4)
@@ -94,26 +94,26 @@ func (fake *FakeProcessKiller) KillReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeProcessKiller) Invocations() map[string][][]interface{} {
+func (fake *FakeProcessKiller) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.killMutex.RLock()
 	defer fake.killMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeProcessKiller) recordInvocation(key string, args []interface{}) {
+func (fake *FakeProcessKiller) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -798,20 +798,20 @@ var _ = Describe("Resources API", func() {
 				resourceType1.IDReturns(1)
 				resourceType1.NameReturns("resource-type-1")
 				resourceType1.TypeReturns("type-1")
-				resourceType1.SourceReturns(map[string]interface{}{"source-key-1": "source-value-1"})
+				resourceType1.SourceReturns(map[string]any{"source-key-1": "source-value-1"})
 				resourceType1.PrivilegedReturns(false)
 				resourceType1.TagsReturns([]string{"tag1"})
-				resourceType1.ParamsReturns(map[string]interface{}{"param-key-1": "param-value-1"})
+				resourceType1.ParamsReturns(map[string]any{"param-key-1": "param-value-1"})
 
 				resourceType2 := new(dbfakes.FakeResourceType)
 				resourceType2.IDReturns(2)
 				resourceType2.NameReturns("resource-type-2")
 				resourceType2.TypeReturns("type-2")
-				resourceType2.SourceReturns(map[string]interface{}{"source-key-2": "source-value-2"})
+				resourceType2.SourceReturns(map[string]any{"source-key-2": "source-value-2"})
 				resourceType2.PrivilegedReturns(true)
 				resourceType2.CheckEveryReturns(&atc.CheckEvery{Interval: 10 * time.Millisecond})
 				resourceType2.TagsReturns([]string{"tag1", "tag2"})
-				resourceType2.ParamsReturns(map[string]interface{}{"param-key-2": "param-value-2"})
+				resourceType2.ParamsReturns(map[string]any{"param-key-2": "param-value-2"})
 
 				fakePipeline.ResourceTypesReturns(db.ResourceTypes{
 					resourceType1, resourceType2,

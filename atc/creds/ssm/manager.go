@@ -34,7 +34,7 @@ func (manager *SsmManager) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	return json.Marshal(&map[string]interface{}{
+	return json.Marshal(&map[string]any{
 		"aws_region":               manager.AwsRegion,
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,

@@ -21,7 +21,7 @@ type FakeConcurrentRequestPolicy struct {
 		result1 wrappa.Pool
 		result2 bool
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -33,7 +33,7 @@ func (fake *FakeConcurrentRequestPolicy) HandlerPool(arg1 string) (wrappa.Pool, 
 	}{arg1})
 	stub := fake.HandlerPoolStub
 	fakeReturns := fake.handlerPoolReturns
-	fake.recordInvocation("HandlerPool", []interface{}{arg1})
+	fake.recordInvocation("HandlerPool", []any{arg1})
 	fake.handlerPoolMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -89,26 +89,26 @@ func (fake *FakeConcurrentRequestPolicy) HandlerPoolReturnsOnCall(i int, result1
 	}{result1, result2}
 }
 
-func (fake *FakeConcurrentRequestPolicy) Invocations() map[string][][]interface{} {
+func (fake *FakeConcurrentRequestPolicy) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.handlerPoolMutex.RLock()
 	defer fake.handlerPoolMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeConcurrentRequestPolicy) recordInvocation(key string, args []interface{}) {
+func (fake *FakeConcurrentRequestPolicy) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

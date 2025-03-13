@@ -465,7 +465,7 @@ func savePipeline(
 
 	var pipelineID int
 	if !existingConfig {
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name":            pipelineRef.Name,
 			"groups":          groupsPayload,
 			"var_sources":     encryptedVarSourcesPayload,
@@ -842,7 +842,7 @@ func (t *team) CreateOneOffBuild() (Build, error) {
 	defer Rollback(tx)
 
 	build := newEmptyBuild(t.conn, t.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(tx, build, map[string]any{
 		"name":    sq.Expr("nextval('one_off_name')"),
 		"team_id": t.id,
 		"status":  BuildStatusPending,
@@ -878,7 +878,7 @@ func (t *team) CreateStartedBuild(plan atc.Plan) (Build, error) {
 	}
 
 	build := newEmptyBuild(t.conn, t.lockFactory)
-	err = createBuild(tx, build, map[string]interface{}{
+	err = createBuild(tx, build, map[string]any{
 		"name":         sq.Expr("nextval('one_off_name')"),
 		"team_id":      t.id,
 		"status":       BuildStatusStarted,
@@ -1288,7 +1288,7 @@ func savePrototype(tx Tx, prototype atc.Prototype, pipelineID int) error {
 	return err
 }
 
-func checkIfRowsUpdated(tx Tx, query string, params ...interface{}) (bool, error) {
+func checkIfRowsUpdated(tx Tx, query string, params ...any) (bool, error) {
 	result, err := tx.Exec(query, params...)
 	if err != nil {
 		return false, err
@@ -1453,7 +1453,7 @@ func scanContainers(rows *sql.Rows, conn DbConn, initContainers []Container) ([]
 	return containers, nil
 }
 
-func (t *team) queryTeam(tx Tx, query string, params ...interface{}) error {
+func (t *team) queryTeam(tx Tx, query string, params ...any) error {
 	var providerAuth, nonce sql.NullString
 
 	err := tx.QueryRow(query, params...).Scan(
@@ -1538,7 +1538,7 @@ func saveResources(tx Tx, resources atc.ResourceConfigs, pipelineID int) (map[st
 		if err != nil {
 			return nil, err
 		}
-		values := []interface{}{resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type}
+		values := []any{resource.Name, pipelineID, encryptedPayload, true, nonce, resource.Type}
 
 		existing, exists := existingResources[resource.Name]
 
@@ -1597,8 +1597,8 @@ type existingResource struct {
 	Type                  string
 	ConfigBlob            string
 	Nonce                 *string
-	ResourceConfigID      interface{}
-	ResourceConfigScopeID interface{}
+	ResourceConfigID      any
+	ResourceConfigScopeID any
 }
 
 func existingResources(tx Tx, pipelineID int) (map[string]existingResource, error) {

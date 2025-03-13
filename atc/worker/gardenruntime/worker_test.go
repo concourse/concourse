@@ -1544,7 +1544,7 @@ var _ = Describe("Garden Worker", func() {
 	})
 })
 
-type expectMap map[string]interface{}
+type expectMap map[string]any
 
 func consistOfMap(expect expectMap) types.GomegaMatcher {
 	matchers := []types.GomegaMatcher{HaveLen(len(expect))}

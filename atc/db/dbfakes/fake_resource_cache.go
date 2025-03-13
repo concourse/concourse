@@ -62,7 +62,7 @@ type FakeResourceCache struct {
 	versionReturnsOnCall map[int]struct {
 		result1 atc.Version
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -73,7 +73,7 @@ func (fake *FakeResourceCache) BaseResourceType() *db.UsedBaseResourceType {
 	}{})
 	stub := fake.BaseResourceTypeStub
 	fakeReturns := fake.baseResourceTypeReturns
-	fake.recordInvocation("BaseResourceType", []interface{}{})
+	fake.recordInvocation("BaseResourceType", []any{})
 	fake.baseResourceTypeMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -127,7 +127,7 @@ func (fake *FakeResourceCache) Destroy(arg1 db.Tx) (bool, error) {
 	}{arg1})
 	stub := fake.DestroyStub
 	fakeReturns := fake.destroyReturns
-	fake.recordInvocation("Destroy", []interface{}{arg1})
+	fake.recordInvocation("Destroy", []any{arg1})
 	fake.destroyMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -190,7 +190,7 @@ func (fake *FakeResourceCache) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -243,7 +243,7 @@ func (fake *FakeResourceCache) ResourceConfig() db.ResourceConfig {
 	}{})
 	stub := fake.ResourceConfigStub
 	fakeReturns := fake.resourceConfigReturns
-	fake.recordInvocation("ResourceConfig", []interface{}{})
+	fake.recordInvocation("ResourceConfig", []any{})
 	fake.resourceConfigMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -296,7 +296,7 @@ func (fake *FakeResourceCache) Version() atc.Version {
 	}{})
 	stub := fake.VersionStub
 	fakeReturns := fake.versionReturns
-	fake.recordInvocation("Version", []interface{}{})
+	fake.recordInvocation("Version", []any{})
 	fake.versionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -342,7 +342,7 @@ func (fake *FakeResourceCache) VersionReturnsOnCall(i int, result1 atc.Version) 
 	}{result1}
 }
 
-func (fake *FakeResourceCache) Invocations() map[string][][]interface{} {
+func (fake *FakeResourceCache) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.baseResourceTypeMutex.RLock()
@@ -355,21 +355,21 @@ func (fake *FakeResourceCache) Invocations() map[string][][]interface{} {
 	defer fake.resourceConfigMutex.RUnlock()
 	fake.versionMutex.RLock()
 	defer fake.versionMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeResourceCache) recordInvocation(key string, args []interface{}) {
+func (fake *FakeResourceCache) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -70,7 +70,7 @@ type FakeFailedContainer struct {
 	workerNameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -81,7 +81,7 @@ func (fake *FakeFailedContainer) Destroy() (bool, error) {
 	}{})
 	stub := fake.DestroyStub
 	fakeReturns := fake.destroyReturns
-	fake.recordInvocation("Destroy", []interface{}{})
+	fake.recordInvocation("Destroy", []any{})
 	fake.destroyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -137,7 +137,7 @@ func (fake *FakeFailedContainer) Handle() string {
 	}{})
 	stub := fake.HandleStub
 	fakeReturns := fake.handleReturns
-	fake.recordInvocation("Handle", []interface{}{})
+	fake.recordInvocation("Handle", []any{})
 	fake.handleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -190,7 +190,7 @@ func (fake *FakeFailedContainer) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -243,7 +243,7 @@ func (fake *FakeFailedContainer) Metadata() db.ContainerMetadata {
 	}{})
 	stub := fake.MetadataStub
 	fakeReturns := fake.metadataReturns
-	fake.recordInvocation("Metadata", []interface{}{})
+	fake.recordInvocation("Metadata", []any{})
 	fake.metadataMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -296,7 +296,7 @@ func (fake *FakeFailedContainer) State() string {
 	}{})
 	stub := fake.StateStub
 	fakeReturns := fake.stateReturns
-	fake.recordInvocation("State", []interface{}{})
+	fake.recordInvocation("State", []any{})
 	fake.stateMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -349,7 +349,7 @@ func (fake *FakeFailedContainer) WorkerName() string {
 	}{})
 	stub := fake.WorkerNameStub
 	fakeReturns := fake.workerNameReturns
-	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.recordInvocation("WorkerName", []any{})
 	fake.workerNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -395,7 +395,7 @@ func (fake *FakeFailedContainer) WorkerNameReturnsOnCall(i int, result1 string) 
 	}{result1}
 }
 
-func (fake *FakeFailedContainer) Invocations() map[string][][]interface{} {
+func (fake *FakeFailedContainer) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyMutex.RLock()
@@ -410,21 +410,21 @@ func (fake *FakeFailedContainer) Invocations() map[string][][]interface{} {
 	defer fake.stateMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeFailedContainer) recordInvocation(key string, args []interface{}) {
+func (fake *FakeFailedContainer) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -58,7 +58,7 @@ var _ = Describe("status Command", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/api/v1/user"),
-						ghttp.RespondWithJSONEncoded(200, map[string]interface{}{"team": "test"}),
+						ghttp.RespondWithJSONEncoded(200, map[string]any{"team": "test"}),
 					),
 				)
 			})

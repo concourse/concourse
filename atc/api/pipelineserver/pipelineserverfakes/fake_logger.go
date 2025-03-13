@@ -84,7 +84,7 @@ type FakeLogger struct {
 	withTraceInfoReturnsOnCall map[int]struct {
 		result1 lager.Logger
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -95,7 +95,7 @@ func (fake *FakeLogger) Debug(arg1 string, arg2 ...lager.Data) {
 		arg2 []lager.Data
 	}{arg1, arg2})
 	stub := fake.DebugStub
-	fake.recordInvocation("Debug", []interface{}{arg1, arg2})
+	fake.recordInvocation("Debug", []any{arg1, arg2})
 	fake.debugMutex.Unlock()
 	if stub != nil {
 		fake.DebugStub(arg1, arg2...)
@@ -129,7 +129,7 @@ func (fake *FakeLogger) Error(arg1 string, arg2 error, arg3 ...lager.Data) {
 		arg3 []lager.Data
 	}{arg1, arg2, arg3})
 	stub := fake.ErrorStub
-	fake.recordInvocation("Error", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("Error", []any{arg1, arg2, arg3})
 	fake.errorMutex.Unlock()
 	if stub != nil {
 		fake.ErrorStub(arg1, arg2, arg3...)
@@ -163,7 +163,7 @@ func (fake *FakeLogger) Fatal(arg1 string, arg2 error, arg3 ...lager.Data) {
 		arg3 []lager.Data
 	}{arg1, arg2, arg3})
 	stub := fake.FatalStub
-	fake.recordInvocation("Fatal", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("Fatal", []any{arg1, arg2, arg3})
 	fake.fatalMutex.Unlock()
 	if stub != nil {
 		fake.FatalStub(arg1, arg2, arg3...)
@@ -196,7 +196,7 @@ func (fake *FakeLogger) Info(arg1 string, arg2 ...lager.Data) {
 		arg2 []lager.Data
 	}{arg1, arg2})
 	stub := fake.InfoStub
-	fake.recordInvocation("Info", []interface{}{arg1, arg2})
+	fake.recordInvocation("Info", []any{arg1, arg2})
 	fake.infoMutex.Unlock()
 	if stub != nil {
 		fake.InfoStub(arg1, arg2...)
@@ -228,7 +228,7 @@ func (fake *FakeLogger) RegisterSink(arg1 lager.Sink) {
 		arg1 lager.Sink
 	}{arg1})
 	stub := fake.RegisterSinkStub
-	fake.recordInvocation("RegisterSink", []interface{}{arg1})
+	fake.recordInvocation("RegisterSink", []any{arg1})
 	fake.registerSinkMutex.Unlock()
 	if stub != nil {
 		fake.RegisterSinkStub(arg1)
@@ -263,7 +263,7 @@ func (fake *FakeLogger) Session(arg1 string, arg2 ...lager.Data) lager.Logger {
 	}{arg1, arg2})
 	stub := fake.SessionStub
 	fakeReturns := fake.sessionReturns
-	fake.recordInvocation("Session", []interface{}{arg1, arg2})
+	fake.recordInvocation("Session", []any{arg1, arg2})
 	fake.sessionMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2...)
@@ -323,7 +323,7 @@ func (fake *FakeLogger) SessionName() string {
 	}{})
 	stub := fake.SessionNameStub
 	fakeReturns := fake.sessionNameReturns
-	fake.recordInvocation("SessionName", []interface{}{})
+	fake.recordInvocation("SessionName", []any{})
 	fake.sessionNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -377,7 +377,7 @@ func (fake *FakeLogger) WithData(arg1 lager.Data) lager.Logger {
 	}{arg1})
 	stub := fake.WithDataStub
 	fakeReturns := fake.withDataReturns
-	fake.recordInvocation("WithData", []interface{}{arg1})
+	fake.recordInvocation("WithData", []any{arg1})
 	fake.withDataMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -438,7 +438,7 @@ func (fake *FakeLogger) WithTraceInfo(arg1 *http.Request) lager.Logger {
 	}{arg1})
 	stub := fake.WithTraceInfoStub
 	fakeReturns := fake.withTraceInfoReturns
-	fake.recordInvocation("WithTraceInfo", []interface{}{arg1})
+	fake.recordInvocation("WithTraceInfo", []any{arg1})
 	fake.withTraceInfoMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -491,7 +491,7 @@ func (fake *FakeLogger) WithTraceInfoReturnsOnCall(i int, result1 lager.Logger) 
 	}{result1}
 }
 
-func (fake *FakeLogger) Invocations() map[string][][]interface{} {
+func (fake *FakeLogger) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.debugMutex.RLock()
@@ -512,21 +512,21 @@ func (fake *FakeLogger) Invocations() map[string][][]interface{} {
 	defer fake.withDataMutex.RUnlock()
 	fake.withTraceInfoMutex.RLock()
 	defer fake.withTraceInfoMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeLogger) recordInvocation(key string, args []interface{}) {
+func (fake *FakeLogger) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

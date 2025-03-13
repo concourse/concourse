@@ -80,7 +80,7 @@ func (ipf *isPrivilegedFile) IsPrivileged() (bool, error) {
 	return isPrivileged, nil
 }
 
-func readMetadataFile(path string, properties interface{}) error {
+func readMetadataFile(path string, properties any) error {
 	file, err := os.Open(path)
 	if err != nil {
 		if _, ok := err.(*os.PathError); ok {
@@ -98,7 +98,7 @@ func readMetadataFile(path string, properties interface{}) error {
 	return nil
 }
 
-func writeMetadataFile(path string, properties interface{}) error {
+func writeMetadataFile(path string, properties any) error {
 	file, err := os.OpenFile(
 		path,
 		os.O_WRONLY|os.O_CREATE,

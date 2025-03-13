@@ -28,7 +28,7 @@ type FakeTranslator struct {
 	translatePathReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -38,7 +38,7 @@ func (fake *FakeTranslator) TranslateCommand(arg1 *exec.Cmd) {
 		arg1 *exec.Cmd
 	}{arg1})
 	stub := fake.TranslateCommandStub
-	fake.recordInvocation("TranslateCommand", []interface{}{arg1})
+	fake.recordInvocation("TranslateCommand", []any{arg1})
 	fake.translateCommandMutex.Unlock()
 	if stub != nil {
 		fake.TranslateCommandStub(arg1)
@@ -74,7 +74,7 @@ func (fake *FakeTranslator) TranslatePath(arg1 string, arg2 os.DirEntry, arg3 er
 	}{arg1, arg2, arg3})
 	stub := fake.TranslatePathStub
 	fakeReturns := fake.translatePathReturns
-	fake.recordInvocation("TranslatePath", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("TranslatePath", []any{arg1, arg2, arg3})
 	fake.translatePathMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -127,28 +127,28 @@ func (fake *FakeTranslator) TranslatePathReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeTranslator) Invocations() map[string][][]interface{} {
+func (fake *FakeTranslator) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.translateCommandMutex.RLock()
 	defer fake.translateCommandMutex.RUnlock()
 	fake.translatePathMutex.RLock()
 	defer fake.translatePathMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTranslator) recordInvocation(key string, args []interface{}) {
+func (fake *FakeTranslator) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

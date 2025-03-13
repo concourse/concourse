@@ -562,7 +562,7 @@ func (c *connection) BulkMetrics(handles []string) (map[string]garden.ContainerM
 
 func (c *connection) do(
 	handler string,
-	req, res interface{},
+	req, res any,
 	params rata.Params,
 	query url.Values,
 ) error {

@@ -67,7 +67,7 @@ type FakeResourceCacheFactory struct {
 	updateResourceCacheMetadataReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -84,7 +84,7 @@ func (fake *FakeResourceCacheFactory) FindOrCreateResourceCache(arg1 db.Resource
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
 	stub := fake.FindOrCreateResourceCacheStub
 	fakeReturns := fake.findOrCreateResourceCacheReturns
-	fake.recordInvocation("FindOrCreateResourceCache", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("FindOrCreateResourceCache", []any{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.findOrCreateResourceCacheMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
@@ -148,7 +148,7 @@ func (fake *FakeResourceCacheFactory) FindResourceCacheByID(arg1 int) (db.Resour
 	}{arg1})
 	stub := fake.FindResourceCacheByIDStub
 	fakeReturns := fake.findResourceCacheByIDReturns
-	fake.recordInvocation("FindResourceCacheByID", []interface{}{arg1})
+	fake.recordInvocation("FindResourceCacheByID", []any{arg1})
 	fake.findResourceCacheByIDMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -215,7 +215,7 @@ func (fake *FakeResourceCacheFactory) ResourceCacheMetadata(arg1 db.ResourceCach
 	}{arg1})
 	stub := fake.ResourceCacheMetadataStub
 	fakeReturns := fake.resourceCacheMetadataReturns
-	fake.recordInvocation("ResourceCacheMetadata", []interface{}{arg1})
+	fake.recordInvocation("ResourceCacheMetadata", []any{arg1})
 	fake.resourceCacheMetadataMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -285,7 +285,7 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 db.Resour
 	}{arg1, arg2Copy})
 	stub := fake.UpdateResourceCacheMetadataStub
 	fakeReturns := fake.updateResourceCacheMetadataReturns
-	fake.recordInvocation("UpdateResourceCacheMetadata", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("UpdateResourceCacheMetadata", []any{arg1, arg2Copy})
 	fake.updateResourceCacheMetadataMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -338,7 +338,7 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataReturnsOnCall(i
 	}{result1}
 }
 
-func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeResourceCacheFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.findOrCreateResourceCacheMutex.RLock()
@@ -349,21 +349,21 @@ func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	defer fake.resourceCacheMetadataMutex.RUnlock()
 	fake.updateResourceCacheMetadataMutex.RLock()
 	defer fake.updateResourceCacheMetadataMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeResourceCacheFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeResourceCacheFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

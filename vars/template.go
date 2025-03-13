@@ -29,7 +29,7 @@ func (t Template) ExtraVarNames() []string {
 }
 
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
-	var obj interface{}
+	var obj any
 
 	// Note: if we do end up changing from "gopkg.in/yaml.v2" to
 	// "sigs.k8s.io/yaml" here, we'll want to ensure we call
@@ -53,7 +53,7 @@ func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	return bytes, nil
 }
 
-func (t Template) interpolateRoot(obj interface{}, tracker varsTracker) (interface{}, error) {
+func (t Template) interpolateRoot(obj any, tracker varsTracker) (any, error) {
 	var err error
 	obj, err = interpolator{}.Interpolate(obj, tracker)
 	if err != nil {
@@ -70,9 +70,9 @@ var (
 	interpolationAnchoredRegex = regexp.MustCompile("\\A" + interpolationRegex.String() + "\\z")
 )
 
-func (i interpolator) Interpolate(node interface{}, tracker varsTracker) (interface{}, error) {
+func (i interpolator) Interpolate(node any, tracker varsTracker) (any, error) {
 	switch typedNode := node.(type) {
-	case map[interface{}]interface{}:
+	case map[any]any:
 		for k, v := range typedNode {
 			evaluatedValue, err := i.Interpolate(v, tracker)
 			if err != nil {
@@ -88,7 +88,7 @@ func (i interpolator) Interpolate(node interface{}, tracker varsTracker) (interf
 			typedNode[evaluatedKey] = evaluatedValue
 		}
 
-	case []interface{}:
+	case []any:
 		for idx, x := range typedNode {
 			var err error
 			typedNode[idx], err = i.Interpolate(x, tracker)
@@ -164,7 +164,7 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 // Get value of a var. Name can be the following formats: 1) 'foo', where foo
 // is var name; 2) 'foo:bar', where foo is var source name, and bar is var name;
 // 3) '.:foo', where . means a local var, foo is var name.
-func (t varsTracker) Get(varName string) (interface{}, bool, error) {
+func (t varsTracker) Get(varName string) (any, bool, error) {
 	varRef, err := ParseReference(varName)
 	if err != nil {
 		return nil, false, err

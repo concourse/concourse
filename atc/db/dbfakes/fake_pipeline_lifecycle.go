@@ -28,7 +28,7 @@ type FakePipelineLifecycle struct {
 	removeBuildEventsForDeletedPipelinesReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -39,7 +39,7 @@ func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelines() error {
 	}{})
 	stub := fake.ArchiveAbandonedPipelinesStub
 	fakeReturns := fake.archiveAbandonedPipelinesReturns
-	fake.recordInvocation("ArchiveAbandonedPipelines", []interface{}{})
+	fake.recordInvocation("ArchiveAbandonedPipelines", []any{})
 	fake.archiveAbandonedPipelinesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -92,7 +92,7 @@ func (fake *FakePipelineLifecycle) RemoveBuildEventsForDeletedPipelines() error 
 	}{})
 	stub := fake.RemoveBuildEventsForDeletedPipelinesStub
 	fakeReturns := fake.removeBuildEventsForDeletedPipelinesReturns
-	fake.recordInvocation("RemoveBuildEventsForDeletedPipelines", []interface{}{})
+	fake.recordInvocation("RemoveBuildEventsForDeletedPipelines", []any{})
 	fake.removeBuildEventsForDeletedPipelinesMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -138,28 +138,28 @@ func (fake *FakePipelineLifecycle) RemoveBuildEventsForDeletedPipelinesReturnsOn
 	}{result1}
 }
 
-func (fake *FakePipelineLifecycle) Invocations() map[string][][]interface{} {
+func (fake *FakePipelineLifecycle) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.archiveAbandonedPipelinesMutex.RLock()
 	defer fake.archiveAbandonedPipelinesMutex.RUnlock()
 	fake.removeBuildEventsForDeletedPipelinesMutex.RLock()
 	defer fake.removeBuildEventsForDeletedPipelinesMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakePipelineLifecycle) recordInvocation(key string, args []interface{}) {
+func (fake *FakePipelineLifecycle) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

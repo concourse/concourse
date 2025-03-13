@@ -168,7 +168,7 @@ func (p *prototype) SetResourceConfigScope(scope ResourceConfigScope) error {
 	return setResourceConfigScopeForPrototype(p.conn, scope, sq.Eq{"id": p.id})
 }
 
-func setResourceConfigScopeForPrototype(conn sq.Runner, scope ResourceConfigScope, pred interface{}, args ...interface{}) error {
+func setResourceConfigScopeForPrototype(conn sq.Runner, scope ResourceConfigScope, pred any, args ...any) error {
 	_, err := psql.Update("prototypes").
 		Set("resource_config_id", scope.ResourceConfig().ID()).
 		Where(pred, args...).

@@ -13,7 +13,7 @@ var _ = Describe("Noop", func() {
 	var noop Noop
 
 	Describe("Get", func() {
-		var val interface{}
+		var val any
 		var expiration *time.Time
 		var found bool
 		var getErr error

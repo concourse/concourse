@@ -211,7 +211,7 @@ func (runner *Runner) dataSourceName(dbName string) string {
 	return fmt.Sprintf("host=/tmp user=postgres dbname=%s sslmode=disable port=%d", dbName, runner.Port)
 }
 
-func (runner *Runner) psqlf(c string, args ...interface{}) int {
+func (runner *Runner) psqlf(c string, args ...any) int {
 	return runner.psql(fmt.Sprintf(c, args...))
 }
 

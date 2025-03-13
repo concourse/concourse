@@ -145,7 +145,7 @@ var _ = Describe("Container", func() {
 
 				for rows.Next() {
 					var handle = "handle"
-					columns := []interface{}{&handle}
+					columns := []any{&handle}
 
 					err = rows.Scan(columns...)
 					Expect(err).NotTo(HaveOccurred())

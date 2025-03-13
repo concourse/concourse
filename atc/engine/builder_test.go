@@ -572,7 +572,7 @@ var _ = Describe("Builder", func() {
 								Name:     "some-pipeline",
 								File:     "some-input/pipeline.yml",
 								VarFiles: []string{"foo", "bar"},
-								Vars:     map[string]interface{}{"baz": "qux"},
+								Vars:     map[string]any{"baz": "qux"},
 							})
 						})
 

@@ -20,7 +20,7 @@ type FakeRateLimiter struct {
 	waitReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -32,7 +32,7 @@ func (fake *FakeRateLimiter) Wait(arg1 context.Context) error {
 	}{arg1})
 	stub := fake.WaitStub
 	fakeReturns := fake.waitReturns
-	fake.recordInvocation("Wait", []interface{}{arg1})
+	fake.recordInvocation("Wait", []any{arg1})
 	fake.waitMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -85,26 +85,26 @@ func (fake *FakeRateLimiter) WaitReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRateLimiter) Invocations() map[string][][]interface{} {
+func (fake *FakeRateLimiter) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.waitMutex.RLock()
 	defer fake.waitMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeRateLimiter) recordInvocation(key string, args []interface{}) {
+func (fake *FakeRateLimiter) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

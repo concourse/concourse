@@ -117,7 +117,7 @@ const V5VersionLatest = "latest"
 const V5VersionEvery = "every"
 
 func (c *V5VersionConfig) UnmarshalJSON(version []byte) error {
-	var data interface{}
+	var data any
 
 	err := json.Unmarshal(version, &data)
 	if err != nil {
@@ -128,7 +128,7 @@ func (c *V5VersionConfig) UnmarshalJSON(version []byte) error {
 	case string:
 		c.Every = actual == "every"
 		c.Latest = actual == "latest"
-	case map[string]interface{}:
+	case map[string]any:
 		version := Version{}
 
 		for k, v := range actual {

@@ -27,16 +27,16 @@ type Config struct {
 	Display       *DisplayConfig   `json:"display,omitempty"`
 }
 
-func UnmarshalConfig(payload []byte, config interface{}) error {
+func UnmarshalConfig(payload []byte, config any) error {
 	// a 'skeleton' of Config, specifying only the toplevel fields
 	type skeletonConfig struct {
-		Groups        interface{} `json:"groups,omitempty"`
-		VarSources    interface{} `json:"var_sources,omitempty"`
-		Resources     interface{} `json:"resources,omitempty"`
-		ResourceTypes interface{} `json:"resource_types,omitempty"`
-		Prototypes    interface{} `json:"prototypes,omitempty"`
-		Jobs          interface{} `json:"jobs,omitempty"`
-		Display       interface{} `json:"display,omitempty"`
+		Groups        any `json:"groups,omitempty"`
+		VarSources    any `json:"var_sources,omitempty"`
+		Resources     any `json:"resources,omitempty"`
+		ResourceTypes any `json:"resource_types,omitempty"`
+		Prototypes    any `json:"prototypes,omitempty"`
+		Jobs          any `json:"jobs,omitempty"`
+		Display       any `json:"display,omitempty"`
 	}
 
 	var stripped skeletonConfig
@@ -75,9 +75,9 @@ func (groups GroupConfigs) Lookup(name string) (GroupConfig, int, bool) {
 }
 
 type VarSourceConfig struct {
-	Name   string      `json:"name"`
-	Type   string      `json:"type"`
-	Config interface{} `json:"config"`
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Config any    `json:"config"`
 }
 
 type VarSourceConfigs []VarSourceConfig
@@ -100,7 +100,7 @@ type pendingVarSource struct {
 func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 	ordered := VarSourceConfigs{}
 	pending := []pendingVarSource{}
-	added := map[string]interface{}{}
+	added := map[string]any{}
 
 	for _, vs := range c {
 		b, err := yaml.Marshal(vs.Config)
@@ -222,7 +222,7 @@ type CheckEvery struct {
 }
 
 func (c *CheckEvery) UnmarshalJSON(checkEvery []byte) error {
-	var data interface{}
+	var data any
 
 	err := json.Unmarshal(checkEvery, &data)
 	if err != nil {

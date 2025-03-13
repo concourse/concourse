@@ -22,7 +22,7 @@ type FakeParser struct {
 		result1 time.Time
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -34,7 +34,7 @@ func (fake *FakeParser) ParseExpiry(arg1 string) (time.Time, error) {
 	}{arg1})
 	stub := fake.ParseExpiryStub
 	fakeReturns := fake.parseExpiryReturns
-	fake.recordInvocation("ParseExpiry", []interface{}{arg1})
+	fake.recordInvocation("ParseExpiry", []any{arg1})
 	fake.parseExpiryMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -90,26 +90,26 @@ func (fake *FakeParser) ParseExpiryReturnsOnCall(i int, result1 time.Time, resul
 	}{result1, result2}
 }
 
-func (fake *FakeParser) Invocations() map[string][][]interface{} {
+func (fake *FakeParser) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.parseExpiryMutex.RLock()
 	defer fake.parseExpiryMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeParser) recordInvocation(key string, args []interface{}) {
+func (fake *FakeParser) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -21,7 +21,7 @@ var _ = Context("pool", func() {
 		factory              creds.ManagerFactory
 		credentialManagement creds.CredentialManagementConfig
 		varSourcePool        creds.VarSourcePool
-		config1, config2     map[string]interface{}
+		config1, config2     map[string]any
 		fakeClock            *fakeclock.FakeClock
 	)
 
@@ -29,12 +29,12 @@ var _ = Context("pool", func() {
 		logger = lagertest.NewTestLogger("pool-test")
 		factory = creds.ManagerFactories()["dummy"]
 
-		config1 = map[string]interface{}{
-			"vars": map[string]interface{}{"k1": "v1"},
+		config1 = map[string]any{
+			"vars": map[string]any{"k1": "v1"},
 		}
 
-		config2 = map[string]interface{}{
-			"vars": map[string]interface{}{"k2": "v2"},
+		config2 = map[string]any{
+			"vars": map[string]any{"k2": "v2"},
 		}
 
 		fakeClock = fakeclock.NewFakeClock(time.Now())

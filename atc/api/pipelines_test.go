@@ -166,7 +166,7 @@ var _ = Describe("Pipelines API", func() {
 				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
 
-				var pipelines []map[string]interface{}
+				var pipelines []map[string]any
 				err = json.Unmarshal(body, &pipelines)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelines).To(ConsistOf(
@@ -193,7 +193,7 @@ var _ = Describe("Pipelines API", func() {
 
 				Expect(dbPipelineFactory.VisiblePipelinesCallCount()).To(Equal(1))
 
-				var pipelines []map[string]interface{}
+				var pipelines []map[string]any
 				err = json.Unmarshal(body, &pipelines)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(pipelines).To(ConsistOf(
@@ -317,7 +317,7 @@ var _ = Describe("Pipelines API", func() {
 			It("returns all team's pipelines", func() {
 				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-				var pipelines []map[string]interface{}
+				var pipelines []map[string]any
 				json.Unmarshal(body, &pipelines)
 
 				Expect(pipelines).To(ConsistOf(
@@ -346,7 +346,7 @@ var _ = Describe("Pipelines API", func() {
 			It("returns only team's public pipelines", func() {
 				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-				var pipelines []map[string]interface{}
+				var pipelines []map[string]any
 				json.Unmarshal(body, &pipelines)
 
 				Expect(pipelines).To(ConsistOf(
@@ -364,7 +364,7 @@ var _ = Describe("Pipelines API", func() {
 			It("returns only team's public pipelines", func() {
 				body, err := io.ReadAll(response.Body)
 				Expect(err).NotTo(HaveOccurred())
-				var pipelines []map[string]interface{}
+				var pipelines []map[string]any
 				json.Unmarshal(body, &pipelines)
 
 				Expect(pipelines).To(ConsistOf(

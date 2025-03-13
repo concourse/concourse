@@ -114,7 +114,7 @@ func (step *LoadVarStep) fetchVars(
 	logger lager.Logger,
 	file string,
 	state RunState,
-) (interface{}, error) {
+) (any, error) {
 
 	segs := strings.SplitN(file, "/", 2)
 	if len(segs) != 2 {
@@ -154,7 +154,7 @@ func (step *LoadVarStep) fetchVars(
 		return nil, err
 	}
 
-	var value interface{}
+	var value any
 	switch format {
 	case "json":
 		decoder := json.NewDecoder(bytes.NewReader(fileContent))

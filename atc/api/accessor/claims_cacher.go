@@ -31,7 +31,7 @@ func NewClaimsCacher(
 		maxCacheSizeBytes:  maxCacheSizeBytes,
 		cache:              lru.New(0),
 	}
-	c.cache.OnEvicted = func(_ lru.Key, value interface{}) {
+	c.cache.OnEvicted = func(_ lru.Key, value any) {
 		entry, _ := value.(claimsCacheEntry)
 		c.cacheSizeBytes -= entry.size
 	}

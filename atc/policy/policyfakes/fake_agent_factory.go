@@ -42,7 +42,7 @@ type FakeAgentFactory struct {
 		result1 policy.Agent
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -53,7 +53,7 @@ func (fake *FakeAgentFactory) Description() string {
 	}{})
 	stub := fake.DescriptionStub
 	fakeReturns := fake.descriptionReturns
-	fake.recordInvocation("Description", []interface{}{})
+	fake.recordInvocation("Description", []any{})
 	fake.descriptionMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -106,7 +106,7 @@ func (fake *FakeAgentFactory) IsConfigured() bool {
 	}{})
 	stub := fake.IsConfiguredStub
 	fakeReturns := fake.isConfiguredReturns
-	fake.recordInvocation("IsConfigured", []interface{}{})
+	fake.recordInvocation("IsConfigured", []any{})
 	fake.isConfiguredMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -160,7 +160,7 @@ func (fake *FakeAgentFactory) NewAgent(arg1 lager.Logger) (policy.Agent, error) 
 	}{arg1})
 	stub := fake.NewAgentStub
 	fakeReturns := fake.newAgentReturns
-	fake.recordInvocation("NewAgent", []interface{}{arg1})
+	fake.recordInvocation("NewAgent", []any{arg1})
 	fake.newAgentMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -216,7 +216,7 @@ func (fake *FakeAgentFactory) NewAgentReturnsOnCall(i int, result1 policy.Agent,
 	}{result1, result2}
 }
 
-func (fake *FakeAgentFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeAgentFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.descriptionMutex.RLock()
@@ -225,21 +225,21 @@ func (fake *FakeAgentFactory) Invocations() map[string][][]interface{} {
 	defer fake.isConfiguredMutex.RUnlock()
 	fake.newAgentMutex.RLock()
 	defer fake.newAgentMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeAgentFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeAgentFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

@@ -19,7 +19,7 @@ type FakeCheckDelegateFactory struct {
 	checkDelegateReturnsOnCall map[int]struct {
 		result1 exec.CheckDelegate
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -31,7 +31,7 @@ func (fake *FakeCheckDelegateFactory) CheckDelegate(arg1 exec.RunState) exec.Che
 	}{arg1})
 	stub := fake.CheckDelegateStub
 	fakeReturns := fake.checkDelegateReturns
-	fake.recordInvocation("CheckDelegate", []interface{}{arg1})
+	fake.recordInvocation("CheckDelegate", []any{arg1})
 	fake.checkDelegateMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -84,26 +84,26 @@ func (fake *FakeCheckDelegateFactory) CheckDelegateReturnsOnCall(i int, result1 
 	}{result1}
 }
 
-func (fake *FakeCheckDelegateFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeCheckDelegateFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.checkDelegateMutex.RLock()
 	defer fake.checkDelegateMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCheckDelegateFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeCheckDelegateFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

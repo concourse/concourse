@@ -51,7 +51,7 @@ type FakeResourceConfigFactory struct {
 		result2 bool
 		result3 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -63,7 +63,7 @@ func (fake *FakeResourceConfigFactory) CleanUnreferencedConfigs(arg1 time.Durati
 	}{arg1})
 	stub := fake.CleanUnreferencedConfigsStub
 	fakeReturns := fake.cleanUnreferencedConfigsReturns
-	fake.recordInvocation("CleanUnreferencedConfigs", []interface{}{arg1})
+	fake.recordInvocation("CleanUnreferencedConfigs", []any{arg1})
 	fake.cleanUnreferencedConfigsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -126,7 +126,7 @@ func (fake *FakeResourceConfigFactory) FindOrCreateResourceConfig(arg1 string, a
 	}{arg1, arg2, arg3})
 	stub := fake.FindOrCreateResourceConfigStub
 	fakeReturns := fake.findOrCreateResourceConfigReturns
-	fake.recordInvocation("FindOrCreateResourceConfig", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("FindOrCreateResourceConfig", []any{arg1, arg2, arg3})
 	fake.findOrCreateResourceConfigMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -190,7 +190,7 @@ func (fake *FakeResourceConfigFactory) FindResourceConfigByID(arg1 int) (db.Reso
 	}{arg1})
 	stub := fake.FindResourceConfigByIDStub
 	fakeReturns := fake.findResourceConfigByIDReturns
-	fake.recordInvocation("FindResourceConfigByID", []interface{}{arg1})
+	fake.recordInvocation("FindResourceConfigByID", []any{arg1})
 	fake.findResourceConfigByIDMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -249,7 +249,7 @@ func (fake *FakeResourceConfigFactory) FindResourceConfigByIDReturnsOnCall(i int
 	}{result1, result2, result3}
 }
 
-func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeResourceConfigFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.cleanUnreferencedConfigsMutex.RLock()
@@ -258,21 +258,21 @@ func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} 
 	defer fake.findOrCreateResourceConfigMutex.RUnlock()
 	fake.findResourceConfigByIDMutex.RLock()
 	defer fake.findResourceConfigByIDMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeResourceConfigFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeResourceConfigFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

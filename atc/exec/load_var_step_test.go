@@ -96,7 +96,7 @@ var _ = Describe("LoadVarStep", func() {
 		fakeStreamer = new(execfakes.FakeStreamer)
 	})
 
-	expectLocalVarAdded := func(expectKey string, expectValue interface{}, expectRedact bool) {
+	expectLocalVarAdded := func(expectKey string, expectValue any, expectRedact bool) {
 		Expect(state.AddLocalVarCallCount()).To(Equal(1))
 		k, v, redact := state.AddLocalVarArgsForCall(0)
 		Expect(k).To(Equal(expectKey))
@@ -200,7 +200,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "jv1", "k2": "jv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -221,7 +221,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -242,7 +242,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 	})
@@ -284,7 +284,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "jv1", "k2": "jv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "jv1", "k2": "jv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -304,7 +304,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 
@@ -324,7 +324,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]interface{}{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
 			})
 		})
 	})

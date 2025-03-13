@@ -40,7 +40,7 @@ type FakeTaskCacheFactory struct {
 		result1 db.UsedTaskCache
 		result2 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -54,7 +54,7 @@ func (fake *FakeTaskCacheFactory) Find(arg1 int, arg2 string, arg3 string) (db.U
 	}{arg1, arg2, arg3})
 	stub := fake.FindStub
 	fakeReturns := fake.findReturns
-	fake.recordInvocation("Find", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("Find", []any{arg1, arg2, arg3})
 	fake.findMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -123,7 +123,7 @@ func (fake *FakeTaskCacheFactory) FindOrCreate(arg1 int, arg2 string, arg3 strin
 	}{arg1, arg2, arg3})
 	stub := fake.FindOrCreateStub
 	fakeReturns := fake.findOrCreateReturns
-	fake.recordInvocation("FindOrCreate", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("FindOrCreate", []any{arg1, arg2, arg3})
 	fake.findOrCreateMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -179,28 +179,28 @@ func (fake *FakeTaskCacheFactory) FindOrCreateReturnsOnCall(i int, result1 db.Us
 	}{result1, result2}
 }
 
-func (fake *FakeTaskCacheFactory) Invocations() map[string][][]interface{} {
+func (fake *FakeTaskCacheFactory) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.findMutex.RLock()
 	defer fake.findMutex.RUnlock()
 	fake.findOrCreateMutex.RLock()
 	defer fake.findOrCreateMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeTaskCacheFactory) recordInvocation(key string, args []interface{}) {
+func (fake *FakeTaskCacheFactory) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

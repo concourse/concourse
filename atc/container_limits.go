@@ -29,7 +29,7 @@ func (c *CPULimit) UnmarshalJSON(data []byte) error {
 type MemoryLimit uint64
 
 func (m *MemoryLimit) UnmarshalJSON(data []byte) error {
-	var dst interface{}
+	var dst any
 	if err := json.Unmarshal(data, &dst); err != nil {
 		return err
 	}

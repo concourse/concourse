@@ -29,7 +29,7 @@ type FakeAlgorithm struct {
 		result3 bool
 		result4 error
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -43,7 +43,7 @@ func (fake *FakeAlgorithm) Compute(arg1 context.Context, arg2 db.Job, arg3 db.In
 	}{arg1, arg2, arg3})
 	stub := fake.ComputeStub
 	fakeReturns := fake.computeReturns
-	fake.recordInvocation("Compute", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("Compute", []any{arg1, arg2, arg3})
 	fake.computeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -105,26 +105,26 @@ func (fake *FakeAlgorithm) ComputeReturnsOnCall(i int, result1 db.InputMapping, 
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeAlgorithm) Invocations() map[string][][]interface{} {
+func (fake *FakeAlgorithm) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.computeMutex.RLock()
 	defer fake.computeMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeAlgorithm) recordInvocation(key string, args []interface{}) {
+func (fake *FakeAlgorithm) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

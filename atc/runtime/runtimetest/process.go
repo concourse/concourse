@@ -15,7 +15,7 @@ type ProcessStub struct {
 	Attachable bool
 	Do         func(context.Context, *Process) error
 	Call       func(context.Context, *Process) (runtime.ProcessResult, error)
-	Output     interface{}
+	Output     any
 	Stderr     string
 	ExitStatus int
 	Err        string

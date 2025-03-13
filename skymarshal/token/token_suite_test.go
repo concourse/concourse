@@ -35,7 +35,7 @@ func encode(payload []byte) string {
 	return strings.TrimRight(result, "=")
 }
 
-func parse(token string, key *rsa.PrivateKey, result interface{}) error {
+func parse(token string, key *rsa.PrivateKey, result any) error {
 
 	parsed, err := jwt.ParseSigned(token)
 	if err != nil {

@@ -26,7 +26,7 @@ type Listener interface {
 
 //counterfeiter:generate . Executor
 type Executor interface {
-	Exec(statement string, args ...interface{}) (sql.Result, error)
+	Exec(statement string, args ...any) (sql.Result, error)
 }
 
 type NotificationsBus interface {

@@ -97,7 +97,7 @@ type FakeMiddleware struct {
 	unsetStateTokenArgsForCall []struct {
 		arg1 http.ResponseWriter
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -109,7 +109,7 @@ func (fake *FakeMiddleware) GetAuthToken(arg1 *http.Request) string {
 	}{arg1})
 	stub := fake.GetAuthTokenStub
 	fakeReturns := fake.getAuthTokenReturns
-	fake.recordInvocation("GetAuthToken", []interface{}{arg1})
+	fake.recordInvocation("GetAuthToken", []any{arg1})
 	fake.getAuthTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -170,7 +170,7 @@ func (fake *FakeMiddleware) GetCSRFToken(arg1 *http.Request) string {
 	}{arg1})
 	stub := fake.GetCSRFTokenStub
 	fakeReturns := fake.getCSRFTokenReturns
-	fake.recordInvocation("GetCSRFToken", []interface{}{arg1})
+	fake.recordInvocation("GetCSRFToken", []any{arg1})
 	fake.getCSRFTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -231,7 +231,7 @@ func (fake *FakeMiddleware) GetStateToken(arg1 *http.Request) string {
 	}{arg1})
 	stub := fake.GetStateTokenStub
 	fakeReturns := fake.getStateTokenReturns
-	fake.recordInvocation("GetStateToken", []interface{}{arg1})
+	fake.recordInvocation("GetStateToken", []any{arg1})
 	fake.getStateTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -294,7 +294,7 @@ func (fake *FakeMiddleware) SetAuthToken(arg1 http.ResponseWriter, arg2 string, 
 	}{arg1, arg2, arg3})
 	stub := fake.SetAuthTokenStub
 	fakeReturns := fake.setAuthTokenReturns
-	fake.recordInvocation("SetAuthToken", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("SetAuthToken", []any{arg1, arg2, arg3})
 	fake.setAuthTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -357,7 +357,7 @@ func (fake *FakeMiddleware) SetCSRFToken(arg1 http.ResponseWriter, arg2 string, 
 	}{arg1, arg2, arg3})
 	stub := fake.SetCSRFTokenStub
 	fakeReturns := fake.setCSRFTokenReturns
-	fake.recordInvocation("SetCSRFToken", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("SetCSRFToken", []any{arg1, arg2, arg3})
 	fake.setCSRFTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -420,7 +420,7 @@ func (fake *FakeMiddleware) SetStateToken(arg1 http.ResponseWriter, arg2 string,
 	}{arg1, arg2, arg3})
 	stub := fake.SetStateTokenStub
 	fakeReturns := fake.setStateTokenReturns
-	fake.recordInvocation("SetStateToken", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("SetStateToken", []any{arg1, arg2, arg3})
 	fake.setStateTokenMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -479,7 +479,7 @@ func (fake *FakeMiddleware) UnsetAuthToken(arg1 http.ResponseWriter) {
 		arg1 http.ResponseWriter
 	}{arg1})
 	stub := fake.UnsetAuthTokenStub
-	fake.recordInvocation("UnsetAuthToken", []interface{}{arg1})
+	fake.recordInvocation("UnsetAuthToken", []any{arg1})
 	fake.unsetAuthTokenMutex.Unlock()
 	if stub != nil {
 		fake.UnsetAuthTokenStub(arg1)
@@ -511,7 +511,7 @@ func (fake *FakeMiddleware) UnsetCSRFToken(arg1 http.ResponseWriter) {
 		arg1 http.ResponseWriter
 	}{arg1})
 	stub := fake.UnsetCSRFTokenStub
-	fake.recordInvocation("UnsetCSRFToken", []interface{}{arg1})
+	fake.recordInvocation("UnsetCSRFToken", []any{arg1})
 	fake.unsetCSRFTokenMutex.Unlock()
 	if stub != nil {
 		fake.UnsetCSRFTokenStub(arg1)
@@ -543,7 +543,7 @@ func (fake *FakeMiddleware) UnsetStateToken(arg1 http.ResponseWriter) {
 		arg1 http.ResponseWriter
 	}{arg1})
 	stub := fake.UnsetStateTokenStub
-	fake.recordInvocation("UnsetStateToken", []interface{}{arg1})
+	fake.recordInvocation("UnsetStateToken", []any{arg1})
 	fake.unsetStateTokenMutex.Unlock()
 	if stub != nil {
 		fake.UnsetStateTokenStub(arg1)
@@ -569,7 +569,7 @@ func (fake *FakeMiddleware) UnsetStateTokenArgsForCall(i int) http.ResponseWrite
 	return argsForCall.arg1
 }
 
-func (fake *FakeMiddleware) Invocations() map[string][][]interface{} {
+func (fake *FakeMiddleware) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getAuthTokenMutex.RLock()
@@ -590,21 +590,21 @@ func (fake *FakeMiddleware) Invocations() map[string][][]interface{} {
 	defer fake.unsetCSRFTokenMutex.RUnlock()
 	fake.unsetStateTokenMutex.RLock()
 	defer fake.unsetStateTokenMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeMiddleware) recordInvocation(key string, args []interface{}) {
+func (fake *FakeMiddleware) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

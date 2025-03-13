@@ -91,7 +91,7 @@ type FakeCreatedContainer struct {
 	workerNameReturnsOnCall map[int]struct {
 		result1 string
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -102,7 +102,7 @@ func (fake *FakeCreatedContainer) Destroying() (db.DestroyingContainer, error) {
 	}{})
 	stub := fake.DestroyingStub
 	fakeReturns := fake.destroyingReturns
-	fake.recordInvocation("Destroying", []interface{}{})
+	fake.recordInvocation("Destroying", []any{})
 	fake.destroyingMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -158,7 +158,7 @@ func (fake *FakeCreatedContainer) Handle() string {
 	}{})
 	stub := fake.HandleStub
 	fakeReturns := fake.handleReturns
-	fake.recordInvocation("Handle", []interface{}{})
+	fake.recordInvocation("Handle", []any{})
 	fake.handleMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -211,7 +211,7 @@ func (fake *FakeCreatedContainer) ID() int {
 	}{})
 	stub := fake.IDStub
 	fakeReturns := fake.iDReturns
-	fake.recordInvocation("ID", []interface{}{})
+	fake.recordInvocation("ID", []any{})
 	fake.iDMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -264,7 +264,7 @@ func (fake *FakeCreatedContainer) LastHijack() time.Time {
 	}{})
 	stub := fake.LastHijackStub
 	fakeReturns := fake.lastHijackReturns
-	fake.recordInvocation("LastHijack", []interface{}{})
+	fake.recordInvocation("LastHijack", []any{})
 	fake.lastHijackMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -317,7 +317,7 @@ func (fake *FakeCreatedContainer) Metadata() db.ContainerMetadata {
 	}{})
 	stub := fake.MetadataStub
 	fakeReturns := fake.metadataReturns
-	fake.recordInvocation("Metadata", []interface{}{})
+	fake.recordInvocation("Metadata", []any{})
 	fake.metadataMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -370,7 +370,7 @@ func (fake *FakeCreatedContainer) State() string {
 	}{})
 	stub := fake.StateStub
 	fakeReturns := fake.stateReturns
-	fake.recordInvocation("State", []interface{}{})
+	fake.recordInvocation("State", []any{})
 	fake.stateMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -423,7 +423,7 @@ func (fake *FakeCreatedContainer) UpdateLastHijack() error {
 	}{})
 	stub := fake.UpdateLastHijackStub
 	fakeReturns := fake.updateLastHijackReturns
-	fake.recordInvocation("UpdateLastHijack", []interface{}{})
+	fake.recordInvocation("UpdateLastHijack", []any{})
 	fake.updateLastHijackMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -476,7 +476,7 @@ func (fake *FakeCreatedContainer) WorkerName() string {
 	}{})
 	stub := fake.WorkerNameStub
 	fakeReturns := fake.workerNameReturns
-	fake.recordInvocation("WorkerName", []interface{}{})
+	fake.recordInvocation("WorkerName", []any{})
 	fake.workerNameMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -522,7 +522,7 @@ func (fake *FakeCreatedContainer) WorkerNameReturnsOnCall(i int, result1 string)
 	}{result1}
 }
 
-func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
+func (fake *FakeCreatedContainer) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.destroyingMutex.RLock()
@@ -541,21 +541,21 @@ func (fake *FakeCreatedContainer) Invocations() map[string][][]interface{} {
 	defer fake.updateLastHijackMutex.RUnlock()
 	fake.workerNameMutex.RLock()
 	defer fake.workerNameMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeCreatedContainer) recordInvocation(key string, args []interface{}) {
+func (fake *FakeCreatedContainer) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

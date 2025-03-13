@@ -90,7 +90,7 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 		point, err := influxclient.NewPoint(
 			event.Name,
 			tags,
-			map[string]interface{}{
+			map[string]any{
 				"value": event.Value,
 			},
 			event.Time,

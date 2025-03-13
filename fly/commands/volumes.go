@@ -98,7 +98,7 @@ func (command *VolumesCommand) volumeIdentifier(volume atc.Volume) string {
 	return "n/a"
 }
 
-func presentMap(version interface{}) string {
+func presentMap(version any) string {
 	marshalled, _ := yaml.Marshal(version)
 	lines := strings.Split(strings.TrimSpace(string(marshalled)), "\n")
 	return strings.Replace(strings.Join(lines, ","), " ", "", -1)
