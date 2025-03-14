@@ -86,6 +86,51 @@ var _ = Describe("ValidateIdentifier", func() {
 			identifier:  "running-((.:name))",
 			warning:     false,
 		},
+		{
+			description: "is a valid hour format (single digit)",
+			identifier:  "2h",
+			warning:     false,
+		},
+		{
+			description: "is a valid hour format (multiple digits)",
+			identifier:  "24h",
+			warning:     false,
+		},
+		{
+			description: "is a valid hour format (large number)",
+			identifier:  "168h",
+			warning:     false,
+		},
+		{
+			description: "is a valid minute format (single digit)",
+			identifier:  "3m",
+			warning:     false,
+		},
+		{
+			description: "is a valid minute format (multiple digits)",
+			identifier:  "10m",
+			warning:     false,
+		},
+		{
+			description: "is a valid minute format (large number)",
+			identifier:  "1440m",
+			warning:     false,
+		},
+		{
+			description: "is a valid second format (single digit)",
+			identifier:  "5s",
+			warning:     false,
+		},
+		{
+			description: "is a valid second format (multiple digits)",
+			identifier:  "30s",
+			warning:     false,
+		},
+		{
+			description: "is a valid second format (large number)",
+			identifier:  "3600s",
+			warning:     false,
+		},
 	} {
 		test := test
 
