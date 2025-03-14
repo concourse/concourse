@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 
 	"code.cloudfoundry.org/clock"
 	sq "github.com/Masterminds/squirrel"
@@ -39,6 +40,7 @@ func (f *componentFactory) Find(componentName string) (Component, bool, error) {
 		rander:                f.rander,
 		clock:                 f.clock,
 		goRoutineCounter:      f.goRoutineCounter,
+		driftCacheTTL:         100 * time.Millisecond, // Cache drift calculations for 100ms
 	}
 
 	row := componentsQuery.
@@ -71,6 +73,7 @@ func (f *componentFactory) CreateOrUpdate(c atc.Component) (Component, error) {
 		rander:                f.rander,
 		clock:                 f.clock,
 		goRoutineCounter:      f.goRoutineCounter,
+		driftCacheTTL:         100 * time.Millisecond, // Cache drift calculations for 100ms
 	}
 
 	row := psql.Insert("components").

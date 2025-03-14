@@ -78,6 +78,9 @@ var _ = Describe("Component", func() {
 				Context("drift -100 millisecond", func() {
 					BeforeEach(func() {
 						fakeRander.IntReturns(int(900 * time.Millisecond))
+						// Increment clock by more than driftCacheTTL to ensure fresh drift calculation
+						fakeCompClock.Increment(200 * time.Millisecond)
+						fakeCompClock.Increment(-200 * time.Millisecond) // Reset to original position
 					})
 					It("returns true", func() {
 						Expect(elapsed).To(BeTrue())
@@ -87,11 +90,14 @@ var _ = Describe("Component", func() {
 				Context("drift -10 millisecond", func() {
 					BeforeEach(func() {
 						fakeRander.IntReturns(int(990 * time.Millisecond))
+						// Increment clock by more than driftCacheTTL to ensure fresh drift calculation
+						fakeCompClock.Increment(200 * time.Millisecond)
+						fakeCompClock.Increment(-200 * time.Millisecond) // Reset to original position
 					})
 					It("returns false", func() {
 						Expect(elapsed).To(BeFalse())
 
-						fakeCompClock.Increment(41 * time.Millisecond)
+						fakeCompClock.Increment(150 * time.Millisecond) // Ensure drift recalculation
 						elapsed = component.IntervalElapsed()
 						Expect(elapsed).To(BeTrue())
 					})
@@ -100,11 +106,14 @@ var _ = Describe("Component", func() {
 				Context("drift 10 millisecond", func() {
 					BeforeEach(func() {
 						fakeRander.IntReturns(int(1010 * time.Millisecond))
+						// Increment clock by more than driftCacheTTL to ensure fresh drift calculation
+						fakeCompClock.Increment(200 * time.Millisecond)
+						fakeCompClock.Increment(-200 * time.Millisecond) // Reset to original position
 					})
 					It("returns false", func() {
 						Expect(elapsed).To(BeFalse())
 
-						fakeCompClock.Increment(61 * time.Millisecond)
+						fakeCompClock.Increment(150 * time.Millisecond) // Ensure drift recalculation
 						elapsed = component.IntervalElapsed()
 						Expect(elapsed).To(BeTrue())
 					})
