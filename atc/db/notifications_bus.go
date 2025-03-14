@@ -193,14 +193,23 @@ func (bus *notificationsBus) asyncNotify() {
 		for {
 			select {
 			case <-ticker.C:
+				channelsToNotify := make([]string, 0)
+
+				// Under lock, get a snapshot of channels to notify and clear the cache
 				bus.notifyCacheLock.Lock()
-				for channel, _ := range bus.notifyCache {
+				for channel := range bus.notifyCache {
+					channelsToNotify = append(channelsToNotify, channel)
+				}
+				bus.notifyCache = map[string]struct{}{}
+				bus.notifyCacheLock.Unlock()
+
+				// Process notifications outside the lock
+				for _, channel := range channelsToNotify {
 					if bus.watchedMap.BeingWatched(channel) {
 						bus.notify(channel)
 					}
 				}
-				bus.notifyCache = map[string]struct{}{}
-				bus.notifyCacheLock.Unlock()
+
 			case <-bus.notifyDoneChan:
 				ticker.Stop()
 				return
