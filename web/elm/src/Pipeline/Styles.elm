@@ -80,17 +80,17 @@ cliIcon cli =
     ]
 
 
-pipelineBackground : String -> List (Html.Attribute msg)
-pipelineBackground bg =
+pipelineBackground : { image : String, opacity : Maybe String, filter : Maybe String } -> List (Html.Attribute msg)
+pipelineBackground { image, opacity, filter } =
     [ style "background-image" <|
         "url(\""
-            ++ bg
+            ++ image
             ++ "\")"
     , style "background-repeat" "no-repeat"
     , style "background-size" "cover"
     , style "background-position" "center"
-    , style "opacity" "30%"
-    , style "filter" "grayscale(1)"
+    , style "opacity" (Maybe.withDefault "30%" opacity)
+    , style "filter" (Maybe.withDefault "grayscale(1)" filter)
     , style "width" "100%"
     , style "height" "100%"
     , style "position" "absolute"
