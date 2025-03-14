@@ -3,7 +3,7 @@ package worker
 import (
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sort"
 	"strings"
 

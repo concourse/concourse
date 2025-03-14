@@ -1,7 +1,7 @@
 package tsa
 
 import (
-	"math/rand"
+	"math/rand/v2"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag/v2"
@@ -24,5 +24,5 @@ func NewRandomATCEndpointPicker(atcURLFlags []flag.URL) EndpointPicker {
 }
 
 func (p *randomATCEndpointPicker) Pick() *rata.RequestGenerator {
-	return p.ATCEndpoints[rand.Intn(len(p.ATCEndpoints))]
+	return p.ATCEndpoints[rand.IntN(len(p.ATCEndpoints))]
 }

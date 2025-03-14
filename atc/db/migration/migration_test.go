@@ -3,7 +3,7 @@ package migration_test
 import (
 	"database/sql"
 	"io/fs"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -576,17 +576,15 @@ func ExpectDatabaseMigrationVersionToEqual(migrator migration.Migrator, expected
 }
 
 func ExpectToBeAbleToInsertData(dbConn *sql.DB) {
-	rand.Seed(time.Now().UnixNano())
-
-	teamID := rand.Intn(10000)
+	teamID := rand.IntN(10000)
 	_, err := dbConn.Exec("INSERT INTO teams(id, name) VALUES ($1, $2)", teamID, strconv.Itoa(teamID))
 	Expect(err).NotTo(HaveOccurred())
 
-	pipelineID := rand.Intn(10000)
+	pipelineID := rand.IntN(10000)
 	_, err = dbConn.Exec("INSERT INTO pipelines(id, team_id, name) VALUES ($1, $2, $3)", pipelineID, teamID, strconv.Itoa(pipelineID))
 	Expect(err).NotTo(HaveOccurred())
 
-	jobID := rand.Intn(10000)
+	jobID := rand.IntN(10000)
 	_, err = dbConn.Exec("INSERT INTO jobs(id, pipeline_id, name, config) VALUES ($1, $2, $3, '{}')", jobID, pipelineID, strconv.Itoa(jobID))
 	Expect(err).NotTo(HaveOccurred())
 }
