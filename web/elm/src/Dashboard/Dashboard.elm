@@ -618,6 +618,8 @@ toConcoursePipeline p =
     , archived = p.archived
     , groups = []
     , backgroundImage = Maybe.Nothing
+    , backgroundOpacity = Maybe.Nothing
+    , backgroundFilter = Maybe.Nothing
     }
 
 

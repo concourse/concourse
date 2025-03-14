@@ -532,7 +532,14 @@ backgroundImage pipeline =
     case pipeline of
         RemoteData.Success p ->
             p.backgroundImage
-                |> Maybe.map Styles.pipelineBackground
+                |> Maybe.map
+                    (\img ->
+                        Styles.pipelineBackground
+                            { image = img
+                            , opacity = p.backgroundOpacity
+                            , filter = p.backgroundFilter
+                            }
+                    )
                 |> Maybe.withDefault []
 
         _ ->
