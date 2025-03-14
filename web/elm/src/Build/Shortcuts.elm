@@ -157,6 +157,13 @@ handleKeyPressed keyEvent ( model, effects ) =
             ( Keyboard.Slash, True ) ->
                 ( { newModel | showHelp = not newModel.showHelp }, effects )
 
+            ( Keyboard.Escape, False ) ->
+                if model.showHelp then
+                    ( { newModel | showHelp = False }, effects )
+
+                else
+                    ( newModel, effects )
+
             ( Keyboard.H, False ) ->
                 case nextHistoryItem model.history (historyItem model) of
                     Just item ->
