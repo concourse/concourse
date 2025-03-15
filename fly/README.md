@@ -1,37 +1,34 @@
 # fly
 
-A command line interface that runs a build in a container with [ATC](https://github.com/concourse/atc).
+A command line tool for configuration and management of [Concourse](https://github.com/concourse/concourse).
 
-[The documentation](https://concourse-ci.org/fly.html) is hosted together with Concourse's docs.
-
-A good place to start learning about Concourse is [its documentation](https://concourse-ci.org/index.html)
-or its [BOSH release](https://github.com/concourse/concourse).
+Find comprehensive [documentation](https://concourse-ci.org/fly.html) alongside the Concourse docs.
+For those new to Concourse, begin with the [main documentation](https://concourse-ci.org/index.html).
 
 ## Reporting Issues and Requesting Features
 
-Please report all issues and feature requests in [concourse/concourse](https://github.com/concourse/concourse/issues).
+All issues and feature requests should be submitted to [concourse/concourse](https://github.com/concourse/concourse/issues).
 
 ## Building
 
-Fly is built using [Go](http://golang.org/). Building and testing fly is most easily done from a checkout of [concourse](https://github.com/concourse/concourse).
+Fly is developed in [Go](http://golang.org/). For optimal building and testing, work from a
+[Concourse](https://github.com/concourse/concourse) repository checkout.
 
-1. Check out concourse and update submodules:
+1. Clone the repository and update its submodules:
 
   ```bash
   git clone --recursive https://github.com/concourse/concourse.git
   cd concourse
   ```
 
-2. You can now build the fly binary with go build:
+2. Build the fly binary:
 
   ```bash
   cd fly
   go build
   ```
 
-  If you are using Go 1.10 and below, run `go get ./...` before `go build`.
-
-3. You can also now run tests by installing and running [ginkgo](http://onsi.github.io/ginkgo/):
+3. Run tests using [ginkgo](http://onsi.github.io/ginkgo/):
 
   ```bash
   go get github.com/onsi/ginkgo/v2/ginkgo
@@ -40,22 +37,21 @@ Fly is built using [Go](http://golang.org/). Building and testing fly is most ea
 
 ## Installing from the Concourse UI for Project Development
 
-Fly is available for download in the lower right-hand corner of the concourse UI.
+Download fly from the lower right corner of the Concourse UI.
 
 ![fly download links](images/fly_download_ui.png)
 
-1. Navigate to your Concourse instance in the browser, and click the button corresponding to your OS
+1. Visit your Concourse instance in a browser and select the button for your operating system
 
-1. Move the downloaded file onto your PATH
+1. Add the downloaded file to your PATH:
 
   ```bash
   install ~/Downloads/fly /usr/local/bin
   ```
 
-1. Confirm availability with `which fly`
+1. Verify installation with `which fly`
 
 ## Upgrading Fly
-Fly is not available for upgrade independently of Concourse. You can download the corresponding upgraded version of Fly via the following: 
-* using the [Concourse UI](#installing-from-the-concourse-ui-for-project-development) 
-* running `fly -t example sync` if you already have fly locally
-
+Fly must be upgraded alongside Concourse. Get the matching version by either:
+* downloading from the [Concourse UI](#installing-from-the-concourse-ui-for-project-development)
+* running `fly -t example sync` if you already have fly installed
