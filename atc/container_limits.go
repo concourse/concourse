@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var memoryRegex = regexp.MustCompile(`^([0-9]+)([GMK]?[B])?$`)
+var memoryRegex = regexp.MustCompile(`(?i)^([0-9]+)(([KMG])(i)?B?)?$`)
 
 type ContainerLimits struct {
 	CPU    *CPULimit    `json:"cpu,omitempty"`
@@ -47,10 +47,9 @@ func (m *MemoryLimit) UnmarshalJSON(data []byte) error {
 }
 
 func ParseMemoryLimit(limit string) (MemoryLimit, error) {
-	limit = strings.ToUpper(limit)
 	matches := memoryRegex.FindStringSubmatch(limit)
 
-	if len(matches) != 3 {
+	if len(matches) == 0 {
 		return 0, errors.New("could not parse container memory limit")
 	}
 
@@ -59,18 +58,27 @@ func ParseMemoryLimit(limit string) (MemoryLimit, error) {
 		return 0, err
 	}
 
-	unit := matches[2]
-	var power int
-	switch unit {
-	case "KB":
-		power = 10
-	case "MB":
-		power = 20
-	case "GB":
-		power = 30
-	default:
-		power = 0
+	// If no unit is specified, return value as is (bytes)
+	if len(matches) < 3 || matches[2] == "" {
+		return MemoryLimit(value), nil
 	}
 
-	return MemoryLimit(value * (1 << power)), nil
+	// Extract the unit prefix (K, M, G)
+	unit := strings.ToUpper(matches[3])
+
+	// All units (KB/MB/GB and KiB/MiB/GiB) are treated as binary units
+	var multiplier uint64
+	switch unit {
+	case "K":
+		multiplier = 1 << 10 // 2^10 = 1024
+	case "M":
+		multiplier = 1 << 20 // 2^20 = 1,048,576
+	case "G":
+		multiplier = 1 << 30 // 2^30 = 1,073,741,824
+	default:
+		// Default to bytes for unrecognized units
+		return MemoryLimit(value), nil
+	}
+
+	return MemoryLimit(value * multiplier), nil
 }
