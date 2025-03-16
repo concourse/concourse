@@ -3,6 +3,7 @@ package volume
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -14,49 +15,59 @@ type LockManager interface {
 }
 
 type lockManager struct {
-	locks map[string]*lockEntry
-	mutex sync.Mutex
+	locks sync.Map // key -> *lockEntry
 }
 
 type lockEntry struct {
-	ch    chan struct{}
-	count int
+	mu       sync.Mutex
+	refCount int32 // Using int32 for atomic operations
 }
 
 func NewLockManager() LockManager {
-	locks := map[string]*lockEntry{}
-	return &lockManager{
-		locks: locks,
-	}
+	return &lockManager{}
 }
 
 func (m *lockManager) Lock(key string) {
-	m.mutex.Lock()
-	entry, ok := m.locks[key]
-	if !ok {
-		entry = &lockEntry{
-			ch: make(chan struct{}, 1),
+	// Get or create a lock entry for this key
+	var entry *lockEntry
+
+	// First, try to load existing entry
+	if value, ok := m.locks.Load(key); ok {
+		entry = value.(*lockEntry)
+		// Increment reference count atomically
+		atomic.AddInt32(&entry.refCount, 1)
+	} else {
+		// Create new entry with refCount = 1
+		newEntry := &lockEntry{refCount: 1}
+		actual, loaded := m.locks.LoadOrStore(key, newEntry)
+		if loaded {
+			// Someone else created it first, use that one and increment
+			entry = actual.(*lockEntry)
+			atomic.AddInt32(&entry.refCount, 1)
+		} else {
+			entry = newEntry
 		}
-		m.locks[key] = entry
 	}
 
-	entry.count++
-	m.mutex.Unlock()
-	entry.ch <- struct{}{}
+	// Now actually acquire the lock for the caller
+	entry.mu.Lock()
 }
 
 func (m *lockManager) Unlock(key string) {
-	m.mutex.Lock()
-	entry, ok := m.locks[key]
+	// Get the lock entry
+	value, ok := m.locks.Load(key)
 	if !ok {
 		panic(fmt.Sprintf("key %q already unlocked", key))
 	}
+	entry := value.(*lockEntry)
 
-	entry.count--
-	if entry.count == 0 {
-		delete(m.locks, key)
+	// Release the actual lock
+	entry.mu.Unlock()
+
+	// Decrement reference count and clean up if needed
+	newCount := atomic.AddInt32(&entry.refCount, -1)
+	if newCount == 0 {
+		// Safe to delete as no one else is using it
+		m.locks.Delete(key)
 	}
-
-	m.mutex.Unlock()
-	<-entry.ch
 }
