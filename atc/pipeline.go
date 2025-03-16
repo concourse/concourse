@@ -42,9 +42,20 @@ type RenameRequest struct {
 type InstanceVars map[string]any
 
 func (iv InstanceVars) String() string {
+	if len(iv) == 0 {
+		return ""
+	}
+
 	var parts []string
 	for _, kvPair := range iv.sortedKVPairs() {
-		rawVal, _ := json.Marshal(kvPair.Value)
+		// Marshal value to JSON - handle error case for custom marshalers
+		rawVal, err := json.Marshal(kvPair.Value)
+		if err != nil {
+			// Use placeholder for values that can't be marshaled
+			parts = append(parts, fmt.Sprintf("%s:<invalid>", kvPair.Ref))
+			continue
+		}
+
 		val := string(rawVal)
 		if !instanceVarValueRequiresQuoting(kvPair.Value) {
 			val = unquoteString(val)
@@ -67,15 +78,17 @@ func instanceVarValueRequiresQuoting(v any) bool {
 	if !ok {
 		return false
 	}
+
+	if strings.ContainsAny(str, ",: /") {
+		return true
+	}
+
 	var target any
 	if err := yaml.Unmarshal([]byte(str), &target); err != nil {
 		return true
 	}
 	_, isStringAfterUnmarshal := target.(string)
-	if !isStringAfterUnmarshal {
-		return true
-	}
-	return strings.ContainsAny(str, ",: /")
+	return !isStringAfterUnmarshal
 }
 
 func unquoteString(s string) string {
@@ -88,7 +101,7 @@ type PipelineRef struct {
 }
 
 func (ref PipelineRef) String() string {
-	if ref.InstanceVars != nil {
+	if ref.InstanceVars != nil && len(ref.InstanceVars) > 0 {
 		return fmt.Sprintf("%s/%s", ref.Name, ref.InstanceVars.String())
 	}
 	return ref.Name
@@ -98,9 +111,14 @@ func (ref PipelineRef) QueryParams() url.Values {
 	if len(ref.InstanceVars) == 0 {
 		return nil
 	}
+
 	params := url.Values{}
 	for _, kvp := range ref.InstanceVars.sortedKVPairs() {
-		payload, _ := json.Marshal(kvp.Value)
+		payload, err := json.Marshal(kvp.Value)
+		if err != nil {
+			// Skip values that can't be marshaled
+			continue
+		}
 		params.Set("vars."+kvp.Ref.String(), string(payload))
 	}
 	return params
@@ -112,26 +130,39 @@ func InstanceVarsFromQueryParams(q url.Values) (InstanceVars, error) {
 		if k != "vars" && !strings.HasPrefix(k, "vars.") {
 			continue
 		}
+
 		var kvp vars.KVPair
 		var err error
+
+		// Parse the reference
 		kvp.Ref, err = vars.ParseReference(k)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid var reference '%s': %w", k, err)
 		}
-		if err = json.Unmarshal([]byte(q.Get(k)), &kvp.Value); err != nil {
-			return nil, err
+
+		// Parse the value
+		valueStr := q.Get(k)
+		if err = json.Unmarshal([]byte(valueStr), &kvp.Value); err != nil {
+			return nil, fmt.Errorf("invalid JSON for '%s': %w", k, err)
 		}
+
 		kvPairs = append(kvPairs, kvp)
 	}
+
 	if len(kvPairs) == 0 {
 		return nil, nil
 	}
-	// Need to sort kv-pairs so that you can specify ?vars={...} along with
-	// patches (...&vars.foo=123) and not have the patches occasionally
-	// truncated (due to non-deterministic map iteration)
+
+	// Sort for deterministic expansion
 	sort.Slice(kvPairs, func(i, j int) bool {
 		return kvPairs[i].Ref.String() < kvPairs[j].Ref.String()
 	})
-	instanceVars, _ := kvPairs.Expand()["vars"].(map[string]any)
-	return InstanceVars(instanceVars), nil
+
+	expanded := kvPairs.Expand()
+	instanceVars, ok := expanded["vars"].(map[string]any)
+	if !ok && expanded["vars"] != nil {
+		return nil, fmt.Errorf("expanded vars is not a map")
+	}
+
+	return instanceVars, nil
 }
