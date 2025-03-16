@@ -101,7 +101,7 @@ func readMetadataFile(path string, properties any) error {
 func writeMetadataFile(path string, properties any) error {
 	file, err := os.OpenFile(
 		path,
-		os.O_WRONLY|os.O_CREATE,
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
 		0644,
 	)
 	if err != nil {
