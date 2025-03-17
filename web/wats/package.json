@@ -4,10 +4,10 @@
   "description": "Concourse web UI acceptance tests",
   "dependencies": {
     "child-process-promise": "2.2.1",
-    "color": "4.2.3",
+    "color": "5.0.0",
     "puppeteer": "^24.0.0",
     "tmp-promise": "3.0.3",
-    "uuid": "11.0.5"
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "ava": "6.2.0"
