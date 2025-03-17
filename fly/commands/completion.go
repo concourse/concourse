@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type CompletionCommand struct {
@@ -13,21 +14,24 @@ type CompletionCommand struct {
 // https://godoc.org/github.com/jessevdk/go-flags#hdr-Completion
 // https://github.com/concourse/concourse/issues/1309#issuecomment-452893900
 const bashCompletionSnippet = `_fly_compl() {
-	args=("${COMP_WORDS[@]:1:$COMP_CWORD}")
-	local IFS=$'\n'
-	COMPREPLY=($(GO_FLAGS_COMPLETION=1 ${COMP_WORDS[0]} "${args[@]}"))
-	return 0
+    args=("${COMP_WORDS[@]:1:$COMP_CWORD}")
+    local IFS=$'\n'
+    COMPREPLY=($(GO_FLAGS_COMPLETION=1 ${COMP_WORDS[0]} "${args[@]}"))
+    return 0
 }
 complete -F _fly_compl fly
 `
 
 func fishCompletionSnippetHelper(snippet string, prefix string, commandType reflect.Type) string {
 	for i := 0; i < commandType.NumField(); i++ {
-		var tags = commandType.Field(i).Tag
+		field := commandType.Field(i)
+		var tags = field.Tag
 		var template = "complete -c fly"
 
-		var command, alias = tags.Get("command"), tags.Get("alias")
-		var long, short = tags.Get("long"), tags.Get("short")
+		var command = tags.Get("command")
+		var alias = tags.Get("alias")
+		var long = tags.Get("long")
+		var short = tags.Get("short")
 		var description = tags.Get("description")
 
 		if command != "" {
@@ -35,7 +39,7 @@ func fishCompletionSnippetHelper(snippet string, prefix string, commandType refl
 		}
 
 		if prefix != "" {
-			template += fmt.Sprintf(" -n \"__fish_seen_subcommand_from %s\"", prefix)
+			template += fmt.Sprintf(" -n \"__fish_seen_subcommand_from %s\"", strings.TrimSpace(prefix))
 		}
 
 		if description != "" {
@@ -47,7 +51,7 @@ func fishCompletionSnippetHelper(snippet string, prefix string, commandType refl
 		}
 
 		if long != "" {
-			template += fmt.Sprintf(" --l \"%s\"", long)
+			template += fmt.Sprintf(" -l \"%s\"", long)
 		}
 
 		if short != "" {
@@ -58,7 +62,26 @@ func fishCompletionSnippetHelper(snippet string, prefix string, commandType refl
 
 		// A subcommand is found, recursion begins.
 		if command != "" {
-			snippet = fishCompletionSnippetHelper(snippet, prefix+" "+command, commandType.Field(i).Type)
+			// Ensure there's exactly one space between commands in the prefix
+			newPrefix := strings.TrimSpace(prefix) + " " + command
+
+			// Make sure we only recurse into struct fields
+			fieldType := field.Type
+
+			// Skip func() types (like the Version field)
+			if fieldType.Kind() == reflect.Func {
+				continue
+			}
+
+			// Handle pointer types
+			if fieldType.Kind() == reflect.Ptr {
+				fieldType = fieldType.Elem()
+			}
+
+			// Only recurse into structs
+			if fieldType.Kind() == reflect.Struct {
+				snippet = fishCompletionSnippetHelper(snippet, newPrefix, fieldType)
+			}
 		}
 	}
 
@@ -67,7 +90,7 @@ func fishCompletionSnippetHelper(snippet string, prefix string, commandType refl
 
 var fishCompletionSnippet = fishCompletionSnippetHelper("", "", reflect.TypeOf(Fly))
 
-// initial implemenation just using bashcompinit
+// Initial implementation just using bashcompinit
 const zshCompletionSnippet = `autoload -Uz compinit && compinit
 autoload -Uz bashcompinit && bashcompinit
 ` + bashCompletionSnippet
@@ -84,7 +107,7 @@ func (command *CompletionCommand) Execute([]string) error {
 		_, err := fmt.Print(fishCompletionSnippet)
 		return err
 	default:
-		// this should be unreachable
+		// This should be unreachable
 		return fmt.Errorf("unknown shell %s", command.Shell)
 	}
 }
