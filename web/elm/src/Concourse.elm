@@ -1117,6 +1117,7 @@ type alias Pipeline =
     , teamName : TeamName
     , groups : List PipelineGroup
     , backgroundImage : Maybe String
+    , backgroundFilter : Maybe String
     }
 
 
@@ -1139,6 +1140,7 @@ encodePipeline pipeline =
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
         , ( "display", Json.Encode.object [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string ) ] )
+        , ( "display", Json.Encode.object [ ( "background_filter", pipeline.backgroundFilter |> Json.Encode.Extra.maybe Json.Encode.string ) ] )
         ]
 
 
@@ -1156,6 +1158,7 @@ decodePipeline =
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
         |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_image" ] Json.Decode.string))
+        |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_filter" ] Json.Decode.string))
 
 
 encodePipelineGroup : PipelineGroup -> Json.Encode.Value

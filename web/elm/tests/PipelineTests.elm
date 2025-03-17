@@ -314,8 +314,7 @@ all =
                         , style "background-repeat" "no-repeat"
                         , style "background-size" "cover"
                         , style "background-position" "center"
-                        , style "opacity" "30%"
-                        , style "filter" "grayscale(1)"
+                        , style "filter" "grayscale(100%) opacity(30%)"
                         ]
         , describe "update" <|
             let
