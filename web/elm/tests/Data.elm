@@ -189,6 +189,7 @@ pipeline team id =
     , teamName = team
     , groups = []
     , backgroundImage = Maybe.Nothing
+    , backgroundFilter = Maybe.Nothing
     }
 
 

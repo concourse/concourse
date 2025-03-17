@@ -213,7 +213,8 @@ type Prototype struct {
 }
 
 type DisplayConfig struct {
-	BackgroundImage string `json:"background_image,omitempty"`
+	BackgroundImage  string `json:"background_image,omitempty"`
+	BackgroundFilter string `json:"background_filter,omitempty"`
 }
 
 type CheckEvery struct {
