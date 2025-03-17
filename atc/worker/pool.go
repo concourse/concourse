@@ -3,7 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"time"
@@ -349,7 +349,7 @@ func (pool Pool) CreateVolumeForArtifact(ctx context.Context, spec Spec) (runtim
 		return nil, nil, err
 	}
 
-	worker := pool.factory.NewWorker(logger, compatibleWorkers[rand.Intn(len(compatibleWorkers))])
+	worker := pool.factory.NewWorker(logger, compatibleWorkers[rand.IntN(len(compatibleWorkers))])
 	return worker.CreateVolumeForArtifact(ctx, spec.TeamID)
 }
 

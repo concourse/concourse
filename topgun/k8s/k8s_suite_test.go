@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -122,7 +122,7 @@ var _ = AfterSuite(func() {
 })
 
 func setReleaseNameAndNamespace(description string) {
-	releaseName = fmt.Sprintf("topgun-"+description+"-%d", rand.Int63n(100000000))
+	releaseName = fmt.Sprintf("topgun-"+description+"-%d", rand.Int64N(100000000))
 	namespace = releaseName
 }
 

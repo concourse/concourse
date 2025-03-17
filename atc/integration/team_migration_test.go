@@ -2,7 +2,7 @@ package integration_test
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"time"
@@ -88,7 +88,7 @@ var characterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXY
 func randomString() string {
 	b := make([]rune, 50)
 	for i := range b {
-		b[i] = characterRunes[rand.Intn(len(characterRunes))]
+		b[i] = characterRunes[rand.IntN(len(characterRunes))]
 	}
 	return string(b)
 }
