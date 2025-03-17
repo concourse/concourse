@@ -435,48 +435,87 @@ func (config Config) JobIsPublic(jobName string) (bool, error) {
 
 func DefaultTLSConfig() *tls.Config {
 	return &tls.Config{
+		// Enforce minimum TLS version 1.2 which provides adequate security
+		// TLS 1.0 and 1.1 are considered insecure due to various vulnerabilities
 		MinVersion: tls.VersionTLS12,
 
+		// Curve preferences control the elliptic curves used in ECDHE (Elliptic Curve Diffie-Hellman Ephemeral)
+		// key exchange. The order matters - curves are tried in the order specified.
 		// https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
 		CurvePreferences: []tls.CurveID{
-			tls.CurveP256,
-			tls.CurveP384,
-			tls.CurveP521,
+			tls.X25519,    // Fastest and most secure curve, resistant to timing attacks
+			tls.CurveP256, // Good balance of security and performance, widely supported
+			tls.CurveP384, // Stronger security but slower than P256
+			tls.CurveP521, // Strongest security but slowest, used as fallback
 		},
 
-		// Security team recommends a very restricted set of cipher suites
+		// Cipher suites define the encryption algorithms used in TLS.
+		// They're listed in order of preference (first is most preferred).
 		CipherSuites: []uint16{
+			// ECDSA with AES-128-GCM (fastest overall combination)
+			// Fast handshakes (ECDSA) + efficient bulk encryption (AES-128 with hardware acceleration)
 			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+
+			// ECDSA with AES-256-GCM
+			// Still fast handshakes (ECDSA) with stronger encryption (AES-256)
 			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+
+			// RSA with AES-128-GCM
+			// Slower handshakes (RSA) but efficient bulk encryption (AES-128 with hardware acceleration)
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+
+			// RSA with AES-256-GCM
+			// Slower handshakes (RSA) and stronger but slower bulk encryption (AES-256)
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+
+			// ECDSA with ChaCha20-Poly1305
+			// Fallback for environments without AES hardware acceleration
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 		},
 
-		PreferServerCipherSuites: true,
-		NextProtos:               []string{"h2"},
+		NextProtos: []string{"h2"},
 	}
 }
 
 func DefaultSSHConfig() ssh.Config {
 	return ssh.Config{
-		// use the defaults prefered by go, see https://github.com/golang/crypto/blob/master/ssh/common.go
+		// Ciphers control the symmetric encryption algorithms used for the SSH session.
+		// By setting Ciphers to nil, we use Go's defaults which are already secure.
+		// See https://github.com/golang/crypto/blob/master/ssh/common.go for the current defaults.
+		// Current defaults include chacha20-poly1305, aes256-gcm, aes128-gcm, etc.
 		Ciphers: nil,
 
-		// CIS recommends a certain set of MAC algorithms to be used in SSH connections. This restricts the set from a more permissive set used by default by Go.
+		// MACs (Message Authentication Codes) ensure message integrity.
+		// We explicitly specify secure MACs rather than using all defaults.
+		// These are ordered by preference with ETM (Encrypt-Then-MAC) variants first,
+		// as they're more secure than standard MAC algorithms.
 		// See https://infosec.mozilla.org/guidelines/openssh.html and https://www.cisecurity.org/cis-benchmarks/
 		MACs: []string{
-			"hmac-sha2-256-etm@openssh.com",
-			"hmac-sha2-256",
+			// ETM variants provide better security by authenticating the encrypted message
+			// rather than the plaintext, preventing specific attack vectors
+			"hmac-sha2-256-etm@openssh.com", // SHA-256 ETM variant (good performance)
+			"hmac-sha2-512-etm@openssh.com", // SHA-512 ETM variant (stronger but slower)
+
+			// Standard variants as fallback for compatibility
+			"hmac-sha2-256", // SHA-256 standard variant
+			"hmac-sha2-512", // SHA-512 standard variant (stronger hash)
 		},
 
-		//[KEX Recommendations for SSH IETF](https://tools.ietf.org/html/draft-ietf-curdle-ssh-kex-sha2-10#section-4)
-		//[Mozilla Openssh Reference](https://infosec.mozilla.org/guidelines/openssh.html)
+		// KeyExchanges control the algorithms used for key exchange during SSH connection setup.
+		// They're ordered by preference - Curve25519 variants are listed first as they provide
+		// the best security properties.
+		// References:
+		// - [KEX Recommendations for SSH IETF](https://tools.ietf.org/html/draft-ietf-curdle-ssh-kex-sha2-10#section-4)
+		// - [Mozilla Openssh Reference](https://infosec.mozilla.org/guidelines/openssh.html)
 		KeyExchanges: []string{
-			"ecdh-sha2-nistp256",
-			"ecdh-sha2-nistp384",
-			"ecdh-sha2-nistp521",
-			"curve25519-sha256@libssh.org",
+			// Curve25519 variants are the most secure option for key exchange
+			"curve25519-sha256@libssh.org", // Original Curve25519 implementation
+			"curve25519-sha256",            // Standardized IETF name for the same algorithm
+
+			// NIST curves as fallback options, in decreasing order of performance and increasing security strength
+			"ecdh-sha2-nistp256", // 256-bit NIST curve (fastest NIST curve)
+			"ecdh-sha2-nistp384", // 384-bit NIST curve (stronger than P-256)
+			"ecdh-sha2-nistp521", // 521-bit NIST curve (strongest but slowest)
 		},
 	}
 }
