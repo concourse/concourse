@@ -49,7 +49,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jackpal/gateway v1.0.16
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/klauspost/compress v1.17.11
+	github.com/klauspost/compress v1.18.0
 	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/mattn/go-colorable v0.1.14
