@@ -145,9 +145,8 @@ type varsTracker struct {
 	expectAllFound bool
 	expectAllUsed  bool
 
-	missing    map[string]struct{}
-	visited    map[string]struct{}
-	visitedAll map[string]struct{} // track all var names that were accessed
+	missing map[string]struct{}
+	visited map[string]struct{} // track all var names that were accessed
 }
 
 func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTracker {
@@ -157,7 +156,6 @@ func newVarsTracker(vars Variables, expectAllFound, expectAllUsed bool) varsTrac
 		expectAllUsed:  expectAllUsed,
 		missing:        map[string]struct{}{},
 		visited:        map[string]struct{}{},
-		visitedAll:     map[string]struct{}{},
 	}
 }
 
@@ -170,7 +168,7 @@ func (t varsTracker) Get(varName string) (any, bool, error) {
 		return nil, false, err
 	}
 
-	t.visitedAll[identifier(varRef)] = struct{}{}
+	t.visited[identifier(varRef)] = struct{}{}
 
 	val, found, err := t.vars.Get(varRef)
 	if !found || err != nil {
@@ -217,7 +215,7 @@ func (t varsTracker) ExtraError() error {
 
 	for _, ref := range allRefs {
 		id := identifier(ref)
-		if _, found := t.visitedAll[id]; !found {
+		if _, found := t.visited[id]; !found {
 			unusedNames[id] = struct{}{}
 		}
 	}
