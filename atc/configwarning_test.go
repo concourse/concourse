@@ -36,25 +36,29 @@ var _ = Describe("ValidateIdentifier", func() {
 		{
 			description: "starts with a number",
 			identifier:  "1something",
-			warningMsg:  "must start with a lowercase letter",
-			warning:     true,
+			warning:     false,
+		},
+		{
+			description: "starts with a number",
+			identifier:  "1_min",
+			warning:     false,
 		},
 		{
 			description: "starts with hyphen",
 			identifier:  "-something",
-			warningMsg:  "must start with a lowercase letter",
+			warningMsg:  "must start with a lowercase letter or a number",
 			warning:     true,
 		},
 		{
 			description: "starts with period",
 			identifier:  ".something",
-			warningMsg:  "must start with a lowercase letter",
+			warningMsg:  "must start with a lowercase letter or a number",
 			warning:     true,
 		},
 		{
 			description: "starts with an uppercase letter",
 			identifier:  "Something",
-			warningMsg:  "must start with a lowercase letter",
+			warningMsg:  "must start with a lowercase letter or a number",
 			warning:     true,
 		},
 		{
