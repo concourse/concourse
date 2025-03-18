@@ -438,12 +438,6 @@ jobs:
 					_, teamId, _, _, _ := fakeBuild.SavePipelineArgsForCall(0)
 					Expect(teamId).To(Equal(fakeTeam.ID()))
 				})
-
-				It("should print an experimental message", func() {
-					Expect(stderr).To(gbytes.Say("WARNING: 'set_pipeline: self' is experimental"))
-					Expect(stderr).To(gbytes.Say("contribute to discussion #5732"))
-					Expect(stderr).To(gbytes.Say("discussions/5732"))
-				})
 			})
 
 			Context("when team is configured", func() {
@@ -513,12 +507,6 @@ jobs:
 							Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 							_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 							Expect(succeeded).To(BeTrue())
-						})
-
-						It("should print an experimental message", func() {
-							Expect(stderr).To(gbytes.Say("WARNING: specifying the team"))
-							Expect(stderr).To(gbytes.Say("contribute to discussion #5731"))
-							Expect(stderr).To(gbytes.Say("discussions/5731"))
 						})
 					})
 

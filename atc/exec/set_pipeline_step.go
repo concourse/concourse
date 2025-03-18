@@ -84,11 +84,6 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	stderr := delegate.Stderr()
 
 	if step.plan.Name == "self" {
-		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: 'set_pipeline: self' is experimental and may be removed in the future!\x1b[0m")
-		fmt.Fprintln(stderr, "")
-		fmt.Fprintln(stderr, "\x1b[33mcontribute to discussion #5732 with feedback: https://github.com/concourse/concourse/discussions/5732\x1b[0m")
-		fmt.Fprintln(stderr, "")
-
 		step.plan.Name = step.metadata.PipelineName
 		step.plan.InstanceVars = step.metadata.PipelineInstanceVars
 		// self must be set to current team, thus ignore team.
@@ -135,11 +130,6 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	if step.plan.Team == "" {
 		team = step.teamFactory.GetByID(step.metadata.TeamID)
 	} else {
-		fmt.Fprintln(stderr, "\x1b[1;33mWARNING: specifying the team in a set_pipeline step is experimental and may be removed in the future!\x1b[0m")
-		fmt.Fprintln(stderr, "")
-		fmt.Fprintln(stderr, "\x1b[33mcontribute to discussion #5731 with feedback: https://github.com/concourse/concourse/discussions/5731\x1b[0m")
-		fmt.Fprintln(stderr, "")
-
 		currentTeam, found, err := step.teamFactory.FindTeam(step.metadata.TeamName)
 		if err != nil {
 			return false, err
