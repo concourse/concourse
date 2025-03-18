@@ -152,11 +152,7 @@ func (c *component) computeDrift() time.Duration {
 	drift := time.Millisecond * time.Duration(d*1000)
 
 	// Cap the drift
-	if drift > maxDrift {
-		drift = maxDrift
-	}
-
-	return drift
+	return min(drift, maxDrift)
 }
 
 func scanComponent(c *component, row scannable) error {
