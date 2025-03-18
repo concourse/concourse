@@ -111,28 +111,51 @@ func (c *component) UpdateLastRan() error {
 
 const maxDrift = 5 * time.Second
 
-// ComputeDrift computes a drift for components scheduler, the drift should help
-// distribute workloads more evenly across ATCs. When numGoroutineThreshold
-// is not set, drift will be a random value in range of [-1, 1] second. When
-// numGoroutineThreshold is set, then drift will be in range of [-1, 5] seconds.
-// Say numGoroutineThreshold is 50000:
-//   - if current numGoroutine is 0 (which is impossible), drift should be -1 second
-//   - if current numGoroutine is 100, drift should be close to -1 second
-//   - if current numGoroutine is 50000 (equals to threshold), drift should be 0
-//   - if current numGoroutine is 100000 (double to threshold), drift should be 1 second
-//   - if current numGoroutine is 150000 (triple to threshold), drift should be 2 seconds
-//   - and so on, but drift will be no longer than 5 seconds
+// ComputeDrift calculates a time offset (drift) for component schedulers to help
+// distribute workloads more evenly across multiple ATCs (Air Traffic Controllers).
+//
+// Purpose:
+// - Prevents thundering herd problems when multiple instances run on the same schedule
+// - Allows busier instances to process jobs later, giving preference to less loaded instances
+// - Creates a natural load-balancing effect across the system
+//
+// Calculation modes:
+//
+// 1. Random drift mode (numGoroutineThreshold == 0):
+//   - Returns a random value in range [-1, 1) second
+//   - Uses the rander to get a pseudo-random int value
+//   - Converts to Duration and applies modulo to constrain range
+//   - Subtracts 1 second to center the range around zero
+//   - This mode ensures even statistical distribution of component execution
+//
+// 2. Load-based drift mode (numGoroutineThreshold > 0):
+//   - Uses goroutine count as a proxy for system load
+//   - Calculates drift proportional to relative load compared to threshold
+//   - Formula: drift = (goroutineCount/threshold - 1) * second
+//   - Range is capped at maxDrift (5 seconds) for very high loads
+//
+// Examples with numGoroutineThreshold = 50000:
+//   - 0 goroutines:     drift = -1 second (runs earlier than scheduled)
+//   - 25000 goroutines: drift = -0.5 seconds
+//   - 50000 goroutines: drift = 0 seconds (runs exactly on schedule)
+//   - 100000 goroutines: drift = +1 second (runs later than scheduled)
+//   - 300000 goroutines: drift = +5 seconds (capped at maxDrift)
+//
+// Note: Negative drift means the component runs earlier than scheduled,
+// while positive drift means it runs later, deferring to less loaded instances.
 func (c *component) computeDrift() time.Duration {
 	if c.numGoroutineThreshold == 0 {
-		drift := time.Duration(c.rander.Int())%(2*time.Second) - time.Second
-		return drift
+		return time.Duration(c.rander.Int())%(2*time.Second) - time.Second
 	}
 
 	d := 2 * float64(c.goRoutineCounter.NumGoroutine()-c.numGoroutineThreshold) / float64(c.numGoroutineThreshold*2)
 	drift := time.Millisecond * time.Duration(d*1000)
+
+	// Cap the drift
 	if drift > maxDrift {
 		drift = maxDrift
 	}
+
 	return drift
 }
 
