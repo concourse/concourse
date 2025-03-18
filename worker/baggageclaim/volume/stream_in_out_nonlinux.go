@@ -10,6 +10,7 @@ import (
 
 	"github.com/concourse/concourse/go-archive/tarfs"
 	"github.com/concourse/concourse/go-archive/tgzfs"
+	"github.com/klauspost/compress/s2"
 	"github.com/klauspost/compress/zstd"
 )
 
@@ -95,6 +96,49 @@ func (streamer *tarZstdStreamer) Out(w io.Writer, src string, privileged bool) e
 	}
 
 	err = zstdStreamWriter.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (streamer *tarS2Streamer) In(stream io.Reader, dest string, privileged bool) (bool, error) {
+	s2StreamReader := s2.NewReader(stream)
+
+	err := tarfs.Extract(s2StreamReader, dest)
+	if err != nil {
+		return true, err
+	}
+
+	return false, nil
+}
+
+func (streamer *tarS2Streamer) Out(w io.Writer, src string, privileged bool) error {
+	fileInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	var tarDir, tarPath string
+
+	if fileInfo.IsDir() {
+		tarDir = src
+		tarPath = "."
+	} else {
+		tarDir = filepath.Dir(src)
+		tarPath = filepath.Base(src)
+	}
+
+	s2StreamWriter := s2.NewWriter(w)
+
+	err = tarfs.Compress(s2StreamWriter, tarDir, tarPath)
+	if err != nil {
+		s2StreamWriter.Close()
+		return err
+	}
+
+	err = s2StreamWriter.Close()
 	if err != nil {
 		return err
 	}

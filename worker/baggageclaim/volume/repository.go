@@ -51,6 +51,7 @@ type repository struct {
 
 	gzipStreamer Streamer
 	zstdStreamer Streamer
+	s2Streamer   Streamer
 	rawStreamer  Streamer
 	namespacer   func(bool) uidgid.Namespacer
 }
@@ -75,6 +76,10 @@ func NewRepository(
 		},
 
 		zstdStreamer: &tarZstdStreamer{
+			namespacer: unprivilegedNamespacer,
+		},
+
+		s2Streamer: &tarS2Streamer{
 			namespacer: unprivilegedNamespacer,
 		},
 
@@ -442,6 +447,8 @@ func (repo *repository) StreamIn(ctx context.Context, handle string, path string
 		badStream, err = repo.zstdStreamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.GzipEncoding:
 		badStream, err = repo.gzipStreamer.In(limitedReader, destinationPath, privileged)
+	case baggageclaim.S2Encoding:
+		badStream, err = repo.s2Streamer.In(limitedReader, destinationPath, privileged)
 	case baggageclaim.RawEncoding:
 		badStream, err = repo.rawStreamer.In(limitedReader, destinationPath, privileged)
 	default:
@@ -497,6 +504,8 @@ func (repo *repository) StreamOut(ctx context.Context, handle string, path strin
 		return repo.zstdStreamer.Out(dest, srcPath, isPrivileged)
 	case baggageclaim.GzipEncoding:
 		return repo.gzipStreamer.Out(dest, srcPath, isPrivileged)
+	case baggageclaim.S2Encoding:
+		return repo.s2Streamer.Out(dest, srcPath, isPrivileged)
 	case baggageclaim.RawEncoding:
 		return repo.rawStreamer.Out(dest, srcPath, isPrivileged)
 	}
@@ -554,6 +563,8 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 			err = repo.zstdStreamer.Out(writer, srcPath, isPrivileged)
 		case baggageclaim.GzipEncoding:
 			err = repo.gzipStreamer.Out(writer, srcPath, isPrivileged)
+		case baggageclaim.S2Encoding:
+			err = repo.s2Streamer.Out(writer, srcPath, isPrivileged)
 		case baggageclaim.RawEncoding:
 			err = repo.rawStreamer.Out(writer, srcPath, isPrivileged)
 		default:
