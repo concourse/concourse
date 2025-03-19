@@ -25,6 +25,12 @@ const (
 	GraceTimeKey = "garden.grace-time"
 )
 
+var (
+	noSuchFile         = regexp.MustCompile(`starting container process caused: exec: .*: stat .*: no such file or directory`)
+	executableNotFound = regexp.MustCompile(`starting container process caused: exec: .*: executable file not found in \$PATH`)
+	pathRegexp         = regexp.MustCompile("^PATH=.*$")
+)
+
 type UserNotFoundError struct {
 	User string
 }
@@ -415,7 +421,6 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 
 // Set a default path based on the UID if no existing PATH is found
 func envWithDefaultPath(uid uint32, currentEnv []string) string {
-	pathRegexp := regexp.MustCompile("^PATH=.*$")
 	pathFound := slices.ContainsFunc(currentEnv, pathRegexp.MatchString)
 	if pathFound {
 		return ""
@@ -451,8 +456,5 @@ func containerdCIO(gdnProcIO garden.ProcessIO, tty bool) []cio.Opt {
 }
 
 func isNoSuchExecutable(err error) bool {
-	noSuchFile := regexp.MustCompile(`starting container process caused: exec: .*: stat .*: no such file or directory`)
-	executableNotFound := regexp.MustCompile(`starting container process caused: exec: .*: executable file not found in \$PATH`)
-
 	return noSuchFile.MatchString(err.Error()) || executableNotFound.MatchString(err.Error())
 }
