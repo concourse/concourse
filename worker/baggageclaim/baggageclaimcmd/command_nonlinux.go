@@ -76,7 +76,7 @@ func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
 	}
 	apiHandler, err := api.NewHandler(
 		logger.Session("api"),
-		volume.NewStrategerizer(),
+		volume.NewStrategizer(),
 		volumeRepo,
 		re,
 		cmd.P2pInterfaceFamily,

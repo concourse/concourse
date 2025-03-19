@@ -82,10 +82,10 @@ var _ = Describe("Volume Server", func() {
 			unprivilegedNamespacer,
 		)
 
-		strategerizer := volume.NewStrategerizer()
+		strategizer := volume.NewStrategizer()
 
 		re := regexp.MustCompile("lo")
-		handler, err = api.NewHandler(logger, strategerizer, repo, re, 4, 7766)
+		handler, err = api.NewHandler(logger, strategizer, repo, re, 4, 7766)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
