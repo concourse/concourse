@@ -2,12 +2,13 @@ package tgzfs
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+
+	"github.com/klauspost/compress/gzip"
 )
 
 func Compress(dest io.Writer, workDir string, paths ...string) error {
