@@ -89,7 +89,7 @@ var _ = Describe("NewRelicEmitter", func() {
 			BeforeEach(func() {
 				testEmitter = emitter.NewRelicEmitter{
 					NewRelicBatch: make([]emitter.NewRelicEvent, 0),
-					BatchDuration: 1 * time.Millisecond,
+					BatchDuration: 1 * time.Second,
 					BatchSize:     100,
 					LastEmitTime:  time.Now(),
 					Url:           server.URL(),
@@ -117,7 +117,6 @@ var _ = Describe("NewRelicEmitter", func() {
 				testEmitter.Emit(testLogger, testEvent)
 				Eventually(server.ReceivedRequests).Should(HaveLen(0))
 				Expect(testEmitter.Batch()).To(HaveLen(1))
-
 			})
 		})
 
