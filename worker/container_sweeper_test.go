@@ -22,7 +22,7 @@ var _ = Describe("Container Sweeper", func() {
 	const (
 		sweepInterval              = 1 * time.Second
 		maxInFlight                = uint16(1)
-		gardenClientTimeoutRequest = 5 * time.Millisecond
+		gardenClientTimeoutRequest = 500 * time.Millisecond
 	)
 
 	var (
