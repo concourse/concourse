@@ -131,13 +131,13 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 }
 
 func replacePasswords(store s.Storage, passwords []storage.Password) error {
-	existing, err := store.ListPasswords()
+	existing, err := store.ListPasswords(context.TODO())
 	if err != nil {
 		return err
 	}
 
 	for _, oldPass := range existing {
-		err = store.DeletePassword(oldPass.Email)
+		err = store.DeletePassword(context.TODO(), oldPass.Email)
 		if err != nil {
 			return err
 		}
@@ -156,13 +156,13 @@ func replacePasswords(store s.Storage, passwords []storage.Password) error {
 }
 
 func replaceClients(store s.Storage, clients []storage.Client) error {
-	existing, err := store.ListClients()
+	existing, err := store.ListClients(context.TODO())
 	if err != nil {
 		return err
 	}
 
 	for _, oldClient := range existing {
-		err = store.DeleteClient(oldClient.ID)
+		err = store.DeleteClient(context.TODO(), oldClient.ID)
 		if err != nil {
 			return err
 		}
@@ -181,13 +181,13 @@ func replaceClients(store s.Storage, clients []storage.Client) error {
 }
 
 func replaceConnectors(store s.Storage, connectors []storage.Connector) error {
-	existing, err := store.ListConnectors()
+	existing, err := store.ListConnectors(context.TODO())
 	if err != nil {
 		return err
 	}
 
 	for _, oldConn := range existing {
-		err = store.DeleteConnector(oldConn.ID)
+		err = store.DeleteConnector(context.TODO(), oldConn.ID)
 		if err != nil {
 			return err
 		}
