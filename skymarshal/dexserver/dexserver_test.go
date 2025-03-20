@@ -1,6 +1,7 @@
 package dexserver_test
 
 import (
+	"context"
 	"sort"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -76,7 +77,7 @@ var _ = Describe("Dex Server", func() {
 		Context("when local users are configured", func() {
 			ConfiguresUsersCorrectly := func() {
 				It("should configure local connector", func() {
-					connectors, err := storage.ListConnectors()
+					connectors, err := storage.ListConnectors(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(connectors[0].ID).To(Equal("local"))
@@ -85,7 +86,7 @@ var _ = Describe("Dex Server", func() {
 				})
 
 				It("should configure local users", func() {
-					passwords, err := storage.ListPasswords()
+					passwords, err := storage.ListPasswords(context.TODO())
 					Expect(err).NotTo(HaveOccurred())
 
 					// we're adding users from a map, which is unordered
@@ -140,7 +141,7 @@ var _ = Describe("Dex Server", func() {
 					})
 
 					It("should update the user's password", func() {
-						passwords, err := storage.ListPasswords()
+						passwords, err := storage.ListPasswords(context.TODO())
 						Expect(err).NotTo(HaveOccurred())
 
 						// we're adding users from a map, which is unordered
@@ -173,7 +174,7 @@ var _ = Describe("Dex Server", func() {
 					})
 
 					It("should remove the user's password", func() {
-						passwords, err := storage.ListPasswords()
+						passwords, err := storage.ListPasswords(context.TODO())
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(len(passwords)).To(Equal(1))
@@ -211,7 +212,7 @@ var _ = Describe("Dex Server", func() {
 			})
 
 			It("should contain the configured clients", func() {
-				clients, err := storage.ListClients()
+				clients, err := storage.ListClients(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 				Expect(clients).To(HaveLen(1))
 				Expect(clients[0].ID).To(Equal("some-client-id"))

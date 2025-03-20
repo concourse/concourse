@@ -1,3 +1,5 @@
+//go:build linux
+
 package runtime_test
 
 import (
@@ -21,7 +23,6 @@ func (s *TimeoutLockSuite) SetupTest() {
 }
 
 // When disabled, can always successfully acquire & release lock
-//
 func (s *TimeoutLockSuite) TestLockWhenDisabled() {
 	lock := runtime.NewTimeoutLimitLock(time.Millisecond*1, false)
 
@@ -37,7 +38,6 @@ func (s *TimeoutLockSuite) TestLockWhenDisabled() {
 }
 
 // When enabled, can successfully acquire & release lock
-//
 func (s *TimeoutLockSuite) TestLockWithTimeout() {
 	lock := runtime.NewTimeoutLimitLock(time.Millisecond*1, true)
 
@@ -48,7 +48,6 @@ func (s *TimeoutLockSuite) TestLockWithTimeout() {
 }
 
 // When enabled, acquiring fails if it timeout elapses
-//
 func (s *TimeoutLockSuite) TestLockWithTimeoutFailure() {
 	lock := runtime.NewTimeoutLimitLock(time.Millisecond*1, true)
 

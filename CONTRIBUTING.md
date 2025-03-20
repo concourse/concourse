@@ -516,6 +516,31 @@ one package is running at a time (the `ginkgo` default). The `go test` default
 is to run each package in parallel, so tests that allocate ports for test
 servers and such will collide with each other.
 
+If you want to run all the unit tests across the entire codebase, use the
+following command, which skips all integration tests and linux-specific tests:
+
+```sh
+ginkgo -r -p -race -flake-attempts=3 \
+    -skip-package ./integration,testflight,topgun,./worker/runtime/integration,./worker/baggageclaim
+```
+
+If you're on a non-linux platform you may want to run the tests using Docker
+instead. Some tests will fail if they aren't run on linux.
+
+```sh
+docker run --privileged -v .:/src -it --entrypoint '/bin/bash' concourse/unit
+```
+
+That will put you inside a container with the codebase mounted at `/src`. Run
+the following to run all the unit tests, including the linux-specific tests:
+
+```sh
+cd /src
+go install github.com/onsi/ginkgo/v2/ginkgo
+ginkgo -r -p -race -flake-attempts=3 \
+    -skip-package ./integration,testflight,topgun,./worker/runtime/integration,./worker/baggageclaim
+```
+
 #### Running elm tests
 
 You can run `yarn test` from the root of the repo or `elm-test` from the
