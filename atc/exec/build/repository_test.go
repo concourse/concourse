@@ -119,6 +119,36 @@ var _ = Describe("ArtifactRepository", func() {
 					}))
 				})
 			})
+
+			Context("with multiple levels of nesting", func() {
+				var grandchild *Repository
+
+				BeforeEach(func() {
+					child.RegisterArtifact("child-artifact", Artifact("child"), false)
+					grandchild = child.NewLocalScope()
+					grandchild.RegisterArtifact("grandchild-artifact", Artifact("grandchild"), false)
+				})
+
+				It("correctly merges all ancestors in AsMap", func() {
+					grandchildMap := grandchild.AsMap()
+
+					// Check the length first
+					Expect(len(grandchildMap)).To(Equal(3), "Grandchild map should have 3 entries")
+
+					// Access values directly to verify they exist
+					firstValue, firstExists := grandchildMap["first-artifact"]
+					Expect(firstExists).To(BeTrue(), "should contain first-artifact")
+					Expect(firstValue.Artifact).To(Equal(Artifact("first")))
+
+					childValue, childExists := grandchildMap["child-artifact"]
+					Expect(childExists).To(BeTrue(), "should contain child-artifact")
+					Expect(childValue.Artifact).To(Equal(Artifact("child")))
+
+					grandchildValue, grandchildExists := grandchildMap["grandchild-artifact"]
+					Expect(grandchildExists).To(BeTrue(), "should contain grandchild-artifact")
+					Expect(grandchildValue.Artifact).To(Equal(Artifact("grandchild")))
+				})
+			})
 		})
 
 		Context("when a second artifact is registered", func() {
