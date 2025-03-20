@@ -1,3 +1,5 @@
+//go:build linux
+
 package integration_test
 
 import (
