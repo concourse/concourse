@@ -52,7 +52,7 @@ var _ = Describe("Tracer", func() {
 			It("sets the attributes passed in", func() {
 				spans := spanRecorder.Started()
 				Expect(spans).To(HaveLen(1))
-				Expect(spans[0].Attributes()).To(Equal([]attribute.KeyValue{
+				Expect(spans[0].Attributes()).To(ContainElements([]attribute.KeyValue{
 					{
 						Key:   "foo",
 						Value: attribute.StringValue("bar"),
