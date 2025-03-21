@@ -3,6 +3,7 @@
 .vscode
 *.iml
 node_modules
+.yarn
 *-packr.go
 tags
 web/public/elm.js
