@@ -112,8 +112,9 @@ Concourse will be running at [localhost:8080](http://localhost:8080). You can
 log in with the username/password as `test`/`test`.
 
 > :warning: **If you are using an M-series mac**, note that they are
-> incompatible with the `containerd` runtime until #1379 is resolved. After
-> downloading the docker-compose file, change:
+> incompatible with the `containerd` runtime until
+> [#1379](https://github.com/concourse/concourse/issues/1379) is resolved.
+> After downloading the docker-compose file, change:
 >
 > `CONCOURSE_WORKER_RUNTIME: "containerd"` to
 >
