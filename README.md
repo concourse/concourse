@@ -111,8 +111,12 @@ Creating docs_concourse_1    ... done
 Concourse will be running at [localhost:8080](http://localhost:8080). You can
 log in with the username/password as `test`/`test`.
 
-> :warning: **If you are using an M-series mac**: M-series macs are incompatible with the `containerd` runtime. After downloading the docker-compose file, change
+> :warning: **If you are using an M-series mac**, note that they are
+> incompatible with the `containerd` runtime. After downloading the
+> docker-compose file, change:
+>
 > `CONCOURSE_WORKER_RUNTIME: "containerd"` to
+>
 > `CONCOURSE_WORKER_RUNTIME: "houdini"`.
 
 Next, install `fly` by downloading it from the web UI and target your local
