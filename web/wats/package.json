@@ -2,6 +2,7 @@
   "name": "wats",
   "version": "1.0.0",
   "description": "Concourse web UI acceptance tests",
+  "type": "module",
   "dependencies": {
     "child-process-promise": "2.2.1",
     "color": "5.0.0",

@@ -1,8 +1,6 @@
-'use strict';
-
-const puppeteer = require('puppeteer');
-const { exec } = require('child-process-promise');
-const { v4: uuidv4 } = require('uuid');
+import puppeteer from 'puppeteer';
+import {exec} from 'child-process-promise';
+import {v4 as uuidv4} from 'uuid';
 
 class Web {
   constructor(url, username, password) {
@@ -46,7 +44,7 @@ class Web {
       polling: 100,
       timeout: 90000
     }, text)
-    .catch(_ => {})
+      .catch(_ => {})
   }
 
   async waitForBackgroundColor(selector, backgroundColor, {timeout = 30000} = {}) {
@@ -59,7 +57,7 @@ class Web {
       selector,
       expectedBackground: backgroundColor.rgb().string(),
     })
-    .catch(_ => {});
+      .catch(_ => {});
   }
 
   async scrollIntoView(selector) {
@@ -100,4 +98,4 @@ class Web {
   }
 }
 
-module.exports = Web;
+export default Web;

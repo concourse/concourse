@@ -1,8 +1,8 @@
-const test = require('ava');
-const Suite = require('../helpers/suite');
+import test from 'ava';
+import Suite from '../helpers/suite.js';
 
-const color = require('color');
-const palette = require('../helpers/palette');
+import color from 'color';
+import palette from '../helpers/palette.js';
 
 test.beforeEach(async t => {
   t.context = new Suite();
@@ -28,7 +28,6 @@ test('shows abort hooks', async t => {
 
   await t.context.web.waitForText("say-bye-from-step");
   await t.context.web.waitForText("say-bye-from-job");
-  // await t.context.web.waitForText("looping");
 
   await t.context.web.page.waitForSelector('button[aria-label="Abort Build"]');
   await t.context.web.page.click('button[aria-label="Abort Build"]');

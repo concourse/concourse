@@ -1,7 +1,7 @@
-const Fly = require('../helpers/fly');
-const Web = require('../helpers/web');
+import Fly from '../helpers/fly.js';
+import Web from '../helpers/web.js';
 
-const test = require('ava');
+import test from 'ava';
 
 test.beforeEach(async t => {
   let url = process.env.ATC_URL || 'http://localhost:8080';
