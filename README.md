@@ -103,15 +103,17 @@ Consult their GitHub repos for more information:
 
 ```sh
 $ wget https://concourse-ci.org/docker-compose.yml
-$ docker-compose up
+$ docker-compose up -d
 Creating docs_concourse-db_1 ... done
 Creating docs_concourse_1    ... done
 ```
 
-Concourse will be running at [127.0.0.1:8080](http://127.0.0.1:8080). You can
+Concourse will be running at [localhost:8080](http://localhost:8080). You can
 log in with the username/password as `test`/`test`.
 
-> :warning: **If you are using an M1 mac**: M1 macs are incompatible with the `containerd` runtime. After downloading the docker-compose file, change `CONCOURSE_WORKER_RUNTIME: "containerd"` to `CONCOURSE_WORKER_RUNTIME: "houdini"`.
+> :warning: **If you are using an M-series mac**: M-series macs are incompatible with the `containerd` runtime. After downloading the docker-compose file, change
+> `CONCOURSE_WORKER_RUNTIME: "containerd"` to
+> `CONCOURSE_WORKER_RUNTIME: "houdini"`.
 **This feature is experimental**
 
 Next, install `fly` by downloading it from the web UI and target your local
@@ -123,6 +125,9 @@ logging in to team 'main'
 
 target saved
 ```
+
+You can follow our [Getting Started Tutorial](https://concourse-ci.org/getting-started.html)
+to learn how to write Concourse pipelines.
 
 ### Configuring a Pipeline
 
@@ -160,10 +165,10 @@ Concourse instance to the next.
 ### Learn More
 
 * The [Official Site](https://concourse-ci.org) for documentation,
-  reference material, and example pipelines (which no longer live in this repository).
+  reference material, and example pipelines.
 * The [Getting Started Tutorial](https://concourse-ci.org/getting-started.html)
   to learn the basics of pipelines
-* See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)
+* See Concourse in action with our [own pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [GitHub discussions](https://github.com/concourse/concourse/discussions) or in
   [Discord](https://discord.gg/MeRxXKW).
 * See what we're working on the [project board](https://github.com/orgs/concourse/projects). 
