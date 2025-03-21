@@ -1,8 +1,8 @@
 'use strict';
 
-let color = require('color');
+import color from 'color';
 
-module.exports = {
+export default {
   "grey100": color("#151515"),
   "grey90": color("#262626"),
   "grey80": color("#363636"),
