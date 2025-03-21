@@ -73,10 +73,66 @@ var _ = Describe("PipelineRef", func() {
 				}},
 				out: `some-pipeline/bool:true,float:123.456,int:123,nil:null`,
 			},
+			{
+				desc: "empty instance vars",
+				ref:  atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{}},
+				out:  "some-pipeline",
+			},
+			{
+				desc: "nil instance vars",
+				ref:  atc.PipelineRef{Name: "some-pipeline", InstanceVars: nil},
+				out:  "some-pipeline",
+			},
+			{
+				desc: "extremely large numbers",
+				ref: atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{
+					"large_int":   9223372036854775807,     // max int64
+					"large_float": 1.7976931348623157e+308, // max float64
+				}},
+				out: `some-pipeline/large_float:1.7976931348623157e+308,large_int:9223372036854775807`,
+			},
+			{
+				desc: "empty string values",
+				ref: atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{
+					"empty": "",
+					"blank": "   ",
+				}},
+				out: `some-pipeline/blank:"   ",empty:""`,
+			},
+			{
+				desc: "strings that could be misinterpreted as JSON",
+				ref: atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{
+					"json_looking":  "{\"key\":\"value\"}",
+					"array_looking": "[1,2,3]",
+				}},
+				out: `some-pipeline/array_looking:"[1,2,3]",json_looking:"{\"key\":\"value\"}"`,
+			},
+			{
+				desc: "special unicode characters",
+				ref: atc.PipelineRef{Name: "some-pipeline", InstanceVars: atc.InstanceVars{
+					"unicode": "こんにちは世界",
+					"emoji":   "🚀 🔥 👍",
+				}},
+				// No fixed output - we'll check contents dynamically
+				out: "",
+			},
 		} {
 			tt := tt
 			It(tt.desc, func() {
-				Expect(tt.ref.String()).To(Equal(tt.out))
+				if tt.desc == "special unicode characters" {
+					result := tt.ref.String()
+					Expect(result).To(HavePrefix("some-pipeline/"))
+
+					// Check that the key names are present without specifying exact format
+					Expect(result).To(ContainSubstring("emoji:"))
+					Expect(result).To(ContainSubstring("unicode:"))
+
+					// Check that the values are present
+					Expect(result).To(ContainSubstring("🚀 🔥 👍"))
+					Expect(result).To(ContainSubstring("こんにちは世界"))
+				} else {
+					Expect(tt.ref.String()).To(Equal(tt.out))
+				}
 			})
 		}
 	})
@@ -106,6 +162,35 @@ var _ = Describe("PipelineRef", func() {
 				desc: "quoted",
 				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"hello.1": map[string]any{"foo:bar": "baz"}}},
 				out:  url.Values{`vars."hello.1"."foo:bar"`: []string{`"baz"`}},
+			},
+			{
+				desc: "empty map instance vars",
+				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{}},
+				out:  nil,
+			},
+			{
+				desc: "special unicode characters",
+				ref:  atc.PipelineRef{InstanceVars: atc.InstanceVars{"emoji": "🚀", "unicode": "世界"}},
+				out:  url.Values{"vars.emoji": []string{`"🚀"`}, "vars.unicode": []string{`"世界"`}},
+			},
+			{
+				desc: "deeply nested complex structure",
+				ref: atc.PipelineRef{InstanceVars: atc.InstanceVars{
+					"complex": map[string]any{
+						"nested": map[string]any{
+							"array": []any{1, "two", map[string]any{"inner": true}},
+							"deep": map[string]any{
+								"deeper": map[string]any{
+									"deepest": "value",
+								},
+							},
+						},
+					},
+				}},
+				out: url.Values{
+					"vars.complex.nested.array":               []string{`[1,"two",{"inner":true}]`},
+					"vars.complex.nested.deep.deeper.deepest": []string{`"value"`},
+				},
 			},
 		} {
 			tt := tt
@@ -204,6 +289,73 @@ var _ = Describe("PipelineRef", func() {
 					`vars.foo`: {`"123`},
 				},
 				err: "unexpected end of JSON input",
+			},
+			{
+				desc:  "nil query params",
+				query: nil,
+				out:   nil,
+			},
+			{
+				desc: "malformed reference",
+				query: url.Values{
+					`vars.foo..bar`: {`123`},
+				},
+				err: "invalid var",
+			},
+			{
+				desc: "invalid JSON with detailed error message",
+				query: url.Values{
+					`vars.foo`: {`{"unclosed": "object"`},
+				},
+				err: "unexpected end of JSON input",
+			},
+			{
+				desc: "unicode characters and emojis",
+				query: url.Values{
+					`vars.unicode`: {`"こんにちは世界"`},
+					`vars.emoji`:   {`"🚀 🔥 👍"`},
+				},
+				out: atc.InstanceVars{
+					"unicode": "こんにちは世界",
+					"emoji":   "🚀 🔥 👍",
+				},
+			},
+			{
+				desc: "complex nested structure",
+				query: url.Values{
+					`vars.complex.nested.array`:               {`[1,"two",{"inner":true}]`},
+					`vars.complex.nested.deep.deeper.deepest`: {`"value"`},
+				},
+				out: atc.InstanceVars{
+					"complex": map[string]any{
+						"nested": map[string]any{
+							"array": []any{1.0, "two", map[string]any{"inner": true}},
+							"deep": map[string]any{
+								"deeper": map[string]any{
+									"deepest": "value",
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				desc: "overlapping vars with both root and specific fields",
+				query: url.Values{
+					`vars`:                {`{"a":{"nested":{"value":1}},"b":"original"}`},
+					`vars.a.nested.value`: {`2`},
+					`vars.b`:              {`"overridden"`},
+					`vars.c`:              {`"new"`},
+				},
+				out: atc.InstanceVars{
+					"a": map[string]any{
+						"nested": map[string]any{
+							"value": 2.0,
+						},
+					},
+					"b": "overridden",
+					"c": "new",
+				},
 			},
 		} {
 			tt := tt
