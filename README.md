@@ -114,7 +114,6 @@ log in with the username/password as `test`/`test`.
 > :warning: **If you are using an M-series mac**: M-series macs are incompatible with the `containerd` runtime. After downloading the docker-compose file, change
 > `CONCOURSE_WORKER_RUNTIME: "containerd"` to
 > `CONCOURSE_WORKER_RUNTIME: "houdini"`.
-**This feature is experimental**
 
 Next, install `fly` by downloading it from the web UI and target your local
 Concourse as the `test` user:
