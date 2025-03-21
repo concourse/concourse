@@ -11,20 +11,28 @@ import (
 )
 
 type CredHubAtc struct {
-	CredHub *LazyCredhub
-	logger  lager.Logger
-	prefix  string
+	CredHub  *LazyCredhub
+	logger   lager.Logger
+	prefix   string
+	prefixes []string
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
 func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
+	prefixes := getPrefixes(c.prefixes, c.prefix)
 	if len(pipelineName) > 0 {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName, pipelineName)+"/"))
+		for _, prefix := range prefixes {
+			lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(prefix, teamName, pipelineName)+"/"))
+		}
 	}
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName)+"/"))
+	for _, prefix := range prefixes {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(prefix, teamName)+"/"))
+	}
 	if allowRootPath {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(c.prefix+"/"))
+		for _, prefix := range prefixes {
+			lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(prefix+"/"))
+		}
 	}
 	return lookupPaths
 }
@@ -73,4 +81,11 @@ func (c CredHubAtc) findCred(path string) (credentials.Credential, bool, error) 
 	}
 
 	return cred, true, nil
+}
+
+func getPrefixes(prefixes []string, prefix string) []string {
+	if prefix != "" {
+		prefixes = append(prefixes, prefix)
+	}
+	return prefixes
 }
