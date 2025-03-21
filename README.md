@@ -14,6 +14,7 @@ complex.
 Concourse is very opinionated about a few things: idempotency, immutability,
 declarative config, stateless workers, and reproducible builds.
 
+<!--- Leaving this here for now my for my own reference
 ## The road to Concourse v10
 
 [Concourse v10][v10] is the code name for a set of features which, when used
@@ -82,6 +83,7 @@ support such common functionality the "Concoursey way!" 🙏
 
 [v10]: https://blog.concourse-ci.org/2019/07/17/core-roadmap-towards-v10.html
 [prototypes]: https://blog.concourse-ci.org/2019/10/15/reinventing-resource-types.html
+--->
 
 ## Installation
 
@@ -159,8 +161,8 @@ Concourse instance to the next.
 
 * The [Official Site](https://concourse-ci.org) for documentation,
   reference material, and example pipelines (which no longer live in this repository).
-* The [Concourse Tutorial](https://concoursetutorial.com) by Stark & Wayne is
-  great for a guided introduction to all the core concepts.
+* The [Getting Started Tutorial](https://concourse-ci.org/getting-started.html)
+  to learn the basics of pipelines
 * See Concourse in action with our [production pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [GitHub discussions](https://github.com/concourse/concourse/discussions) or in
   [Discord](https://discord.gg/MeRxXKW).
