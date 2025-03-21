@@ -24,5 +24,6 @@
   "homepage": "https://github.com/concourse/concourse#readme",
   "ava": {
     "timeout": "5m"
-  }
+  },
+  "packageManager": "yarn@4.7.0"
 }
