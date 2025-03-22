@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
+	"github.com/klauspost/compress/s2"
 	"github.com/klauspost/compress/zstd"
 )
 
@@ -147,6 +148,74 @@ func (streamer *tarGzipStreamer) Out(w io.Writer, src string, privileged bool) e
 	tarCommand.Stderr = os.Stderr
 
 	err = tarCommand.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (streamer *tarS2Streamer) In(ts2Input io.Reader, dest string, privileged bool) (bool, error) {
+	tarCommand, dirFd, err := tarCmd(streamer.namespacer, privileged, dest, "-xf", "-")
+	if err != nil {
+		return false, err
+	}
+
+	defer dirFd.Close()
+
+	s2DecompressedStream := s2.NewReader(ts2Input)
+
+	tarCommand.Stdin = s2DecompressedStream
+	tarCommand.Stdout = os.Stderr
+	tarCommand.Stderr = os.Stderr
+
+	err = tarCommand.Run()
+	if err != nil {
+		if _, ok := err.(*exec.ExitError); ok {
+			return true, err
+		}
+
+		return false, err
+	}
+
+	return false, nil
+}
+
+func (streamer *tarS2Streamer) Out(ts2Output io.Writer, src string, privileged bool) error {
+	fileInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+
+	var tarCommandPath, tarCommandDir string
+
+	if fileInfo.IsDir() {
+		tarCommandPath = "."
+		tarCommandDir = src
+	} else {
+		tarCommandPath = filepath.Base(src)
+		tarCommandDir = filepath.Dir(src)
+	}
+
+	tarCommand, dirFd, err := tarCmd(streamer.namespacer, privileged, tarCommandDir, "-cf", "-", tarCommandPath)
+	if err != nil {
+		return err
+	}
+
+	defer dirFd.Close()
+
+	s2Compressor := s2.NewWriter(ts2Output)
+
+	tarCommand.Stdout = s2Compressor
+	tarCommand.Stderr = os.Stderr
+
+	err = tarCommand.Run()
+	if err != nil {
+		_ = s2Compressor.Close()
+		return err
+	}
+
+	err = s2Compressor.Close()
 	if err != nil {
 		return err
 	}
