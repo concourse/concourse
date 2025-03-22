@@ -4,6 +4,7 @@
   "main": "index.js",
   "repository": "https://github.com/concourse/concourse",
   "license": "Apache-2.0",
+  "type": "module",
   "dependencies": {
     "request": "^2.86.0"
   },

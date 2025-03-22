@@ -1,5 +1,3 @@
-'use strict';
-
 import color from 'color';
 
 export default {

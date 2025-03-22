@@ -1,6 +1,6 @@
 import {exec, spawn} from 'child-process-promise';
-import {v4 as uuidv4} from 'uuid';
 import tmp from 'tmp-promise';
+import {v4 as uuidv4} from 'uuid';
 
 export class Fly {
   constructor(url, username, password, teamName) {
