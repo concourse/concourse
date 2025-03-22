@@ -1,10 +1,8 @@
-'use strict';
+import {exec, spawn} from 'child-process-promise';
+import tmp from 'tmp-promise';
+import {v4 as uuidv4} from 'uuid';
 
-const { exec, spawn } = require('child-process-promise');
-const { v4: uuidv4 } = require('uuid');
-const tmp = require('tmp-promise');
-
-class Fly {
+export class Fly {
   constructor(url, username, password, teamName) {
     this.url = url;
     this.username = username;
@@ -20,7 +18,7 @@ class Fly {
   }
 
   async setupHome() {
-    this.home = await tmp.dir({ unsafeCleanup: true });
+    this.home = await tmp.dir({unsafeCleanup: true});
   }
 
   async init() {
@@ -68,4 +66,4 @@ class Fly {
   }
 }
 
-module.exports = Fly;
+export default Fly;

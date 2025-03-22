@@ -4,15 +4,17 @@
   "main": "index.js",
   "repository": "https://github.com/concourse/concourse",
   "license": "Apache-2.0",
+  "type": "module",
   "dependencies": {
-    "request": "^2.86.0"
+    "request": "^2.86.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.8",
     "@babel/plugin-syntax-dynamic-import": "7.8.3",
     "@babel/preset-env": "^7.25.8",
     "@mdi/svg": "7.4.47",
-    "babel-loader": "^9.2.1",
+    "babel-loader": "^10.0.0",
     "child-process-promise": "2.2.1",
     "clean-css-cli": "5.6.3",
     "elm": "0.19.1-6",
@@ -41,5 +43,6 @@
     "build-elm-debug": "cd web/elm && elm make --debug --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" | tr -d '\n' > web/public/mdi-svg.min.js",
     "benchmark": "cd web/elm && elm make --optimize --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
-  }
+  },
+  "packageManager": "yarn@4.7.0"
 }

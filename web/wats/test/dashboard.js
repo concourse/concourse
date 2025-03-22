@@ -1,10 +1,10 @@
-const Web = require('../helpers/web');
+import Web from '../helpers/web.js';
 
-const test = require('ava');
-const Suite = require('../helpers/suite');
+import test from 'ava';
+import Suite from '../helpers/suite.js';
 
-const color = require('color');
-const palette = require('../helpers/palette');
+import color from 'color';
+import palette from '../helpers/palette.js';
 
 test.beforeEach(async t => {
   t.context = new Suite();
@@ -34,7 +34,7 @@ test('does not show team name when unauthenticated and team has no exposed pipel
 
 test('does not show team name when user is logged in another non-main team and has no exposed pipelines', async t => {
   await t.context.fly.run('set-pipeline -n -p some-pipeline -c fixtures/states-pipeline.yml');
-  await t.context.fly.run('login -n ' + t.context.guestTeamName + ' -u '+ t.context.guestUsername +' -p ' + t.context.guestPassword);
+  await t.context.fly.run('login -n ' + t.context.guestTeamName + ' -u ' + t.context.guestUsername + ' -p ' + t.context.guestPassword);
   await t.context.fly.run('set-pipeline -n -p non-main-pipeline -c fixtures/states-pipeline.yml');
 
   let web = await Web.build(t.context.url, t.context.guestUsername, t.context.guestPassword);
@@ -107,7 +107,7 @@ test('picks up cluster name from configuration', async t => {
   }, {timeout: 10000}, {
     selector: clusterNameSelector,
   })
-  .catch(_ => {});
+    .catch(_ => {});
 
   const clusterName = await t.context.web.page.$eval(clusterNameSelector, el => el.innerText);
 

@@ -1,6 +1,6 @@
-const test = require('ava');
+import test from 'ava';
 
-const Suite = require('../helpers/suite');
+import Suite from '../helpers/suite.js';
 
 test.beforeEach(async t => {
   t.context = new Suite();

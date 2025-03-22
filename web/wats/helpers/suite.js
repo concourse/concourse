@@ -1,6 +1,6 @@
-const Fly = require('./fly');
-const Web = require('./web');
-const { v4: uuidv4 } = require('uuid');
+import Fly from './fly.js';
+import Web from './web.js';
+import {v4 as uuidv4} from 'uuid';
 
 // silence warning caused by starting many puppeteer
 process.setMaxListeners(Infinity);
@@ -70,4 +70,4 @@ class Suite {
   }
 }
 
-module.exports = Suite;
+export default Suite;

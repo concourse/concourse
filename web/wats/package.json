@@ -2,12 +2,13 @@
   "name": "wats",
   "version": "1.0.0",
   "description": "Concourse web UI acceptance tests",
+  "type": "module",
   "dependencies": {
     "child-process-promise": "2.2.1",
-    "color": "4.2.3",
+    "color": "5.0.0",
     "puppeteer": "^24.0.0",
     "tmp-promise": "3.0.3",
-    "uuid": "11.0.5"
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "ava": "6.2.0"
@@ -24,5 +25,6 @@
   "homepage": "https://github.com/concourse/concourse#readme",
   "ava": {
     "timeout": "5m"
-  }
+  },
+  "packageManager": "yarn@4.7.0"
 }
