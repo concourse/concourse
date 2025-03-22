@@ -6,7 +6,8 @@
   "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
-    "request": "^2.86.0"
+    "request": "^2.86.0",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.8",
