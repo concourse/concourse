@@ -2,7 +2,7 @@ module github.com/concourse/concourse
 
 go 1.24
 
-toolchain go1.24.0
+toolchain go1.24.1
 
 require (
 	code.cloudfoundry.org/clock v1.31.0
@@ -30,10 +30,11 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/coreos/go-iptables v0.8.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
-	github.com/cyberark/conjur-api-go v0.12.13
+	github.com/cyberark/conjur-api-go v0.12.14
 	github.com/fatih/color v1.18.0
 	github.com/felixge/httpsnoop v1.0.4
-	github.com/go-jose/go-jose/v3 v3.0.4
+	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.16.0
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
@@ -46,7 +47,7 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
-	github.com/jackc/pgx/v5 v5.7.2
+	github.com/jackc/pgx/v5 v5.7.3
 	github.com/jackpal/gateway v1.0.16
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.18.0
@@ -58,8 +59,8 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/miekg/dns v1.1.64
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/onsi/ginkgo/v2 v2.23.1
-	github.com/onsi/gomega v1.36.2
+	github.com/onsi/ginkgo/v2 v2.23.3
+	github.com/onsi/gomega v1.36.3
 	github.com/opencontainers/runc v1.2.6
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -210,7 +211,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.7 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-ldap/ldap/v3 v3.4.10 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
