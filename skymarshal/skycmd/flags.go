@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-viper/mapstructure/v2"
 	flags "github.com/jessevdk/go-flags"
-	"github.com/mitchellh/mapstructure"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
