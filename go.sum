@@ -619,8 +619,6 @@ code.cloudfoundry.org/lager/v3 v3.30.0 h1:doVyqsEPz+SnM2DgOfKGcNXEvYbjKr6PrR88iv
 code.cloudfoundry.org/lager/v3 v3.30.0/go.mod h1:3nPT1LzO+fPChWArPw1gzHB2F7CY9snqMKNIKAnt+r4=
 code.cloudfoundry.org/localip v0.34.0 h1:q9+fmeWamEALp33cGfkMF/NzgQ4zErzl4Fv2Ac9az18=
 code.cloudfoundry.org/localip v0.34.0/go.mod h1:8914yKYzBAXSMpBA2tEw7o8WtwW2Cb3jFJUZnFKfhDk=
-code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50 h1:y+DtLO/eX/9NZjGGHntWs1bNG6uxdql8SqrHzu6VH3Q=
-code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50/go.mod h1:GyubIUn2eHGSlpIqJhGKBKicAe6CUV/pQJosfNEHdo4=
 dario.cat/mergo v1.0.1 h1:Ra4+bf83h2ztPIQYNP99R6m+Y7KfnARDfID+a+vLl4s=
 dario.cat/mergo v1.0.1/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
