@@ -6,7 +6,7 @@ package pty
 import (
 	"os"
 
-	"github.com/kr/pty"
+	"github.com/creack/pty"
 )
 
 func Open() (PTY, error) {
