@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/errdefs"
+	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/errdefs"
 )
 
 type Process struct {

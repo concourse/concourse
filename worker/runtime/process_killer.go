@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/containerd"
+	containerd "github.com/containerd/containerd/v2/client"
 )
 
 //counterfeiter:generate . ProcessKiller

@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/errdefs"
+	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/pkg/cio"
+	"github.com/containerd/errdefs"
 	"github.com/google/uuid"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )

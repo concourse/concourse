@@ -11,7 +11,7 @@ import (
 
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
-	"github.com/containerd/containerd"
+	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

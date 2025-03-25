@@ -58,7 +58,7 @@ type FakeFileStore struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -76,7 +76,7 @@ func (fake *FakeFileStore) Append(arg1 string, arg2 []byte) error {
 	}{arg1, arg2Copy})
 	stub := fake.AppendStub
 	fakeReturns := fake.appendReturns
-	fake.recordInvocation("Append", []any{arg1, arg2Copy})
+	fake.recordInvocation("Append", []interface{}{arg1, arg2Copy})
 	fake.appendMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -137,7 +137,7 @@ func (fake *FakeFileStore) ContainerIpLookup(arg1 string) (string, error) {
 	}{arg1})
 	stub := fake.ContainerIpLookupStub
 	fakeReturns := fake.containerIpLookupReturns
-	fake.recordInvocation("ContainerIpLookup", []any{arg1})
+	fake.recordInvocation("ContainerIpLookup", []interface{}{arg1})
 	fake.containerIpLookupMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -207,7 +207,7 @@ func (fake *FakeFileStore) Create(arg1 string, arg2 []byte) (string, error) {
 	}{arg1, arg2Copy})
 	stub := fake.CreateStub
 	fakeReturns := fake.createReturns
-	fake.recordInvocation("Create", []any{arg1, arg2Copy})
+	fake.recordInvocation("Create", []interface{}{arg1, arg2Copy})
 	fake.createMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -271,7 +271,7 @@ func (fake *FakeFileStore) Delete(arg1 string) error {
 	}{arg1})
 	stub := fake.DeleteStub
 	fakeReturns := fake.deleteReturns
-	fake.recordInvocation("Delete", []any{arg1})
+	fake.recordInvocation("Delete", []interface{}{arg1})
 	fake.deleteMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -324,7 +324,7 @@ func (fake *FakeFileStore) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeFileStore) Invocations() map[string][][]any {
+func (fake *FakeFileStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.appendMutex.RLock()
@@ -335,21 +335,21 @@ func (fake *FakeFileStore) Invocations() map[string][][]any {
 	defer fake.createMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeFileStore) recordInvocation(key string, args []any) {
+func (fake *FakeFileStore) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

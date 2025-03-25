@@ -101,7 +101,7 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 		},
 	)
 
-	return
+	return oci, nil
 }
 
 // OciSpecBindMounts converts garden bindmounts to oci spec mounts.

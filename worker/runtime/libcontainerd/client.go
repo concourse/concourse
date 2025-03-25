@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containerd/containerd"
+	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 
 //counterfeiter:generate . Client
-//counterfeiter:generate github.com/containerd/containerd.Container
-//counterfeiter:generate github.com/containerd/containerd.Task
-//counterfeiter:generate github.com/containerd/containerd.Process
-//counterfeiter:generate github.com/containerd/containerd/cio.IO
+//counterfeiter:generate github.com/containerd/containerd/v2/client.Container
+//counterfeiter:generate github.com/containerd/containerd/v2/client.Task
+//counterfeiter:generate github.com/containerd/containerd/v2/client.Process
+//counterfeiter:generate github.com/containerd/containerd/v2/pkg/cio.IO
 
 // Client represents the minimum interface used to communicate with containerd
 // to manage containers.
-//
 type Client interface {
 
 	// Init provides the initialization of internal structures necessary by
