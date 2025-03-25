@@ -170,7 +170,12 @@ func (m *Monitor) emit(logger lager.Logger, event Event) {
 	event.Host = m.eventHost
 	event.Time = time.Now()
 
-	mergedAttributes := map[string]string{}
+	attrCount := len(m.eventAttributes)
+	if event.Attributes != nil {
+		attrCount += len(event.Attributes)
+	}
+
+	mergedAttributes := make(map[string]string, attrCount)
 	for k, v := range m.eventAttributes {
 		mergedAttributes[k] = v
 	}
