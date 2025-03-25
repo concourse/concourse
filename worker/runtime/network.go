@@ -5,7 +5,7 @@ package runtime
 import (
 	"context"
 
-	"github.com/containerd/containerd"
+	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 

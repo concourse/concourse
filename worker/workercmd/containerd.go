@@ -37,7 +37,7 @@ func WriteDefaultContainerdConfig(dest string) error {
 	//                   reason about potential problems down the road.
 	//
 	const config = `
-version = 2
+version = 3
 
 oom_score = -999
 disabled_plugins = ["io.containerd.grpc.v1.cri", "io.containerd.snapshotter.v1.aufs", "io.containerd.snapshotter.v1.btrfs", "io.containerd.snapshotter.v1.zfs"]

@@ -472,6 +472,8 @@ func (s *SpecSuite) TestContainerSpec() {
 						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
 					}
 				}
+				s.Empty(oci.Linux.MaskedPaths)
+				s.Empty(oci.Linux.ReadonlyPaths)
 			},
 		},
 		{

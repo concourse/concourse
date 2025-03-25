@@ -23,7 +23,7 @@ import (
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	"github.com/concourse/concourse/worker/workercmd"
-	"github.com/containerd/containerd"
+	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/jackpal/gateway"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -1052,7 +1052,7 @@ func (s *IntegrationSuite) TestPropertiesGetChunked() {
 	handle := uuid()
 
 	longString := ""
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		longString += strconv.Itoa(i)
 	}
 
