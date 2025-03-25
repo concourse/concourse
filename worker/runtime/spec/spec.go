@@ -237,9 +237,11 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccom
 			Resources: &specs.LinuxResources{
 				Devices: AnyContainerDevices,
 			},
-			Devices:     Devices(privilegedMode, privileged),
-			UIDMappings: OciIDMappings(privilegedMode, privileged, maxUid),
-			GIDMappings: OciIDMappings(privilegedMode, privileged, maxGid),
+			Devices:       Devices(privilegedMode, privileged),
+			UIDMappings:   OciIDMappings(privilegedMode, privileged, maxUid),
+			GIDMappings:   OciIDMappings(privilegedMode, privileged, maxGid),
+			MaskedPaths:   maskedPaths(privileged, privilegedMode),
+			ReadonlyPaths: readOnlyPaths(privileged, privilegedMode),
 		},
 		Mounts: ContainerMounts(privilegedMode, privileged, initBinPath),
 	}

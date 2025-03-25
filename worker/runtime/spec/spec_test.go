@@ -7,6 +7,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/containers/common/pkg/config"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
@@ -437,6 +438,8 @@ func (s *SpecSuite) TestContainerSpec() {
 				s.Equal("/", oci.Process.Cwd)
 				s.Equal([]string{"/tmp/gdn-init"}, oci.Process.Args)
 				s.Equal(oci.Mounts, spec.ContainerMounts(spec.FullPrivilegedMode, false, spec.DefaultInitBinPath))
+				s.Equal(config.DefaultMaskedPaths, oci.Linux.MaskedPaths)
+				s.Equal(config.DefaultReadOnlyPaths, oci.Linux.ReadonlyPaths)
 
 				s.Equal("/tmp/gdn-init", oci.Mounts[len(oci.Mounts)-1].Destination,
 					"gdn-init mount should be mounted after all the other default mounts")
@@ -471,6 +474,8 @@ func (s *SpecSuite) TestContainerSpec() {
 						s.NotContains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
 					}
 				}
+				s.Empty(oci.Linux.MaskedPaths)
+				s.Empty(oci.Linux.ReadonlyPaths)
 			},
 		},
 		{
@@ -500,6 +505,8 @@ func (s *SpecSuite) TestContainerSpec() {
 						s.Contains(ociMount.Options, "ro", "%s: %s", ociMount.Destination, ociMount.Type)
 					}
 				}
+				s.Equal(config.DefaultMaskedPaths, oci.Linux.MaskedPaths)
+				s.Equal(config.DefaultReadOnlyPaths, oci.Linux.ReadonlyPaths)
 			},
 		},
 		{

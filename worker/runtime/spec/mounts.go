@@ -3,6 +3,7 @@
 package spec
 
 import (
+	"github.com/containers/common/pkg/config"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -91,4 +92,18 @@ func systemCgroupType() string {
 		return "cgroup2"
 	}
 	return "cgroup"
+}
+
+func maskedPaths(privileged bool, privilegedMode PrivilegedMode) []string {
+	if privileged && privilegedMode != IgnorePrivilegedMode {
+		return nil
+	}
+	return config.DefaultMaskedPaths
+}
+
+func readOnlyPaths(privileged bool, privilegedMode PrivilegedMode) []string {
+	if privileged && privilegedMode != IgnorePrivilegedMode {
+		return nil
+	}
+	return config.DefaultReadOnlyPaths
 }
