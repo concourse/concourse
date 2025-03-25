@@ -81,6 +81,8 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 
 	resources := OciResources(gdn.Limits, isSwapLimitEnabled)
 	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, privilegedMode, gdn.Privileged)
+	maskedPaths := maskedPaths(gdn.Privileged, privilegedMode)
+	readonlyPaths := readOnlyPaths(gdn.Privileged, privilegedMode)
 
 	oci = merge(
 		defaultGardenOciSpec(initBinPath, seccomp, seccompFuse, privilegedMode, gdn.Privileged, maxUid, maxGid),
@@ -95,13 +97,15 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 			Mounts:      mounts,
 			Annotations: map[string]string(gdn.Properties),
 			Linux: &specs.Linux{
-				Resources:   resources,
-				CgroupsPath: cgroupsPath,
+				Resources:     resources,
+				CgroupsPath:   cgroupsPath,
+				MaskedPaths:   maskedPaths,
+				ReadonlyPaths: readonlyPaths,
 			},
 		},
 	)
 
-	return
+	return oci, nil
 }
 
 // OciSpecBindMounts converts garden bindmounts to oci spec mounts.
@@ -237,11 +241,9 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccom
 			Resources: &specs.LinuxResources{
 				Devices: AnyContainerDevices,
 			},
-			Devices:       Devices(privilegedMode, privileged),
-			UIDMappings:   OciIDMappings(privilegedMode, privileged, maxUid),
-			GIDMappings:   OciIDMappings(privilegedMode, privileged, maxGid),
-			MaskedPaths:   maskedPaths(privileged, privilegedMode),
-			ReadonlyPaths: readOnlyPaths(privileged, privilegedMode),
+			Devices:     Devices(privilegedMode, privileged),
+			UIDMappings: OciIDMappings(privilegedMode, privileged, maxUid),
+			GIDMappings: OciIDMappings(privilegedMode, privileged, maxGid),
 		},
 		Mounts: ContainerMounts(privilegedMode, privileged, initBinPath),
 	}

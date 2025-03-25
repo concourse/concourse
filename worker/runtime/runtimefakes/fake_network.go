@@ -6,16 +6,16 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/v2/client"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type FakeNetwork struct {
-	AddStub        func(context.Context, containerd.Task, string) error
+	AddStub        func(context.Context, client.Task, string) error
 	addMutex       sync.RWMutex
 	addArgsForCall []struct {
 		arg1 context.Context
-		arg2 containerd.Task
+		arg2 client.Task
 		arg3 string
 	}
 	addReturns struct {
@@ -35,11 +35,11 @@ type FakeNetwork struct {
 	dropContainerTrafficReturnsOnCall map[int]struct {
 		result1 error
 	}
-	RemoveStub        func(context.Context, containerd.Task, string) error
+	RemoveStub        func(context.Context, client.Task, string) error
 	removeMutex       sync.RWMutex
 	removeArgsForCall []struct {
 		arg1 context.Context
-		arg2 containerd.Task
+		arg2 client.Task
 		arg3 string
 	}
 	removeReturns struct {
@@ -82,21 +82,21 @@ type FakeNetwork struct {
 		result1 []specs.Mount
 		result2 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeNetwork) Add(arg1 context.Context, arg2 containerd.Task, arg3 string) error {
+func (fake *FakeNetwork) Add(arg1 context.Context, arg2 client.Task, arg3 string) error {
 	fake.addMutex.Lock()
 	ret, specificReturn := fake.addReturnsOnCall[len(fake.addArgsForCall)]
 	fake.addArgsForCall = append(fake.addArgsForCall, struct {
 		arg1 context.Context
-		arg2 containerd.Task
+		arg2 client.Task
 		arg3 string
 	}{arg1, arg2, arg3})
 	stub := fake.AddStub
 	fakeReturns := fake.addReturns
-	fake.recordInvocation("Add", []any{arg1, arg2, arg3})
+	fake.recordInvocation("Add", []interface{}{arg1, arg2, arg3})
 	fake.addMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -113,13 +113,13 @@ func (fake *FakeNetwork) AddCallCount() int {
 	return len(fake.addArgsForCall)
 }
 
-func (fake *FakeNetwork) AddCalls(stub func(context.Context, containerd.Task, string) error) {
+func (fake *FakeNetwork) AddCalls(stub func(context.Context, client.Task, string) error) {
 	fake.addMutex.Lock()
 	defer fake.addMutex.Unlock()
 	fake.AddStub = stub
 }
 
-func (fake *FakeNetwork) AddArgsForCall(i int) (context.Context, containerd.Task, string) {
+func (fake *FakeNetwork) AddArgsForCall(i int) (context.Context, client.Task, string) {
 	fake.addMutex.RLock()
 	defer fake.addMutex.RUnlock()
 	argsForCall := fake.addArgsForCall[i]
@@ -157,7 +157,7 @@ func (fake *FakeNetwork) DropContainerTraffic(arg1 string) error {
 	}{arg1})
 	stub := fake.DropContainerTrafficStub
 	fakeReturns := fake.dropContainerTrafficReturns
-	fake.recordInvocation("DropContainerTraffic", []any{arg1})
+	fake.recordInvocation("DropContainerTraffic", []interface{}{arg1})
 	fake.dropContainerTrafficMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -210,17 +210,17 @@ func (fake *FakeNetwork) DropContainerTrafficReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
-func (fake *FakeNetwork) Remove(arg1 context.Context, arg2 containerd.Task, arg3 string) error {
+func (fake *FakeNetwork) Remove(arg1 context.Context, arg2 client.Task, arg3 string) error {
 	fake.removeMutex.Lock()
 	ret, specificReturn := fake.removeReturnsOnCall[len(fake.removeArgsForCall)]
 	fake.removeArgsForCall = append(fake.removeArgsForCall, struct {
 		arg1 context.Context
-		arg2 containerd.Task
+		arg2 client.Task
 		arg3 string
 	}{arg1, arg2, arg3})
 	stub := fake.RemoveStub
 	fakeReturns := fake.removeReturns
-	fake.recordInvocation("Remove", []any{arg1, arg2, arg3})
+	fake.recordInvocation("Remove", []interface{}{arg1, arg2, arg3})
 	fake.removeMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -237,13 +237,13 @@ func (fake *FakeNetwork) RemoveCallCount() int {
 	return len(fake.removeArgsForCall)
 }
 
-func (fake *FakeNetwork) RemoveCalls(stub func(context.Context, containerd.Task, string) error) {
+func (fake *FakeNetwork) RemoveCalls(stub func(context.Context, client.Task, string) error) {
 	fake.removeMutex.Lock()
 	defer fake.removeMutex.Unlock()
 	fake.RemoveStub = stub
 }
 
-func (fake *FakeNetwork) RemoveArgsForCall(i int) (context.Context, containerd.Task, string) {
+func (fake *FakeNetwork) RemoveArgsForCall(i int) (context.Context, client.Task, string) {
 	fake.removeMutex.RLock()
 	defer fake.removeMutex.RUnlock()
 	argsForCall := fake.removeArgsForCall[i]
@@ -281,7 +281,7 @@ func (fake *FakeNetwork) ResumeContainerTraffic(arg1 string) error {
 	}{arg1})
 	stub := fake.ResumeContainerTrafficStub
 	fakeReturns := fake.resumeContainerTrafficReturns
-	fake.recordInvocation("ResumeContainerTraffic", []any{arg1})
+	fake.recordInvocation("ResumeContainerTraffic", []interface{}{arg1})
 	fake.resumeContainerTrafficMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -341,7 +341,7 @@ func (fake *FakeNetwork) SetupHostNetwork() error {
 	}{})
 	stub := fake.SetupHostNetworkStub
 	fakeReturns := fake.setupHostNetworkReturns
-	fake.recordInvocation("SetupHostNetwork", []any{})
+	fake.recordInvocation("SetupHostNetwork", []interface{}{})
 	fake.setupHostNetworkMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -395,7 +395,7 @@ func (fake *FakeNetwork) SetupMounts(arg1 string) ([]specs.Mount, error) {
 	}{arg1})
 	stub := fake.SetupMountsStub
 	fakeReturns := fake.setupMountsReturns
-	fake.recordInvocation("SetupMounts", []any{arg1})
+	fake.recordInvocation("SetupMounts", []interface{}{arg1})
 	fake.setupMountsMutex.Unlock()
 	if stub != nil {
 		return stub(arg1)
@@ -451,7 +451,7 @@ func (fake *FakeNetwork) SetupMountsReturnsOnCall(i int, result1 []specs.Mount, 
 	}{result1, result2}
 }
 
-func (fake *FakeNetwork) Invocations() map[string][][]any {
+func (fake *FakeNetwork) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.addMutex.RLock()
@@ -466,21 +466,21 @@ func (fake *FakeNetwork) Invocations() map[string][][]any {
 	defer fake.setupHostNetworkMutex.RUnlock()
 	fake.setupMountsMutex.RLock()
 	defer fake.setupMountsMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeNetwork) recordInvocation(key string, args []any) {
+func (fake *FakeNetwork) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

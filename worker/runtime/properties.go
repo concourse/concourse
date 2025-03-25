@@ -41,10 +41,7 @@ func propertiesToLabels(properties garden.Properties) (map[string]string, error)
 		}
 		for {
 			chunkKey := key + "." + strconv.Itoa(sequenceNum)
-			valueLen := maxLabelLen - len(chunkKey)
-			if valueLen > len(value) {
-				valueLen = len(value)
-			}
+			valueLen := min(maxLabelLen-len(chunkKey), len(value))
 
 			labelSet[chunkKey] = value[:valueLen]
 			value = value[valueLen:]

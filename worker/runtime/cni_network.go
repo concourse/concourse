@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/worker/runtime/iptables"
-	"github.com/containerd/containerd"
+	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/go-cni"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/opencontainers/runtime-spec/specs-go"

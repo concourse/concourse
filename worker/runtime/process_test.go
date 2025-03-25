@@ -10,8 +10,8 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/errdefs"
+	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/errdefs"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
