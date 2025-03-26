@@ -2,7 +2,7 @@ module github.com/concourse/concourse
 
 go 1.24
 
-toolchain go1.24.0
+toolchain go1.24.1
 
 require (
 	code.cloudfoundry.org/clock v1.32.0
@@ -33,7 +33,8 @@ require (
 	github.com/cyberark/conjur-api-go v0.12.14
 	github.com/fatih/color v1.18.0
 	github.com/felixge/httpsnoop v1.0.4
-	github.com/go-jose/go-jose/v3 v3.0.4
+	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-yaml v1.16.0
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
@@ -210,7 +211,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.7 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-ldap/ldap/v3 v3.4.10 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
