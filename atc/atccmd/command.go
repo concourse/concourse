@@ -1120,7 +1120,7 @@ func (cmd *RunCommand) backendComponents(
 			Runnable: lidar.NewScanner(
 				dbCheckFactory,
 				atc.NewPlanFactory(time.Now().Unix()),
-				50,
+				1000,
 			),
 		},
 		{

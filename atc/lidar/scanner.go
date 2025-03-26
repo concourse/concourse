@@ -58,7 +58,9 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 	logger := lagerctx.FromContext(ctx)
 	waitGroup := sync.WaitGroup{}
 
-	resourcesChan := make(chan db.Resource, s.maxConcurrency)
+	numberOfResources := len(resources)
+	maxConcurrency := min(s.maxConcurrency, numberOfResources)
+	resourcesChan := make(chan db.Resource, numberOfResources)
 
 	go func() {
 		defer close(resourcesChan)
@@ -72,7 +74,7 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 		}
 	}()
 
-	for range s.maxConcurrency {
+	for range maxConcurrency {
 		waitGroup.Add(1)
 		go func() {
 			defer waitGroup.Done()
