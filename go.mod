@@ -5,10 +5,10 @@ go 1.24
 toolchain go1.24.0
 
 require (
-	code.cloudfoundry.org/clock v1.31.0
+	code.cloudfoundry.org/clock v1.32.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20250324130423-abc61188c383
-	code.cloudfoundry.org/garden v0.0.0-20250319022510-05a9be852e89
-	code.cloudfoundry.org/lager/v3 v3.30.0
+	code.cloudfoundry.org/garden v0.0.0-20250326022559-bc5d6fb7cf5c
+	code.cloudfoundry.org/lager/v3 v3.31.0
 	code.cloudfoundry.org/localip v0.34.0
 	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	dario.cat/mergo v1.0.1
@@ -46,7 +46,7 @@ require (
 	github.com/inconshreveable/go-update v0.0.0-20160112193335-8152e7eb6ccf
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438
-	github.com/jackc/pgx/v5 v5.7.3
+	github.com/jackc/pgx/v5 v5.7.4
 	github.com/jackpal/gateway v1.0.16
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.18.0
@@ -170,8 +170,8 @@ require (
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
-	google.golang.org/api v0.227.0 // indirect
-	google.golang.org/genproto v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
+	google.golang.org/api v0.228.0 // indirect
+	google.golang.org/genproto v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
@@ -250,8 +250,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.step.sm/crypto v0.16.2 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
