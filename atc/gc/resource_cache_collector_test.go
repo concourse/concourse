@@ -128,7 +128,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 						version := `{"some":"version"}`
 						err = psql.Insert("resource_config_versions").
 							Columns("version", "version_sha256", "metadata", "resource_config_scope_id").
-							Values(version, sq.Expr(fmt.Sprintf("md5('%s')", version)), `null`, jobCache.ResourceConfig().ID()).
+							Values(version, sq.Expr(fmt.Sprintf("encode(digest('%s', 'sha256'), 'hex')", version)), `null`, jobCache.ResourceConfig().ID()).
 							Suffix("RETURNING version_sha256").
 							RunWith(dbConn).QueryRow().Scan(&versionSHA256)
 						Expect(err).NotTo(HaveOccurred())
