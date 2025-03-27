@@ -1,5 +1,3 @@
-SELECT clock_timestamp(); -- Start time
-
 -- Step 1: Revert column renames from version_sha256 back to version_md5
 ALTER TABLE resource_config_versions
 RENAME COLUMN version_sha256 TO version_md5;
