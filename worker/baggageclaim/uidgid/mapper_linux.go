@@ -51,16 +51,21 @@ func (m uidGidMapper) Apply(cmd *exec.Cmd) {
 }
 
 func findMapping(idMap []syscall.SysProcIDMap, fromID int) int {
-	for _, id := range idMap {
-		if id.Size != 1 {
-			continue
-		}
+	for _, mapping := range idMap {
+		// Check if the fromID is within this mapping range
+		startID := mapping.ContainerID
+		endID := mapping.ContainerID + mapping.Size - 1
 
-		if id.ContainerID == fromID {
-			return id.HostID
+		if fromID >= startID && fromID <= endID {
+			// Calculate the offset within the range
+			offset := fromID - mapping.ContainerID
+
+			// Apply the offset to the host ID base
+			return mapping.HostID + offset
 		}
 	}
 
+	// If no mapping found, return the original ID
 	return fromID
 }
 
