@@ -37,7 +37,7 @@ var ErrStreamOutNotFound = errors.New("no such file or directory")
 var ErrStreamP2pOutFailed = errors.New("failed to stream p2p out from volume")
 
 type VolumeServer struct {
-	strategerizer  volume.Strategerizer
+	strategizer    volume.Strategizer
 	volumeRepo     volume.Repository
 	volumePromises volume.PromiseList
 
@@ -46,11 +46,11 @@ type VolumeServer struct {
 
 func NewVolumeServer(
 	logger lager.Logger,
-	strategerizer volume.Strategerizer,
+	strategizer volume.Strategizer,
 	volumeRepo volume.Repository,
 ) *VolumeServer {
 	return &VolumeServer{
-		strategerizer:  strategerizer,
+		strategizer:    strategizer,
 		volumeRepo:     volumeRepo,
 		volumePromises: volume.NewPromiseList(),
 		logger:         logger,
@@ -681,7 +681,7 @@ func (vs *VolumeServer) prepareCreate(w http.ResponseWriter, req *http.Request, 
 		"strategy":   request.Strategy,
 	})
 
-	strategy, err := vs.strategerizer.StrategyFor(request)
+	strategy, err := vs.strategizer.StrategyFor(request)
 	if err != nil {
 		hLog.Error("could-not-produce-strategy", err)
 		RespondWithError(w, ErrCreateVolumeFailed, httpUnprocessableEntity)
