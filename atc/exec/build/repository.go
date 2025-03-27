@@ -24,45 +24,37 @@ type ArtifactEntry struct {
 //
 // There is only one ArtifactRepository for the duration of a build plan's
 // execution.
-//
 type Repository struct {
-	repo  map[ArtifactName]ArtifactEntry
-	repoL sync.RWMutex
-
+	repo   sync.Map
 	parent *Repository
 }
 
 // NewRepository constructs a new repository.
 func NewRepository() *Repository {
-	return &Repository{
-		repo: make(map[ArtifactName]ArtifactEntry),
-	}
+	return &Repository{}
 }
 
 // RegisterArtifact inserts an Artifact into the map under the given
 // ArtifactName. Producers of artifacts, e.g. the Get step and the Task step,
 // will call this after they've successfully produced their artifact(s).
 func (repo *Repository) RegisterArtifact(name ArtifactName, artifact runtime.Artifact, fromCache bool) {
-	repo.repoL.Lock()
-	repo.repo[name] = ArtifactEntry{
+	repo.repo.Store(name, ArtifactEntry{
 		Artifact:  artifact,
 		FromCache: fromCache,
-	}
-	repo.repoL.Unlock()
+	})
 }
 
 // ArtifactFor looks up the Artifact for a given ArtifactName. Consumers of
 // artifacts, e.g. the Task step, will call this to locate their dependencies.
 func (repo *Repository) ArtifactFor(name ArtifactName) (runtime.Artifact, bool, bool) {
-	repo.repoL.RLock()
-	artifactEntry, found := repo.repo[name]
-	repo.repoL.RUnlock()
+	value, found := repo.repo.Load(name)
 	if !found && repo.parent != nil {
 		return repo.parent.ArtifactFor(name)
 	}
 	if !found {
 		return nil, false, false
 	}
+	artifactEntry := value.(ArtifactEntry)
 	return artifactEntry.Artifact, artifactEntry.FromCache, true
 }
 
@@ -78,11 +70,12 @@ func (repo *Repository) AsMap() map[ArtifactName]ArtifactEntry {
 		}
 	}
 
-	repo.repoL.RLock()
-	for name, artifact := range repo.repo {
-		result[name] = artifact
-	}
-	repo.repoL.RUnlock()
+	repo.repo.Range(func(key, value interface{}) bool {
+		name := key.(ArtifactName)
+		artifactEntry := value.(ArtifactEntry)
+		result[name] = artifactEntry
+		return true
+	})
 
 	return result
 }
