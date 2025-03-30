@@ -67,7 +67,7 @@ func (d *checkDelegate) Initializing(logger lager.Logger) {
 		return
 	}
 
-	logger.Info("initializing")
+	logger.Debug("initializing")
 }
 
 func (d *checkDelegate) FindOrCreateScope(config db.ResourceConfig) (db.ResourceConfigScope, error) {

@@ -48,7 +48,7 @@ func (d *getDelegate) Initializing(logger lager.Logger) {
 		return
 	}
 
-	logger.Info("initializing")
+	logger.Debug("initializing")
 }
 
 func (d *getDelegate) Starting(logger lager.Logger) {
@@ -61,7 +61,7 @@ func (d *getDelegate) Starting(logger lager.Logger) {
 		return
 	}
 
-	logger.Info("starting")
+	logger.Debug("starting")
 }
 
 func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info resource.VersionResult) {
@@ -81,7 +81,7 @@ func (d *getDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 		return
 	}
 
-	logger.Info("finished", lager.Data{"exit-status": exitStatus})
+	logger.Debug("finished", lager.Data{"exit-status": exitStatus})
 }
 
 // UpdateResourceVersion must only be called on get steps for a named resource after

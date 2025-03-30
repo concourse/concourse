@@ -13,7 +13,7 @@ func (s *Server) DeletePipeline(pipelineDB db.Pipeline) http.Handler {
 			"name": pipelineDB.Name(),
 		})
 
-		logger.Info("start")
+		logger.Debug("start")
 
 		err := pipelineDB.Destroy()
 		if err != nil {
@@ -23,7 +23,7 @@ func (s *Server) DeletePipeline(pipelineDB db.Pipeline) http.Handler {
 			return
 		}
 
-		logger.Info("done")
+		logger.Debug("done")
 
 		w.WriteHeader(http.StatusNoContent)
 	})

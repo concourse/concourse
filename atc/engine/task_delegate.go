@@ -65,7 +65,7 @@ func (d *taskDelegate) Initializing(logger lager.Logger) {
 		return
 	}
 
-	logger.Info("initializing")
+	logger.Debug("initializing")
 }
 
 func (d *taskDelegate) Starting(logger lager.Logger) {

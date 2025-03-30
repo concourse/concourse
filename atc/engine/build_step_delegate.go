@@ -130,7 +130,7 @@ func (delegate *buildStepDelegate) Initializing(logger lager.Logger) {
 		return
 	}
 
-	logger.Info("initializing")
+	logger.Debug("initializing")
 }
 
 func (delegate *buildStepDelegate) Starting(logger lager.Logger) {

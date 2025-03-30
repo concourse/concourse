@@ -70,8 +70,8 @@ func NewHeartbeater(
 func (heartbeater *Heartbeater) Heartbeat(ctx context.Context) error {
 	logger := lagerctx.FromContext(ctx)
 
-	logger.Info("start")
-	defer logger.Info("done")
+	logger.Debug("start")
+	defer logger.Debug("done")
 
 	for !heartbeater.register(logger.Session("register")) {
 		select {
@@ -112,8 +112,8 @@ func (heartbeater *Heartbeater) register(logger lager.Logger) bool {
 		"worker-tags":     strings.Join(heartbeater.registration.Tags, ","),
 	}
 
-	logger.Info("start", heartbeatData)
-	defer logger.Info("done", heartbeatData)
+	logger.Debug("start", heartbeatData)
+	defer logger.Debug("done", heartbeatData)
 
 	registration, ok := heartbeater.pingWorker(logger)
 	if !ok {
@@ -177,8 +177,8 @@ func (heartbeater *Heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 		"worker-tags":     strings.Join(heartbeater.registration.Tags, ","),
 	}
 
-	logger.Info("start", heartbeatData)
-	defer logger.Info("done", heartbeatData)
+	logger.Debug("start", heartbeatData)
+	defer logger.Debug("done", heartbeatData)
 
 	registration, ok := heartbeater.pingWorker(logger)
 	if !ok {

@@ -51,8 +51,8 @@ func (runner gardenServerRunner) Run(signals <-chan os.Signal, ready chan<- stru
 
 	close(ready)
 
-	runner.logger.Info("started")
-	defer runner.logger.Info("stopped")
+	runner.logger.Debug("started")
+	defer runner.logger.Debug("stopped")
 
 	select {
 	case <-signals:

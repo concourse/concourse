@@ -119,8 +119,8 @@ func (bt *Tracker) trackBuild(logger lager.Logger, b db.Build) {
 
 func (bt *Tracker) trackInMemoryBuilds(logger lager.Logger) {
 	logger = logger.Session("tracker-imb")
-	logger.Info("start")
-	defer logger.Info("end")
+	logger.Debug("start")
+	defer logger.Debug("end")
 
 	for {
 		select {

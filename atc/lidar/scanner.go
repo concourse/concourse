@@ -34,8 +34,8 @@ func (s *scanner) Run(ctx context.Context) error {
 	spanCtx, span := tracing.StartSpan(ctx, "scanner.Run", nil)
 	defer span.End()
 
-	logger.Info("start")
-	defer logger.Info("end")
+	logger.Debug("start")
+	defer logger.Debug("end")
 
 	resources, err := s.checkFactory.Resources()
 	if err != nil {
