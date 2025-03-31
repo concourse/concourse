@@ -94,6 +94,11 @@ func systemCgroupType() string {
 	return "cgroup"
 }
 
+// TODO: MaskedPaths and ReadonlyPaths do not work for some reason. They DO get
+// passed into containerd and containerd shows them as part of the spec. I did
+// `ctr container info` to directly fetch the spec of a container we created and it
+// shows MaskedPaths and ReadonlyPaths populated with what we expect. For
+// whatever reason though the paths are never masked. idk where the disconnect is happening...
 func maskedPaths(privileged bool, privilegedMode PrivilegedMode) []string {
 	if privileged && privilegedMode != IgnorePrivilegedMode {
 		return nil
