@@ -7,6 +7,9 @@ do
     sed 's/^.* id="mdi-\([^"]*\)" .*path d="\([^"]*\)".*$/"\1":"\2",/' $file;
 done;
 
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+sed 's/^.* id="mdi-\([^"]*\)" .*path d="\([^"]*\)".*$/"\1":"\2",/' "$SCRIPT_DIR/concourse-ci-mdi.svg"
+
 echo '"no-icon":""};';
 echo "var svg = function(icon, id) {";
 echo "var path = icon_paths[icon];if (typeof path === 'undefined') {path = icon_paths['help-circle-outline'];};";
