@@ -1199,12 +1199,12 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 	}
 
 	builder := psql.Insert("next_build_inputs").
-		Columns("input_name", "job_id", "version_md5", "resource_id", "first_occurrence", "resolve_error")
+		Columns("input_name", "job_id", "version_sha256", "resource_id", "first_occurrence", "resolve_error")
 
 	for inputName, inputResult := range inputMapping {
 		var resolveError sql.NullString
 		var firstOccurrence sql.NullBool
-		var versionMD5 sql.NullString
+		var versionSHA256 sql.NullString
 		var resourceID sql.NullInt64
 
 		if inputResult.ResolveError != "" {
@@ -1216,10 +1216,10 @@ func (j *job) SaveNextInputMapping(inputMapping InputMapping, inputsDetermined b
 
 			firstOccurrence = sql.NullBool{Bool: inputResult.Input.FirstOccurrence, Valid: true}
 			resourceID = sql.NullInt64{Int64: int64(inputResult.Input.ResourceID), Valid: true}
-			versionMD5 = sql.NullString{String: string(inputResult.Input.Version), Valid: true}
+			versionSHA256 = sql.NullString{String: string(inputResult.Input.Version), Valid: true}
 		}
 
-		builder = builder.Values(inputName, j.id, versionMD5, resourceID, firstOccurrence, resolveError)
+		builder = builder.Values(inputName, j.id, versionSHA256, resourceID, firstOccurrence, resolveError)
 	}
 
 	if len(inputMapping) != 0 {
@@ -1322,7 +1322,7 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 	rows, err := psql.Select("i.input_name, i.first_occurrence, i.resource_id, v.version, i.resolve_error, v.span_context").
 		From("next_build_inputs i").
 		LeftJoin("resources r ON r.id = i.resource_id").
-		LeftJoin("resource_config_versions v ON v.version_md5 = i.version_md5 AND r.resource_config_scope_id = v.resource_config_scope_id").
+		LeftJoin("resource_config_versions v ON v.version_sha256 = i.version_sha256 AND r.resource_config_scope_id = v.resource_config_scope_id").
 		Where(sq.Eq{
 			"i.job_id": j.id,
 		}).

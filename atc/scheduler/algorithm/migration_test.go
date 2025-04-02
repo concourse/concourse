@@ -1,7 +1,7 @@
 package algorithm_test
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 
@@ -109,43 +109,43 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				2: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				3: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv3")},
+					1: []string{migratorConvertToSHA256("rxv3"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv3")},
 				},
 				4: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				5: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv4")},
+					1: []string{migratorConvertToSHA256("rxv4"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv4")},
 				},
 				6: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv1"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv1")},
+					1: []string{migratorConvertToSHA256("rxv1"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv1")},
 				},
 				7: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				8: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv3")},
+					1: []string{migratorConvertToSHA256("rxv3"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv3")},
 				},
 				9: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				10: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv4")},
+					1: []string{migratorConvertToSHA256("rxv4"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv4")},
 				},
 				11: map[int][]string{
-					2: []string{migratorConvertToMD5("ryv4")},
+					2: []string{migratorConvertToSHA256("ryv4")},
 				},
 			},
 		},
@@ -241,47 +241,47 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				1: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv1"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv1")},
+					1: []string{migratorConvertToSHA256("rxv1"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv1")},
 				},
 				2: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv2")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv2")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				3: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3"), migratorConvertToMD5("rxv3")},
-					2: []string{migratorConvertToMD5("ryv3")},
+					1: []string{migratorConvertToSHA256("rxv3"), migratorConvertToSHA256("rxv3")},
+					2: []string{migratorConvertToSHA256("ryv3")},
 				},
 				4: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv2")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv2")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				5: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4"), migratorConvertToMD5("rxv4")},
-					2: []string{migratorConvertToMD5("ryv4")},
+					1: []string{migratorConvertToSHA256("rxv4"), migratorConvertToSHA256("rxv4")},
+					2: []string{migratorConvertToSHA256("ryv4")},
 				},
 				6: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv1"), migratorConvertToMD5("rxv1")},
-					2: []string{migratorConvertToMD5("ryv1")},
+					1: []string{migratorConvertToSHA256("rxv1"), migratorConvertToSHA256("rxv1")},
+					2: []string{migratorConvertToSHA256("ryv1")},
 				},
 				7: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv2")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv2")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				8: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3"), migratorConvertToMD5("rxv3")},
-					2: []string{migratorConvertToMD5("ryv3")},
+					1: []string{migratorConvertToSHA256("rxv3"), migratorConvertToSHA256("rxv3")},
+					2: []string{migratorConvertToSHA256("ryv3")},
 				},
 				9: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv2")},
-					2: []string{migratorConvertToMD5("ryv2")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv2")},
+					2: []string{migratorConvertToSHA256("ryv2")},
 				},
 				10: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4"), migratorConvertToMD5("rxv4")},
-					2: []string{migratorConvertToMD5("ryv4")},
+					1: []string{migratorConvertToSHA256("rxv4"), migratorConvertToSHA256("rxv4")},
+					2: []string{migratorConvertToSHA256("ryv4")},
 				},
 				11: map[int][]string{
-					2: []string{migratorConvertToMD5("ryv5")},
+					2: []string{migratorConvertToSHA256("ryv5")},
 				},
 			},
 		},
@@ -333,13 +333,13 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				2: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2")},
+					1: []string{migratorConvertToSHA256("rxv2")},
 				},
 				3: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 				6: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 			},
 		},
@@ -390,13 +390,13 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				4: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4")},
+					1: []string{migratorConvertToSHA256("rxv4")},
 				},
 				3: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 				5: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 			},
 		},
@@ -438,13 +438,13 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				3: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 				4: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4")},
+					1: []string{migratorConvertToSHA256("rxv4")},
 				},
 				6: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 			},
 		},
@@ -483,7 +483,7 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				1: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2"), migratorConvertToMD5("rxv1")},
+					1: []string{migratorConvertToSHA256("rxv2"), migratorConvertToSHA256("rxv1")},
 				},
 			},
 		},
@@ -538,19 +538,19 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				2: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv2")},
+					1: []string{migratorConvertToSHA256("rxv2")},
 				},
 				4: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4")},
+					1: []string{migratorConvertToSHA256("rxv4")},
 				},
 				6: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv1")},
+					1: []string{migratorConvertToSHA256("rxv1")},
 				},
 				8: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 				9: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv4")},
+					1: []string{migratorConvertToSHA256("rxv4")},
 				},
 			},
 		},
@@ -600,17 +600,17 @@ var _ = DescribeTable("Migrating build inputs and outputs into successful build 
 			},
 			ExpectedMigrated: map[int]map[int][]string{
 				4: map[int][]string{
-					1: []string{migratorConvertToMD5("rxv3")},
+					1: []string{migratorConvertToSHA256("rxv3")},
 				},
 			},
 		},
 	}),
 )
 
-func migratorConvertToMD5(version string) string {
+func migratorConvertToSHA256(version string) string {
 	versionJSON, _ := json.Marshal(atc.Version{"ver": version})
 
-	hasher := md5.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(versionJSON))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
