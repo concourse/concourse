@@ -50,8 +50,8 @@ type Engine struct {
 func (engine Engine) Drain(ctx context.Context) {
 	logger := lagerctx.FromContext(ctx)
 
-	logger.Info("start")
-	defer logger.Info("done")
+	logger.Debug("start")
+	defer logger.Debug("done")
 
 	close(engine.release)
 

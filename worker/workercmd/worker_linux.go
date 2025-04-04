@@ -170,7 +170,7 @@ func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, err
 	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
 		server.NotifyStartedFunc = func() {
 			close(ready)
-			logger.Info("started")
+			logger.Debug("started")
 		}
 
 		serveErr := make(chan error, 1)

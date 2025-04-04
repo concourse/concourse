@@ -49,8 +49,8 @@ func (s Streamer) Stream(ctx context.Context, src runtime.Artifact, dst runtime.
 		"from-handle": src.Handle(),
 	}
 	logger := lagerctx.FromContext(ctx).Session("stream", loggerData)
-	logger.Info("start")
-	defer logger.Info("end")
+	logger.Debug("start")
+	defer logger.Debug("end")
 
 	err := s.stream(ctx, src, dst)
 	if err != nil {

@@ -1,17 +1,18 @@
 package vault
 
 import (
-	"code.cloudfoundry.org/lager/v3"
 	"crypto/tls"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/go-rootcerts"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"code.cloudfoundry.org/lager/v3"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-rootcerts"
 
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -113,7 +114,7 @@ func (ac *APIClient) setClientToken(token string, logger lager.Logger) (time.Dur
 
 	ac.setClient(newClient)
 
-	logger.Info("token-set")
+	logger.Debug("token-set")
 
 	return time.Second, nil
 }
@@ -154,7 +155,7 @@ func (ac *APIClient) Login() (time.Duration, error) {
 		return time.Second, err
 	}
 
-	logger.Info("succeeded", lager.Data{
+	logger.Debug("succeeded", lager.Data{
 		"token-accessor": secret.Auth.Accessor,
 		"lease-duration": secret.Auth.LeaseDuration,
 		"policies":       secret.Auth.Policies,

@@ -2,11 +2,9 @@ package tsa
 
 import (
 	"context"
-	"net/http"
-
-	"net/http/httputil"
-
 	"fmt"
+	"net/http"
+	"net/http/httputil"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
@@ -22,8 +20,8 @@ type Retirer struct {
 func (l *Retirer) Retire(ctx context.Context, worker atc.Worker) error {
 	logger := lagerctx.FromContext(ctx)
 
-	logger.Info("start")
-	defer logger.Info("end")
+	logger.Debug("start")
+	defer logger.Debug("end")
 
 	request, err := l.ATCEndpoint.CreateRequest(atc.RetireWorker, rata.Params{
 		"worker_name": worker.Name,

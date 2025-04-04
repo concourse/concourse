@@ -14,7 +14,7 @@ func (s *Server) ListDestroyingVolumes(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("list-destroying-volumes", lager.Data{"worker": workerName})
 
 	if workerName == "" {
-		logger.Info("no-worker-specified")
+		logger.Info("missing-worker-name")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
