@@ -135,7 +135,7 @@ to learn how to write Concourse pipelines.
 
 ### Configuring a Pipeline
 
-There is no GUI for configuring Concourse. Instead, pipelines are configured as
+Concourse has no GUI for configuration. Instead, pipelines are defined in
 declarative YAML files:
 
 ```yaml
@@ -162,8 +162,8 @@ instance](https://concourse-ci.org/fly.html#fly-login), and then run:
 fly -t ci set-pipeline -p booklit -c booklit.yml
 ```
 
-These pipeline files are self-contained, maximizing portability from one
-Concourse instance to the next.
+These pipeline files are self-contained, making them easily portable between
+Concourse instances.
 
 
 ### Learn More
@@ -174,7 +174,7 @@ Concourse instance to the next.
   to learn the basics of pipelines
 * See Concourse in action with our [own pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [GitHub discussions](https://github.com/concourse/concourse/discussions) or in
-  [Discord](https://discord.gg/MeRxXKW).
+  [Discord][discord]
 * See what we're working on the [project board](https://github.com/orgs/concourse/projects). 
 
 
