@@ -116,9 +116,7 @@ func (cache *WorkerCache) copyWorkerContainerCounts() map[string]int {
 	defer cache.dataMut.RUnlock()
 
 	counts := make(map[string]int, len(cache.workerContainerCounts))
-	for name, count := range cache.workerContainerCounts {
-		counts[name] = count
-	}
+	maps.Copy(counts, cache.workerContainerCounts)
 	return counts
 }
 
