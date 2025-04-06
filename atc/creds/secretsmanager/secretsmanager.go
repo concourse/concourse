@@ -1,24 +1,32 @@
 package secretsmanager
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
 
-	"code.cloudfoundry.org/lager/v3"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
+	lager "code.cloudfoundry.org/lager/v3"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 )
+
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . SecretsManagerAPI
+type SecretsManagerAPI interface {
+	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
+}
 
 type SecretsManager struct {
 	log             lager.Logger
-	api             secretsmanageriface.SecretsManagerAPI
+	api             SecretsManagerAPI
 	secretTemplates []*creds.SecretTemplate
 }
 
-func NewSecretsManager(log lager.Logger, api secretsmanageriface.SecretsManagerAPI, secretTemplates []*creds.SecretTemplate) *SecretsManager {
+func NewSecretsManager(log lager.Logger, api SecretsManagerAPI, secretTemplates []*creds.SecretTemplate) *SecretsManager {
 	return &SecretsManager{
 		log:             log,
 		api:             api,
@@ -59,7 +67,8 @@ return a string value (SecretString) or a map[string]any (SecretBinary).
 In case SecretBinary is set, it is expected to be a valid JSON object or it will error.
 */
 func (s *SecretsManager) getSecretById(path string) (any, *time.Time, bool, error) {
-	value, err := s.api.GetSecretValue(&secretsmanager.GetSecretValueInput{
+	ctx := context.TODO()
+	value, err := s.api.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
 		SecretId: &path,
 	})
 	if err == nil {
@@ -77,10 +86,13 @@ func (s *SecretsManager) getSecretById(path string) (any, *time.Time, bool, erro
 			}
 			return values, nil, true, nil
 		}
-	} else if errObj, ok := err.(awserr.Error); ok && (errObj.Code() == secretsmanager.ErrCodeResourceNotFoundException ||
+	} else {
+		var notFound *types.ResourceNotFoundException
 		// a secret that's marked for deletion will return an invalid request exception as an error
-		errObj.Code() == secretsmanager.ErrCodeInvalidRequestException) {
-		return nil, nil, false, nil
+		var invalidRequest *types.InvalidRequestException
+		if errors.As(err, &notFound) || errors.As(err, &invalidRequest) {
+			return nil, nil, false, nil
+		}
 	}
 
 	return nil, nil, false, err

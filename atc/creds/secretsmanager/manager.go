@@ -1,20 +1,23 @@
 package secretsmanager
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/concourse/concourse/atc/creds"
 )
 
-const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
-const DefaultSharedSecretTemplate = "/concourse/{{.Secret}}"
+const (
+	DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+	DefaultTeamSecretTemplate     = "/concourse/{{.Team}}/{{.Secret}}"
+	DefaultSharedSecretTemplate   = "/concourse/{{.Secret}}"
+)
 
 type Manager struct {
 	AwsAccessKeyID         string `mapstructure:"access_key" long:"access-key" description:"AWS Access key ID"`
@@ -28,20 +31,15 @@ type Manager struct {
 }
 
 func (manager *Manager) Init(log lager.Logger) error {
-	config := &aws.Config{Region: &manager.AwsRegion}
-	if manager.AwsAccessKeyID != "" {
-		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
-	}
-
-	sess, err := session.NewSession(config)
+	cfg, err := manager.awsConfig()
 	if err != nil {
-		log.Error("create-aws-session", err)
+		log.Error("load-aws-config", err)
 		return err
 	}
 
 	manager.SecretManager = &SecretsManager{
 		log: log,
-		api: secretsmanager.New(sess),
+		api: secretsmanager.NewFromConfig(cfg),
 	}
 	return nil
 }
@@ -112,14 +110,9 @@ func (manager *Manager) Validate() error {
 }
 
 func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactory, error) {
-	config := &aws.Config{Region: &manager.AwsRegion}
-	if manager.AwsAccessKeyID != "" {
-		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
-	}
-
-	sess, err := session.NewSession(config)
+	cfg, err := manager.awsConfig()
 	if err != nil {
-		log.Error("create-aws-session", err)
+		log.Error("load-aws-config", err)
 		return nil, err
 	}
 
@@ -138,9 +131,25 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		return nil, err
 	}
 
-	return NewSecretsManagerFactory(log, sess, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, sharedSecretTemplate}), nil
+	return NewSecretsManagerFactory(log, cfg, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, sharedSecretTemplate}), nil
 }
 
 func (manager Manager) Close(logger lager.Logger) {
 	// TODO - to implement
+}
+
+func (manager *Manager) awsConfig() (aws.Config, error) {
+	ctx := context.TODO()
+
+	opts := []func(*config.LoadOptions) error{
+		config.WithRegion(manager.AwsRegion),
+	}
+
+	if manager.AwsAccessKeyID != "" {
+		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken,
+		)))
+	}
+
+	return config.LoadDefaultConfig(ctx, opts...)
 }
