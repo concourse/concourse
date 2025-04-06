@@ -1,0 +1,14 @@
+groups: []
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    source-config: some-value
+- name: unused-resource
+  type: unused-type
+  source:
+    source-config: unused-value
+jobs:
+- name: job
+  plan:
+  - get: some-resource
