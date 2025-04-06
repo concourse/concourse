@@ -1,26 +1,35 @@
 package ssm
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 )
+
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . SsmAPI
+type SsmAPI interface {
+	GetParameter(ctx context.Context, params *ssm.GetParameterInput, optFns ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+	GetParametersByPath(ctx context.Context, params *ssm.GetParametersByPathInput, optFns ...func(*ssm.Options)) (*ssm.GetParametersByPathOutput, error)
+}
 
 type Ssm struct {
 	log             lager.Logger
-	api             ssmiface.SSMAPI
+	api             SsmAPI
 	secretTemplates []*creds.SecretTemplate
 	sharedPath      string
 }
 
-func NewSsm(log lager.Logger, api ssmiface.SSMAPI, secretTemplates []*creds.SecretTemplate, sharedPath string) *Ssm {
+func NewSsm(log lager.Logger, api SsmAPI, secretTemplates []*creds.SecretTemplate, sharedPath string) *Ssm {
 	return &Ssm{
 		log:             log,
 		api:             api,
@@ -71,36 +80,49 @@ func (s *Ssm) Get(secretPath string) (any, *time.Time, bool, error) {
 }
 
 func (s *Ssm) getParameterByName(name string) (any, *time.Time, bool, error) {
-	param, err := s.api.GetParameter(&ssm.GetParameterInput{
+	ctx := context.TODO()
+
+	param, err := s.api.GetParameter(ctx, &ssm.GetParameterInput{
 		Name:           &name,
 		WithDecryption: aws.Bool(true),
 	})
 	if err == nil {
 		return *param.Parameter.Value, nil, true, nil
-
-	} else if errObj, ok := err.(awserr.Error); ok && errObj.Code() == ssm.ErrCodeParameterNotFound {
-		return nil, nil, false, nil
+	} else {
+		var notFound *types.ParameterNotFound
+		if errors.As(err, &notFound) {
+			return nil, nil, false, nil
+		}
 	}
 	return nil, nil, false, err
 }
 
 func (s *Ssm) getParameterByPath(path string) (any, *time.Time, bool, error) {
+	ctx := context.TODO()
+
 	path = strings.TrimRight(path, "/")
 	if path == "" {
 		path = "/"
 	}
+	pathQuery := &ssm.GetParametersByPathInput{
+		Path:           &path,
+		Recursive:      aws.Bool(true),
+		WithDecryption: aws.Bool(true),
+		MaxResults:     aws.Int32(10),
+	}
+
 	value := make(map[string]any)
-	pathQuery := &ssm.GetParametersByPathInput{}
-	pathQuery = pathQuery.SetPath(path).SetRecursive(true).SetWithDecryption(true).SetMaxResults(10)
-	err := s.api.GetParametersByPathPages(pathQuery, func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
+	paginator := ssm.NewGetParametersByPathPaginator(s.api, pathQuery)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, nil, false, err
+		}
 		for _, param := range page.Parameters {
 			value[(*param.Name)[len(path)+1:]] = *param.Value
 		}
-		return true
-	})
-	if err != nil {
-		return nil, nil, false, err
 	}
+
 	if len(value) == 0 {
 		return nil, nil, false, nil
 	}
