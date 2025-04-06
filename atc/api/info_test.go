@@ -8,41 +8,21 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	awssecretsmanager "github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/secretsmanager/secretsmanageriface"
-	awsssm "github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/concourse/concourse/atc/creds/credhub"
 	"github.com/concourse/concourse/atc/creds/secretsmanager"
+	"github.com/concourse/concourse/atc/creds/secretsmanager/secretsmanagerfakes"
 	"github.com/concourse/concourse/atc/creds/ssm"
+	"github.com/concourse/concourse/atc/creds/ssm/ssmfakes"
 	"github.com/concourse/concourse/atc/creds/vault"
-	. "github.com/concourse/concourse/atc/testhelpers"
 	vaultapi "github.com/hashicorp/vault/api"
+
+	. "github.com/concourse/concourse/atc/testhelpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
-
-type MockSsmService struct {
-	ssmiface.SSMAPI
-
-	stubGetParameter func(input *awsssm.GetParameterInput) (*awsssm.GetParameterOutput, error)
-}
-
-func (m *MockSsmService) GetParameter(input *awsssm.GetParameterInput) (*awsssm.GetParameterOutput, error) {
-	return m.stubGetParameter(input)
-}
-
-type MockSecretsManagerService struct {
-	secretsmanageriface.SecretsManagerAPI
-
-	stubGetSecretValue func(input *awssecretsmanager.GetSecretValueInput) (*awssecretsmanager.GetSecretValueOutput, error)
-}
-
-func (m *MockSecretsManagerService) GetSecretValue(input *awssecretsmanager.GetSecretValueInput) (*awssecretsmanager.GetSecretValueOutput, error) {
-	return m.stubGetSecretValue(input)
-}
 
 var _ = Describe("Pipelines API", func() {
 	Describe("GET /api/v1/info", func() {
@@ -102,13 +82,15 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("SSM", func() {
-			var mockService MockSsmService
+			var mockService *ssmfakes.FakeSsmAPI
 
 			BeforeEach(func() {
+				mockService = &ssmfakes.FakeSsmAPI{}
+
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAdminReturns(true)
 
-				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), &mockService, nil, "")
+				ssmAccess := ssm.NewSsm(lager.NewLogger("ssm_test"), mockService, nil, "")
 				ssmManager := &ssm.SsmManager{
 					AwsAccessKeyID:         "",
 					AwsSecretAccessKey:     "",
@@ -124,11 +106,8 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("returns configured ssm manager", func() {
 				Context("get ssm manager info returns error", func() {
-
 					BeforeEach(func() {
-						mockService.stubGetParameter = func(input *awsssm.GetParameterInput) (*awsssm.GetParameterOutput, error) {
-							return nil, errors.New("some error occured")
-						}
+						mockService.GetParameterReturns(nil, errors.New("some error occured"))
 					})
 
 					It("includes the error in json response", func() {
@@ -148,11 +127,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				Context("get ssm manager info", func() {
-
 					BeforeEach(func() {
-						mockService.stubGetParameter = func(input *awsssm.GetParameterInput) (*awsssm.GetParameterOutput, error) {
-							return nil, awserr.New(awsssm.ErrCodeParameterNotFound, "dontcare", nil)
-						}
+						mockService.GetParameterReturns(nil, &ssmtypes.ParameterNotFound{Message: ptr("dontcare")})
 					})
 
 					It("includes the ssm health info in json response", func() {
@@ -404,13 +380,15 @@ var _ = Describe("Pipelines API", func() {
 		})
 
 		Context("SecretsManager", func() {
-			var mockService MockSecretsManagerService
+			var mockService *secretsmanagerfakes.FakeSecretsManagerAPI
 
 			BeforeEach(func() {
+				mockService = &secretsmanagerfakes.FakeSecretsManagerAPI{}
+
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAdminReturns(true)
 
-				secretsManagerAccess := secretsmanager.NewSecretsManager(lager.NewLogger("ssm_test"), &mockService, nil)
+				secretsManagerAccess := secretsmanager.NewSecretsManager(lager.NewLogger("ssm_test"), mockService, nil)
 
 				secretsManager := &secretsmanager.Manager{
 					AwsAccessKeyID:         "",
@@ -428,11 +406,8 @@ var _ = Describe("Pipelines API", func() {
 
 			Context("returns configured secretsmanager manager", func() {
 				Context("get secretsmanager info returns error", func() {
-
 					BeforeEach(func() {
-						mockService.stubGetSecretValue = func(input *awssecretsmanager.GetSecretValueInput) (*awssecretsmanager.GetSecretValueOutput, error) {
-							return nil, errors.New("some error occurred")
-						}
+						mockService.GetSecretValueReturns(nil, errors.New("some error occurred"))
 					})
 
 					It("includes the error in json response", func() {
@@ -453,12 +428,8 @@ var _ = Describe("Pipelines API", func() {
 				})
 
 				Context("get secretsmanager info", func() {
-
 					BeforeEach(func() {
-						mockService.stubGetSecretValue = func(input *awssecretsmanager.GetSecretValueInput) (*awssecretsmanager.GetSecretValueOutput, error) {
-
-							return nil, awserr.New(awssecretsmanager.ErrCodeResourceNotFoundException, "dontcare", nil)
-						}
+						mockService.GetSecretValueReturns(nil, &secretsmanagertypes.ResourceNotFoundException{Message: ptr("dontcare")})
 					})
 
 					It("include sthe secretsmanager info in json response", func() {
@@ -483,3 +454,7 @@ var _ = Describe("Pipelines API", func() {
 		})
 	})
 })
+
+func ptr[T any](v T) *T {
+	return &v
+}
