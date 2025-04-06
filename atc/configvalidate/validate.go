@@ -208,7 +208,7 @@ func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
 		}
 	}
 
-	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
+	warnings = append(warnings, validateResourcesUnused(c)...)
 
 	return warnings, compositeErr(errorMessages)
 }
@@ -287,18 +287,20 @@ func validatePrototypes(c atc.Config, seenTypes map[string]location) ([]atc.Conf
 	return warnings, compositeErr(errorMessages)
 }
 
-func validateResourcesUnused(c atc.Config) []string {
+func validateResourcesUnused(c atc.Config) []atc.ConfigWarning {
+	warnings := []atc.ConfigWarning{}
 	usedResources := usedResources(c)
 
-	var errorMessages []string
 	for _, resource := range c.Resources {
 		if _, used := usedResources[resource.Name]; !used {
-			message := fmt.Sprintf("resource '%s' is not used", resource.Name)
-			errorMessages = append(errorMessages, message)
+			warnings = append(warnings, atc.ConfigWarning{
+				Type:    "resources",
+				Message: "resource '" + resource.Name + "' is not used in pipeline",
+			})
 		}
 	}
 
-	return errorMessages
+	return warnings
 }
 
 func usedResources(c atc.Config) map[string]bool {
