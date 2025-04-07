@@ -37,8 +37,7 @@ type WorkerCache struct {
 	refreshMut sync.Mutex
 
 	// Use atomic for refresh state to avoid locking
-	// 0 = not refreshing, 1 = refreshing
-	refreshing      atomic.Int32
+	refreshing      atomic.Bool
 	lastRefresh     atomic.Int64 // Unix timestamp in nanoseconds
 	refreshInterval time.Duration
 
