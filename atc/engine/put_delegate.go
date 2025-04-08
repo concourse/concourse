@@ -48,7 +48,7 @@ func (d *putDelegate) Initializing(logger lager.Logger) {
 		return
 	}
 
-	logger.Info("initializing")
+	logger.Debug("initializing")
 }
 
 func (d *putDelegate) Starting(logger lager.Logger) {
@@ -61,7 +61,7 @@ func (d *putDelegate) Starting(logger lager.Logger) {
 		return
 	}
 
-	logger.Info("starting")
+	logger.Debug("starting")
 }
 
 func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, info resource.VersionResult) {
@@ -81,7 +81,7 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 		return
 	}
 
-	logger.Info("finished", lager.Data{"exit-status": exitStatus, "version-info": info})
+	logger.Debug("finished", lager.Data{"exit-status": exitStatus, "version-info": info})
 }
 
 func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, imageResourceCache db.ResourceCache, info resource.VersionResult) {

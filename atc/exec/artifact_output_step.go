@@ -64,7 +64,7 @@ func (step *ArtifactOutputStep) Run(ctx context.Context, state RunState) (bool, 
 		return false, err
 	}
 
-	logger.Info("initialize-artifact-from-source", lager.Data{
+	logger.Debug("initialize-artifact-from-source", lager.Data{
 		"handle":      volume.Handle(),
 		"artifact_id": dbWorkerArtifact.ID(),
 	})
