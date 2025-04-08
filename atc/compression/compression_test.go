@@ -32,4 +32,14 @@ var _ = Describe("Compression", func() {
 			Expect(comp.Encoding()).To(Equal(baggageclaim.ZstdEncoding))
 		})
 	})
+
+	Describe("S2", func() {
+		BeforeEach(func() {
+			comp = compression.NewS2Compression()
+		})
+
+		It("returns s2", func() {
+			Expect(comp.Encoding()).To(Equal(baggageclaim.S2Encoding))
+		})
+	})
 })

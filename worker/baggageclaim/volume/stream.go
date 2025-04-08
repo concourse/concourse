@@ -14,11 +14,15 @@ type Streamer interface {
 	Out(io.Writer, string, bool) error
 }
 
-type tarZstdStreamer struct {
-	namespacer uidgid.Namespacer
-}
-
 type tarGzipStreamer struct {
 	namespacer uidgid.Namespacer
 	skipGzip   bool
+}
+
+type tarS2Streamer struct {
+	namespacer uidgid.Namespacer
+}
+
+type tarZstdStreamer struct {
+	namespacer uidgid.Namespacer
 }
