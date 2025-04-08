@@ -3,10 +3,10 @@ package topgun_test
 import (
 	"encoding/json"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/concourse/concourse/topgun/common"
@@ -15,25 +15,25 @@ import (
 )
 
 var _ = Describe("AWS SSM", func() {
-	var ssmAPI *ssm.SSM
+	var ssmAPI *ssm.Client
 	var awsRegion string
-	var awsCreds credentials.Value
+	var awsCreds aws.Credentials
 
-	BeforeEach(func() {
-		awsSession, err := session.NewSession()
+	BeforeEach(func(ctx SpecContext) {
+		cfg, err := config.LoadDefaultConfig(ctx)
 		if err != nil {
-			Skip("can not create AWS session")
+			Skip("can not load default AWS config")
 		}
 
-		ssmAPI = ssm.New(awsSession)
-		awsRegion = *ssmAPI.Config.Region
-		awsCreds, err = ssmAPI.Config.Credentials.Get()
+		ssmAPI = ssm.NewFromConfig(cfg)
+		awsRegion = cfg.Region
+		awsCreds, err = cfg.Credentials.Retrieve(ctx)
 		if err != nil {
-			Skip("can not retrive AWS credentials")
+			Skip("can not retrieve AWS credentials")
 		}
 	})
 
-	Describe("A deployment with SSM", func() {
+	Describe("A deployment with SSM", func(ctx SpecContext) {
 		BeforeEach(func() {
 			sessionToken := awsCreds.SessionToken
 			if sessionToken == "" {
@@ -106,10 +106,10 @@ var _ = Describe("AWS SSM", func() {
 			}
 
 			for name, value := range secrets {
-				_, err := ssmAPI.PutParameter(&ssm.PutParameterInput{
+				_, err := ssmAPI.PutParameter(ctx, &ssm.PutParameterInput{
 					Name:      aws.String(name),
 					Value:     aws.String(value),
-					Type:      aws.String("SecureString"),
+					Type:      types.ParameterTypeSecureString,
 					Overwrite: aws.Bool(true),
 				})
 				Expect(err).To(BeNil())
@@ -121,10 +121,10 @@ var _ = Describe("AWS SSM", func() {
 			}
 
 			for name, value := range secrets {
-				_, err := ssmAPI.PutParameter(&ssm.PutParameterInput{
+				_, err := ssmAPI.PutParameter(ctx, &ssm.PutParameterInput{
 					Name:      aws.String(name),
 					Value:     aws.String(value),
-					Type:      aws.String("SecureString"),
+					Type:      types.ParameterTypeSecureString,
 					Overwrite: aws.Bool(true),
 				})
 				Expect(err).To(BeNil())

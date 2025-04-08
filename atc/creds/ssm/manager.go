@@ -1,21 +1,23 @@
 package ssm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/aws/smithy-go"
 	"github.com/concourse/concourse/atc/creds"
 )
 
-const DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
-const DefaultTeamSecretTemplate = "/concourse/{{.Team}}/{{.Secret}}"
+const (
+	DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+	DefaultTeamSecretTemplate     = "/concourse/{{.Team}}/{{.Secret}}"
+)
 
 type SsmManager struct {
 	AwsAccessKeyID         string `mapstructure:"access_key" long:"access-key" description:"AWS Access key ID"`
@@ -44,27 +46,33 @@ func (manager *SsmManager) MarshalJSON() ([]byte, error) {
 }
 
 func (manager *SsmManager) Init(log lager.Logger) error {
-	session, err := manager.getSession()
+	cfg, err := manager.awsConfig()
 	if err != nil {
-		log.Error("failed-to-create-aws-session", err)
+		log.Error("failed-to-create-aws-config", err)
 		return err
 	}
 
 	manager.Ssm = &Ssm{
-		api: ssm.New(session),
+		api: ssm.NewFromConfig(cfg),
 	}
 
 	return nil
 }
 
-func (manager *SsmManager) getSession() (*session.Session, error) {
+func (manager *SsmManager) awsConfig() (aws.Config, error) {
+	ctx := context.TODO()
 
-	config := &aws.Config{Region: &manager.AwsRegion}
-	if manager.AwsAccessKeyID != "" {
-		config.Credentials = credentials.NewStaticCredentials(manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken)
+	opts := []func(*config.LoadOptions) error{
+		config.WithRegion(manager.AwsRegion),
 	}
 
-	return session.NewSession(config)
+	if manager.AwsAccessKeyID != "" {
+		opts = append(opts, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			manager.AwsAccessKeyID, manager.AwsSecretAccessKey, manager.AwsSessionToken,
+		)))
+	}
+
+	return config.LoadDefaultConfig(ctx, opts...)
 }
 
 func (manager *SsmManager) Health() (*creds.HealthResponse, error) {
@@ -74,7 +82,8 @@ func (manager *SsmManager) Health() (*creds.HealthResponse, error) {
 
 	_, _, _, err := manager.Ssm.getParameterByName("__concourse-health-check")
 	if err != nil {
-		if errObj, ok := err.(awserr.Error); ok && strings.Contains(errObj.Code(), "AccessDenied") {
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) && apiError.ErrorCode() == "AccessDeniedException" {
 			health.Response = map[string]string{
 				"status": "UP",
 			}
@@ -124,10 +133,9 @@ func (manager *SsmManager) Validate() error {
 }
 
 func (manager *SsmManager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactory, error) {
-
-	session, err := manager.getSession()
+	cfg, err := manager.awsConfig()
 	if err != nil {
-		log.Error("failed-to-create-aws-session", err)
+		log.Error("failed-to-create-aws-config", err)
 		return nil, err
 	}
 
@@ -141,7 +149,7 @@ func (manager *SsmManager) NewSecretsFactory(log lager.Logger) (creds.SecretsFac
 		return nil, err
 	}
 
-	return NewSsmFactory(log, session, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate}, manager.SharedPath), nil
+	return NewSsmFactory(log, cfg, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate}, manager.SharedPath), nil
 }
 
 func (manager *SsmManager) Close(logger lager.Logger) {
