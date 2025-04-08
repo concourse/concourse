@@ -167,8 +167,9 @@ var _ = Describe("ValidateConfig", func() {
 			})
 
 			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(1))
+				Expect(warnings).To(HaveLen(2))
 				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource' is not a valid identifier"))
+				Expect(warnings[1].Message).To(ContainSubstring("resource '_some-resource' is not used"))
 			})
 		})
 
@@ -583,7 +584,7 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
-						Name: "get-alias",
+						Name: "unused-get-alias",
 						Type: "some-type",
 					},
 					{
@@ -595,7 +596,7 @@ var _ = Describe("ValidateConfig", func() {
 						Type: "some-type",
 					},
 					{
-						Name: "put-alias",
+						Name: "unused-put-alias",
 						Type: "some-type",
 					},
 					{
@@ -791,11 +792,11 @@ var _ = Describe("ValidateConfig", func() {
 		})
 
 		Context("when a resource is not used in any jobs", func() {
-			It("returns an error", func() {
-				Expect(errorMessages).To(HaveLen(1))
-				Expect(errorMessages[0]).To(ContainSubstring("resource 'unused-resource' is not used"))
-				Expect(errorMessages[0]).To(ContainSubstring("resource 'get-alias' is not used"))
-				Expect(errorMessages[0]).To(ContainSubstring("resource 'put-alias' is not used"))
+			It("returns a separate warning for every unused resource", func() {
+				Expect(warnings).To(HaveLen(3))
+				Expect(warnings[0].Message).To(ContainSubstring("resource 'unused-resource' is not used"))
+				Expect(warnings[1].Message).To(ContainSubstring("resource 'unused-get-alias' is not used"))
+				Expect(warnings[2].Message).To(ContainSubstring("resource 'unused-put-alias' is not used"))
 			})
 		})
 	})
