@@ -1,4 +1,4 @@
-# Concourse
+# Concourse: the continuous thing-doer
 
 [![Discord](https://img.shields.io/discord/219899946617274369.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)][discord]
 [![Build](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/badge)](https://ci.concourse-ci.org/teams/main/pipelines/concourse)
