@@ -74,8 +74,8 @@ var _ = Describe("Fly CLI", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err).Should(gbytes.Say("WARNING:"))
-			Eventually(sess.Err).Should(gbytes.Say("  - invalid resources:"))
+			Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
+			Eventually(sess.Err).Should(gbytes.Say("  - invalid jobs:"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
@@ -101,6 +101,25 @@ var _ = Describe("Fly CLI", func() {
 			Expect(sess.ExitCode()).To(Equal(1))
 
 			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
+		})
+
+		It("returns valid on validation with warning", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/testConfigResourceWarning.yml",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
+			Eventually(sess.Err).Should(gbytes.Say("  - resource "))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+
+			Eventually(sess).Should(gbytes.Say("looks good"))
 		})
 
 		It("returns valid on a pipeline that contains var_sources", func() {
