@@ -59,7 +59,7 @@ func (driver *OverlayDriver) DestroyVolume(vol volume.FilesystemVolume) error {
 	// when a path is already unmounted, and unmount is called
 	// on it, syscall.EINVAL is returned as an error
 	// ignore this error and continue to clean up
-	if err != nil && err != os.ErrInvalid {
+	if err != nil && !errors.Is(err, syscall.EINVAL) {
 		return err
 	}
 
