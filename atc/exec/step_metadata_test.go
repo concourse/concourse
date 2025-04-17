@@ -22,7 +22,7 @@ var _ = Describe("StepMetadata", func() {
 					JobName:      "some-job-name",
 					PipelineID:   4444,
 					PipelineName: "some-pipeline-name",
-					ExternalURL:  "http://www.example.com",
+					ExternalURL:  "https://www.example.com",
 					CreatedBy:    "someone",
 				}
 			})
@@ -37,7 +37,8 @@ var _ = Describe("StepMetadata", func() {
 					"BUILD_JOB_NAME=some-job-name",
 					"BUILD_PIPELINE_ID=4444",
 					"BUILD_PIPELINE_NAME=some-pipeline-name",
-					"ATC_EXTERNAL_URL=http://www.example.com",
+					"ATC_EXTERNAL_URL=https://www.example.com",
+					"BUILD_URL=https://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42",
 					"BUILD_CREATED_BY=someone",
 				))
 			})
