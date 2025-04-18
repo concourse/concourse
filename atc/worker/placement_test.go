@@ -22,6 +22,33 @@ var _ = Describe("Container Placement Strategies", func() {
 			return strategy
 		}
 
+		Test("sorts the workers based on image volume", func() {
+			scenario := Setup(
+				workertest.WithBasicJob(),
+				workertest.WithWorkers(
+					grt.NewWorker("worker1").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("image-volume1"),
+						),
+					grt.NewWorker("worker2").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("image-volume2"),
+						),
+				),
+			)
+
+			workers, err := volumeLocalityStrategy().Order(logger, scenario.Pool, scenario.DB.Workers, runtime.ContainerSpec{
+				TeamID:   scenario.TeamID,
+				JobID:    scenario.JobID,
+				StepName: scenario.StepName,
+				ImageSpec: runtime.ImageSpec{
+					ImageArtifact: scenario.WorkerVolume("worker2", "image-volume2"),
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(workerNames(workers)).To(Equal([]string{"worker2", "worker1"}))
+		})
+
 		Test("sorts the workers by number of local inputs", func() {
 			scenario := Setup(
 				workertest.WithBasicJob(),
