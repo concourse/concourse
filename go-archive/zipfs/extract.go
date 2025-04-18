@@ -1,12 +1,12 @@
 package zipfs
 
 import (
-	"archive/zip"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/klauspost/compress/zip"
 )
 
 func Extract(srcFile string, dest string) error {
@@ -65,7 +65,7 @@ func extractZipArchiveFile(file *zip.File, dest string, input io.Reader) error {
 		}
 
 		if fileInfo.Mode()&os.ModeSymlink != 0 {
-			linkName, err := ioutil.ReadAll(input)
+			linkName, err := io.ReadAll(input)
 			if err != nil {
 				return err
 			}
