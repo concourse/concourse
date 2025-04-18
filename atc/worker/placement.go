@@ -166,54 +166,71 @@ func (strategy volumeLocalityStrategy) Order(logger lager.Logger, pool Pool, wor
 		counts[worker.Name()] = 0
 	}
 
-	for _, input := range spec.Inputs {
-		if input.FromCache {
-			continue
-		}
+	updateCountsForArtifactWithWeight := func(artifact runtime.Artifact, destinationPath string, weight int) error {
+		volume, ok := artifact.(runtime.Volume)
 
-		volume, ok := input.Artifact.(runtime.Volume)
 		if !ok {
 			// Non-volume artifacts don't live on workers, so don't affect
 			// volume locality decisions.
-			continue
+			return nil
 		}
 		logger := logger.WithData(lager.Data{
 			"handle": volume.Handle(),
-			"path":   input.DestinationPath,
+			"path":   destinationPath,
+			"weight": weight,
 		})
 		srcWorker := volume.DBVolume().WorkerName()
 		if _, ok := counts[srcWorker]; ok {
-			counts[srcWorker]++
+			counts[srcWorker] += weight
 		}
 
 		resourceCacheID := volume.DBVolume().GetResourceCacheID()
 		if resourceCacheID == 0 {
 			logger.Debug("resource-not-cached")
-			continue
+			return nil
 		}
 		resourceCache, found, err := pool.db.ResourceCacheFactory.FindResourceCacheByID(resourceCacheID)
 		if err != nil {
 			logger.Error("failed-to-find-resource-cache", err)
-			return nil, err
+			return err
 		}
 		if !found {
 			logger.Debug("resource-cache-not-found")
-			continue
+			return nil
 		}
 
 		workerNames, err := pool.db.VolumeRepo.FindWorkersForResourceCache(resourceCache)
 		if err != nil {
 			logger.Error("failed-to-find-workers-for-resource-cache", err)
-			return nil, err
+			return err
 		}
+
 		for _, worker := range workerNames {
 			if worker == srcWorker {
 				continue
 			}
 
 			if _, ok := counts[worker]; ok {
-				counts[worker]++
+				counts[worker] += weight
 			}
+		}
+
+		return nil
+	}
+
+	imageWeight := 5 // Apply higher weight (5) to image artifacts
+	err := updateCountsForArtifactWithWeight(spec.ImageSpec.ImageArtifact, "/", imageWeight)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, input := range spec.Inputs {
+		if input.FromCache {
+			continue
+		}
+		err := updateCountsForArtifactWithWeight(input.Artifact, input.DestinationPath, 1)
+		if err != nil {
+			return nil, err
 		}
 	}
 
