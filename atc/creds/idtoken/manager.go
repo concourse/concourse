@@ -8,6 +8,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 )
 
 type Manager struct {
@@ -20,13 +21,14 @@ const (
 	MaxExpiresIn        = 24 * time.Hour
 )
 
-func NewManager(issuer string, config map[string]any) (*Manager, error) {
+func NewManager(issuer string, signingKeyFactory db.SigningKeyFactory, config map[string]any) (*Manager, error) {
 	m := Manager{
 		tokenGenerator: TokenGenerator{
-			Issuer:       issuer,
-			SubjectScope: DefaultSubjectScope,
-			Audience:     nil,
-			ExpiresIn:    DefaultExpiresIn,
+			Issuer:            issuer,
+			SubjectScope:      DefaultSubjectScope,
+			Audience:          nil,
+			ExpiresIn:         DefaultExpiresIn,
+			SigningKeyFactory: signingKeyFactory,
 		},
 	}
 	var err error
@@ -69,13 +71,6 @@ func NewManager(issuer string, config map[string]any) (*Manager, error) {
 			return nil, fmt.Errorf("invalid idtoken provider config: unknown setting: %s", key)
 		}
 	}
-
-	//TODO: Retrieve the key from the database
-	signKey, err := GenerateNewKey()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate a signing key for idtoken provider: %w", err)
-	}
-	m.tokenGenerator.Key = *signKey
 
 	return &m, nil
 }

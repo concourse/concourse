@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/atc/db"
+
 	"github.com/go-jose/go-jose/v3"
 	"github.com/go-jose/go-jose/v3/jwt"
 )
@@ -31,20 +33,25 @@ func (s SubjectScope) Valid() bool {
 }
 
 type TokenGenerator struct {
-	Issuer       string
-	Key          jose.JSONWebKey
-	SubjectScope SubjectScope
-	Audience     []string
-	ExpiresIn    time.Duration
+	Issuer            string
+	SigningKeyFactory db.SigningKeyFactory
+	SubjectScope      SubjectScope
+	Audience          []string
+	ExpiresIn         time.Duration
 }
 
 func (g TokenGenerator) GenerateToken(team, pipeline string) (token string, validUntil time.Time, err error) {
 	now := time.Now()
 	validUntil = now.Add(g.ExpiresIn)
 
+	// currently only RSA signatures are supported
+	latestKey, err := g.SigningKeyFactory.GetNewestKey(db.SigningKeyTypeRSA)
+	if err != nil {
+		return "", time.Time{}, err
+	}
 	signingKey := jose.SigningKey{
-		Algorithm: jose.SignatureAlgorithm(g.Key.Algorithm),
-		Key:       g.Key,
+		Algorithm: jose.RS256,
+		Key:       latestKey.JWK(),
 	}
 
 	signer, err := jose.NewSigner(signingKey, &jose.SignerOptions{})
@@ -96,7 +103,7 @@ func escapeSlashes(input string) string {
 	return strings.ReplaceAll(input, "/", "%2F")
 }
 
-func GenerateNewKey() (*jose.JSONWebKey, error) {
+func GenerateNewRSAKey() (*jose.JSONWebKey, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, err

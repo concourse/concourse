@@ -4,11 +4,13 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/atc/db"
 	flags "github.com/jessevdk/go-flags"
 )
 
 type ManagerFactory struct {
-	issuer string
+	issuer            string
+	signingKeyFactory db.SigningKeyFactory
 }
 
 func init() {
@@ -28,6 +30,10 @@ func (factory *ManagerFactory) SetIssuer(issuer string) {
 	factory.issuer = issuer
 }
 
+func (factory *ManagerFactory) SetSigningKeyFactory(signingKeyFactory db.SigningKeyFactory) {
+	factory.signingKeyFactory = signingKeyFactory
+}
+
 func (factory *ManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
 	configMap, ok := config.(map[string]interface{})
 	if !ok {
@@ -36,7 +42,11 @@ func (factory *ManagerFactory) NewInstance(config interface{}) (creds.Manager, e
 	if factory.issuer == "" {
 		return nil, fmt.Errorf("issuer not set for idtoken provider")
 	}
-	return NewManager(factory.issuer, configMap)
+	if factory.signingKeyFactory == nil {
+		return nil, fmt.Errorf("signingKeyFactory not set for idtoken provider")
+	}
+
+	return NewManager(factory.issuer, factory.signingKeyFactory, configMap)
 }
 
 // UpdateGlobalManagerFactory provides a way to modify the global idtoken.ManagerFactory and set additional settings

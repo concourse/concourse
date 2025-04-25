@@ -841,8 +841,18 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, checkBuildsChan, nil)
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
+	dbSigningKeyFactory := db.NewSigningKeyFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
+
+	err = idtoken.EnsureSigningKeysExist(logger, dbSigningKeyFactory, lockFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
+		f.SetSigningKeyFactory(dbSigningKeyFactory)
+	})
 
 	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
 
