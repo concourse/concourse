@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/atc/api/cliserver"
 	"github.com/concourse/concourse/atc/api/configserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/api/idtokenserver"
 	"github.com/concourse/concourse/atc/api/infoserver"
 	"github.com/concourse/concourse/atc/api/jobserver"
 	"github.com/concourse/concourse/atc/api/loglevelserver"
@@ -81,6 +82,7 @@ func NewHandler(
 	interceptUpdateInterval time.Duration,
 	dbWall db.Wall,
 	clock clock.Clock,
+	dbSigningKeyFactory db.SigningKeyFactory,
 ) (http.Handler, error) {
 
 	absCLIDownloadsDir, err := filepath.Abs(cliDownloadsDir)
@@ -110,6 +112,7 @@ func NewHandler(
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
+	idTokenServer := idtokenserver.NewServer(logger, externalURL, dbSigningKeyFactory)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
@@ -231,6 +234,9 @@ func NewHandler(
 		atc.GetWall:   http.HandlerFunc(wallServer.GetWall),
 		atc.SetWall:   http.HandlerFunc(wallServer.SetWall),
 		atc.ClearWall: http.HandlerFunc(wallServer.ClearWall),
+
+		atc.GetOpenIDConfiguration: http.HandlerFunc(idTokenServer.OpenIDConfiguration),
+		atc.GetSigningKeys:         http.HandlerFunc(idTokenServer.SigningKeys),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

@@ -901,6 +901,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		accessFactory,
 		dbWall,
 		policyChecker,
+		dbSigningKeyFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -1828,6 +1829,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 	webMux.Handle("/auth/", legacyHandler)
 	webMux.Handle("/login", legacyHandler)
 	webMux.Handle("/logout", legacyHandler)
+	webMux.Handle("/.well-known/", apiHandler)
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{
@@ -1978,6 +1980,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
 	policyChecker policy.Checker,
+	dbSigningKeyFactory db.SigningKeyFactory,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -2067,6 +2070,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		time.Minute,
 		dbWall,
 		clock.NewClock(),
+		dbSigningKeyFactory,
 	)
 }
 

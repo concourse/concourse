@@ -119,6 +119,9 @@ const (
 	SetWall   = "SetWall"
 	GetWall   = "GetWall"
 	ClearWall = "ClearWall"
+
+	GetOpenIDConfiguration = "GetOpenIDConfiguration"
+	GetSigningKeys         = "GetSigningKeys"
 )
 
 const (
@@ -245,4 +248,7 @@ var Routes = rata.Routes([]rata.Route{
 	{Path: "/api/v1/wall", Method: "GET", Name: GetWall},
 	{Path: "/api/v1/wall", Method: "PUT", Name: SetWall},
 	{Path: "/api/v1/wall", Method: "DELETE", Name: ClearWall},
+
+	{Path: "/.well-known/openid-configuration", Method: "GET", Name: GetOpenIDConfiguration},
+	{Path: "/.well-known/jwks.json", Method: "GET", Name: GetSigningKeys},
 })
