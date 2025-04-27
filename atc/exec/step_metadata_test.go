@@ -1,6 +1,8 @@
 package exec_test
 
 import (
+	"fmt"
+
 	"github.com/concourse/concourse/atc/exec"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -22,7 +24,7 @@ var _ = Describe("StepMetadata", func() {
 					JobName:      "some-job-name",
 					PipelineID:   4444,
 					PipelineName: "some-pipeline-name",
-					ExternalURL:  "http://www.example.com",
+					ExternalURL:  "https://www.example.com",
 					CreatedBy:    "someone",
 				}
 			})
@@ -37,9 +39,44 @@ var _ = Describe("StepMetadata", func() {
 					"BUILD_JOB_NAME=some-job-name",
 					"BUILD_PIPELINE_ID=4444",
 					"BUILD_PIPELINE_NAME=some-pipeline-name",
-					"ATC_EXTERNAL_URL=http://www.example.com",
+					"ATC_EXTERNAL_URL=https://www.example.com",
+					"BUILD_URL=https://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42",
 					"BUILD_CREATED_BY=someone",
 				))
+			})
+		})
+
+		Context("when the URL would exceed GitLab's 255 character limit", func() {
+			BeforeEach(func() {
+				stepMetadata = exec.StepMetadata{
+					BuildID:      123456789,
+					BuildName:    "42",
+					TeamID:       2222,
+					TeamName:     "some-really-long-team-name-that-contributes-to-exceeding-the-url-length-limit",
+					JobID:        3333,
+					JobName:      "some-extremely-long-job-name-that-pushes-our-url-beyond-the-gitlab-limit-of-255-characters-which-causes-problems-with-the-commit-status-api",
+					PipelineID:   4444,
+					PipelineName: "some-very-long-pipeline-name-that-when-combined-with-other-components-will-definitely-make-our-url-longer-than-255-characters-which-is-the-gitlab-limit",
+					ExternalURL:  "https://www.example.com",
+					CreatedBy:    "someone",
+				}
+			})
+
+			It("falls back to the short URL format using BUILD_ID", func() {
+				env := stepMetadata.Env()
+
+				// Extract BUILD_URL from the environment variables
+				var buildURL string
+				for _, envVar := range env {
+					if len(envVar) > 10 && envVar[:10] == "BUILD_URL=" {
+						buildURL = envVar[10:]
+						break
+					}
+				}
+
+				// Verify we're using the short format
+				expectedShortURL := fmt.Sprintf("https://www.example.com/builds/%d", stepMetadata.BuildID)
+				Expect(buildURL).To(Equal(expectedShortURL))
 			})
 		})
 
