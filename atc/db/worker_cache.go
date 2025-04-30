@@ -2,6 +2,7 @@ package db
 
 import (
 	"encoding/json"
+	"maps"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -75,27 +76,17 @@ func NewWorkerCache(logger lager.Logger, conn DbConn, refreshInterval time.Durat
 // the next refresh.
 func NewStaticWorkerCache(logger lager.Logger, conn DbConn, refreshInterval time.Duration) *WorkerCache {
 	cache := &WorkerCache{
-		logger:          logger,
-		conn:            conn,
-		refreshInterval: refreshInterval,
+		logger:                logger,
+		conn:                  conn,
+		refreshInterval:       refreshInterval,
+		workers:               make(map[string]Worker),
+		workerContainerCounts: make(map[string]int),
 	}
-
-	// Initialize maps
-	cache.initMaps()
 
 	// Set initial refresh time to zero
 	cache.lastRefresh.Store(0)
 
 	return cache
-}
-
-// Initialize maps under lock
-func (cache *WorkerCache) initMaps() {
-	cache.dataMut.Lock()
-	defer cache.dataMut.Unlock()
-
-	cache.workers = make(map[string]Worker)
-	cache.workerContainerCounts = make(map[string]int)
 }
 
 // Copy maps safely for returning to caller
@@ -269,13 +260,11 @@ func (cache *WorkerCache) refreshWorkerData() error {
 		newCountByWorker[workerName] = containersCount
 	}
 
-	// Update cached data under lock
 	cache.dataMut.Lock()
 	cache.workers = newWorkers
 	cache.workerContainerCounts = newCountByWorker
 	cache.dataMut.Unlock()
 
-	// Update refresh timestamp
 	cache.lastRefresh.Store(time.Now().UnixNano())
 
 	return nil
@@ -287,11 +276,11 @@ func (cache *WorkerCache) needsRefresh() bool {
 }
 
 func (cache *WorkerCache) startRefresh() bool {
-	return cache.refreshing.CompareAndSwap(0, 1)
+	return cache.refreshing.CompareAndSwap(false, true)
 }
 
 func (cache *WorkerCache) endRefresh() {
-	cache.refreshing.Store(0)
+	cache.refreshing.Store(false)
 }
 
 func (cache *WorkerCache) ensureRefresh() {
@@ -307,19 +296,16 @@ func (cache *WorkerCache) removeWorker(name string) {
 }
 
 func (cache *WorkerCache) upsertWorker(name string) error {
-	// Query the database for the worker
 	worker, found, err := getWorker(cache.conn, workersQuery.Where(sq.Eq{"w.name": name}))
 	if err != nil {
 		return err
 	}
 
-	// Worker doesn't exist in DB, remove it from cache
 	if !found {
 		cache.removeWorker(name)
 		return nil
 	}
 
-	// Worker exists in DB, update cache with write lock
 	cache.dataMut.Lock()
 	defer cache.dataMut.Unlock()
 
