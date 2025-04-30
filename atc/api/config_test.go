@@ -376,11 +376,11 @@ var _ = Describe("Config API", func() {
 								"warnings": [
 									{
 										"type": "invalid_identifier",
-										"message": "pipeline: '_pipeline' is not a valid identifier: must start with a lowercase letter"
+										"message": "pipeline: '_pipeline' is not a valid identifier: must start with a lowercase letter or a number"
 									},
 									{
 										"type": "invalid_identifier",
-										"message": "team: '_team' is not a valid identifier: must start with a lowercase letter"
+										"message": "team: '_team' is not a valid identifier: must start with a lowercase letter or a number"
 									}
 								]
 							}`))
