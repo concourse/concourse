@@ -66,7 +66,7 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(
 
 	backendOpts, err := cmd.buildUpBackendOpts(logger, cniNetwork)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create contianerd backend opts: %w", err)
+		return nil, fmt.Errorf("failed to create containerd backend opts: %w", err)
 	}
 
 	gardenBackend, err := runtime.NewGardenBackend(
