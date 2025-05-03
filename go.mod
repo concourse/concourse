@@ -56,7 +56,6 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.18.0
 	github.com/kr/pty v1.1.8
-	github.com/krishicks/yaml-patch v0.0.10
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
