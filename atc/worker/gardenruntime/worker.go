@@ -729,11 +729,33 @@ func (worker *Worker) findOrStreamVolume(
 				return Volume{}, err
 			}
 
-			delegate.StreamingVolume(logger, inputPath, artifact.Source(), streamedVolume.DBVolume().WorkerName())
+			// if volume size not cached, get source volume size through LookupVolumeWithSize
+			var bcSourceVolume baggageclaim.Volume
+			if volume.DBVolume().Size() <= 0 {
+				bcSourceVolume, _, err = volume.worker.bcClient.LookupVolumeWithSize(ctx, volume.DBVolume().Handle())
+				if err != nil {
+					logger.Error("failed-to-find-source-volume-for-streaming", err)
+					return Volume{}, err
+				}
+				if inputPath == "for image" {
+					volume.worker.db.VolumeRepo.UpdateVolumeSize(volume.DBVolume().Handle(), bcSourceVolume.Size())
+				}
+
+				logger.Info("update-worker-volume-size", lager.Data{
+					"worker": volume.worker.DBWorker().Name(),
+					"size":   bcSourceVolume.Size(),
+				})
+			}
+
+			delegate.StreamingVolume(logger, inputPath, artifact.Source(), streamedVolume.DBVolume().WorkerName(), bcSourceVolume.Size())
 			if err := worker.streamer.Stream(ctx, artifact, streamedVolume); err != nil {
 				logger.Error("failed-to-stream-artifact", err)
 				return Volume{}, err
 			}
+			if inputPath == "for image" {
+				worker.db.VolumeRepo.UpdateVolumeSize(streamedVolume.DBVolume().Handle(), bcSourceVolume.Size())
+			}
+
 			logger.Debug("streamed-non-local-volume")
 			return streamedVolume, nil
 		}
