@@ -20,7 +20,7 @@ type lockManager struct {
 
 type lockEntry struct {
 	mu       sync.Mutex
-	refCount int32 // Using int32 for atomic operations
+	refCount atomic.Int32
 }
 
 func NewLockManager() LockManager {
@@ -28,22 +28,18 @@ func NewLockManager() LockManager {
 }
 
 func (m *lockManager) Lock(key string) {
-	// Get or create a lock entry for this key
 	var entry *lockEntry
 
-	// First, try to load existing entry
 	if value, ok := m.locks.Load(key); ok {
 		entry = value.(*lockEntry)
-		// Increment reference count atomically
-		atomic.AddInt32(&entry.refCount, 1)
+		entry.refCount.Add(1)
 	} else {
-		// Create new entry with refCount = 1
-		newEntry := &lockEntry{refCount: 1}
+		newEntry := &lockEntry{}
+		newEntry.refCount.Add(1)
 		actual, loaded := m.locks.LoadOrStore(key, newEntry)
 		if loaded {
-			// Someone else created it first, use that one and increment
 			entry = actual.(*lockEntry)
-			atomic.AddInt32(&entry.refCount, 1)
+			entry.refCount.Add(1)
 		} else {
 			entry = newEntry
 		}
@@ -54,7 +50,6 @@ func (m *lockManager) Lock(key string) {
 }
 
 func (m *lockManager) Unlock(key string) {
-	// Get the lock entry
 	value, ok := m.locks.Load(key)
 	if !ok {
 		panic(fmt.Sprintf("key %q already unlocked", key))
@@ -64,10 +59,8 @@ func (m *lockManager) Unlock(key string) {
 	// Release the actual lock
 	entry.mu.Unlock()
 
-	// Decrement reference count and clean up if needed
-	newCount := atomic.AddInt32(&entry.refCount, -1)
+	newCount := entry.refCount.Add(-1)
 	if newCount == 0 {
-		// Safe to delete as no one else is using it
 		m.locks.Delete(key)
 	}
 }
