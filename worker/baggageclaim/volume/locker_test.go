@@ -93,11 +93,11 @@ var _ = Describe("KeyedLock", func() {
 				counterMutex := sync.Mutex{}
 
 				// Each goroutine will increment the counter while holding the lock
-				for i := 0; i < numGoroutines; i++ {
+				for i := range numGoroutines {
 					wg.Add(1)
 					go func(id int) {
 						defer wg.Done()
-						for j := 0; j < numLockOperations; j++ {
+						for range numLockOperations {
 							lockManager.Lock("counter-key")
 
 							// Read counter
@@ -128,7 +128,7 @@ var _ = Describe("KeyedLock", func() {
 				// This test verifies that we don't leak memory by keeping unused locks
 
 				// Create and use 100 different locks
-				for i := 0; i < 100; i++ {
+				for i := range 100 {
 					key := fmt.Sprintf("temp-key-%d", i)
 					lockManager.Lock(key)
 					lockManager.Unlock(key)
@@ -178,12 +178,12 @@ var _ = Describe("KeyedLock", func() {
 			completed := make([]bool, numGoroutines)
 
 			// Start multiple goroutines all trying to lock/unlock different keys
-			for i := 0; i < numGoroutines; i++ {
+			for i := range numGoroutines {
 				wg.Add(1)
 				go func(id int) {
 					defer wg.Done()
 
-					for j := 0; j < opsPerGoroutine; j++ {
+					for j := range opsPerGoroutine {
 						// Choose a key based on the goroutine ID and iteration
 						keyID := (id + j) % numKeys
 						key := fmt.Sprintf("concurrent-key-%d", keyID)
@@ -201,7 +201,7 @@ var _ = Describe("KeyedLock", func() {
 			wg.Wait()
 
 			// Verify all goroutines completed
-			for i := 0; i < numGoroutines; i++ {
+			for i := range numGoroutines {
 				Expect(completed[i]).To(BeTrue())
 			}
 		})
