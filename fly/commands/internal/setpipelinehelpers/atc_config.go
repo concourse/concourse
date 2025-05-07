@@ -47,7 +47,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 }
 
 func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTemplateWithParams) error {
-	evaluatedTemplate, err := yamlTemplateWithParams.Evaluate(false, false)
+	evaluatedTemplate, err := yamlTemplateWithParams.Evaluate(false)
 	if err != nil {
 		return err
 	}

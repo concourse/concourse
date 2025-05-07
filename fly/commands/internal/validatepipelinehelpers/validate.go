@@ -14,7 +14,7 @@ import (
 )
 
 func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool, enableAcrossStep bool) error {
-	evaluatedTemplate, err := yamlTemplate.Evaluate(true, strict)
+	evaluatedTemplate, err := yamlTemplate.Evaluate(strict)
 	if err != nil {
 		return err
 	}
