@@ -1,0 +1,11 @@
+user_key: useful for yaml anchors
+groups: []
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    source-config: some-value
+jobs:
+- name: job
+  plan:
+  - get: some-resource

@@ -18,6 +18,7 @@ var _ = Describe("Validate Pipeline", func() {
 	Describe("validating", func() {
 		var tmpdir string
 		var goodPipeline templatehelpers.YamlTemplateWithParams
+		var unknownKeyPipeline templatehelpers.YamlTemplateWithParams
 		var dupkeyPipeline templatehelpers.YamlTemplateWithParams
 		var goodAcrossPipeline templatehelpers.YamlTemplateWithParams
 
@@ -39,6 +40,27 @@ resource_types:
   type: registry-image
   source:
     repository: bar/bar
+jobs:
+- name: hello-world
+  plan:
+  - task: say-hello
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: ubuntu}
+      run:
+        path: echo
+        args: ["Hello, world!"]
+`),
+				0644,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = os.WriteFile(
+				filepath.Join(tmpdir, "unknown-key-pipeline.yml"),
+				[]byte(`---
+anchors: "unknown key"
 jobs:
 - name: hello-world
   plan:
@@ -123,6 +145,7 @@ jobs:
 			Expect(err).NotTo(HaveOccurred())
 
 			goodPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "good-pipeline.yml")), nil, nil, nil, nil)
+			unknownKeyPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "unknown-key-pipeline.yml")), nil, nil, nil, nil)
 			dupkeyPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "dupkey-pipeline.yml")), nil, nil, nil, nil)
 			goodAcrossPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "good-across-pipeline.yml")), nil, nil, nil, nil)
 		})
@@ -143,15 +166,19 @@ jobs:
 			err := validatepipelinehelpers.Validate(goodPipeline, true, true, false)
 			Expect(err).To(BeNil())
 		})
-		It("do not fail validating a pipeline with repeated resource types (probably should but for compat doesn't)", func() {
+		It("fails to validate a pipeline with duplicate keys", func() {
 			err := validatepipelinehelpers.Validate(dupkeyPipeline, false, false, false)
+			Expect(err.Error()).To(ContainSubstring("key \"resource_types\" already set in map"))
+		})
+		It("fails to validate a pipeline with unknown keys with strict", func() {
+			err := validatepipelinehelpers.Validate(unknownKeyPipeline, true, false, false)
+			Expect(err.Error()).To(ContainSubstring("json: unknown field \"anchors\""))
+		})
+		It("validates a pipeline with unknown keys", func() {
+			err := validatepipelinehelpers.Validate(unknownKeyPipeline, false, false, false)
 			Expect(err).To(BeNil())
 		})
-		It("fail validating a pipeline with repeated resource types with strict", func() {
-			err := validatepipelinehelpers.Validate(dupkeyPipeline, true, false, false)
-			Expect(err).ToNot(BeNil())
-		})
-		It("fail validating a pipeline using experimental `across` without the command flag enabling it", func() {
+		It("fails to validate a pipeline using experimental `across` without the command flag enabling it", func() {
 			err := validatepipelinehelpers.Validate(goodAcrossPipeline, false, false, false)
 			Expect(err).ToNot(BeNil())
 		})

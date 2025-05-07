@@ -83,24 +83,74 @@ var _ = Describe("Fly CLI", func() {
 			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
 		})
 
-		It("returns invalid on validation warning with strict", func() {
+		It("returns invalid on duplicate keys", func() {
 			flyCmd := exec.Command(
 				flyPath,
 				"validate-pipeline",
-				"-c", "fixtures/testConfigWarning.yml",
-				"--strict",
+				"-c", "fixtures/testConfigDuplicate.yml",
 			)
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
-			Eventually(sess.Err).Should(gbytes.Say("  - jobs.some-job.plan"))
+			Eventually(sess.Err).Should(gbytes.Say("error parsing yaml before applying templates"))
+			Eventually(sess.Err).Should(gbytes.Say("key \"resources\" already set in map"))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
+		})
 
-			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
+		It("returns valid on a pipeline with unknown keys", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/testConfigUnknownKeys.yml",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
+
+		When("strict", func() {
+			It("returns invalid on validation warning", func() {
+				flyCmd := exec.Command(
+					flyPath,
+					"validate-pipeline",
+					"-c", "fixtures/testConfigWarning.yml",
+					"--strict",
+				)
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
+				Eventually(sess.Err).Should(gbytes.Say("  - jobs.some-job.plan"))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+
+				Expect(sess.Err).To(gbytes.Say("configuration invalid"))
+			})
+
+			It("returns invalid on unknown keys", func() {
+				flyCmd := exec.Command(
+					flyPath,
+					"validate-pipeline",
+					"-c", "fixtures/testConfigUnknownKeys.yml",
+					"--strict",
+				)
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess.Err).Should(gbytes.Say("json: unknown field \"user_key\""))
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(1))
+			})
 		})
 
 		It("returns valid on a pipeline that contains var_sources", func() {
