@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: dev
       POSTGRES_PASSWORD: dev
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dev"]
+      test: ["CMD-SHELL", "pg_isready -U dev -d concourse"]
       interval: 3s
       timeout: 3s
       retries: 5
