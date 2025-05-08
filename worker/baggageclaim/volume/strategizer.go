@@ -8,20 +8,20 @@ import (
 	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
-type Strategerizer interface {
+type Strategizer interface {
 	StrategyFor(baggageclaim.VolumeRequest) (Strategy, error)
 }
 
 var ErrNoStrategy = errors.New("no strategy given")
 var ErrUnknownStrategy = errors.New("unknown strategy")
 
-type strategerizer struct{}
+type strategizer struct{}
 
-func NewStrategerizer() Strategerizer {
-	return &strategerizer{}
+func NewStrategizer() Strategizer {
+	return &strategizer{}
 }
 
-func (s *strategerizer) StrategyFor(request baggageclaim.VolumeRequest) (Strategy, error) {
+func (s *strategizer) StrategyFor(request baggageclaim.VolumeRequest) (Strategy, error) {
 	if request.Strategy == nil {
 		return nil, ErrNoStrategy
 	}
