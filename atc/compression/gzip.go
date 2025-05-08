@@ -1,10 +1,10 @@
 package compression
 
 import (
-	"compress/gzip"
 	"io"
 
 	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/klauspost/compress/gzip"
 )
 
 type gzipCompression struct{}
