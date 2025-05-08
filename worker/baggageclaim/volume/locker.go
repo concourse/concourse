@@ -3,6 +3,7 @@ package volume
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -14,49 +15,52 @@ type LockManager interface {
 }
 
 type lockManager struct {
-	locks map[string]*lockEntry
-	mutex sync.Mutex
+	locks sync.Map // key -> *lockEntry
 }
 
 type lockEntry struct {
-	ch    chan struct{}
-	count int
+	mu       sync.Mutex
+	refCount atomic.Int32
 }
 
 func NewLockManager() LockManager {
-	locks := map[string]*lockEntry{}
-	return &lockManager{
-		locks: locks,
-	}
+	return &lockManager{}
 }
 
 func (m *lockManager) Lock(key string) {
-	m.mutex.Lock()
-	entry, ok := m.locks[key]
-	if !ok {
-		entry = &lockEntry{
-			ch: make(chan struct{}, 1),
+	var entry *lockEntry
+
+	if value, ok := m.locks.Load(key); ok {
+		entry = value.(*lockEntry)
+		entry.refCount.Add(1)
+	} else {
+		newEntry := &lockEntry{}
+		newEntry.refCount.Add(1)
+		actual, loaded := m.locks.LoadOrStore(key, newEntry)
+		if loaded {
+			entry = actual.(*lockEntry)
+			entry.refCount.Add(1)
+		} else {
+			entry = newEntry
 		}
-		m.locks[key] = entry
 	}
 
-	entry.count++
-	m.mutex.Unlock()
-	entry.ch <- struct{}{}
+	// Now actually acquire the lock for the caller
+	entry.mu.Lock()
 }
 
 func (m *lockManager) Unlock(key string) {
-	m.mutex.Lock()
-	entry, ok := m.locks[key]
+	value, ok := m.locks.Load(key)
 	if !ok {
 		panic(fmt.Sprintf("key %q already unlocked", key))
 	}
+	entry := value.(*lockEntry)
 
-	entry.count--
-	if entry.count == 0 {
-		delete(m.locks, key)
+	// Release the actual lock
+	entry.mu.Unlock()
+
+	newCount := entry.refCount.Add(-1)
+	if newCount == 0 {
+		m.locks.Delete(key)
 	}
-
-	m.mutex.Unlock()
-	<-entry.ch
 }
