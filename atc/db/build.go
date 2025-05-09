@@ -656,7 +656,7 @@ func (b *build) Finish(status BuildStatus) error {
 			return err
 		}
 
-		rows, err := psql.Select("o.resource_id", "o.version_md5").
+		rows, err := psql.Select("o.resource_id", "o.version_sha256").
 			From("build_resource_config_version_outputs o").
 			Where(sq.Eq{
 				"o.build_id": b.id,
@@ -693,7 +693,7 @@ func (b *build) Finish(status BuildStatus) error {
 			}
 		}
 
-		rows, err = psql.Select("i.resource_id", "i.version_md5").
+		rows, err = psql.Select("i.resource_id", "i.version_sha256").
 			From("build_resource_config_version_inputs i").
 			Where(sq.Eq{
 				"i.build_id": b.id,
@@ -1319,8 +1319,8 @@ func (b *build) SaveOutput(
 	}
 
 	_, err = psql.Insert("build_resource_config_version_outputs").
-		Columns("resource_id", "build_id", "version_md5", "name").
-		Values(theResource.ID(), strconv.Itoa(b.id), sq.Expr("md5(?)", versionJSON), outputName).
+		Columns("resource_id", "build_id", "version_sha256", "name").
+		Values(theResource.ID(), strconv.Itoa(b.id), sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON), outputName).
 		Suffix("ON CONFLICT DO NOTHING").
 		RunWith(tx).
 		Exec()
@@ -1377,13 +1377,13 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 	}
 
 	rows, err := psql.Insert("build_resource_config_version_inputs").
-		Columns("resource_id", "version_md5", "name", "first_occurrence", "build_id").
-		Select(psql.Select("i.resource_id", "i.version_md5", "i.input_name", "i.first_occurrence").
+		Columns("resource_id", "version_sha256", "name", "first_occurrence", "build_id").
+		Select(psql.Select("i.resource_id", "i.version_sha256", "i.input_name", "i.first_occurrence").
 			Column("?", b.id).
 			From("next_build_inputs i").
 			Where(sq.Eq{"i.job_id": b.jobID})).
-		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO UPDATE SET first_occurrence = EXCLUDED.first_occurrence").
-		Suffix("RETURNING name, resource_id, version_md5, first_occurrence").
+		Suffix("ON CONFLICT (build_id, resource_id, version_sha256, name) DO UPDATE SET first_occurrence = EXCLUDED.first_occurrence").
+		Suffix("RETURNING name, resource_id, version_sha256, first_occurrence").
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -1395,11 +1395,11 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 		var (
 			inputName       string
 			firstOccurrence bool
-			versionMD5      string
+			versionSHA256   string
 			resourceID      int
 		)
 
-		err := rows.Scan(&inputName, &resourceID, &versionMD5, &firstOccurrence)
+		err := rows.Scan(&inputName, &resourceID, &versionSHA256, &firstOccurrence)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1408,7 +1408,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 			Input: &AlgorithmInput{
 				AlgorithmVersion: AlgorithmVersion{
 					ResourceID: resourceID,
-					Version:    ResourceVersion(versionMD5),
+					Version:    ResourceVersion(versionSHA256),
 				},
 				FirstOccurrence: firstOccurrence,
 			},
@@ -1424,8 +1424,8 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 			From("resource_config_versions v").
 			Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 			Where(sq.Eq{
-				"v.version_md5": input.Input.Version,
-				"r.id":          input.Input.ResourceID,
+				"v.version_sha256": input.Input.Version,
+				"r.id":             input.Input.ResourceID,
 			}).
 			RunWith(tx).
 			QueryRow().
@@ -1535,13 +1535,13 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 	}
 
 	rows, err := psql.Insert("build_resource_config_version_inputs").
-		Columns("resource_id", "version_md5", "name", "first_occurrence", "build_id").
-		Select(psql.Select("i.resource_id", "i.version_md5", "i.name", "false").
+		Columns("resource_id", "version_sha256", "name", "first_occurrence", "build_id").
+		Select(psql.Select("i.resource_id", "i.version_sha256", "i.name", "false").
 			Column("?", b.id).
 			From("build_resource_config_version_inputs i").
 			Where(sq.Eq{"i.build_id": b.rerunOf})).
-		Suffix("ON CONFLICT (build_id, resource_id, version_md5, name) DO NOTHING").
-		Suffix("RETURNING name, resource_id, version_md5, first_occurrence").
+		Suffix("ON CONFLICT (build_id, resource_id, version_sha256, name) DO NOTHING").
+		Suffix("RETURNING name, resource_id, version_sha256, first_occurrence").
 		RunWith(tx).
 		Query()
 	if err != nil {
@@ -1553,11 +1553,11 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 		var (
 			inputName       string
 			firstOccurrence bool
-			versionMD5      string
+			versionSHA256   string
 			resourceID      int
 		)
 
-		err := rows.Scan(&inputName, &resourceID, &versionMD5, &firstOccurrence)
+		err := rows.Scan(&inputName, &resourceID, &versionSHA256, &firstOccurrence)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1566,7 +1566,7 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 			Input: &AlgorithmInput{
 				AlgorithmVersion: AlgorithmVersion{
 					ResourceID: resourceID,
-					Version:    ResourceVersion(versionMD5),
+					Version:    ResourceVersion(versionSHA256),
 				},
 				FirstOccurrence: firstOccurrence,
 			},
@@ -1581,8 +1581,8 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 			From("resource_config_versions v").
 			Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 			Where(sq.Eq{
-				"v.version_md5": input.Input.Version,
-				"r.id":          input.Input.ResourceID,
+				"v.version_sha256": input.Input.Version,
+				"r.id":             input.Input.ResourceID,
 			}).
 			RunWith(tx).
 			QueryRow().
@@ -1680,7 +1680,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 	rows, err := psql.Select("inputs.name", "resources.id", "versions.version", `COALESCE(inputs.first_occurrence, NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_inputs i, builds b
-			WHERE versions.version_md5 = i.version_md5
+			WHERE versions.version_sha256 = i.version_sha256
 			AND resources.resource_config_scope_id = versions.resource_config_scope_id
 			AND resources.id = i.resource_id
 			AND b.job_id = builds.job_id
@@ -1690,13 +1690,13 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		From("resource_config_versions versions, build_resource_config_version_inputs inputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.Expr("inputs.build_id = builds.id")).
-		Where(sq.Expr("inputs.version_md5 = versions.version_md5")).
+		Where(sq.Expr("inputs.version_sha256 = versions.version_sha256")).
 		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
 		Where(sq.Expr("resources.id = inputs.resource_id")).
 		Where(sq.Expr(`NOT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_outputs outputs
-			WHERE outputs.version_md5 = versions.version_md5
+			WHERE outputs.version_sha256 = versions.version_sha256
 			AND versions.resource_config_scope_id = resources.resource_config_scope_id
 			AND outputs.resource_id = resources.id
 			AND outputs.build_id = inputs.build_id
@@ -1740,7 +1740,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 		From("resource_config_versions versions, build_resource_config_version_outputs outputs, builds, resources").
 		Where(sq.Eq{"builds.id": b.id}).
 		Where(sq.Expr("outputs.build_id = builds.id")).
-		Where(sq.Expr("outputs.version_md5 = versions.version_md5")).
+		Where(sq.Expr("outputs.version_sha256 = versions.version_sha256")).
 		Where(sq.Expr("outputs.resource_id = resources.id")).
 		Where(sq.Expr("resources.resource_config_scope_id = versions.resource_config_scope_id")).
 		RunWith(tx).

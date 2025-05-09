@@ -757,9 +757,9 @@ var _ = Describe("VersionsDB", func() {
 				queryVersion = atc.Version{"tag": "v1"}
 			})
 
-			It("return the version md5", func() {
+			It("return the version sha256", func() {
 				Expect(found).To(BeTrue())
-				Expect(string(resourceVersion)).To(Equal(convertToMD5(dbVersion)))
+				Expect(string(resourceVersion)).To(Equal(convertToSHA256(dbVersion)))
 			})
 		})
 	})
