@@ -84,6 +84,7 @@ import (
 	_ "github.com/concourse/concourse/atc/creds/conjur"
 	_ "github.com/concourse/concourse/atc/creds/credhub"
 	_ "github.com/concourse/concourse/atc/creds/dummy"
+	"github.com/concourse/concourse/atc/creds/idtoken"
 	_ "github.com/concourse/concourse/atc/creds/kubernetes"
 	_ "github.com/concourse/concourse/atc/creds/secretsmanager"
 	_ "github.com/concourse/concourse/atc/creds/ssm"
@@ -485,6 +486,7 @@ func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
 	for name, p := range creds.ManagerFactories() {
 		managerConfigs[name] = p.AddConfig(credsGroup)
 	}
+
 	cmd.CredentialManagers = managerConfigs
 
 	metric.Metrics.WireEmitters(metricsGroup)
@@ -633,6 +635,10 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if err != nil {
 		return nil, err
 	}
+
+	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
+		f.SetIssuer(cmd.ExternalURL.String())
+	})
 
 	secretManager, err := cmd.secretManager(logger)
 	if err != nil {
@@ -835,8 +841,18 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbBuildFactory := db.NewBuildFactory(dbConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, checkBuildsChan, nil)
 	dbAccessTokenFactory := db.NewAccessTokenFactory(dbConn)
+	dbSigningKeyFactory := db.NewSigningKeyFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
+
+	err = idtoken.EnsureSigningKeysExist(logger, dbSigningKeyFactory, lockFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
+		f.SetSigningKeyFactory(dbSigningKeyFactory)
+	})
 
 	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
 
@@ -885,6 +901,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		accessFactory,
 		dbWall,
 		policyChecker,
+		dbSigningKeyFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -1812,6 +1829,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 	webMux.Handle("/auth/", legacyHandler)
 	webMux.Handle("/login", legacyHandler)
 	webMux.Handle("/logout", legacyHandler)
+	webMux.Handle("/.well-known/", apiHandler)
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{
@@ -1962,6 +1980,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	accessFactory accessor.AccessFactory,
 	dbWall db.Wall,
 	policyChecker policy.Checker,
+	dbSigningKeyFactory db.SigningKeyFactory,
 ) (http.Handler, error) {
 
 	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(teamFactory)
@@ -2051,6 +2070,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		time.Minute,
 		dbWall,
 		clock.NewClock(),
+		dbSigningKeyFactory,
 	)
 }
 

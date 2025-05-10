@@ -227,6 +227,8 @@ var _ = BeforeEach(func() {
 		time.Second,
 		dbWall,
 		fakeClock,
+		//TODO: don't pass nil but something useful
+		nil,
 	)
 
 	atc.EnablePipelineInstances = true
