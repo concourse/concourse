@@ -1,6 +1,7 @@
 package idtoken_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds/idtoken"
@@ -23,24 +24,44 @@ const (
 var _ = Describe("IDToken TokenGenerator", func() {
 	var rsaSigningKey db.SigningKey
 	var rsaVerificationKey jose.JSONWebKey
+	var ecSigningKey db.SigningKey
+	var ecVerificationKey jose.JSONWebKey
 	var signingKeyFactory db.SigningKeyFactory
 	var tokenGenerator *idtoken.TokenGenerator
 
 	BeforeEach(func() {
-		signingKeyFake := &dbfakes.FakeSigningKey{}
-		signingKeyFake.JWKReturns(*rsaJWK)
-		signingKeyFake.CreatedAtReturns(time.Now())
-		signingKeyFake.IDReturns(rsaJWK.KeyID)
-		signingKeyFake.KeyTypeReturns(db.SigningKeyTypeRSA)
-		rsaSigningKey = signingKeyFake
+		signingKeyFakeRSA := &dbfakes.FakeSigningKey{}
+		signingKeyFakeRSA.JWKReturns(*rsaJWK)
+		signingKeyFakeRSA.CreatedAtReturns(time.Now())
+		signingKeyFakeRSA.IDReturns(rsaJWK.KeyID)
+		signingKeyFakeRSA.KeyTypeReturns(db.SigningKeyTypeRSA)
+		rsaSigningKey = signingKeyFakeRSA
+
+		signingKeyFakeEC := &dbfakes.FakeSigningKey{}
+		signingKeyFakeEC.JWKReturns(*ecJWK)
+		signingKeyFakeEC.CreatedAtReturns(time.Now())
+		signingKeyFakeEC.IDReturns(ecJWK.KeyID)
+		signingKeyFakeEC.KeyTypeReturns(db.SigningKeyTypeEC)
+		ecSigningKey = signingKeyFakeEC
 
 		rsaVerificationKey = rsaJWK.Public()
+		ecVerificationKey = ecJWK.Public()
 
 		signingKeyFactoryFake := &dbfakes.FakeSigningKeyFactory{}
 		signingKeyFactoryFake.GetAllKeysReturns([]db.SigningKey{
 			rsaSigningKey,
+			ecSigningKey,
 		}, nil)
-		signingKeyFactoryFake.GetNewestKeyReturns(rsaSigningKey, nil)
+
+		signingKeyFactoryFake.GetNewestKeyStub = func(skt db.SigningKeyType) (db.SigningKey, error) {
+			switch skt {
+			case db.SigningKeyTypeRSA:
+				return rsaSigningKey, nil
+			case db.SigningKeyTypeEC:
+				return ecSigningKey, nil
+			}
+			return nil, fmt.Errorf("not found")
+		}
 		signingKeyFactory = signingKeyFactoryFake
 
 		tokenGenerator = &idtoken.TokenGenerator{
@@ -105,6 +126,21 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		Expect(err).To(Succeed())
 
 		Expect(claims.Audience).To(ContainElement("testaud"))
+	})
+
+	It("uses ES256 when requested", func() {
+		tokenGenerator.Algorithm = jose.ES256
+		token, _, err := tokenGenerator.GenerateToken(testTeam, testPipeline)
+		Expect(err).ToNot(HaveOccurred())
+
+		parsed, err := jwt.ParseSigned(token)
+		Expect(err).ToNot(HaveOccurred())
+
+		claims := jwt.Claims{}
+		err = parsed.Claims(ecVerificationKey, &claims)
+		Expect(err).To(Succeed())
+
+		Expect(parsed.Headers[0].Algorithm).To(Equal("ES256"))
 	})
 
 	Context("Generated Token", func() {

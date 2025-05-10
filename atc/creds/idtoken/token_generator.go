@@ -2,7 +2,6 @@ package idtoken
 
 import (
 	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
 	"math"
 	"math/big"
@@ -22,6 +21,8 @@ const (
 	SubjectScopeEmpty    SubjectScope = ""
 	SubjectScopeTeam     SubjectScope = "team"
 	SubjectScopePipeline SubjectScope = "pipeline"
+
+	DefaultAlgorithm = jose.RS256
 )
 
 func (s SubjectScope) Valid() bool {
@@ -35,26 +36,23 @@ func (s SubjectScope) Valid() bool {
 type TokenGenerator struct {
 	Issuer            string
 	SigningKeyFactory db.SigningKeyFactory
-	SubjectScope      SubjectScope
-	Audience          []string
-	ExpiresIn         time.Duration
+
+	SubjectScope SubjectScope
+	Audience     []string
+	ExpiresIn    time.Duration
+	Algorithm    jose.SignatureAlgorithm
 }
 
 func (g TokenGenerator) GenerateToken(team, pipeline string) (token string, validUntil time.Time, err error) {
 	now := time.Now()
 	validUntil = now.Add(g.ExpiresIn)
 
-	// currently only RSA signatures are supported
-	latestKey, err := g.SigningKeyFactory.GetNewestKey(db.SigningKeyTypeRSA)
+	signingKey, err := g.getSigningKey()
 	if err != nil {
 		return "", time.Time{}, err
 	}
-	signingKey := jose.SigningKey{
-		Algorithm: jose.RS256,
-		Key:       latestKey.JWK(),
-	}
 
-	signer, err := jose.NewSigner(signingKey, &jose.SignerOptions{})
+	signer, err := jose.NewSigner(*signingKey, &jose.SignerOptions{})
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -84,6 +82,31 @@ func (g TokenGenerator) GenerateToken(team, pipeline string) (token string, vali
 	return signed, validUntil, nil
 }
 
+func (g TokenGenerator) getSigningKey() (*jose.SigningKey, error) {
+	alg := g.Algorithm
+	if alg == "" {
+		alg = DefaultAlgorithm
+	}
+
+	var keyType db.SigningKeyType
+	if strings.HasPrefix(string(alg), "RS") {
+		keyType = db.SigningKeyTypeRSA
+	} else if strings.HasPrefix(string(alg), "ES") {
+		keyType = db.SigningKeyTypeEC
+	} else {
+		return nil, fmt.Errorf("unsupported signing algorithm")
+	}
+
+	latestKey, err := g.SigningKeyFactory.GetNewestKey(keyType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get a signing key for the selected algorithm %w", err)
+	}
+	return &jose.SigningKey{
+		Algorithm: alg,
+		Key:       latestKey.JWK(),
+	}, nil
+}
+
 func (g TokenGenerator) generateSubject(team, pipeline string) string {
 	team = escapeSlashes(team)
 	pipeline = escapeSlashes(pipeline)
@@ -101,20 +124,6 @@ func (g TokenGenerator) generateSubject(team, pipeline string) string {
 
 func escapeSlashes(input string) string {
 	return strings.ReplaceAll(input, "/", "%2F")
-}
-
-func GenerateNewRSAKey() (*jose.JSONWebKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return nil, err
-	}
-
-	return &jose.JSONWebKey{
-		KeyID:     generateRandomNumericString(),
-		Algorithm: "RS256",
-		Key:       privateKey,
-		Use:       "sign",
-	}, nil
 }
 
 func generateRandomNumericString() string {

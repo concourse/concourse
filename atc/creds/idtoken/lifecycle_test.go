@@ -21,7 +21,7 @@ var _ = Describe("IDToken Lifecycle", func() {
 	var lockFactory lock.LockFactory
 
 	BeforeEach(func() {
-		signingKeys := make([]db.SigningKey, 0, 1)
+		signingKeys := make([]db.SigningKey, 0, 4)
 
 		signingKeyFactoryFake := &dbfakes.FakeSigningKeyFactory{}
 		signingKeyFactoryFake.CreateKeyStub = func(jwk jose.JSONWebKey) error {
@@ -29,7 +29,12 @@ var _ = Describe("IDToken Lifecycle", func() {
 			key.JWKReturns(jwk)
 			key.IDReturns(jwk.KeyID)
 			key.CreatedAtReturns(time.Now())
-			key.KeyTypeReturns(db.SigningKeyTypeRSA)
+
+			if jwk.Algorithm == "RS256" {
+				key.KeyTypeReturns(db.SigningKeyTypeRSA)
+			} else if jwk.Algorithm == "ES256" {
+				key.KeyTypeReturns(db.SigningKeyTypeEC)
+			}
 
 			signingKeys = append(signingKeys, key)
 
@@ -64,7 +69,7 @@ var _ = Describe("IDToken Lifecycle", func() {
 		lockFactory = fakeLockFactory
 	})
 
-	It("makes sure one suitable signing key exists", func() {
+	It("makes sure suitable signing keys exist", func() {
 		before, err := signingKeyFactory.GetAllKeys()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(before).To(HaveLen(0))
@@ -73,17 +78,21 @@ var _ = Describe("IDToken Lifecycle", func() {
 
 		after, err := signingKeyFactory.GetAllKeys()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(after).To(HaveLen(1))
+		Expect(after).To(HaveLen(2))
 
-		kid := after[0].ID()
+		rsaKey, err := signingKeyFactory.GetNewestKey(db.SigningKeyTypeRSA)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(rsaKey.KeyType()).To(Equal(db.SigningKeyTypeRSA))
 
-		// make sure a re-run does not create an additional key
+		ecKey, err := signingKeyFactory.GetNewestKey(db.SigningKeyTypeEC)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ecKey.KeyType()).To(Equal(db.SigningKeyTypeEC))
+
+		// make sure a re-run does not create additional keys
 		idtoken.EnsureSigningKeysExist(lager.NewLogger(""), signingKeyFactory, lockFactory)
 		after, err = signingKeyFactory.GetAllKeys()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(after).To(HaveLen(1))
-		Expect(after[0].ID()).To(Equal(kid))
-
+		Expect(after).To(HaveLen(2))
 	})
 
 })

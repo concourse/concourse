@@ -10,6 +10,7 @@ import (
 )
 
 var rsaJWK *jose.JSONWebKey
+var ecJWK *jose.JSONWebKey
 
 func TestIDToken(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -20,5 +21,8 @@ var _ = BeforeSuite(func() {
 	var err error
 	// generate this in beforeSuite because it is expensive and we don't need to re-run in for every test
 	rsaJWK, err = idtoken.GenerateNewRSAKey()
+	Expect(err).ToNot(HaveOccurred())
+
+	ecJWK, err = idtoken.GenerateNewECDSAKey()
 	Expect(err).ToNot(HaveOccurred())
 })

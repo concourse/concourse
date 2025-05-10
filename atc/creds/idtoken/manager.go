@@ -9,6 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
+	"github.com/go-jose/go-jose/v3"
 )
 
 type Manager struct {
@@ -29,6 +30,7 @@ func NewManager(issuer string, signingKeyFactory db.SigningKeyFactory, config ma
 			Audience:          nil,
 			ExpiresIn:         DefaultExpiresIn,
 			SigningKeyFactory: signingKeyFactory,
+			Algorithm:         DefaultAlgorithm,
 		},
 	}
 	var err error
@@ -67,6 +69,13 @@ func NewManager(issuer string, signingKeyFactory db.SigningKeyFactory, config ma
 				return nil, fmt.Errorf("invalid idtoken provider config: expires_in must be a string")
 			}
 
+		case "algorithm":
+			if algorithmString, ok := value.(string); ok {
+				m.tokenGenerator.Algorithm = jose.SignatureAlgorithm(algorithmString)
+			} else {
+				return nil, fmt.Errorf("invalid idtoken provider config: algorithm must be a string")
+			}
+
 		default:
 			return nil, fmt.Errorf("invalid idtoken provider config: unknown setting: %s", key)
 		}
@@ -101,6 +110,9 @@ func (manager Manager) Validate() error {
 	}
 	if manager.tokenGenerator.ExpiresIn > MaxExpiresIn {
 		return fmt.Errorf("expires_in must be <= %s", MaxExpiresIn.String())
+	}
+	if manager.tokenGenerator.Algorithm != "RS256" && manager.tokenGenerator.Algorithm != "ES256" && manager.tokenGenerator.Algorithm != "" {
+		return fmt.Errorf("invalid algorithm value: %s. Only RS256 and ES256 are supported", manager.tokenGenerator.SubjectScope)
 	}
 	return nil
 }
