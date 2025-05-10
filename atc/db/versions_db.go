@@ -32,7 +32,7 @@ func NewVersionsDB(conn DbConn, limitRows int, cache *gocache.Cache) VersionsDB 
 	}
 }
 
-func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inputName string, versionMD5 ResourceVersion, resourceId int) (bool, error) {
+func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inputName string, versionSHA256 ResourceVersion, resourceId int) (bool, error) {
 	var exists bool
 	err := versions.conn.QueryRowContext(ctx, `
 		WITH builds_of_job AS (
@@ -43,9 +43,9 @@ func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inp
 			FROM build_resource_config_version_inputs i
 			JOIN builds_of_job b ON b.id = i.build_id
 			WHERE i.name = $2
-			AND i.version_md5 = $3
+			AND i.version_sha256 = $3
 			AND i.resource_id = $4
-		)`, jobID, inputName, versionMD5, resourceId).
+		)`, jobID, inputName, versionSHA256, resourceId).
 		Scan(&exists)
 	if err != nil {
 		return false, err
@@ -54,15 +54,15 @@ func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inp
 	return !exists, nil
 }
 
-func (versions VersionsDB) VersionIsDisabled(ctx context.Context, resourceID int, versionMD5 ResourceVersion) (bool, error) {
+func (versions VersionsDB) VersionIsDisabled(ctx context.Context, resourceID int, versionSHA256 ResourceVersion) (bool, error) {
 	var exists bool
 	err := versions.conn.QueryRow(`
 		SELECT EXISTS (
 			SELECT 1
 			FROM resource_disabled_versions
 			WHERE resource_id = $1
-			AND version_md5 = $2
-		)`, resourceID, versionMD5).
+			AND version_sha256 = $2
+		)`, resourceID, versionSHA256).
 		Scan(&exists)
 	if err != nil {
 		return false, err
@@ -212,7 +212,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(ctx context.Context, buildID i
 	return algorithmOutputs, nil
 }
 
-func (versions VersionsDB) VersionExists(ctx context.Context, resourceID int, versionMD5 ResourceVersion) (bool, error) {
+func (versions VersionsDB) VersionExists(ctx context.Context, resourceID int, versionSHA256 ResourceVersion) (bool, error) {
 	var exists bool
 	err := versions.conn.QueryRowContext(ctx, `
 		SELECT EXISTS (
@@ -220,8 +220,8 @@ func (versions VersionsDB) VersionExists(ctx context.Context, resourceID int, ve
 			FROM resource_config_versions v
 			JOIN resources r ON r.resource_config_scope_id = v.resource_config_scope_id
 			WHERE r.id = $1
-			AND v.version_md5 = $2
-		)`, resourceID, versionMD5).
+			AND v.version_sha256 = $2
+		)`, resourceID, versionSHA256).
 		Scan(&exists)
 	if err != nil {
 		return false, err
@@ -244,7 +244,7 @@ func (versions VersionsDB) FindVersionOfResource(ctx context.Context, resourceID
 	}
 
 	var version ResourceVersion
-	err = psql.Select("rcv.version_md5").
+	err = psql.Select("rcv.version_sha256").
 		From("resource_config_versions rcv").
 		Join("resources r ON r.resource_config_scope_id = rcv.resource_config_scope_id").
 		Where(sq.Eq{
@@ -289,7 +289,7 @@ func (versions VersionsDB) NextEveryVersion(ctx context.Context, jobID int, reso
 				LIMIT 1
 			) AS build
 			WHERE i.resource_id = $2
-			AND i.version_md5 = rcv.version_md5
+			AND i.version_sha256 = rcv.version_sha256
 			LIMIT 1
 		) AS inputs
 		WHERE rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = $2)
@@ -318,10 +318,10 @@ func (versions VersionsDB) NextEveryVersion(ctx context.Context, jobID int, reso
 	}
 
 	var nextVersion ResourceVersion
-	rows, err := psql.Select("rcv.version_md5").
+	rows, err := psql.Select("rcv.version_sha256").
 		From("resource_config_versions rcv").
 		Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
-		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
+		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_sha256 = rcv.version_sha256)", resourceID)).
 		Where(sq.Gt{"rcv.check_order": checkOrder}).
 		OrderBy("rcv.check_order ASC").
 		Limit(2).
@@ -352,10 +352,10 @@ func (versions VersionsDB) NextEveryVersion(ctx context.Context, jobID int, reso
 		return nextVersion, hasNext, true, nil
 	}
 
-	err = psql.Select("rcv.version_md5").
+	err = psql.Select("rcv.version_sha256").
 		From("resource_config_versions rcv").
 		Where(sq.Expr("rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = ?)", resourceID)).
-		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_md5 = rcv.version_md5)", resourceID)).
+		Where(sq.Expr("NOT EXISTS (SELECT 1 FROM resource_disabled_versions WHERE resource_id = ? AND version_sha256 = rcv.version_sha256)", resourceID)).
 		Where(sq.LtOrEq{"rcv.check_order": checkOrder}).
 		OrderBy("rcv.check_order DESC").
 		Limit(1).
@@ -423,7 +423,7 @@ func (versions VersionsDB) LatestBuildUsingLatestVersion(ctx context.Context, jo
 				LIMIT 1
 			) AS build
 			WHERE i.resource_id = $2
-			AND i.version_md5 = rcv.version_md5
+			AND i.version_sha256 = rcv.version_sha256
 			LIMIT 1
 		) AS inputs
 		WHERE rcv.resource_config_scope_id = (SELECT resource_config_scope_id FROM resources WHERE id = $2)
@@ -560,10 +560,10 @@ func (versions VersionsDB) latestVersionOfResource(ctx context.Context, tx Tx, r
 	}
 
 	var version ResourceVersion
-	err = psql.Select("version_md5").
+	err = psql.Select("version_sha256").
 		From("resource_config_versions").
 		Where(sq.Eq{"resource_config_scope_id": scopeID}).
-		Where(sq.Expr("version_md5 NOT IN (SELECT version_md5 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
+		Where(sq.Expr("version_sha256 NOT IN (SELECT version_sha256 FROM resource_disabled_versions WHERE resource_id = ?)", resourceID)).
 		OrderBy("check_order DESC").
 		Limit(1).
 		RunWith(tx).
@@ -596,16 +596,16 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 				SELECT b.id, b.job_id, json_object_agg(sp.resource_id, sp.v), b.rerun_of
 				FROM builds b
 				JOIN (
-					SELECT build_id, resource_id, json_agg(version_md5) AS v
+					SELECT build_id, resource_id, json_agg(version_sha256) AS v
 					FROM (
 						(
-							SELECT build_id, resource_id, version_md5
+							SELECT build_id, resource_id, version_sha256
 							FROM build_resource_config_version_outputs o
 							WHERE o.build_id = $1
 						)
 						UNION ALL
 						(
-							SELECT build_id, resource_id, version_md5
+							SELECT build_id, resource_id, version_sha256
 							FROM build_resource_config_version_inputs i
 							WHERE i.build_id = $1
 						)
@@ -764,16 +764,16 @@ func (bs *PaginatedBuilds) migrateLimit(ctx context.Context) (bool, error) {
 				SELECT bm.id, bm.job_id, json_object_agg(sp.resource_id, sp.v), bm.rerun_of
 				FROM builds_to_migrate bm
 				JOIN (
-					SELECT build_id, resource_id, json_agg(version_md5) AS v
+					SELECT build_id, resource_id, json_agg(version_sha256) AS v
 					FROM (
 						(
-							SELECT build_id, resource_id, version_md5
+							SELECT build_id, resource_id, version_sha256
 							FROM build_resource_config_version_outputs o
 							JOIN builds_to_migrate bm ON bm.id = o.build_id
 						)
 						UNION ALL
 						(
-							SELECT build_id, resource_id, version_md5
+							SELECT build_id, resource_id, version_sha256
 							FROM build_resource_config_version_inputs i
 							JOIN builds_to_migrate bm ON bm.id = i.build_id
 						)

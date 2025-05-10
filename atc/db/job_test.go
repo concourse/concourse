@@ -1469,7 +1469,7 @@ var _ = Describe("Job", func() {
 					"some-input-1": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToMD5(versions[0].Version)),
+								Version:    db.ResourceVersion(convertToSHA256(versions[0].Version)),
 								ResourceID: scenario.Resource("some-resource").ID(),
 							},
 							FirstOccurrence: false,
@@ -1479,7 +1479,7 @@ var _ = Describe("Job", func() {
 					"some-input-2": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToMD5(versions[1].Version)),
+								Version:    db.ResourceVersion(convertToSHA256(versions[1].Version)),
 								ResourceID: scenario.Resource("some-resource").ID(),
 							},
 							FirstOccurrence: false,
@@ -1489,7 +1489,7 @@ var _ = Describe("Job", func() {
 					"some-input-3": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
+								Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
 								ResourceID: scenario.Resource("some-resource").ID(),
 							},
 							FirstOccurrence: false,
@@ -1608,7 +1608,7 @@ var _ = Describe("Job", func() {
 				"some-input-1": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(versions[0].Version)),
+							Version:    db.ResourceVersion(convertToSHA256(versions[0].Version)),
 							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: false,
@@ -1618,7 +1618,7 @@ var _ = Describe("Job", func() {
 				"some-input-2": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(versions[1].Version)),
+							Version:    db.ResourceVersion(convertToSHA256(versions[1].Version)),
 							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
@@ -1633,7 +1633,7 @@ var _ = Describe("Job", func() {
 				"some-input-3": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
+							Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
 							ResourceID: scenarioPipeline2.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: false,
@@ -1670,7 +1670,7 @@ var _ = Describe("Job", func() {
 				"some-input-2": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
+							Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
 							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: false,
@@ -1680,7 +1680,7 @@ var _ = Describe("Job", func() {
 				"some-input-3": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToMD5(versions[2].Version)),
+							Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
 							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
