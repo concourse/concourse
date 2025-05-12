@@ -20,10 +20,10 @@ var _ = Describe("SigningKey factory", func() {
 	})
 
 	It("can store and retrieve signing keys", func() {
-		rsaKey1, err := idtoken.GenerateNewRSAKey()
+		rsaKey1, err := idtoken.GenerateNewKey(db.SigningKeyTypeRSA)
 		Expect(err).ToNot(HaveOccurred())
 
-		rsaKey2, err := idtoken.GenerateNewRSAKey()
+		rsaKey2, err := idtoken.GenerateNewKey(db.SigningKeyTypeRSA)
 		Expect(err).ToNot(HaveOccurred())
 
 		previousKeys, err := factory.GetAllKeys()
