@@ -30,19 +30,8 @@ var _ = Describe("IDToken TokenGenerator", func() {
 	var tokenGenerator *idtoken.TokenGenerator
 
 	BeforeEach(func() {
-		signingKeyFakeRSA := &dbfakes.FakeSigningKey{}
-		signingKeyFakeRSA.JWKReturns(*rsaJWK)
-		signingKeyFakeRSA.CreatedAtReturns(time.Now())
-		signingKeyFakeRSA.IDReturns(rsaJWK.KeyID)
-		signingKeyFakeRSA.KeyTypeReturns(db.SigningKeyTypeRSA)
-		rsaSigningKey = signingKeyFakeRSA
-
-		signingKeyFakeEC := &dbfakes.FakeSigningKey{}
-		signingKeyFakeEC.JWKReturns(*ecJWK)
-		signingKeyFakeEC.CreatedAtReturns(time.Now())
-		signingKeyFakeEC.IDReturns(ecJWK.KeyID)
-		signingKeyFakeEC.KeyTypeReturns(db.SigningKeyTypeEC)
-		ecSigningKey = signingKeyFakeEC
+		rsaSigningKey = createFakeSigningKey(*rsaJWK, time.Now())
+		ecSigningKey = createFakeSigningKey(*ecJWK, time.Now())
 
 		rsaVerificationKey = rsaJWK.Public()
 		ecVerificationKey = ecJWK.Public()

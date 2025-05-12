@@ -272,6 +272,10 @@ type RunCommand struct {
 	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
 
 	DBNotificationBusQueueSize int `long:"db-notification-bus-queue-size" default:"10000" description:"DB notification bus queue size, default is 10000. If UI often misses loading running build logs, then consider to increase the queue size."`
+
+	SigningKeyCheckInterval  time.Duration `long:"signing-key-check-interval" default:"10m" description:"How often to check for outdated or expired signing keys for the idtoken secrets provider"`
+	SigningKeyRotationPeriod time.Duration `long:"signing-key-rotation-period" default:"168h" description:"After which time a new signing key for the idtoken secrets provider should be generated. 0 turns off generation of new keys"`
+	SigningKeyGracePeriod    time.Duration `long:"signing-key-grace-period" default:"24h" description:"How long a key should still be published for the idtoken secrets provider after a new key has been generated"`
 }
 
 type Migration struct {
@@ -845,10 +849,17 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	err = idtoken.EnsureSigningKeysExist(logger, dbSigningKeyFactory, lockFactory)
-	if err != nil {
-		panic(err)
+	signingKeyLifecycler := idtoken.SigningKeyLifecycler{
+		Logger:              logger,
+		DBSigningKeyFactory: dbSigningKeyFactory,
+		LockFactory:         lockFactory,
+
+		CheckPeriod:       cmd.SigningKeyCheckInterval,
+		KeyRotationPeriod: cmd.SigningKeyRotationPeriod,
+		KeyGracePeriod:    cmd.SigningKeyGracePeriod,
 	}
+
+	go signingKeyLifecycler.Run(context.Background())
 
 	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
 		f.SetSigningKeyFactory(dbSigningKeyFactory)

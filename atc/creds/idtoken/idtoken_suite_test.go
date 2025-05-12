@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/concourse/concourse/atc/creds/idtoken"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/go-jose/go-jose/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,9 +21,9 @@ func TestIDToken(t *testing.T) {
 var _ = BeforeSuite(func() {
 	var err error
 	// generate this in beforeSuite because it is expensive and we don't need to re-run in for every test
-	rsaJWK, err = idtoken.GenerateNewRSAKey()
+	rsaJWK, err = idtoken.GenerateNewKey(db.SigningKeyTypeRSA)
 	Expect(err).ToNot(HaveOccurred())
 
-	ecJWK, err = idtoken.GenerateNewECDSAKey()
+	ecJWK, err = idtoken.GenerateNewKey(db.SigningKeyTypeEC)
 	Expect(err).ToNot(HaveOccurred())
 })
