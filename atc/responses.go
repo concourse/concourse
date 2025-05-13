@@ -5,8 +5,8 @@ type ClearTaskCacheResponse struct {
 }
 
 type SaveConfigResponse struct {
-	Errors   []string        `json:"errors,omitempty"`
-	Warnings []ConfigWarning `json:"warnings,omitempty"`
+	Errors       []string       `json:"errors,omitempty"`
+	ConfigErrors []ConfigErrors `json:"configerrors,omitempty"`
 }
 
 type ConfigResponse struct {

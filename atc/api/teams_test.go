@@ -355,14 +355,11 @@ var _ = Describe("Teams API", func() {
 						fakeTeam.NameReturns("_some-team")
 					})
 
-					It("returns a warning in the response body", func() {
+					It("returns an error in the response body", func() {
 						Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
-									"warnings": [
-										{
-											"type": "invalid_identifier",
-											"message": "team: '_some-team' is not a valid identifier: must start with a lowercase letter or a number"
-										}
+									"errors": [
+										"invalid_identifier: team: '_some-team' is not a valid identifier: must start with a lowercase letter or a number"
 									],
 									"team": {
 										"id": 5,
@@ -573,11 +570,8 @@ var _ = Describe("Teams API", func() {
 						It("returns a warning in the response body", func() {
 							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
-								"warnings": [
-									{
-										"type": "invalid_identifier",
-										"message": "team: '_some-new-name' is not a valid identifier: must start with a lowercase letter or a number"
-									}
+								"errors": [
+									"invalid_identifier: team: '_some-new-name' is not a valid identifier: must start with a lowercase letter or a number"
 								]
 							}`))
 						})
@@ -592,7 +586,7 @@ var _ = Describe("Teams API", func() {
 							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
-										"team: identifier cannot be an empty string"
+										"invalid_identifier: team: identifier cannot be an empty string"
 								]
 							}`))
 						})

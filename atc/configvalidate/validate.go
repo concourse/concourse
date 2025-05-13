@@ -38,53 +38,60 @@ func (l location) Identifier(name string) string {
 	return fmt.Sprintf("%s.%s", l.section, name)
 }
 
-func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
-	warnings := []atc.ConfigWarning{}
+func Validate(c atc.Config) ([]atc.ConfigErrors, []string) {
+	configErrors := []atc.ConfigErrors{}
 	errorMessages := []string{}
 
-	groupsWarnings, groupsErr := validateGroups(c)
+	groupsConfigError, groupsErr := validateGroups(c)
 	if groupsErr != nil {
 		errorMessages = append(errorMessages, formatErr("groups", groupsErr))
 	}
-	warnings = append(warnings, groupsWarnings...)
 
-	resourcesWarnings, resourcesErr := validateResources(c)
+	configErrors = append(configErrors, groupsConfigError...)
+
+	resourcesConfigError, resourcesErr := validateResources(c)
 	if resourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resources", resourcesErr))
 	}
-	warnings = append(warnings, resourcesWarnings...)
+
+	configErrors = append(configErrors, resourcesConfigError...)
 
 	seenTypes := make(map[string]location)
 
-	resourceTypesWarnings, resourceTypesErr := validateResourceTypes(c, seenTypes)
+	resourcesTypeConfigError, resourceTypesErr := validateResourceTypes(c, seenTypes)
 	if resourceTypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("resource types", resourceTypesErr))
 	}
-	warnings = append(warnings, resourceTypesWarnings...)
 
-	prototypesWarnings, prototypesErr := validatePrototypes(c, seenTypes)
+	configErrors = append(configErrors, resourcesTypeConfigError...)
+
+	prototypesConfigError, prototypesErr := validatePrototypes(c, seenTypes)
 	if prototypesErr != nil {
 		errorMessages = append(errorMessages, formatErr("prototypes", prototypesErr))
 	}
-	warnings = append(warnings, prototypesWarnings...)
 
-	varSourcesWarnings, varSourcesErr := validateVarSources(c)
+	configErrors = append(configErrors, prototypesConfigError...)
+
+	varSourcesConfigError, varSourcesErr := validateVarSources(c)
 	if varSourcesErr != nil {
 		errorMessages = append(errorMessages, formatErr("variable sources", varSourcesErr))
 	}
-	warnings = append(warnings, varSourcesWarnings...)
 
-	jobWarnings, jobsErr := validateJobs(c)
+	configErrors = append(configErrors, varSourcesConfigError...)
+
+	jobsConfigError, jobsErr := validateJobs(c)
 	if jobsErr != nil {
 		errorMessages = append(errorMessages, formatErr("jobs", jobsErr))
 	}
-	warnings = append(warnings, jobWarnings...)
 
-	displayWarnings, displayErr := validateDisplay(c)
+	configErrors = append(configErrors, jobsConfigError...)
+
+	displayConfigErrors, displayErr := validateDisplay(c)
 	if displayErr != nil {
 		errorMessages = append(errorMessages, formatErr("display config", displayErr))
 	}
-	warnings = append(warnings, displayWarnings...)
+
+	configErrors = append(configErrors, displayConfigErrors...)
 
 	cycleErr := validateCycle(c)
 
@@ -92,12 +99,12 @@ func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
 		errorMessages = append(errorMessages, formatErr("jobs", cycleErr))
 	}
 
-	return warnings, errorMessages
+	return configErrors, errorMessages
 }
 
-func validateGroups(c atc.Config) ([]atc.ConfigWarning, error) {
-	var warnings []atc.ConfigWarning
+func validateGroups(c atc.Config) ([]atc.ConfigErrors, error) {
 	var errorMessages []string
+	var configErrors []atc.ConfigErrors
 
 	jobsGrouped := make(map[string]bool)
 	groupNames := make(map[string]int)
@@ -110,12 +117,9 @@ func validateGroups(c atc.Config) ([]atc.ConfigWarning, error) {
 		location := location{section: "groups", index: i}
 		identifier := location.Identifier(group.Name)
 
-		warning, err := atc.ValidateIdentifier(group.Name, identifier)
-		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
-		}
-		if warning != nil {
-			warnings = append(warnings, *warning)
+		configError := atc.ValidateIdentifier(group.Name, identifier)
+		if configError != nil {
+			configErrors = append(configErrors, *configError)
 		}
 
 		if val, ok := groupNames[group.Name]; ok {
@@ -129,8 +133,7 @@ func validateGroups(c atc.Config) ([]atc.ConfigWarning, error) {
 			matchingJob := false
 			g, err := glob.Compile(jobGlob)
 			if err != nil {
-				errorMessages = append(errorMessages,
-					fmt.Sprintf("invalid glob expression '%s' for group '%s'", jobGlob, group.Name))
+				errorMessages = append(errorMessages, fmt.Sprintf("invalid glob expression '%s' for group '%s'", jobGlob, group.Name))
 				continue
 			}
 			for _, job := range c.Jobs {
@@ -140,24 +143,21 @@ func validateGroups(c atc.Config) ([]atc.ConfigWarning, error) {
 				}
 			}
 			if !matchingJob {
-				errorMessages = append(errorMessages,
-					fmt.Sprintf("no jobs match '%s' for group '%s'", jobGlob, group.Name))
+				errorMessages = append(errorMessages, fmt.Sprintf("no jobs match '%s' for group '%s'", jobGlob, group.Name))
 			}
 		}
 
 		for _, resource := range group.Resources {
 			_, exists := c.Resources.Lookup(resource)
 			if !exists {
-				errorMessages = append(errorMessages,
-					fmt.Sprintf("group '%s' has unknown resource '%s'", group.Name, resource))
+				errorMessages = append(errorMessages, fmt.Sprintf("group '%s' has unknown resource '%s'", group.Name, resource))
 			}
 		}
 	}
 
 	for groupName, groupCount := range groupNames {
 		if groupCount > 1 {
-			errorMessages = append(errorMessages,
-				fmt.Sprintf("group '%s' appears %d times. Duplicate names are not allowed.", groupName, groupCount))
+			errorMessages = append(errorMessages, fmt.Sprintf("group '%s' appears %d times. Duplicate names are not allowed.", groupName, groupCount))
 		}
 	}
 
@@ -169,12 +169,12 @@ func validateGroups(c atc.Config) ([]atc.ConfigWarning, error) {
 		}
 	}
 
-	return warnings, compositeErr(errorMessages)
+	return configErrors, compositeErr(errorMessages)
 }
 
-func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
-	var warnings []atc.ConfigWarning
+func validateResources(c atc.Config) ([]atc.ConfigErrors, error) {
 	var errorMessages []string
+	var configErrors []atc.ConfigErrors
 
 	names := map[string]location{}
 
@@ -182,12 +182,9 @@ func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
 		location := location{section: "resources", index: i}
 		identifier := location.Identifier(resource.Name)
 
-		warning, err := atc.ValidateIdentifier(resource.Name, identifier)
-		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
-		}
-		if warning != nil {
-			warnings = append(warnings, *warning)
+		configError := atc.ValidateIdentifier(resource.Name, identifier)
+		if configError != nil {
+			configErrors = append(configErrors, *configError)
 		}
 
 		if other, exists := names[resource.Name]; exists {
@@ -210,23 +207,20 @@ func validateResources(c atc.Config) ([]atc.ConfigWarning, error) {
 
 	errorMessages = append(errorMessages, validateResourcesUnused(c)...)
 
-	return warnings, compositeErr(errorMessages)
+	return configErrors, compositeErr(errorMessages)
 }
 
-func validateResourceTypes(c atc.Config, seenTypes map[string]location) ([]atc.ConfigWarning, error) {
-	var warnings []atc.ConfigWarning
+func validateResourceTypes(c atc.Config, seenTypes map[string]location) ([]atc.ConfigErrors, error) {
 	var errorMessages []string
+	var configErrors []atc.ConfigErrors
 
 	for i, resourceType := range c.ResourceTypes {
 		location := location{section: "resource_types", index: i}
 		identifier := location.Identifier(resourceType.Name)
 
-		warning, err := atc.ValidateIdentifier(resourceType.Name, identifier)
-		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
-		}
-		if warning != nil {
-			warnings = append(warnings, *warning)
+		configError := atc.ValidateIdentifier(resourceType.Name, identifier)
+		if configError != nil {
+			configErrors = append(configErrors, *configError)
 		}
 
 		if other, exists := seenTypes[resourceType.Name]; exists {
@@ -247,23 +241,20 @@ func validateResourceTypes(c atc.Config, seenTypes map[string]location) ([]atc.C
 		}
 	}
 
-	return warnings, compositeErr(errorMessages)
+	return configErrors, compositeErr(errorMessages)
 }
 
-func validatePrototypes(c atc.Config, seenTypes map[string]location) ([]atc.ConfigWarning, error) {
-	var warnings []atc.ConfigWarning
+func validatePrototypes(c atc.Config, seenTypes map[string]location) ([]atc.ConfigErrors, error) {
 	var errorMessages []string
+	var configErrors []atc.ConfigErrors
 
 	for i, prototype := range c.Prototypes {
 		location := location{section: "prototypes", index: i}
 		identifier := location.Identifier(prototype.Name)
 
-		warning, err := atc.ValidateIdentifier(prototype.Name, identifier)
-		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
-		}
-		if warning != nil {
-			warnings = append(warnings, *warning)
+		configError := atc.ValidateIdentifier(prototype.Name, identifier)
+		if configError != nil {
+			configErrors = append(configErrors, *configError)
 		}
 
 		if other, exists := seenTypes[prototype.Name]; exists {
@@ -284,7 +275,7 @@ func validatePrototypes(c atc.Config, seenTypes map[string]location) ([]atc.Conf
 		}
 	}
 
-	return warnings, compositeErr(errorMessages)
+	return configErrors, compositeErr(errorMessages)
 }
 
 func validateResourcesUnused(c atc.Config) []string {
@@ -320,27 +311,24 @@ func usedResources(c atc.Config) map[string]bool {
 	return usedResources
 }
 
-func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
+func validateJobs(c atc.Config) ([]atc.ConfigErrors, error) {
 	var errorMessages []string
-	var warnings []atc.ConfigWarning
+	var configErrors []atc.ConfigErrors
 
 	names := map[string]location{}
 
 	if len(c.Jobs) == 0 {
 		errorMessages = append(errorMessages, "jobs: pipeline must contain at least one job")
-		return warnings, compositeErr(errorMessages)
+		return configErrors, compositeErr(errorMessages)
 	}
 
 	for i, job := range c.Jobs {
 		location := location{section: "jobs", index: i}
 		identifier := location.Identifier(job.Name)
 
-		warning, err := atc.ValidateIdentifier(job.Name, identifier)
-		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
-		}
-		if warning != nil {
-			warnings = append(warnings, *warning)
+		configError := atc.ValidateIdentifier(job.Name, identifier)
+		if configError != nil {
+			configErrors = append(configErrors, *configError)
 		}
 
 		if other, exists := names[job.Name]; exists {
@@ -401,12 +389,10 @@ func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
 
 		_ = validator.Validate(step)
 
-		warnings = append(warnings, validator.Warnings...)
-
 		errorMessages = append(errorMessages, validator.Errors...)
 	}
 
-	return warnings, compositeErr(errorMessages)
+	return configErrors, compositeErr(errorMessages)
 }
 
 func compositeErr(errorMessages []string) error {
@@ -417,9 +403,9 @@ func compositeErr(errorMessages []string) error {
 	return errors.New(strings.Join(errorMessages, "\n"))
 }
 
-func validateVarSources(c atc.Config) ([]atc.ConfigWarning, error) {
-	var warnings []atc.ConfigWarning
+func validateVarSources(c atc.Config) ([]atc.ConfigErrors, error) {
 	var errorMessages []string
+	var configErrors []atc.ConfigErrors
 
 	names := map[string]location{}
 
@@ -427,12 +413,9 @@ func validateVarSources(c atc.Config) ([]atc.ConfigWarning, error) {
 		location := location{section: "var_sources", index: i}
 		identifier := location.Identifier(varSource.Name)
 
-		warning, err := atc.ValidateIdentifier(varSource.Name, identifier)
-		if err != nil {
-			errorMessages = append(errorMessages, err.Error())
-		}
-		if warning != nil {
-			warnings = append(warnings, *warning)
+		configError := atc.ValidateIdentifier(varSource.Name, identifier)
+		if configError != nil {
+			configErrors = append(configErrors, *configError)
 		}
 
 		if factory, exists := creds.ManagerFactories()[varSource.Type]; exists {
@@ -469,20 +452,20 @@ func validateVarSources(c atc.Config) ([]atc.ConfigWarning, error) {
 		errorMessages = append(errorMessages, fmt.Sprintf("failed to order by dependency: %s", err.Error()))
 	}
 
-	return warnings, compositeErr(errorMessages)
+	return configErrors, compositeErr(errorMessages)
 }
 
-func validateDisplay(c atc.Config) ([]atc.ConfigWarning, error) {
-	var warnings []atc.ConfigWarning
+func validateDisplay(c atc.Config) ([]atc.ConfigErrors, error) {
+	var configErrors []atc.ConfigErrors
 
 	if c.Display == nil {
-		return warnings, nil
+		return configErrors, nil
 	}
 
 	url, err := url.Parse(c.Display.BackgroundImage)
 
 	if err != nil {
-		return warnings, fmt.Errorf("background_image is not a valid URL: %s", c.Display.BackgroundImage)
+		return configErrors, fmt.Errorf("background_image is not a valid URL: %s", c.Display.BackgroundImage)
 	}
 
 	switch url.Scheme {
@@ -491,10 +474,10 @@ func validateDisplay(c atc.Config) ([]atc.ConfigWarning, error) {
 	case "":
 		break
 	default:
-		return warnings, fmt.Errorf("background_image scheme must be either http, https or relative")
+		return configErrors, fmt.Errorf("background_image scheme must be either http, https or relative")
 	}
 
-	return warnings, nil
+	return configErrors, nil
 }
 
 // JobState represents the visit state of a job during cycle detection

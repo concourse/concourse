@@ -40,12 +40,13 @@ func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error)
 	if strings.Contains(command.PipelineName, "/") {
 		err = errors.New("pipeline name cannot contain '/'")
 	}
+
 	if string(command.Team) != "" {
-		var warning *atc.ConfigWarning
-		if warning, err = atc.ValidateIdentifier(string(command.Team), "team"); warning != nil {
+		var configError *atc.ConfigErrors
+		if configError = atc.ValidateIdentifier(string(command.Team), "team"); configError != nil {
 			warnings = append(warnings, concourse.ConfigWarning{
-				Type:    warning.Type,
-				Message: warning.Message,
+				Type:    configError.Type,
+				Message: configError.Message,
 			})
 		}
 	}

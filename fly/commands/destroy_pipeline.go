@@ -16,7 +16,7 @@ type DestroyPipelineCommand struct {
 }
 
 func (command *DestroyPipelineCommand) Validate() error {
-	_, err := command.Pipeline.Validate()
+	err := command.Pipeline.Validate()
 	return err
 }
 

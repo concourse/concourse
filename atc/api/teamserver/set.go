@@ -12,9 +12,8 @@ import (
 )
 
 type SetTeamResponse struct {
-	Errors   []string            `json:"errors,omitempty"`
-	Warnings []atc.ConfigWarning `json:"warnings,omitempty"`
-	Team     atc.Team            `json:"team"`
+	Errors []string `json:"errors,omitempty"`
+	Team   atc.Team `json:"team"`
 }
 
 func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
@@ -64,12 +63,9 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	} else if acc.IsAdmin() {
 		hLog.Debug("creating team")
 
-		warning, err := atc.ValidateIdentifier(atcTeam.Name, "team")
-		if err != nil {
-			response.Errors = append(response.Errors, err.Error())
-		}
-		if warning != nil {
-			response.Warnings = append(response.Warnings, *warning)
+		configError := atc.ValidateIdentifier(atcTeam.Name, "team")
+		if configError != nil {
+			response.Errors = append(response.Errors, configError.Error())
 		}
 
 		team, err = s.teamFactory.CreateTeam(atcTeam)

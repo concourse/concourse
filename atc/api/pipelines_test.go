@@ -1724,11 +1724,8 @@ var _ = Describe("Pipelines API", func() {
 						It("returns a warning in the response body", func() {
 							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
-								"warnings": [
-									{
-										"type": "invalid_identifier",
-										"message": "pipeline: '_some-new-name' is not a valid identifier: must start with a lowercase letter or a number"
-									}
+								"errors": [
+									"invalid_identifier: pipeline: '_some-new-name' is not a valid identifier: must start with a lowercase letter or a number"
 								]
 							}`))
 						})
@@ -1743,7 +1740,7 @@ var _ = Describe("Pipelines API", func() {
 							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 							{
 								"errors": [
-										"pipeline: identifier cannot be an empty string"
+										"invalid_identifier: pipeline: identifier cannot be an empty string"
 								]
 							}`))
 						})

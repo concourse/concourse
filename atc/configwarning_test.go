@@ -12,8 +12,6 @@ var _ = Describe("ValidateIdentifier", func() {
 		description string
 		identifier  string
 		context     []string
-		warningMsg  string
-		warning     bool
 		errorMsg    string
 	}
 
@@ -21,57 +19,52 @@ var _ = Describe("ValidateIdentifier", func() {
 		{
 			description: "starts with a valid letter",
 			identifier:  "something",
-			warning:     false,
+			errorMsg:    "",
 		},
 		{
 			description: "contains multilingual characters",
 			identifier:  "ひらがな",
-			warning:     false,
+			errorMsg:    "",
 		},
 		{
 			description: "contains an underscore",
 			identifier:  "some_thing",
-			warning:     false,
+			errorMsg:    "",
 		},
 		{
 			description: "starts with a number",
 			identifier:  "1something",
-			warning:     false,
+			errorMsg:    "",
 		},
 		{
 			description: "starts with a number",
 			identifier:  "1_min",
-			warning:     false,
+			errorMsg:    "",
 		},
 		{
 			description: "starts with hyphen",
 			identifier:  "-something",
-			warningMsg:  "must start with a lowercase letter or a number",
-			warning:     true,
+			errorMsg:    ": '-something' is not a valid identifier: must start with a lowercase letter or a number",
 		},
 		{
 			description: "starts with period",
 			identifier:  ".something",
-			warningMsg:  "must start with a lowercase letter or a number",
-			warning:     true,
+			errorMsg:    ": '.something' is not a valid identifier: must start with a lowercase letter or a number",
 		},
 		{
 			description: "starts with an uppercase letter",
 			identifier:  "Something",
-			warningMsg:  "must start with a lowercase letter or a number",
-			warning:     true,
+			errorMsg:    ": 'Something' is not a valid identifier: must start with a lowercase letter or a number",
 		},
 		{
 			description: "contains a space",
 			identifier:  "some thing",
-			warningMsg:  "illegal character ' '",
-			warning:     true,
+			errorMsg:    ": 'some thing' is not a valid identifier: illegal character ' '",
 		},
 		{
 			description: "contains an uppercase letter",
 			identifier:  "someThing",
-			warningMsg:  "illegal character 'T'",
-			warning:     true,
+			errorMsg:    ": 'someThing' is not a valid identifier: illegal character 'T'",
 		},
 		{
 			description: "is an empty string",
@@ -82,34 +75,26 @@ var _ = Describe("ValidateIdentifier", func() {
 			description: "is a var from across step in task",
 			context:     []string{".across", ".task(running-((.:name)))"},
 			identifier:  "((.:name))",
-			warning:     false,
+			errorMsg:    "",
 		},
 		{
 			description: "is a var from across step in set_pipeline",
 			context:     []string{".across", ".set_pipeline(((.:name)))"},
 			identifier:  "running-((.:name))",
-			warning:     false,
+			errorMsg:    "",
 		},
 	} {
 		test := test
 
 		Context("when an identifier "+test.description, func() {
-			var it string
-			if test.warning {
-				it = "returns a warning"
-			} else {
-				it = "runs without warning"
-			}
-			It(it, func() {
-				warning, err := atc.ValidateIdentifier(test.identifier, test.context...)
-				if test.warning {
-					Expect(warning).NotTo(BeNil())
-					Expect(warning.Message).To(ContainSubstring(test.warningMsg))
+
+			It("validate identifier", func() {
+				configError := atc.ValidateIdentifier(test.identifier, test.context...)
+				if test.errorMsg != "" {
+					Expect(configError).NotTo(BeNil())
+					Expect(configError.Message).To(Equal(test.errorMsg))
 				} else {
-					Expect(warning).To(BeNil())
-					if test.errorMsg != "" {
-						Expect(err).To(MatchError(test.errorMsg))
-					}
+					Expect(configError).To(BeNil())
 				}
 			})
 		})
@@ -118,9 +103,9 @@ var _ = Describe("ValidateIdentifier", func() {
 	Describe("ValidateIdentifier with context", func() {
 		Context("when an identifier is invalid", func() {
 			It("returns an error with context", func() {
-				warning, _ := atc.ValidateIdentifier("_something", "pipeline")
-				Expect(warning).NotTo(BeNil())
-				Expect(warning.Message).To(ContainSubstring("'_something' is not a valid identifier"))
+				configError := atc.ValidateIdentifier("_something", "pipeline")
+				Expect(configError).NotTo(BeNil())
+				Expect(configError.Error()).To(ContainSubstring("pipeline: '_something' is not a valid identifier: must start with a lowercase letter or a number"))
 			})
 		})
 	})

@@ -7,14 +7,10 @@ import (
 )
 
 // StepValidator is a StepVisitor which validates each step that visits it,
-// collecting warnings and errors as it goes.
+// collecting errors as it goes.
 type StepValidator struct {
-	// Warnings is a slice of warning messages to show to the user, while still
-	// allowing the pipeline to be configured. This is typically used for
-	// deprecations.
-	//
 	// This field will be populated after visiting the step.
-	Warnings []ConfigWarning
+	ConfigErrors []ConfigErrors
 
 	// Errors is a slice of critical errors which will prevent configuring the
 	// pipeline.
@@ -36,8 +32,8 @@ type scope map[string]bool
 // The Config specified is used to validate the existence of resources and jobs
 // referenced by steps.
 //
-// The context argument contains the initial context used to annotate error and
-// warning messages. For example, []string{"jobs(foo)", ".plan"} will result in
+// The context argument contains the initial context used to annotate error
+// messages. For example, []string{"jobs(foo)", ".plan"} will result in
 // errors like 'jobs(foo).plan.task(bar): blah blah'.
 func NewStepValidator(config Config, context []string) *StepValidator {
 	return &StepValidator{
@@ -64,12 +60,9 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	validator.pushContextf(".task(%s)", plan.Name)
 	defer validator.popContext()
 
-	warning, err := ValidateIdentifier(plan.Name, validator.context...)
-	if err != nil {
-		validator.recordError(err.Error())
-	}
-	if warning != nil {
-		validator.recordWarning(*warning)
+	configError := ValidateIdentifier(plan.Name, validator.context...)
+	if configError != nil {
+		validator.recordError(configError.Error())
 	}
 
 	if plan.Config == nil && plan.ConfigPath == "" {
@@ -81,14 +74,14 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	}
 
 	if plan.Config != nil && (plan.Config.RootfsURI != "" || plan.Config.ImageResource != nil) && plan.ImageArtifactName != "" {
-		validator.recordWarning(ConfigWarning{
+		validator.recordConfigErrors(ConfigErrors{
 			Type:    "pipeline",
 			Message: validator.annotate("specifies image: on the step but also specifies an image under config: - the image: on the step takes precedence"),
 		})
 	}
 
 	if plan.Hermetic {
-		validator.recordWarning(ConfigWarning{
+		validator.recordConfigErrors(ConfigErrors{
 			Type:    "pipeline",
 			Message: validator.annotate("specifies `hermetic:` only works against worker containerd runtime"),
 		})
@@ -117,12 +110,9 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	validator.pushContextf(".get(%s)", step.Name)
 	defer validator.popContext()
 
-	warning, err := ValidateIdentifier(step.Name, validator.context...)
-	if err != nil {
-		validator.recordError(err.Error())
-	}
-	if warning != nil {
-		validator.recordWarning(*warning)
+	configError := ValidateIdentifier(step.Name, validator.context...)
+	if configError != nil {
+		validator.recordError(configError.Error())
 	}
 
 	if validator.seenGetName[step.Name] {
@@ -178,14 +168,10 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 	validator.pushContextf(".put(%s)", step.Name)
 	defer validator.popContext()
 
-	warning, err := ValidateIdentifier(step.Name, validator.context...)
-	if err != nil {
-		validator.recordError(err.Error())
+	configError := ValidateIdentifier(step.Name, validator.context...)
+	if configError != nil {
+		validator.recordError(configError.Error())
 	}
-	if warning != nil {
-		validator.recordWarning(*warning)
-	}
-
 	resourceName := step.ResourceName()
 
 	_, found := validator.config.Resources.Lookup(resourceName)
@@ -200,15 +186,9 @@ func (validator *StepValidator) VisitRun(step *RunStep) error {
 	validator.pushContextf(".run(%s.%s)", step.Type, step.Message)
 	defer validator.popContext()
 
-	warning, err := ValidateIdentifier(step.Message, validator.context...)
-	if err != nil {
-		validator.recordError(err.Error())
-	}
-	if warning != nil {
-		// To prevent people from writing prototypes with invalid message
-		// names, we'll explicitly error on invalid identifiers rather than
-		// emitting a warning.
-		validator.recordError(warning.Message)
+	configError := ValidateIdentifier(step.Message, validator.context...)
+	if configError != nil {
+		validator.recordError(configError.Error())
 	}
 
 	_, found := validator.config.Prototypes.Lookup(step.Type)
@@ -223,12 +203,9 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 	validator.pushContextf(".set_pipeline(%s)", step.Name)
 	defer validator.popContext()
 
-	warning, err := ValidateIdentifier(step.Name, validator.context...)
-	if err != nil {
-		validator.recordError(err.Error())
-	}
-	if warning != nil {
-		validator.recordWarning(*warning)
+	configError := ValidateIdentifier(step.Name, validator.context...)
+	if configError != nil {
+		validator.recordError(configError.Error())
 	}
 
 	if step.File == "" {
@@ -242,12 +219,9 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 	validator.pushContextf(".load_var(%s)", step.Name)
 	defer validator.popContext()
 
-	warning, err := ValidateIdentifier(step.Name, validator.context...)
-	if err != nil {
-		validator.recordError(err.Error())
-	}
-	if warning != nil {
-		validator.recordWarning(*warning)
+	configError := ValidateIdentifier(step.Name, validator.context...)
+	if configError != nil {
+		validator.recordError(configError.Error())
 	}
 
 	validator.declareLocalVar(step.Name)
@@ -426,8 +400,8 @@ func (validator *StepValidator) VisitEnsure(step *EnsureStep) error {
 	return validator.Validate(step.Hook)
 }
 
-func (validator *StepValidator) recordWarning(warning ConfigWarning) {
-	validator.Warnings = append(validator.Warnings, warning)
+func (validator *StepValidator) recordConfigErrors(configError ConfigErrors) {
+	validator.ConfigErrors = append(validator.ConfigErrors, configError)
 }
 
 func (validator *StepValidator) recordError(message string) {
@@ -479,7 +453,7 @@ func (validator *StepValidator) declareLocalVar(name string) {
 	if validator.currentLocalVarScope()[name] {
 		validator.recordError("repeated var name")
 	} else if validator.localVarIsDeclared(name) {
-		validator.recordWarning(ConfigWarning{
+		validator.recordConfigErrors(ConfigErrors{
 			Type:    "var_shadowed",
 			Message: validator.annotate(fmt.Sprintf("shadows local var '%s'", name)),
 		})

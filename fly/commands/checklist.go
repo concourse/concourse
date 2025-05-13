@@ -16,7 +16,7 @@ type ChecklistCommand struct {
 }
 
 func (command *ChecklistCommand) Validate() error {
-	_, err := command.Pipeline.Validate()
+	err := command.Pipeline.Validate()
 	return err
 }
 
