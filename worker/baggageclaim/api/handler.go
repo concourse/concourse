@@ -14,7 +14,7 @@ import (
 
 func NewHandler(
 	logger lager.Logger,
-	strategerizer volume.Strategerizer,
+	strategizer volume.Strategizer,
 	volumeRepo volume.Repository,
 	p2pInterfacePattern *regexp.Regexp,
 	p2pInterfaceFamily int,
@@ -22,7 +22,7 @@ func NewHandler(
 ) (http.Handler, error) {
 	volumeServer := NewVolumeServer(
 		logger.Session("volume-server"),
-		strategerizer,
+		strategizer,
 		volumeRepo,
 	)
 
