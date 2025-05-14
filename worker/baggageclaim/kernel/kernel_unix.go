@@ -5,7 +5,9 @@
 // versions for different platforms.
 package kernel
 
-import "bytes"
+import (
+	"golang.org/x/sys/unix"
+)
 
 // GetKernelVersion gets the current kernel version.
 func GetKernelVersion() (*VersionInfo, error) {
@@ -14,18 +16,8 @@ func GetKernelVersion() (*VersionInfo, error) {
 		return nil, err
 	}
 
-	release := make([]byte, len(uts.Release))
-
-	i := 0
-	for _, c := range uts.Release {
-		release[i] = byte(c)
-		i++
-	}
-
 	// Remove the \x00 from the release for Atoi to parse correctly
-	release = release[:bytes.IndexByte(release, 0)]
-
-	return ParseRelease(string(release))
+	return ParseRelease(unix.ByteSliceToString(uts.Release[:]))
 }
 
 // CheckKernelVersion checks if current kernel is newer than (or equal to)
