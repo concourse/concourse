@@ -9,7 +9,6 @@ import (
 	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"sigs.k8s.io/yaml"
 )
 
@@ -36,21 +35,24 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 		atc.EnableAcrossStep = true
 	}
 
-	warnings, errorMessages := configvalidate.Validate(unmarshalledTemplate)
+	configErrors, errorMessages := configvalidate.Validate(unmarshalledTemplate)
 
-	if len(warnings) > 0 {
-		configWarnings := make([]concourse.ConfigWarning, len(warnings))
-		for idx, warning := range warnings {
-			configWarnings[idx] = concourse.ConfigWarning(warning)
-		}
-		displayhelpers.ShowWarnings(configWarnings)
+	var configErrorMessages []string
+	for _, configError := range configErrors {
+		configErrorMessages = append(configErrorMessages, configError.Message)
+	}
+
+	if len(configErrorMessages) > 0 {
+		displayhelpers.ShowErrors("Error loading existing config", configErrorMessages)
+		return fmt.Errorf("configuration invalid")
 	}
 
 	if len(errorMessages) > 0 {
 		displayhelpers.ShowErrors("Error loading existing config", errorMessages)
+		return fmt.Errorf("invalid configuration")
 	}
 
-	if len(errorMessages) > 0 || (strict && len(warnings) > 0) {
+	if len(errorMessages) > 0 || (strict && len(configErrors) > 0) {
 		return errors.New("configuration invalid")
 	}
 

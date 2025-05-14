@@ -389,6 +389,8 @@ func validateJobs(c atc.Config) ([]atc.ConfigErrors, error) {
 
 		_ = validator.Validate(step)
 
+		configErrors = append(configErrors, validator.ConfigErrors...)
+
 		errorMessages = append(errorMessages, validator.Errors...)
 	}
 

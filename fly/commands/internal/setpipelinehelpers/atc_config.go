@@ -28,7 +28,7 @@ type ATCConfig struct {
 	SkipInteraction  bool
 	CheckCredentials bool
 	DryRun           bool
-	CommandWarnings  []concourse.ConfigWarning
+	CommandErrors    []atc.ConfigErrors
 	GivenTeamName    string
 }
 
@@ -63,19 +63,16 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return err
 	}
 
-	configWarnings, _ := configvalidate.Validate(newConfig)
-	for _, w := range configWarnings {
-		atcConfig.CommandWarnings = append(atcConfig.CommandWarnings, concourse.ConfigWarning{
-			Type:    w.Type,
-			Message: w.Message,
-		})
+	configErrors, _ := configvalidate.Validate(newConfig)
+	var errorMessages []string
+	for _, configError := range configErrors {
+		errorMessages = append(errorMessages, configError.Message)
 	}
-
+	if len(errorMessages) > 0 {
+		displayhelpers.ShowErrors("Error loading existing config", errorMessages)
+		return fmt.Errorf("invalid configuration")
+	}
 	diffExists := diff(existingConfig, newConfig)
-
-	if len(atcConfig.CommandWarnings) > 0 {
-		displayhelpers.ShowWarnings(atcConfig.CommandWarnings)
-	}
 
 	if !diffExists {
 		fmt.Println("no changes to apply")

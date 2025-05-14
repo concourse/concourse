@@ -136,6 +136,7 @@ var _ = Describe("ValidateConfig", func() {
 	Context("when the config is valid", func() {
 		It("returns no error", func() {
 			Expect(errorMessages).To(HaveLen(0))
+			Expect(configErrors).To(HaveLen(0))
 		})
 	})
 
@@ -1067,7 +1068,7 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): must specify either `file:` or `config:`"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): identifier cannot be an empty string"))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1811,7 +1812,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): no file specified"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): identifier cannot be an empty string"))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1922,7 +1923,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): no file specified"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): identifier cannot be an empty string"))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): identifier cannot be an empty string"))
 				})
 			})
 

@@ -110,10 +110,13 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 
 	delegate.Starting(logger)
 
-	warnings, errors := configvalidate.Validate(atcConfig)
-	for _, warning := range warnings {
-		fmt.Fprintf(stderr, "WARNING: %s\n", warning.Message)
+	configErrors, errors := configvalidate.Validate(atcConfig)
+	for _, configError := range configErrors {
+		fmt.Fprintf(stderr, "- %s", &configError)
+		delegate.Finished(logger, false)
+		return false, nil
 	}
+	fmt.Print(errors)
 
 	if len(errors) > 0 {
 		fmt.Fprintln(delegate.Stderr(), "invalid pipeline:")
@@ -230,7 +233,6 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	}
 
 	fmt.Fprintf(stdout, "done - new\n")
-	fmt.Fprintf(stdout, "Pipeline name: %s ", pipeline.Name())
 	logger.Info("saved-pipeline", lager.Data{"team": team.Name(), "pipeline": pipeline.Name()})
 	delegate.Finished(logger, true)
 

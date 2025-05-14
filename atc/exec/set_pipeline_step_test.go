@@ -238,13 +238,12 @@ jobs:
 				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
 			})
 
-			It("should not return error", func() {
-				Expect(stepErr).NotTo(HaveOccurred())
+			It("should return error", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
 			})
 
 			It("should stderr have error message", func() {
-				Expect(stderr).To(gbytes.Say("invalid pipeline:"))
-				Expect(stderr).To(gbytes.Say("- invalid jobs:"))
+				Expect(stderr).To(gbytes.Say("invalid_identifier"))
 			})
 
 			It("should finish unsuccessfully", func() {

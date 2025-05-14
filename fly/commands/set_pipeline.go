@@ -2,6 +2,7 @@ package commands
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -34,8 +35,8 @@ type SetPipelineCommand struct {
 	Team flaghelpers.TeamFlag `long:"team"              description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
-func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error) {
-	var warnings []concourse.ConfigWarning
+func (command *SetPipelineCommand) Validate() ([]atc.ConfigErrors, error) {
+	var configErrors []atc.ConfigErrors
 	var err error
 	if strings.Contains(command.PipelineName, "/") {
 		err = errors.New("pipeline name cannot contain '/'")
@@ -44,17 +45,27 @@ func (command *SetPipelineCommand) Validate() ([]concourse.ConfigWarning, error)
 	if string(command.Team) != "" {
 		var configError *atc.ConfigErrors
 		if configError = atc.ValidateIdentifier(string(command.Team), "team"); configError != nil {
-			warnings = append(warnings, concourse.ConfigWarning{
+			configErrors = append(configErrors, atc.ConfigErrors{
 				Type:    configError.Type,
 				Message: configError.Message,
 			})
 		}
 	}
-	return warnings, err
+	return configErrors, err
 }
 
 func (command *SetPipelineCommand) Execute(args []string) error {
-	warnings, err := command.Validate()
+	configErrors, err := command.Validate()
+
+	var errorMessages []string
+	for _, configError := range configErrors {
+		errorMessages = append(errorMessages, configError.Message)
+	}
+
+	if errorMessages != nil {
+		return fmt.Errorf("configuration invalid: %s", strings.Join(errorMessages, ", "))
+	}
+
 	if err != nil {
 		return err
 	}
@@ -100,7 +111,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 		SkipInteraction:  command.SkipInteractive || command.Config.FromStdin(),
 		CheckCredentials: command.CheckCredentials,
 		DryRun:           command.DryRun,
-		CommandWarnings:  warnings,
+		CommandErrors:    configErrors,
 		GivenTeamName:    string(command.Team),
 	}
 

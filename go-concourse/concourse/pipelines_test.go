@@ -502,8 +502,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			expectedURL = "/api/v1/teams/some-team/pipelines/mypipeline/rename"
 			expectedRequestBody = `{"name":"newpipelinename"}`
 			expectedResponse = atc.SaveConfigResponse{
-				Errors:   nil,
-				Warnings: []atc.ConfigWarning{},
+				Errors:       nil,
+				ConfigErrors: []atc.ConfigErrors{},
 			}
 			pipelineName = "mypipeline"
 		})
@@ -530,7 +530,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 					expectedRequestBody = `{"name":"_newpipelinename"}`
 					expectedResponse = atc.SaveConfigResponse{
 						Errors: nil,
-						Warnings: []atc.ConfigWarning{
+						ConfigErrors: []atc.ConfigErrors{
 							{
 								Type:    "invalid_identifier",
 								Message: "pipeline: '_newpipelinename' is not a valid identifier",

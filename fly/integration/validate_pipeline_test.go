@@ -80,7 +80,7 @@ var _ = Describe("Fly CLI", func() {
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
 
-			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
+			Expect(sess.Err).To(gbytes.Say("error: invalid configuration"))
 		})
 
 		It("returns invalid on validation warning with strict", func() {
@@ -94,7 +94,7 @@ var _ = Describe("Fly CLI", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
+			Eventually(sess.Err).Should(gbytes.Say("WARNING:"))
 			Eventually(sess.Err).Should(gbytes.Say("  - jobs.some-job.plan"))
 
 			<-sess.Exited

@@ -62,7 +62,7 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 
 	configError := ValidateIdentifier(plan.Name, validator.context...)
 	if configError != nil {
-		validator.recordError(configError.Error())
+		validator.recordConfigErrors(*configError)
 	}
 
 	if plan.Config == nil && plan.ConfigPath == "" {
@@ -112,7 +112,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 
 	configError := ValidateIdentifier(step.Name, validator.context...)
 	if configError != nil {
-		validator.recordError(configError.Error())
+		validator.recordConfigErrors(*configError)
 	}
 
 	if validator.seenGetName[step.Name] {
@@ -170,7 +170,7 @@ func (validator *StepValidator) VisitPut(step *PutStep) error {
 
 	configError := ValidateIdentifier(step.Name, validator.context...)
 	if configError != nil {
-		validator.recordError(configError.Error())
+		validator.recordConfigErrors(*configError)
 	}
 	resourceName := step.ResourceName()
 
@@ -205,7 +205,7 @@ func (validator *StepValidator) VisitSetPipeline(step *SetPipelineStep) error {
 
 	configError := ValidateIdentifier(step.Name, validator.context...)
 	if configError != nil {
-		validator.recordError(configError.Error())
+		validator.recordConfigErrors(*configError)
 	}
 
 	if step.File == "" {
@@ -221,7 +221,7 @@ func (validator *StepValidator) VisitLoadVar(step *LoadVarStep) error {
 
 	configError := ValidateIdentifier(step.Name, validator.context...)
 	if configError != nil {
-		validator.recordError(configError.Error())
+		validator.recordConfigErrors(*configError)
 	}
 
 	validator.declareLocalVar(step.Name)
