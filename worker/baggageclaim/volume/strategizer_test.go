@@ -9,13 +9,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Strategerizer", func() {
+var _ = Describe("Strategizer", func() {
 	var (
-		strategerizer volume.Strategerizer
+		strategizer volume.Strategizer
 	)
 
 	BeforeEach(func() {
-		strategerizer = volume.NewStrategerizer()
+		strategizer = volume.NewStrategizer()
 	})
 
 	Describe("StrategyFor", func() {
@@ -31,7 +31,7 @@ var _ = Describe("Strategerizer", func() {
 		})
 
 		JustBeforeEach(func() {
-			strategy, strategyForErr = strategerizer.StrategyFor(request)
+			strategy, strategyForErr = strategizer.StrategyFor(request)
 		})
 
 		Context("with an empty strategy", func() {
