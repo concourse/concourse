@@ -174,10 +174,8 @@ var _ = Describe("ATC Handler Teams", func() {
 
 			Context("when the team has an invalid identifier", func() {
 				BeforeEach(func() {
-					expectedResponse.Warnings = []atc.ConfigWarning{
-						{Type: "invalid_identifier",
-							Message: "team: 'new venture' is not a valid identifier",
-						},
+					expectedResponse.Errors = []string{
+						"team: 'new venture' is not a valid identifier",
 					}
 				})
 

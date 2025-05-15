@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
 )
 
 type PipelineFlag struct {
@@ -16,25 +15,20 @@ type PipelineFlag struct {
 	InstanceVars atc.InstanceVars
 }
 
-func (flag *PipelineFlag) Validate() ([]concourse.ConfigWarning, error) {
-	var warnings []concourse.ConfigWarning
+func (flag *PipelineFlag) Validate() error {
+
 	if flag != nil {
 		if strings.Contains(flag.Name, "/") {
-			return nil, errors.New("pipeline name cannot contain '/'")
+			return errors.New("pipeline name cannot contain '/'")
 		}
 
-		warning, err := atc.ValidateIdentifier(flag.Name, "pipeline")
-		if err != nil {
-			return nil, err
+		configError := atc.ValidateIdentifier(flag.Name, "pipeline")
+		if configError != nil {
+			return configError
 		}
-		if warning != nil {
-			warnings = append(warnings, concourse.ConfigWarning{
-				Type:    warning.Type,
-				Message: warning.Message,
-			})
-		}
+
 	}
-	return warnings, nil
+	return nil
 }
 
 func (flag *PipelineFlag) Ref() atc.PipelineRef {
