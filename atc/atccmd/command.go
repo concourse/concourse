@@ -136,6 +136,12 @@ type RunCommand struct {
 	CredentialManagement creds.CredentialManagementConfig `group:"Credential Management"`
 	CredentialManagers   creds.Managers
 
+	SigningKey struct {
+		CheckInterval  time.Duration `long:"check-interval" default:"10m" description:"How often to check for outdated or expired signing keys for the idtoken secrets provider"`
+		RotationPeriod time.Duration `long:"rotation-period" default:"168h" description:"After which time a new signing key for the idtoken secrets provider should be generated. 0 turns off generation of new keys"`
+		GracePeriod    time.Duration `long:"grace-period" default:"24h" description:"How long a key should still be published for the idtoken secrets provider after a new key has been generated"`
+	} `group:"Pipeline Identity Tokens" namespace:"signing-key"`
+
 	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	OldEncryptionKey flag.Cipher `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
 
@@ -272,10 +278,6 @@ type RunCommand struct {
 	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
 
 	DBNotificationBusQueueSize int `long:"db-notification-bus-queue-size" default:"10000" description:"DB notification bus queue size, default is 10000. If UI often misses loading running build logs, then consider to increase the queue size."`
-
-	SigningKeyCheckInterval  time.Duration `long:"signing-key-check-interval" default:"10m" description:"How often to check for outdated or expired signing keys for the idtoken secrets provider"`
-	SigningKeyRotationPeriod time.Duration `long:"signing-key-rotation-period" default:"168h" description:"After which time a new signing key for the idtoken secrets provider should be generated. 0 turns off generation of new keys"`
-	SigningKeyGracePeriod    time.Duration `long:"signing-key-grace-period" default:"24h" description:"How long a key should still be published for the idtoken secrets provider after a new key has been generated"`
 }
 
 type Migration struct {
@@ -854,9 +856,9 @@ func (cmd *RunCommand) constructAPIMembers(
 		DBSigningKeyFactory: dbSigningKeyFactory,
 		LockFactory:         lockFactory,
 
-		CheckPeriod:       cmd.SigningKeyCheckInterval,
-		KeyRotationPeriod: cmd.SigningKeyRotationPeriod,
-		KeyGracePeriod:    cmd.SigningKeyGracePeriod,
+		CheckPeriod:       cmd.SigningKey.CheckInterval,
+		KeyRotationPeriod: cmd.SigningKey.RotationPeriod,
+		KeyGracePeriod:    cmd.SigningKey.GracePeriod,
 	}
 
 	go signingKeyLifecycler.Run(context.Background())
