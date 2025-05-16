@@ -80,6 +80,7 @@ var (
 	cliDownloadsDir         string
 	logger                  *lagertest.TestLogger
 	fakeClock               *fakeclock.FakeClock
+	dbSigningKeyFactory     *dbfakes.FakeSigningKeyFactory
 
 	constructedEventHandler *fakeEventHandlerFactory
 
@@ -118,6 +119,7 @@ var _ = BeforeEach(func() {
 	dbUserFactory = new(dbfakes.FakeUserFactory)
 	dbCheckFactory = new(dbfakes.FakeCheckFactory)
 	dbWall = new(dbfakes.FakeWall)
+	dbSigningKeyFactory = new(dbfakes.FakeSigningKeyFactory)
 
 	interceptTimeoutFactory = new(containerserverfakes.FakeInterceptTimeoutFactory)
 	interceptTimeout = new(containerserverfakes.FakeInterceptTimeout)
@@ -227,8 +229,7 @@ var _ = BeforeEach(func() {
 		time.Second,
 		dbWall,
 		fakeClock,
-		//TODO: don't pass nil but something useful
-		nil,
+		dbSigningKeyFactory,
 	)
 
 	atc.EnablePipelineInstances = true
