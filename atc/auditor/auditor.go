@@ -166,6 +166,9 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.ListDestroyingVolumes,
 		atc.ReportWorkerVolumes:
 		return a.EnableVolumeAuditLog
+	case atc.GetOpenIDConfiguration,
+		atc.GetSigningKeys:
+		return false
 	default:
 		panic(fmt.Sprintf("unhandled action: %s", action))
 	}

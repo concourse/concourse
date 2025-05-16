@@ -27,6 +27,7 @@ const (
 	LockTypeInMemoryCheckBuildTracking
 	LockTypeResourceGet
 	LockTypeVolumeStreaming
+	LockTypeSigningKeyLifecycle
 )
 
 const (
@@ -106,6 +107,10 @@ func NewVolumeStreamingLockID(resourceCacheID int, worker string) LockID {
 
 func NewResourceGetLockID(name string) LockID {
 	return LockID{LockTypeResourceGet, lockIDFromString(name)}
+}
+
+func NewSigningKeyLifecycleLockID() LockID {
+	return LockID{LockTypeSigningKeyLifecycle}
 }
 
 //counterfeiter:generate . LockFactory

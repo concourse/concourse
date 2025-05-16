@@ -1,0 +1,1 @@
+DROP TABLE signing_keys;
