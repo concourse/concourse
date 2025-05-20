@@ -2,7 +2,6 @@ package emitter
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/klauspost/compress/gzip"
 	"github.com/pkg/errors"
 )
 
