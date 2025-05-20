@@ -2,13 +2,13 @@ package tgzfs
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"io"
 	"os"
 	"os/exec"
 	"runtime"
 
 	"github.com/concourse/concourse/go-archive/tarfs"
+	"github.com/klauspost/compress/gzip"
 )
 
 func Extract(src io.Reader, dest string) error {

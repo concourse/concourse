@@ -2,8 +2,6 @@ package cliserver
 
 import (
 	"archive/tar"
-	"archive/zip"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +9,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/klauspost/compress/gzip"
+	"github.com/klauspost/compress/zip"
 )
 
 var whitelist = regexp.MustCompile(`^[a-z0-9]+$`)
