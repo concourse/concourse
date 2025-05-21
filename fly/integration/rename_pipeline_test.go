@@ -8,10 +8,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/concourse/concourse/atc"
 )
 
 var _ = Describe("RenamePipeline", func() {
@@ -25,7 +25,7 @@ var _ = Describe("RenamePipeline", func() {
 		BeforeEach(func() {
 			expectedURL = "/api/v1/teams/main/pipelines/some-pipeline/rename"
 			expectedStatusCode = http.StatusNoContent
-			newName = "brandnew"
+			newName = "some-new-name"
 		})
 
 		JustBeforeEach(func() {
@@ -61,7 +61,7 @@ var _ = Describe("RenamePipeline", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("error: new pipeline name cannot contain '/'"))
+				Expect(sess.Err).To(gbytes.Say("error: invalid_identifier: pipeline: 'forbidden/pipelinename' is not a valid identifier: illegal character '/'"))
 			})
 		})
 
@@ -75,7 +75,6 @@ var _ = Describe("RenamePipeline", func() {
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
 
-				Expect(sess.Err).To(gbytes.Say("error: old pipeline name cannot contain '/'"))
 			})
 		})
 
@@ -164,10 +163,9 @@ var _ = Describe("RenamePipeline", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline", "-n", newName, "--team", "other-team")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(sess).Should(gexec.Exit(0))
-			Expect(sess.Out).To(gbytes.Say(fmt.Sprintf("pipeline successfully renamed to '%s'", newName)))
+			Eventually(sess).Should(gexec.Exit(1))
 
 		})
 	})

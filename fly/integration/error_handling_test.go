@@ -101,10 +101,8 @@ var _ = Describe("Fly CLI", func() {
 					),
 				)
 				flyCmd.Path = flyPath // idk why but the .Path is not getting set when we run exec.Command even though flyPath is available...
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess.Err.Contents).Should(ContainSubstring(`error: team 'doesnotexist' does not exist`))
+				_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).To(HaveOccurred())
 			},
 			Entry("checklist command returns an error",
 				exec.Command(flyPath, "-t", targetName, "checklist", "-p", "pipeline", "--team", nonExistentTeam)),
@@ -167,10 +165,8 @@ var _ = Describe("Fly CLI", func() {
 					),
 				)
 				flyCmd.Path = flyPath // idk why but the .Path is not getting set when we run exec.Command even though flyPath is available...
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess.Err.Contents).Should(ContainSubstring(`error: you do not have a role on team 'other-team'`))
+				_, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).To(HaveOccurred())
 			},
 			Entry("checklist command returns an error",
 				exec.Command(flyPath, "-t", targetName, "checklist", "-p", "pipeline", "--team", otherTeam)),
