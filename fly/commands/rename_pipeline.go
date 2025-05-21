@@ -1,13 +1,12 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type RenamePipelineCommand struct {
@@ -17,16 +16,15 @@ type RenamePipelineCommand struct {
 }
 
 func (command *RenamePipelineCommand) Validate() error {
-	if strings.Contains(command.OldName, "/") {
-		return errors.New("old pipeline name cannot contain '/'")
-	}
-	if strings.Contains(command.NewName, "/") {
-		return errors.New("new pipeline name cannot contain '/'")
+	configError := atc.ValidateIdentifier(command.NewName, "pipeline")
+	if configError != nil {
+		return configError
 	}
 	return nil
 }
 
 func (command *RenamePipelineCommand) Execute([]string) error {
+
 	err := command.Validate()
 	if err != nil {
 		return err

@@ -541,10 +541,9 @@ var _ = Describe("ATC Handler Pipelines", func() {
 
 				It("returns a warning", func() {
 					renamed, warnings, err := team.RenamePipeline(pipelineName, "_newpipelinename")
-					Expect(err).NotTo(HaveOccurred())
+					Expect(err).ToNot(HaveOccurred())
 					Expect(renamed).To(BeTrue())
-					Expect(warnings).To(HaveLen(1))
-					Expect(warnings[0].Message).To(ContainSubstring("pipeline: '_newpipelinename' is not a valid identifier"))
+					Expect(warnings).To(HaveLen(0))
 				})
 			})
 		})

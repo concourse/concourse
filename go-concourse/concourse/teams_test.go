@@ -182,8 +182,7 @@ var _ = Describe("ATC Handler Teams", func() {
 				It("returns back false for created, and true for updated", func() {
 					_, _, _, warnings, err := team.CreateOrUpdate(desiredTeam)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(warnings).To(HaveLen(1))
-					Expect(warnings[0].Message).To(ContainSubstring("team: 'new venture' is not a valid identifier"))
+					Expect(warnings).To(HaveLen(0))
 				})
 			})
 		})

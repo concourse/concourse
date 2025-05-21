@@ -18,9 +18,10 @@ import (
 )
 
 type GetPipelineCommand struct {
-	Pipeline flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get configuration of this pipeline"`
-	JSON     bool                     `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
-	Team     flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Pipeline       flaghelpers.PipelineFlag `short:"p" long:"pipeline" required:"true" description:"Get configuration of this pipeline"`
+	JSON           bool                     `short:"j" long:"json"                     description:"Print config as json instead of yaml"`
+	Team           flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	SkipValidation bool                     `long:"skip-validation" required:"false" description:"Skip identifier validation before destroying"`
 }
 
 func (command *GetPipelineCommand) Validate() error {
@@ -29,9 +30,12 @@ func (command *GetPipelineCommand) Validate() error {
 }
 
 func (command *GetPipelineCommand) Execute(args []string) error {
-	err := command.Validate()
-	if err != nil {
-		return err
+	skip_validation := command.SkipValidation
+	if !skip_validation {
+		err := command.Validate()
+		if err != nil {
+			return err
+		}
 	}
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
