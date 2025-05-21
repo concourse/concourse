@@ -35,6 +35,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.3
 	github.com/coreos/go-iptables v0.8.0
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
+	github.com/creack/pty v1.1.24
 	github.com/cyberark/conjur-api-go v0.12.14
 	github.com/fatih/color v1.18.0
 	github.com/felixge/httpsnoop v1.0.4
@@ -55,7 +56,6 @@ require (
 	github.com/jackpal/gateway v1.0.16
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.18.0
-	github.com/kr/pty v1.1.8
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
@@ -121,7 +121,6 @@ require (
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/ttrpc v1.2.7 // indirect
 	github.com/containernetworking/cni v1.2.3
-	github.com/creack/pty v1.1.24 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dexidp/dex/api/v2 v2.3.0 // indirect
 	github.com/docker/go-events v0.0.0-20250114142523-c867878c5e32 // indirect
