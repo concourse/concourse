@@ -31,9 +31,9 @@ var _ = Describe("Prometheus integration", func() {
 		helmDeploy(prometheusReleaseName,
 			namespace,
 			path.Join(Environment.HelmChartsDir, "stable/prometheus"),
-			"--set=nodeExporter.enabled=false",
-			"--set=kubeStateMetrics.enabled=false",
-			"--set=pushgateway.enabled=false",
+			"--set=prometheus-node-exporter.enabled=false",
+			"--set=kube-state-metrics.enabled=false",
+			"--set=prometheus-pushgateway.enabled=false",
 			"--set=alertmanager.enabled=false",
 			"--set=server.persistentVolume.enabled=false")
 
