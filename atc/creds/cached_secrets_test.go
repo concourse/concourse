@@ -42,6 +42,12 @@ var _ = Describe("Caching of secrets", func() {
 		underlyingMisses = 0
 	})
 
+	It("should implement the SecretsWithContext interface", func() {
+		var secret creds.SecretsWithContext
+		secret = cachedSecretManager
+		_ = secret
+	})
+
 	It("should handle missing secrets correctly and cache misses", func() {
 		secretManager.GetStub = makeGetStub("foo", "value", nil, true, nil, &underlyingReads, &underlyingMisses)
 

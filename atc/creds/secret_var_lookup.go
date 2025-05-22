@@ -7,12 +7,14 @@ import (
 type VariableLookupFromSecrets struct {
 	Secrets     Secrets
 	LookupPaths []SecretLookupPath
+	Context     SecretLookupContext
 }
 
-func NewVariables(secrets Secrets, teamName string, pipelineName string, allowRootPath bool) vars.Variables {
+func NewVariables(secrets Secrets, secretsLookupContext SecretLookupContext, allowRootPath bool) vars.Variables {
 	return VariableLookupFromSecrets{
 		Secrets:     secrets,
-		LookupPaths: secrets.NewSecretLookupPaths(teamName, pipelineName, allowRootPath),
+		LookupPaths: newSecretLookupPathsWithContext(secrets, secretsLookupContext, allowRootPath),
+		Context:     secretsLookupContext,
 	}
 }
 
@@ -34,7 +36,7 @@ func (sl VariableLookupFromSecrets) Get(ref vars.Reference) (any, bool, error) {
 func (sl VariableLookupFromSecrets) get(path string) (any, bool, error) {
 	if len(sl.LookupPaths) == 0 {
 		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
-		result, _, found, err := sl.Secrets.Get(path)
+		result, _, found, err := getWithContext(sl.Secrets, path, sl.Context)
 		return result, found, err
 	}
 	// try to find a secret according to our var->secret lookup paths
@@ -44,7 +46,7 @@ func (sl VariableLookupFromSecrets) get(path string) (any, bool, error) {
 		if err != nil {
 			return nil, false, err
 		}
-		result, _, found, err := sl.Secrets.Get(secretPath)
+		result, _, found, err := getWithContext(sl.Secrets, secretPath, sl.Context)
 		if err != nil {
 			return nil, false, err
 		}

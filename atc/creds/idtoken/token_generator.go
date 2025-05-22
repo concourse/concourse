@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
 	"github.com/go-jose/go-jose/v3"
@@ -21,13 +22,15 @@ const (
 	SubjectScopeEmpty    SubjectScope = ""
 	SubjectScopeTeam     SubjectScope = "team"
 	SubjectScopePipeline SubjectScope = "pipeline"
+	SubjectScopeInstance SubjectScope = "instance"
+	SubjectScopeJob      SubjectScope = "job"
 
 	DefaultAlgorithm = jose.RS256
 )
 
 func (s SubjectScope) Valid() bool {
 	switch s {
-	case SubjectScopeEmpty, SubjectScopeTeam, SubjectScopePipeline:
+	case SubjectScopeEmpty, SubjectScopeTeam, SubjectScopePipeline, SubjectScopeInstance, SubjectScopeJob:
 		return true
 	}
 	return false
@@ -43,7 +46,7 @@ type TokenGenerator struct {
 	Algorithm    jose.SignatureAlgorithm
 }
 
-func (g TokenGenerator) GenerateToken(team, pipeline string) (token string, validUntil time.Time, err error) {
+func (g TokenGenerator) GenerateToken(context creds.SecretLookupContext) (token string, validUntil time.Time, err error) {
 	now := time.Now()
 	validUntil = now.Add(g.ExpiresIn)
 
@@ -61,17 +64,21 @@ func (g TokenGenerator) GenerateToken(team, pipeline string) (token string, vali
 		Issuer:   g.Issuer,
 		IssuedAt: jwt.NewNumericDate(now),
 		Audience: jwt.Audience(g.Audience),
-		Subject:  g.generateSubject(team, pipeline),
+		Subject:  g.generateSubject(context),
 		Expiry:   jwt.NewNumericDate(validUntil),
 		ID:       generateRandomNumericString(),
 	}
 
 	customClaims := struct {
-		Team     string `json:"team"`
-		Pipeline string `json:"pipeline"`
+		Team         string         `json:"team"`
+		Pipeline     string         `json:"pipeline"`
+		Job          string         `json:"job"`
+		InstanceVars map[string]any `json:"instance_vars,omitempty"`
 	}{
-		Team:     team,
-		Pipeline: pipeline,
+		Team:         context.Team,
+		Pipeline:     context.Pipeline,
+		Job:          context.Job,
+		InstanceVars: context.InstanceVars,
 	}
 
 	signed, err := jwt.Signed(signer).Claims(claims).Claims(customClaims).CompactSerialize()
@@ -107,9 +114,11 @@ func (g TokenGenerator) getSigningKey() (*jose.SigningKey, error) {
 	}, nil
 }
 
-func (g TokenGenerator) generateSubject(team, pipeline string) string {
-	team = escapeSlashes(team)
-	pipeline = escapeSlashes(pipeline)
+func (g TokenGenerator) generateSubject(context creds.SecretLookupContext) string {
+	team := escapeSlashes(context.Team)
+	pipeline := escapeSlashes(context.Pipeline)
+	ivars := escapeSlashes(context.InstanceVars.String())
+	job := escapeSlashes(context.Job)
 
 	switch g.SubjectScope {
 	case SubjectScopeTeam:
@@ -119,6 +128,10 @@ func (g TokenGenerator) generateSubject(team, pipeline string) string {
 		fallthrough
 	case SubjectScopePipeline:
 		return fmt.Sprintf("%s/%s", team, pipeline)
+	case SubjectScopeInstance:
+		return fmt.Sprintf("%s/%s/%s", team, pipeline, ivars)
+	case SubjectScopeJob:
+		return fmt.Sprintf("%s/%s/%s/%s", team, pipeline, ivars, job)
 	}
 }
 

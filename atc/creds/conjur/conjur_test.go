@@ -46,7 +46,7 @@ var _ = Describe("Conjur", func() {
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
 		secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{t1, t2})
-		variables = creds.NewVariables(secretAccess, "alpha", "bogus", false)
+		variables = creds.NewVariables(secretAccess, creds.SecretLookupContext{Team: "alpha", Pipeline: "bogus"}, false)
 		Expect(secretAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) ([]byte, error) {
 			if input == "concourse/alpha/bogus/cheery" {
@@ -86,7 +86,7 @@ var _ = Describe("Conjur", func() {
 		})
 
 		It("should allow empty pipeline name", func() {
-			variables := creds.NewVariables(secretAccess, "alpha", "", false)
+			variables := creds.NewVariables(secretAccess, creds.SecretLookupContext{Team: "alpha", Pipeline: ""}, false)
 			mockService.stubGetParameter = func(input string) ([]byte, error) {
 				Expect(input).To(Equal("concourse/alpha/cheery"))
 				return []byte("team secret"), nil
@@ -99,7 +99,7 @@ var _ = Describe("Conjur", func() {
 
 		It("should allow full variable path when no templates were configured", func() {
 			secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{})
-			variables := creds.NewVariables(secretAccess, "", "", false)
+			variables := creds.NewVariables(secretAccess, creds.SecretLookupContext{Team: "", Pipeline: ""}, false)
 			mockService.stubGetParameter = func(input string) ([]byte, error) {
 				Expect(input).To(Equal("cheery"))
 				return []byte("full path secret"), nil
