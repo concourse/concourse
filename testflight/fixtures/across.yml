@@ -16,7 +16,7 @@ jobs:
   - across:
     - var: static
       values: [static1, static2]
-    - var: dynamic
+    - var: dynamic_across
       values: ((.:dynamic))
     task: print
     config:
@@ -26,9 +26,9 @@ jobs:
         source: {mirror_self: true}
       run:
         path: echo
-        args: ["running across ((.:static)) ((.:dynamic))"]
+        args: ["running across ((.:static)) ((.:dynamic_across))"]
   - across:
-    - var: dynamic
+    - var: dynamic_across
       values: ((.:dynamic))
     put: mock
-    params: {version: "v_((.:dynamic))"}
+    params: {version: "v_((.:dynamic_across))"}
