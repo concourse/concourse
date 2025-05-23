@@ -292,7 +292,7 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 	}
 
 	if len(staticVars) > 0 {
-		config, err = vars.NewTemplateResolver(config, staticVars).Resolve(false, false)
+		config, err = vars.NewTemplateResolver(config, staticVars).Resolve(false)
 		if err != nil {
 			return atc.Config{}, err
 		}

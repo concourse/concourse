@@ -1,4 +1,4 @@
-# Concourse
+# Concourse: the continuous thing-doer
 
 [![Discord](https://img.shields.io/discord/219899946617274369.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)][discord]
 [![Build](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/badge)](https://ci.concourse-ci.org/teams/main/pipelines/concourse)
@@ -113,7 +113,7 @@ log in with the username/password as `test`/`test`.
 
 > :warning: **If you are using an M-series mac**, note that they are
 > incompatible with the `containerd` runtime until
-> [#1379](https://github.com/concourse/concourse/issues/1379) is resolved.
+> [#9182](https://github.com/concourse/concourse/issues/9182) is resolved.
 > After downloading the docker-compose file, change:
 >
 > `CONCOURSE_WORKER_RUNTIME: "containerd"` to
@@ -124,7 +124,7 @@ Next, install `fly` by downloading it from the web UI and target your local
 Concourse as the `test` user:
 
 ```sh
-$ fly -t ci login -c http://127.0.0.1:8080 -u test -p test
+$ fly -t ci login -c http://localhost:8080 -u test -p test
 logging in to team 'main'
 
 target saved
@@ -135,14 +135,14 @@ to learn how to write Concourse pipelines.
 
 ### Configuring a Pipeline
 
-There is no GUI for configuring Concourse. Instead, pipelines are configured as
+Concourse has no GUI for configuration. Instead, pipelines are defined in
 declarative YAML files:
 
 ```yaml
 resources:
 - name: booklit
   type: git
-  source: {uri: "https://github.com/vito/booklit"}
+  source: {uri: "https://github.com/concourse/booklit"}
 
 jobs:
 - name: unit
@@ -162,8 +162,8 @@ instance](https://concourse-ci.org/fly.html#fly-login), and then run:
 fly -t ci set-pipeline -p booklit -c booklit.yml
 ```
 
-These pipeline files are self-contained, maximizing portability from one
-Concourse instance to the next.
+These pipeline files are self-contained, making them easily portable between
+Concourse instances.
 
 
 ### Learn More
@@ -174,7 +174,7 @@ Concourse instance to the next.
   to learn the basics of pipelines
 * See Concourse in action with our [own pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [GitHub discussions](https://github.com/concourse/concourse/discussions) or in
-  [Discord](https://discord.gg/MeRxXKW).
+  [Discord][discord]
 * See what we're working on the [project board](https://github.com/orgs/concourse/projects). 
 
 

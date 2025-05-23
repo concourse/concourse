@@ -361,7 +361,7 @@ var _ = Describe("Teams API", func() {
 									"warnings": [
 										{
 											"type": "invalid_identifier",
-											"message": "team: '_some-team' is not a valid identifier: must start with a lowercase letter"
+											"message": "team: '_some-team' is not a valid identifier: must start with a lowercase letter or a number"
 										}
 									],
 									"team": {
@@ -576,7 +576,7 @@ var _ = Describe("Teams API", func() {
 								"warnings": [
 									{
 										"type": "invalid_identifier",
-										"message": "team: '_some-new-name' is not a valid identifier: must start with a lowercase letter"
+										"message": "team: '_some-new-name' is not a valid identifier: must start with a lowercase letter or a number"
 									}
 								]
 							}`))

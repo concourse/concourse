@@ -218,7 +218,7 @@ func (configSource InterpolateTemplateConfigSource) FetchConfig(ctx context.Cont
 	}
 
 	// process task config using the provided variables
-	byteConfig, err = vars.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(configSource.ExpectAllKeys, true)
+	byteConfig, err = vars.NewTemplateResolver(byteConfig, configSource.Vars).Resolve(configSource.ExpectAllKeys)
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config: %s", err)
 	}
