@@ -1,0 +1,15 @@
+groups: []
+resources:
+- name: shadowed-resource
+  type: some-type
+  source:
+    source-config: some-value
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    source-config: some-value
+jobs:
+- name: job
+  plan:
+  - get: some-resource
