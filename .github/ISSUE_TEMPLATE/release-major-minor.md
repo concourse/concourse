@@ -23,7 +23,7 @@ Steps for a new major/minor release:
 
 * [ ] Create the release branch on `concourse/concourse-chart` repository from the `dev` branch. Make any missing changes to `values.yaml` or `templates/web-deployment.yaml` for changes to flags on web or `templates/worker-deployment.yaml` for changes to flags on the worker.
 
-* [ ] Bump the appropriate versions for resource types. Go to the releases page `https://project.concourse-ci.org/releases` and take a look at which resource type repositories have had new commits or PRs. Take a look at what those changes entail and bump the version in their respective pipeline in `ci.concourse-ci.org`.
+* [ ] Bump the appropriate versions for resource types. Take a look at changes made since the last release of each resource, see what they entail and bump the version in their respective pipeline in `ci.concourse-ci.org`.
 
   * If the changes were only README or repo restructuring changes with no user impact, you don't need to bump the version
   * If the changes were small bug fixes or changes, you can do a patch version bump
@@ -31,13 +31,6 @@ Steps for a new major/minor release:
   * If the changes involve a breaking changes, that should be a major version bump
 
 * [ ] Add your release pipeline to the `reconfigure-pipeline`
-
-* [ ] Go through all the `needs-documentation` PRs in the release page for your milestone `https://project.concourse-ci.org/releases/concourse?milestone=v<M.m.p>` and make sure that everything has proper documentation within `concourse/docs` (if needed). You can organize which PRs by clicking on the button to add whichever label best fits that PR.
-
-  * If it is already documented within `concourse/docs`, add a `release/documented` label
-  * If there is no documentation and the changes have user impact that should be documented, add the documentation to `concourse/docs`(or delegate) then add a `release/documented` label after finished. E.g. the addition of a new step type ( set_pipeline step).
-  * If there is no documentation and the changes have user impact that do not need to be documented, add a `release/undocumented` label. E.g. an experimental feature.
-  * If there is no documentation and the changes do not have user impact, add a `release/no-impact` label. E.g. refactors.
 
 * [ ] Once the all source code changes are finalized, Concourse RC version should be deployed to CI
 
@@ -54,6 +47,7 @@ Steps for a new major/minor release:
 * [ ] The [helm-chart pipeline](https://ci.concourse-ci.org/teams/main/pipelines/helm-chart?group=dependencies&group=publish) is used to bump & then publish the chart.
   * First, run the `merge-dev-into-master` job
   * Next, run the `concourse-app-bump` job (bumps the app version and image to point to the latest release)
+  * Next, run the `k8s-smoke` job
   * Finally, run the `publish-chart-{major|minor|patch}` job, depending on what has changed in the chart
   * If you make a major bump, be sure to update the `CHANGELOG.md` in the concourse-chart repo
 
