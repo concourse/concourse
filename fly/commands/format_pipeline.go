@@ -8,7 +8,6 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	yamlpatch "github.com/krishicks/yaml-patch"
 )
 
 type FormatPipelineCommand struct {
@@ -23,21 +22,10 @@ func (command *FormatPipelineCommand) Execute(args []string) error {
 		displayhelpers.FailWithErrorf("could not read config file", err)
 	}
 
-	placeholderWrapper := yamlpatch.NewPlaceholderWrapper("{{", "}}")
-	wrappedConfigBytes := placeholderWrapper.Wrap(configBytes)
-
-	var config atc.Config
-	err = yaml.Unmarshal(wrappedConfigBytes, &config)
-	if err != nil {
-		displayhelpers.FailWithErrorf("could not unmarshal config", err)
-	}
-
-	formattedBytes, err := yaml.Marshal(config)
+	formattedBytes, err := yaml.Marshal(configBytes)
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not marshal config", err)
 	}
-
-	unwrappedConfigBytes := placeholderWrapper.Unwrap(formattedBytes)
 
 	if command.Write {
 		fi, err := os.Stat(configPath)
@@ -45,12 +33,12 @@ func (command *FormatPipelineCommand) Execute(args []string) error {
 			displayhelpers.FailWithErrorf("could not stat config file", err)
 		}
 
-		err = os.WriteFile(configPath, unwrappedConfigBytes, fi.Mode())
+		err = os.WriteFile(configPath, formattedBytes, fi.Mode())
 		if err != nil {
 			displayhelpers.FailWithErrorf("could not write formatted config to %s", err, command.Config)
 		}
 	} else {
-		_, err = fmt.Fprint(os.Stdout, string(unwrappedConfigBytes))
+		_, err = fmt.Fprint(os.Stdout, string(formattedBytes))
 		if err != nil {
 			displayhelpers.FailWithErrorf("could not write formatted config to stdout", err)
 		}
