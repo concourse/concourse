@@ -26,11 +26,17 @@ func makeFlakySecretManager(numberOfFails int) creds.Secrets {
 
 var _ = Describe("Re-retrieval of secrets on retryable errors", func() {
 
+	It("should implement the SecretsWithContext interface", func() {
+		var secret creds.SecretsWithContext
+		secret = &creds.RetryableSecrets{}
+		_ = secret
+	})
+
 	It("should retry receiving a parameter in case of retryable error", func() {
 		flakySecretManager := makeFlakySecretManager(3)
 		retryableSecretManager := creds.NewRetryableSecrets(flakySecretManager, creds.SecretRetryConfig{Attempts: 5, Interval: time.Millisecond})
 		varRef := vars.Reference{Path: "somevar"}
-		value, found, err := creds.NewVariables(retryableSecretManager, "team", "pipeline", false).Get(varRef)
+		value, found, err := creds.NewVariables(retryableSecretManager, creds.SecretLookupContext{Team: "team", Pipeline: "pipeline"}, false).Get(varRef)
 		Expect(value).To(BeEquivalentTo("received value"))
 		Expect(found).To(BeTrue())
 		Expect(err).To(BeNil())
@@ -40,7 +46,7 @@ var _ = Describe("Re-retrieval of secrets on retryable errors", func() {
 		flakySecretManager := makeFlakySecretManager(10)
 		retryableSecretManager := creds.NewRetryableSecrets(flakySecretManager, creds.SecretRetryConfig{Attempts: 5, Interval: time.Millisecond})
 		varRef := vars.Reference{Path: "somevar"}
-		value, found, err := creds.NewVariables(retryableSecretManager, "team", "pipeline", false).Get(varRef)
+		value, found, err := creds.NewVariables(retryableSecretManager, creds.SecretLookupContext{Team: "team", Pipeline: "pipeline"}, false).Get(varRef)
 		Expect(value).To(BeNil())
 		Expect(found).To(BeFalse())
 		Expect(err).NotTo(BeNil())

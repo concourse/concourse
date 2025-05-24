@@ -50,7 +50,7 @@ var _ = Describe("Ssm", func() {
 
 		ssmAccess = NewSsm(lagertest.NewTestLogger("ssm_test"), mockService, []*creds.SecretTemplate{t1, t2}, "/concourse/shared")
 
-		variables = creds.NewVariables(ssmAccess, "alpha", "bogus", false)
+		variables = creds.NewVariables(ssmAccess, creds.SecretLookupContext{Team: "alpha", Pipeline: "bogus"}, false)
 		Expect(ssmAccess).NotTo(BeNil())
 	})
 
@@ -127,7 +127,7 @@ var _ = Describe("Ssm", func() {
 		})
 
 		It("should allow empty pipeline name", func() {
-			variables := creds.NewVariables(ssmAccess, "alpha", "", false)
+			variables := creds.NewVariables(ssmAccess, creds.SecretLookupContext{Team: "alpha", Pipeline: ""}, false)
 			mockService.GetParameterStub = getParameterStub(func(name string) (*ssm.GetParameterOutput, error) {
 				Expect(name).To(Equal("/concourse/alpha/cheery"))
 				return &ssm.GetParameterOutput{Parameter: &types.Parameter{Value: aws.String("team power")}}, nil
