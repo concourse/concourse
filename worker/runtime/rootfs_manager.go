@@ -81,13 +81,8 @@ func NewRootfsManager(opts ...RootfsManagerOpt) *rootfsManager {
 func (r rootfsManager) SetupCwd(rootfsPath string, cwd string) error {
 	abs := filepath.Join(rootfsPath, cwd)
 
-	_, err := os.Stat(abs)
-	if err == nil { // exists
-		return nil
-	}
-
-	err = r.mkdirall(abs, 0777)
-	if err != nil {
+	err := r.mkdirall(abs, 0777)
+	if err != nil && !os.IsExist(err) {
 		return fmt.Errorf("mkdir: %w", err)
 	}
 
