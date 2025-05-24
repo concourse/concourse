@@ -36,7 +36,7 @@ type BuildStepDelegate interface {
 	BeforeSelectWorker(lager.Logger) error
 	WaitingForWorker(lager.Logger)
 	SelectedWorker(lager.Logger, string)
-	StreamingVolume(lager.Logger, string, string, string)
+	StreamingVolume(lager.Logger, string, string, string, int)
 	WaitingForStreamedVolume(lager.Logger, string, string)
 	BuildStartTime() time.Time
 
