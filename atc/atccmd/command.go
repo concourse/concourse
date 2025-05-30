@@ -851,22 +851,6 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	signingKeyLifecycler := idtoken.SigningKeyLifecycler{
-		Logger:              logger,
-		DBSigningKeyFactory: dbSigningKeyFactory,
-		LockFactory:         lockFactory,
-
-		CheckPeriod:       cmd.SigningKey.CheckInterval,
-		KeyRotationPeriod: cmd.SigningKey.RotationPeriod,
-		KeyGracePeriod:    cmd.SigningKey.GracePeriod,
-	}
-
-	go signingKeyLifecycler.Run(context.Background())
-
-	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
-		f.SetSigningKeyFactory(dbSigningKeyFactory)
-	})
-
 	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
 
 	teamsCacher := accessor.NewTeamsCacher(
@@ -1067,6 +1051,7 @@ func (cmd *RunCommand) backendComponents(
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
 	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
 	dbPipelinePauser := db.NewPipelinePauser(dbConn, lockFactory)
+	dbSigningKeyFactory := db.NewSigningKeyFactory(dbConn)
 
 	dbWorkerFactory := db.NewWorkerFactory(dbConn, workerCache)
 
@@ -1212,7 +1197,23 @@ func (cmd *RunCommand) backendComponents(
 			},
 			Runnable: buildEventWatcher,
 		},
+		{
+			Component: atc.Component{
+				Name:     atc.ComponentSigningKeyLifecycler,
+				Interval: cmd.SigningKey.CheckInterval,
+			},
+			Runnable: &idtoken.SigningKeyLifecycler{
+				Logger:              logger.Session(atc.ComponentSigningKeyLifecycler),
+				DBSigningKeyFactory: dbSigningKeyFactory,
+				KeyRotationPeriod:   cmd.SigningKey.RotationPeriod,
+				KeyGracePeriod:      cmd.SigningKey.GracePeriod,
+			},
+		},
 	}
+
+	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
+		f.SetSigningKeyFactory(dbSigningKeyFactory)
+	})
 
 	if syslogDrainConfigured {
 		components = append(components, RunnableComponent{
