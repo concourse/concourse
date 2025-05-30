@@ -107,10 +107,6 @@ func (l *SigningKeyLifecycler) ensureUpToDateKeyExists(kty db.SigningKeyType) er
 		return err
 	}
 
-	if err != nil {
-		return err
-	}
-
 	return l.DBSigningKeyFactory.CreateKey(*newKey)
 }
 
