@@ -37,14 +37,14 @@ func NewCachedSecrets(secrets Secrets, cacheConfig SecretCacheConfig) *CachedSec
 }
 
 func (cs *CachedSecrets) Get(secretPath string) (any, *time.Time, bool, error) {
-	return cs.GetWithContext(secretPath, SecretLookupContext{})
+	return cs.GetWithParams(secretPath, SecretLookupParams{})
 }
 
 func (cs *CachedSecrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []SecretLookupPath {
-	return cs.NewSecretLookupPathsWithContext(SecretLookupContext{Team: teamName, Pipeline: pipelineName}, allowRootPath)
+	return cs.NewSecretLookupPathsWithParams(SecretLookupParams{Team: teamName, Pipeline: pipelineName}, allowRootPath)
 }
 
-func (cs *CachedSecrets) GetWithContext(secretPath string, context SecretLookupContext) (any, *time.Time, bool, error) {
+func (cs *CachedSecrets) GetWithParams(secretPath string, context SecretLookupParams) (any, *time.Time, bool, error) {
 	// if there is a corresponding entry in the cache, return it
 	entry, found := cs.cache.Get(secretPath)
 	if found {
@@ -53,7 +53,7 @@ func (cs *CachedSecrets) GetWithContext(secretPath string, context SecretLookupC
 	}
 
 	// otherwise, let's make a request to the underlying secret manager
-	value, expiration, found, err := getWithContext(cs.secrets, secretPath, context)
+	value, expiration, found, err := GetWithParams(cs.secrets, secretPath, context)
 
 	// we don't want to cache errors, let the errors be retried the next time around
 	if err != nil {
@@ -83,6 +83,6 @@ func (cs *CachedSecrets) GetWithContext(secretPath string, context SecretLookupC
 	return value, expiration, found, nil
 }
 
-func (cs *CachedSecrets) NewSecretLookupPathsWithContext(context SecretLookupContext, allowRootPath bool) []SecretLookupPath {
-	return newSecretLookupPathsWithContext(cs.secrets, context, allowRootPath)
+func (cs *CachedSecrets) NewSecretLookupPathsWithParams(context SecretLookupParams, allowRootPath bool) []SecretLookupPath {
+	return NewSecretLookupPathsWithParams(cs.secrets, context, allowRootPath)
 }

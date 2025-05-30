@@ -2152,13 +2152,13 @@ var _ = Describe("Pipeline", func() {
 				return nil, nil, false, nil
 			}
 
-			context := creds.SecretLookupContext{
+			params := creds.SecretLookupParams{
 				Team:         pipeline.TeamName(),
 				Pipeline:     pipeline.Name(),
 				InstanceVars: pipeline.InstanceVars(),
 			}
 
-			pvars, err = pipeline.Variables(logger, fakeGlobalSecrets, pool, context)
+			pvars, err = pipeline.Variables(logger, fakeGlobalSecrets, pool, params)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

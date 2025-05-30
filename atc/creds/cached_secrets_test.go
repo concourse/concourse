@@ -42,8 +42,8 @@ var _ = Describe("Caching of secrets", func() {
 		underlyingMisses = 0
 	})
 
-	It("should implement the SecretsWithContext interface", func() {
-		var _ creds.SecretsWithContext = cachedSecretManager
+	It("should implement the SecretsWithParams interface", func() {
+		var _ creds.SecretsWithParams = cachedSecretManager
 	})
 
 	It("should handle missing secrets correctly and cache misses", func() {

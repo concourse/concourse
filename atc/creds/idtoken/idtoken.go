@@ -11,21 +11,21 @@ type IDToken struct {
 	TokenGenerator *TokenGenerator
 }
 
-func (secrets *IDToken) NewSecretLookupPathsWithContext(context creds.SecretLookupContext, allowRootPath bool) []creds.SecretLookupPath {
-	// returning no paths will result in GetWithContext() being called directly with the secret-name
+func (secrets *IDToken) NewSecretLookupPathsWithParams(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
+	// returning no paths will result in GetWithParams() being called directly with the secret-name
 	return []creds.SecretLookupPath{}
 }
 
-func (secrets *IDToken) GetWithContext(secretPath string, context creds.SecretLookupContext) (interface{}, *time.Time, bool, error) {
+func (secrets *IDToken) GetWithParams(secretPath string, params creds.SecretLookupParams) (interface{}, *time.Time, bool, error) {
 	if secretPath != "token" {
 		return nil, nil, false, fmt.Errorf("idtoken credential provider only supports the field 'token'")
 	}
 
-	if context.IsEmpty() {
-		return nil, nil, false, fmt.Errorf("idtoken credential provider was called with empty context")
+	if params.IsEmpty() {
+		return nil, nil, false, fmt.Errorf("idtoken credential provider was called with empty params")
 	}
 
-	token, _, err := secrets.TokenGenerator.GenerateToken(context)
+	token, _, err := secrets.TokenGenerator.GenerateToken(params)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -38,5 +38,5 @@ func (secrets *IDToken) NewSecretLookupPaths(teamName string, pipelineName strin
 }
 
 func (secrets *IDToken) Get(secretPath string) (interface{}, *time.Time, bool, error) {
-	return nil, nil, false, fmt.Errorf("IDToken provider can only be used with context")
+	return nil, nil, false, fmt.Errorf("IDToken provider can only be used with params")
 }
