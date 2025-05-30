@@ -42,7 +42,7 @@ type TokenGenerator struct {
 	Algorithm    jose.SignatureAlgorithm
 }
 
-func (g TokenGenerator) GenerateToken(context creds.SecretLookupContext) (token string, validUntil time.Time, err error) {
+func (g TokenGenerator) GenerateToken(params creds.SecretLookupParams) (token string, validUntil time.Time, err error) {
 	now := time.Now()
 	validUntil = now.Add(g.ExpiresIn)
 
@@ -60,7 +60,7 @@ func (g TokenGenerator) GenerateToken(context creds.SecretLookupContext) (token 
 		Issuer:   g.Issuer,
 		IssuedAt: jwt.NewNumericDate(now),
 		Audience: jwt.Audience(g.Audience),
-		Subject:  g.generateSubject(context),
+		Subject:  g.generateSubject(params),
 		Expiry:   jwt.NewNumericDate(validUntil),
 	}
 
@@ -70,10 +70,10 @@ func (g TokenGenerator) GenerateToken(context creds.SecretLookupContext) (token 
 		Job          string         `json:"job"`
 		InstanceVars map[string]any `json:"instance_vars,omitempty"`
 	}{
-		Team:         context.Team,
-		Pipeline:     context.Pipeline,
-		Job:          context.Job,
-		InstanceVars: context.InstanceVars,
+		Team:         params.Team,
+		Pipeline:     params.Pipeline,
+		Job:          params.Job,
+		InstanceVars: params.InstanceVars,
 	}
 
 	signed, err := jwt.Signed(signer).Claims(claims).Claims(customClaims).CompactSerialize()
@@ -109,11 +109,11 @@ func (g TokenGenerator) getSigningKey() (*jose.SigningKey, error) {
 	}, nil
 }
 
-func (g TokenGenerator) generateSubject(context creds.SecretLookupContext) string {
-	team := escapeSlashes(context.Team)
-	pipeline := escapeSlashes(context.Pipeline)
-	ivars := escapeSlashes(context.InstanceVars.String())
-	job := escapeSlashes(context.Job)
+func (g TokenGenerator) generateSubject(params creds.SecretLookupParams) string {
+	team := escapeSlashes(params.Team)
+	pipeline := escapeSlashes(params.Pipeline)
+	ivars := escapeSlashes(params.InstanceVars.String())
+	job := escapeSlashes(params.Job)
 
 	switch g.SubjectScope {
 	case SubjectScopeTeam:

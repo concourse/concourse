@@ -122,7 +122,7 @@ type Pipeline interface {
 
 	Destroy() error
 
-	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool, creds.SecretLookupContext) (vars.Variables, error)
+	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool, creds.SecretLookupParams) (vars.Variables, error)
 
 	SetParentIDs(jobID, buildID int) error
 }
@@ -1111,8 +1111,8 @@ func (p *pipeline) CreateStartedBuild(plan atc.Plan) (Build, error) {
 // Variables creates variables for this pipeline. If this pipeline has its own
 // var_sources, a vars.MultiVars containing all pipeline specific var_sources
 // plug the global variables, otherwise just return the global variables.
-func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool, secretLookupContext creds.SecretLookupContext) (vars.Variables, error) {
-	globalVars := creds.NewVariables(globalSecrets, secretLookupContext, false)
+func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool, secretLookupParams creds.SecretLookupParams) (vars.Variables, error) {
+	globalVars := creds.NewVariables(globalSecrets, secretLookupParams, false)
 	namedVarsMap := vars.NamedVariables{}
 
 	// It's safe to add NamedVariables to allVars via an array here, because
@@ -1144,7 +1144,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		if err != nil {
 			return nil, errors.Wrapf(err, "create var_source '%s' error", cm.Name)
 		}
-		namedVarsMap[cm.Name] = creds.NewVariables(secrets, secretLookupContext, true)
+		namedVarsMap[cm.Name] = creds.NewVariables(secrets, secretLookupParams, true)
 
 	}
 

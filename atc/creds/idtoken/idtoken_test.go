@@ -18,8 +18,8 @@ var _ = Describe("IDToken Secret", func() {
 
 	var tokenGenerator idtoken.TokenGenerator
 	var verificationKey jose.JSONWebKey
-	var secrets creds.SecretsWithContext
-	var context creds.SecretLookupContext
+	var secrets creds.SecretsWithParams
+	var params creds.SecretLookupParams
 
 	BeforeEach(func() {
 		signingKeyFake := &dbfakes.FakeSigningKey{}
@@ -45,7 +45,7 @@ var _ = Describe("IDToken Secret", func() {
 			TokenGenerator: &tokenGenerator,
 		}
 
-		context = creds.SecretLookupContext{
+		params = creds.SecretLookupParams{
 			Team:     "main",
 			Pipeline: "idtoken",
 			InstanceVars: atc.InstanceVars{
@@ -56,12 +56,12 @@ var _ = Describe("IDToken Secret", func() {
 	})
 
 	It("provides correct (empty) lookup path", func() {
-		lookups := secrets.NewSecretLookupPathsWithContext(context, false)
+		lookups := secrets.NewSecretLookupPathsWithParams(params, false)
 		Expect(lookups).To(HaveLen(0))
 	})
 
 	It("returns a correct token for passed team+pipeline", func() {
-		token, _, _, err := secrets.GetWithContext("token", context)
+		token, _, _, err := secrets.GetWithParams("token", params)
 		Expect(err).ToNot(HaveOccurred())
 
 		parsed, err := jwt.ParseSigned(token.(string))
@@ -79,11 +79,11 @@ var _ = Describe("IDToken Secret", func() {
 		err = parsed.Claims(verificationKey, &claims)
 		Expect(err).To(Succeed())
 
-		Expect(claims.Subject).To(Equal(context.Team + "/" + context.Pipeline))
-		Expect(claims.Team).To(Equal(context.Team))
-		Expect(claims.Pipeline).To(Equal(context.Pipeline))
-		Expect(claims.InstanceVars.String()).To(Equal(context.InstanceVars.String()))
-		Expect(claims.Job).To(Equal(context.Job))
+		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline))
+		Expect(claims.Team).To(Equal(params.Team))
+		Expect(claims.Pipeline).To(Equal(params.Pipeline))
+		Expect(claims.InstanceVars.String()).To(Equal(params.InstanceVars.String()))
+		Expect(claims.Job).To(Equal(params.Job))
 	})
 
 })

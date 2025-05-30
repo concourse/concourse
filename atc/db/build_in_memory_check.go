@@ -507,7 +507,7 @@ func (b *inMemoryCheckBuild) Variables(logger lager.Logger, secrets creds.Secret
 		return nil, errors.New("pipeline not found")
 	}
 
-	context := creds.SecretLookupContext{
+	context := creds.SecretLookupParams{
 		Team:         b.TeamName(),
 		Pipeline:     b.PipelineName(),
 		InstanceVars: b.PipelineInstanceVars(),

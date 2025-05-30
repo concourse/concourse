@@ -23,26 +23,26 @@ func NewRetryableSecrets(secrets Secrets, retryConfig SecretRetryConfig) Secrets
 
 // Get retrieves the value and expiration of an individual secret
 func (rs RetryableSecrets) Get(secretPath string) (any, *time.Time, bool, error) {
-	return rs.GetWithContext(secretPath, SecretLookupContext{})
+	return rs.GetWithParams(secretPath, SecretLookupParams{})
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
 func (rs RetryableSecrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []SecretLookupPath {
-	return rs.NewSecretLookupPathsWithContext(SecretLookupContext{Team: teamName, Pipeline: pipelineName}, allowRootPath)
+	return rs.NewSecretLookupPathsWithParams(SecretLookupParams{Team: teamName, Pipeline: pipelineName}, allowRootPath)
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (rs RetryableSecrets) GetWithContext(secretPath string, context SecretLookupContext) (any, *time.Time, bool, error) {
+func (rs RetryableSecrets) GetWithParams(secretPath string, context SecretLookupParams) (any, *time.Time, bool, error) {
 	r := &retryhttp.DefaultRetryer{}
 	for i := 0; i < rs.retryConfig.Attempts-1; i++ {
-		result, expiration, exists, err := getWithContext(rs.secrets, secretPath, context)
+		result, expiration, exists, err := GetWithParams(rs.secrets, secretPath, context)
 		if err != nil && r.IsRetryable(err) {
 			time.Sleep(rs.retryConfig.Interval)
 			continue
 		}
 		return result, expiration, exists, err
 	}
-	result, expiration, exists, err := getWithContext(rs.secrets, secretPath, context)
+	result, expiration, exists, err := GetWithParams(rs.secrets, secretPath, context)
 	if err != nil {
 		err = fmt.Errorf("%s (after %d retries)", err, rs.retryConfig.Attempts)
 	}
@@ -50,6 +50,6 @@ func (rs RetryableSecrets) GetWithContext(secretPath string, context SecretLooku
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (rs RetryableSecrets) NewSecretLookupPathsWithContext(context SecretLookupContext, allowRootPath bool) []SecretLookupPath {
-	return newSecretLookupPathsWithContext(rs.secrets, context, allowRootPath)
+func (rs RetryableSecrets) NewSecretLookupPathsWithParams(context SecretLookupParams, allowRootPath bool) []SecretLookupPath {
+	return NewSecretLookupPathsWithParams(rs.secrets, context, allowRootPath)
 }

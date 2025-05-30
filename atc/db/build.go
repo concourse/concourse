@@ -818,7 +818,7 @@ WITH RECURSIVE pipelines_to_archive AS (
 // just uses the global secrets manager. If it belongs to a pipeline, it combines
 // the global secrets manager with the pipeline's var_sources.
 func (b *build) Variables(logger lager.Logger, globalSecrets creds.Secrets, varSourcePool creds.VarSourcePool) (vars.Variables, error) {
-	context := creds.SecretLookupContext{
+	params := creds.SecretLookupParams{
 		Team:         b.teamName,
 		Pipeline:     b.pipelineName,
 		InstanceVars: b.pipelineInstanceVars,
@@ -827,7 +827,7 @@ func (b *build) Variables(logger lager.Logger, globalSecrets creds.Secrets, varS
 
 	// "fly execute" generated build will have no pipeline.
 	if b.pipelineID == 0 {
-		return creds.NewVariables(globalSecrets, context, false), nil
+		return creds.NewVariables(globalSecrets, params, false), nil
 	}
 	pipeline, found, err := b.Pipeline()
 	if err != nil {
@@ -837,7 +837,7 @@ func (b *build) Variables(logger lager.Logger, globalSecrets creds.Secrets, varS
 		return nil, errors.New("pipeline not found")
 	}
 
-	return pipeline.Variables(logger, globalSecrets, varSourcePool, context)
+	return pipeline.Variables(logger, globalSecrets, varSourcePool, params)
 }
 
 func (b *build) SetDrained(drained bool) error {
