@@ -111,8 +111,10 @@ func (manager Manager) Validate() error {
 	if manager.tokenGenerator.ExpiresIn > MaxExpiresIn {
 		return fmt.Errorf("expires_in must be <= %s", MaxExpiresIn.String())
 	}
-	if manager.tokenGenerator.Algorithm != "RS256" && manager.tokenGenerator.Algorithm != "ES256" && manager.tokenGenerator.Algorithm != "" {
-		return fmt.Errorf("invalid algorithm value: %s. Only RS256 and ES256 are supported", manager.tokenGenerator.SubjectScope)
+	switch manager.tokenGenerator.Algorithm {
+	case jose.RS256, jose.ES256:
+	default:
+		return fmt.Errorf("invalid algorithm value: %s. Only %s and %s are supported", manager.tokenGenerator.SubjectScope, jose.RS256, jose.ES256)
 	}
 	return nil
 }
