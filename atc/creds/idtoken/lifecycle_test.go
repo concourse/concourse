@@ -13,8 +13,6 @@ import (
 	"github.com/concourse/concourse/atc/creds/idtoken"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
 	"github.com/go-jose/go-jose/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -24,7 +22,6 @@ var _ = Describe("IDToken Lifecycle", func() {
 
 	var signingKeys []db.SigningKey
 	var signingKeyFactory db.SigningKeyFactory
-	var lockFactory lock.LockFactory
 	var lifecycler idtoken.SigningKeyLifecycler
 	var ctx context.Context
 
@@ -60,20 +57,11 @@ var _ = Describe("IDToken Lifecycle", func() {
 
 		signingKeyFactory = signingKeyFactoryFake
 
-		fakeLockFactory := &lockfakes.FakeLockFactory{}
-		fakeLockFactory.AcquireStub = func(l lager.Logger, li lock.LockID) (lock.Lock, bool, error) {
-			return new(lockfakes.FakeLock), true, nil
-		}
-		lockFactory = fakeLockFactory
-
 		lifecycler = idtoken.SigningKeyLifecycler{
 			Logger:              lager.NewLogger(""),
 			DBSigningKeyFactory: signingKeyFactory,
-			LockFactory:         lockFactory,
-
-			CheckPeriod:       10 * time.Second,
-			KeyRotationPeriod: 1 * time.Hour,
-			KeyGracePeriod:    10 * time.Minute,
+			KeyRotationPeriod:   1 * time.Hour,
+			KeyGracePeriod:      10 * time.Minute,
 		}
 
 		ctx = context.Background()
@@ -84,7 +72,7 @@ var _ = Describe("IDToken Lifecycle", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(before).To(HaveLen(0))
 
-		Expect(lifecycler.RunOnce(ctx)).To(Succeed())
+		Expect(lifecycler.Run(ctx)).To(Succeed())
 
 		after, err := signingKeyFactory.GetAllKeys()
 		Expect(err).ToNot(HaveOccurred())
@@ -99,7 +87,7 @@ var _ = Describe("IDToken Lifecycle", func() {
 		Expect(ecKey.KeyType()).To(Equal(db.SigningKeyTypeEC))
 
 		// make sure a re-run does not create additional keys
-		Expect(lifecycler.RunOnce(ctx)).To(Succeed())
+		Expect(lifecycler.Run(ctx)).To(Succeed())
 		after, err = signingKeyFactory.GetAllKeys()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(after).To(HaveLen(2))
@@ -114,7 +102,7 @@ var _ = Describe("IDToken Lifecycle", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(before).To(HaveLen(2))
 
-		Expect(lifecycler.RunOnce(ctx)).To(Succeed())
+		Expect(lifecycler.Run(ctx)).To(Succeed())
 
 		after, err := signingKeyFactory.GetAllKeys()
 		Expect(err).ToNot(HaveOccurred())
@@ -134,7 +122,7 @@ var _ = Describe("IDToken Lifecycle", func() {
 		Expect(ecKey.ID()).NotTo(Equal(oldECKey.ID()))
 
 		// make sure a re-run does not create additional keys
-		Expect(lifecycler.RunOnce(ctx)).To(Succeed())
+		Expect(lifecycler.Run(ctx)).To(Succeed())
 		after, err = signingKeyFactory.GetAllKeys()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(after).To(HaveLen(4))
@@ -151,7 +139,7 @@ var _ = Describe("IDToken Lifecycle", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(before).To(HaveLen(4))
 
-		Expect(lifecycler.RunOnce(ctx)).To(Succeed())
+		Expect(lifecycler.Run(ctx)).To(Succeed())
 
 		Expect(oldRSAKey.DeleteCallCount()).To(Equal(1))
 		Expect(oldECKey.DeleteCallCount()).To(Equal(1))

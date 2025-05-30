@@ -14,61 +14,20 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/go-jose/go-jose/v3"
 )
 
 type SigningKeyLifecycler struct {
 	Logger              lager.Logger
 	DBSigningKeyFactory db.SigningKeyFactory
-	LockFactory         lock.LockFactory
-
-	CheckPeriod       time.Duration
-	KeyRotationPeriod time.Duration
-	KeyGracePeriod    time.Duration
+	KeyRotationPeriod   time.Duration
+	KeyGracePeriod      time.Duration
 }
 
-// Run continously performs lifecycle-operations for signing keys. It blocks until ctx is cancelled.
-func (l *SigningKeyLifecycler) Run(ctx context.Context) {
-	for {
-		err := l.RunOnce(ctx)
-		if err != nil {
-			l.Logger.Error("Error when performing lifecycle operations for signing keys:", err)
-		}
-
-		sleepUntil := time.NewTimer(l.CheckPeriod)
-		select {
-		case <-sleepUntil.C:
-			continue
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func (l *SigningKeyLifecycler) RunOnce(ctx context.Context) error {
-	var newLock lock.Lock
-	var acquired bool
-	var err error
-	for {
-		// acquire a lock to make sure multiple atc-instances don't generate one new key each
-		newLock, acquired, err = l.LockFactory.Acquire(l.Logger, lock.NewSigningKeyLifecycleLockID())
-		if err != nil {
-			return err
-		}
-		if acquired {
-			break
-		}
-
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-	}
-	defer newLock.Release()
-
-	err = l.ensureUpToDateKeyExists(db.SigningKeyTypeRSA)
+// Run performs signingkey maintenance (once). It ensures up-to-date keys exist and outdated keys are removed.
+// Must NOT be called concurrently by different ATC-Instances!
+func (l *SigningKeyLifecycler) Run(_ context.Context) error {
+	err := l.ensureUpToDateKeyExists(db.SigningKeyTypeRSA)
 	if err != nil {
 		return err
 	}
