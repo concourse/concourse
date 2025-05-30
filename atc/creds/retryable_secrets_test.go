@@ -27,9 +27,7 @@ func makeFlakySecretManager(numberOfFails int) creds.Secrets {
 var _ = Describe("Re-retrieval of secrets on retryable errors", func() {
 
 	It("should implement the SecretsWithContext interface", func() {
-		var secret creds.SecretsWithContext
-		secret = &creds.RetryableSecrets{}
-		_ = secret
+		var _ creds.SecretsWithContext = creds.RetryableSecrets{}
 	})
 
 	It("should retry receiving a parameter in case of retryable error", func() {
