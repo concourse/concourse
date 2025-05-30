@@ -77,6 +77,13 @@ var _ = Describe("IDToken API", func() {
 			json.NewDecoder(response.Body).Decode(&jwks)
 		})
 
+		It("returns Content-Type 'application/json'", func() {
+			expectedHeaderEntries := map[string]string{
+				"Content-Type": "application/json",
+			}
+			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+		})
+
 		It("contains correct keys", func() {
 			Expect(jwks.Keys).To(HaveLen(2))
 			Expect(jwks.Keys[0].KeyID).To(Equal(rsaKey.ID()))
