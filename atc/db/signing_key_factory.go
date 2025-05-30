@@ -137,6 +137,7 @@ func (f *signingKeyFactory) GetNewestKey(keyType SigningKeyType) (SigningKey, er
 }
 
 // the jwk type does not expose the kty header to us, so we have to infer it from the alg
+// Key Types: https://datatracker.ietf.org/doc/html/rfc7518#section-6.1
 func signingKeyTypeFromAlg(alg string) SigningKeyType {
 	keyType := SigningKeyTypeRSA
 	if strings.HasPrefix(alg, "ES") {
