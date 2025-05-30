@@ -1,11 +1,7 @@
 package idtoken
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math"
-	"math/big"
-	"strconv"
 	"strings"
 	"time"
 
@@ -66,7 +62,6 @@ func (g TokenGenerator) GenerateToken(context creds.SecretLookupContext) (token 
 		Audience: jwt.Audience(g.Audience),
 		Subject:  g.generateSubject(context),
 		Expiry:   jwt.NewNumericDate(validUntil),
-		ID:       generateRandomNumericString(),
 	}
 
 	customClaims := struct {
@@ -137,13 +132,4 @@ func (g TokenGenerator) generateSubject(context creds.SecretLookupContext) strin
 
 func escapeSlashes(input string) string {
 	return strings.ReplaceAll(input, "/", "%2F")
-}
-
-func generateRandomNumericString() string {
-	num, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
-	if err != nil {
-		// should never happen
-		panic(err)
-	}
-	return strconv.Itoa(int(num.Int64()))
 }
