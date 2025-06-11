@@ -15,10 +15,14 @@ import (
 )
 
 type Garden struct {
-	ContainerList []*Container
+	ContainerList  []*Container
+	containersLock sync.Mutex
 }
 
-func (g Garden) FindContainer(handle string) (*Container, int, bool) {
+func (g *Garden) FindContainer(handle string) (*Container, int, bool) {
+	g.containersLock.Lock()
+	defer g.containersLock.Unlock()
+
 	for i, c := range g.ContainerList {
 		if c.handle == handle {
 			return c, i, true
@@ -27,7 +31,10 @@ func (g Garden) FindContainer(handle string) (*Container, int, bool) {
 	return nil, 0, false
 }
 
-func (g Garden) FilteredContainers(pred func(*Container) bool) []*Container {
+func (g *Garden) FilteredContainers(pred func(*Container) bool) []*Container {
+	g.containersLock.Lock()
+	defer g.containersLock.Unlock()
+
 	var filtered []*Container
 	for _, c := range g.ContainerList {
 		if pred(c) {
@@ -37,8 +44,8 @@ func (g Garden) FilteredContainers(pred func(*Container) bool) []*Container {
 	return filtered
 }
 
-func (g Garden) Ping() (err error)                               { return }
-func (g Garden) Capacity() (capacity garden.Capacity, err error) { return }
+func (g *Garden) Ping() (err error)                               { return }
+func (g *Garden) Capacity() (capacity garden.Capacity, err error) { return }
 
 func (g *Garden) Create(spec garden.ContainerSpec) (gclient.Container, error) {
 	handle := spec.Handle
@@ -51,6 +58,7 @@ func (g *Garden) Create(spec garden.ContainerSpec) (gclient.Container, error) {
 	if _, _, ok := g.FindContainer(handle); ok {
 		return nil, fmt.Errorf("handle %s already exists", handle)
 	}
+
 	container := NewContainer(handle).WithSpec(spec)
 	g.ContainerList = append(g.ContainerList, container)
 	return container, nil
