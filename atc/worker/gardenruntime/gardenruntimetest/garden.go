@@ -60,14 +60,20 @@ func (g *Garden) Create(spec garden.ContainerSpec) (gclient.Container, error) {
 	}
 
 	container := NewContainer(handle).WithSpec(spec)
+
+	g.containersLock.Lock()
+	defer g.containersLock.Unlock()
 	g.ContainerList = append(g.ContainerList, container)
 	return container, nil
 }
 
 func (g *Garden) Destroy(handle string) error {
-	g.ContainerList = g.FilteredContainers(func(c *Container) bool {
+	filteredContainers := g.FilteredContainers(func(c *Container) bool {
 		return c.handle != handle
 	})
+	g.containersLock.Lock()
+	defer g.containersLock.Unlock()
+	g.ContainerList = filteredContainers
 	return nil
 }
 
