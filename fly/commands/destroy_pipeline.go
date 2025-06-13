@@ -12,20 +12,25 @@ import (
 type DestroyPipelineCommand struct {
 	Pipeline        flaghelpers.PipelineFlag `short:"p"  long:"pipeline" required:"true" description:"Pipeline to destroy"`
 	SkipInteractive bool                     `short:"n"  long:"non-interactive"          description:"Destroy the pipeline without confirmation"`
+	SkipValidation  bool                     `long:"skip-validation"    required:"false" description:"Skip identifier validation before destroying"`
 	Team            flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *DestroyPipelineCommand) Validate() error {
-	_, err := command.Pipeline.Validate()
+	err := command.Pipeline.Validate()
 	return err
 }
 
 func (command *DestroyPipelineCommand) Execute(args []string) error {
-	err := command.Validate()
-	if err != nil {
-		return err
+	skip_validation := command.SkipValidation
+	if !skip_validation {
+		err := command.Validate()
+		if err != nil {
+			return err
 
+		}
 	}
+
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
