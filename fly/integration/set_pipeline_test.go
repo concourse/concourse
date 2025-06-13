@@ -228,6 +228,48 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("when using unknown keys", func() {
+				It("succeeds", func() {
+					flyCmd := exec.Command(
+						flyPath, "-t", targetName,
+						"set-pipeline",
+						"--pipeline", "awesome-pipeline",
+						"-c", "fixtures/testConfigUnknownKeys.yml",
+					)
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					no(stdin)
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+			})
+
+			Context("when using duplicate keys", func() {
+				It("fails", func() {
+					flyCmd := exec.Command(
+						flyPath, "-t", targetName,
+						"set-pipeline",
+						"-n",
+						"--pipeline", "awesome-pipeline",
+						"-c", "fixtures/testConfigDuplicate.yml",
+					)
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess.Err).Should(gbytes.Say("error parsing yaml before applying templates"))
+					Eventually(sess.Err).Should(gbytes.Say("key \"resources\" already set in map"))
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(1))
+				})
+			})
+
 			Context("when a var is specified with -v", func() {
 				BeforeEach(func() {
 					expectSaveConfig(atc.Config{
