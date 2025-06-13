@@ -25,7 +25,7 @@ var _ = Describe("VariableLookupFromSecrets", func() {
 				},
 			},
 		}).NewSecrets()
-		variables = creds.NewVariables(secrets, "team", "pipeline", true)
+		variables = creds.NewVariables(secrets, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, true)
 	})
 
 	Describe("Get", func() {

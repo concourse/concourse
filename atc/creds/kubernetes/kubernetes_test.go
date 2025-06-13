@@ -63,7 +63,7 @@ var _ = Describe("Kubernetes", func() {
 			"prefix-",
 		)
 
-		vs = creds.NewVariables(factory.NewSecrets(), "some-team", "some-pipeline", false)
+		vs = creds.NewVariables(factory.NewSecrets(), creds.SecretLookupParams{Team: "some-team", Pipeline: "some-pipeline"}, false)
 	})
 
 	DescribeTable("var lookup", func(ex Example) {

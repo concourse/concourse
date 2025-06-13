@@ -91,7 +91,7 @@ var _ = Describe("Vault", func() {
 			LoginTimeout:    1 * time.Second,
 		}
 
-		variables = creds.NewVariables(v, "team", "pipeline", false)
+		variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 		varFoo = vars.Reference{Path: "foo"}
 	})
 
@@ -224,7 +224,7 @@ var _ = Describe("Vault", func() {
 						LookupTemplates: []*creds.SecretTemplate{a, b, c},
 					}
 
-					variables = creds.NewVariables(v, "team", "pipeline", false)
+					variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 				})
 
 				It("should find pipeline secrets in the configured place", func() {
@@ -260,7 +260,7 @@ var _ = Describe("Vault", func() {
 						LookupTemplates: []*creds.SecretTemplate{p, t},
 					}
 
-					variables = creds.NewVariables(v, "team", "pipeline", false)
+					variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 				})
 
 				It("should not get secret from root", func() {
@@ -292,7 +292,7 @@ var _ = Describe("Vault", func() {
 
 				Context("is true", func() {
 					BeforeEach(func() {
-						variables = creds.NewVariables(v, "team", "pipeline", true)
+						variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, true)
 					})
 
 					It("should get secret from root", func() {
@@ -304,7 +304,7 @@ var _ = Describe("Vault", func() {
 
 				Context("is false", func() {
 					BeforeEach(func() {
-						variables = creds.NewVariables(v, "team", "pipeline", false)
+						variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 					})
 
 					It("should not get secret from root", func() {
@@ -367,7 +367,7 @@ var _ = Describe("Vault KV2", func() {
 			ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 		))
 
-		variables = creds.NewVariables(v, "team", "pipeline", false)
+		variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 		varFoo = vars.Reference{Path: "foo"}
 	})
 
@@ -461,7 +461,7 @@ var _ = Describe("Vault KV2", func() {
 				c, _ := creds.BuildSecretTemplate("c", "/concourse/place3/{{.Secret}}")
 
 				v.LookupTemplates = []*creds.SecretTemplate{a, b, c}
-				variables = creds.NewVariables(v, "team", "pipeline", false)
+				variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 			})
 
 			It("should find pipeline secrets in the configured place", func() {
@@ -522,7 +522,7 @@ var _ = Describe("Vault KV2", func() {
 				t, _ := creds.BuildSecretTemplate("t", "/concourse/{{.Team}}/{{.Secret}}")
 
 				v.LookupTemplates = []*creds.SecretTemplate{p, t}
-				variables = creds.NewVariables(v, "team", "pipeline", false)
+				variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 			})
 
 			It("should not get secret from root", func() {
@@ -576,7 +576,7 @@ var _ = Describe("Vault KV2", func() {
 
 			Context("is true", func() {
 				BeforeEach(func() {
-					variables = creds.NewVariables(v, "team", "pipeline", true)
+					variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, true)
 				})
 
 				It("should get secret from root", func() {
@@ -588,7 +588,7 @@ var _ = Describe("Vault KV2", func() {
 
 			Context("is false", func() {
 				BeforeEach(func() {
-					variables = creds.NewVariables(v, "team", "pipeline", false)
+					variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 				})
 
 				It("should not get secret from root", func() {
@@ -640,7 +640,7 @@ var _ = Describe("Vault KV1", func() {
 			ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
 		))
 
-		variables = creds.NewVariables(v, "team", "pipeline", false)
+		variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 		varFoo = vars.Reference{Path: "foo"}
 	})
 
@@ -720,7 +720,7 @@ var _ = Describe("Vault KV1", func() {
 				c, _ := creds.BuildSecretTemplate("c", "/concourse/place3/{{.Secret}}")
 
 				v.LookupTemplates = []*creds.SecretTemplate{a, b, c}
-				variables = creds.NewVariables(v, "team", "pipeline", false)
+				variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 			})
 
 			It("should find pipeline secrets in the configured place", func() {
@@ -781,7 +781,7 @@ var _ = Describe("Vault KV1", func() {
 				t, _ := creds.BuildSecretTemplate("t", "/concourse/{{.Team}}/{{.Secret}}")
 
 				v.LookupTemplates = []*creds.SecretTemplate{p, t}
-				variables = creds.NewVariables(v, "team", "pipeline", false)
+				variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 			})
 
 			It("should not get secret from root", func() {
@@ -835,7 +835,7 @@ var _ = Describe("Vault KV1", func() {
 
 			Context("is true", func() {
 				BeforeEach(func() {
-					variables = creds.NewVariables(v, "team", "pipeline", true)
+					variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, true)
 				})
 
 				It("should get secret from root", func() {
@@ -847,7 +847,7 @@ var _ = Describe("Vault KV1", func() {
 
 			Context("is false", func() {
 				BeforeEach(func() {
-					variables = creds.NewVariables(v, "team", "pipeline", false)
+					variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
 				})
 
 				It("should not get secret from root", func() {
