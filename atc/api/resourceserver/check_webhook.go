@@ -42,7 +42,13 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		variables, err := dbPipeline.Variables(logger, s.secretManager, s.varSourcePool)
+		secretsParams := creds.SecretLookupParams{
+			Team:         dbPipeline.TeamName(),
+			Pipeline:     dbPipeline.Name(),
+			InstanceVars: dbPipeline.InstanceVars(),
+		}
+
+		variables, err := dbPipeline.Variables(logger, s.secretManager, s.varSourcePool, secretsParams)
 		if err != nil {
 			logger.Error("failed-to-create-var-sources", err)
 			w.WriteHeader(http.StatusInternalServerError)

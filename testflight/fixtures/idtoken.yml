@@ -1,0 +1,32 @@
+var_sources:
+- name: defaultidtoken
+  type: idtoken
+  config:
+    audience: ["sts.amazonaws.com"]
+
+- name: customidtoken
+  type: idtoken
+  config:
+    subject_scope: team
+    audience: ["sts.amazonaws.com"]
+    expires_in: 1h
+    algorithm: ES256
+
+jobs:
+- name: print-creds
+  plan:
+  - task: print
+    config:
+      platform: linux
+
+      image_resource:
+        type: mock
+        source: {mirror_self: true}
+
+      run:
+        path: bash
+        args:
+        - -c
+        - |
+          echo default-token: ((defaultidtoken:token))
+          echo custom-token: ((customidtoken:token))
