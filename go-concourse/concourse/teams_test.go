@@ -174,18 +174,15 @@ var _ = Describe("ATC Handler Teams", func() {
 
 			Context("when the team has an invalid identifier", func() {
 				BeforeEach(func() {
-					expectedResponse.Warnings = []atc.ConfigWarning{
-						{Type: "invalid_identifier",
-							Message: "team: 'new venture' is not a valid identifier",
-						},
+					expectedResponse.Errors = []string{
+						"team: 'new venture' is not a valid identifier",
 					}
 				})
 
 				It("returns back false for created, and true for updated", func() {
 					_, _, _, warnings, err := team.CreateOrUpdate(desiredTeam)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(warnings).To(HaveLen(1))
-					Expect(warnings[0].Message).To(ContainSubstring("team: 'new venture' is not a valid identifier"))
+					Expect(warnings).To(HaveLen(0))
 				})
 			})
 		})
