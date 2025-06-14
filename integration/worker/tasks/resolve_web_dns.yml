@@ -9,5 +9,4 @@ run:
   args:
     - -c
     - |
-      apk --no-cache --no-progress add cmd:nslookup
-      nslookup web
+      ping -c 1 -w 5 web
