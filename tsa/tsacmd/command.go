@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"sync"
@@ -278,7 +279,12 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 		return nil, fmt.Errorf("failed to create signer from host key: %s", err)
 	}
 
-	config.AddHostKey(signer)
+	signerWithAlgorithms, err := ssh.NewSignerWithAlgorithms(signer.(ssh.AlgorithmSigner), []string{ssh.KeyAlgoRSASHA256, ssh.KeyAlgoRSASHA512})
+	if err != nil {
+		log.Fatal("Failed to create private key with restricted algorithms: ", err)
+	}
+
+	config.AddHostKey(signerWithAlgorithms)
 
 	return config, nil
 }
