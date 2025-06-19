@@ -3,8 +3,8 @@ package atc
 import "time"
 
 var (
-	DefaultCheckInterval   time.Duration
-	DefaultWebhookInterval time.Duration
+	DefaultCheckInterval        time.Duration
+	DefaultWebhookInterval      time.Duration
 	DefaultResourceTypeInterval time.Duration
 )
 

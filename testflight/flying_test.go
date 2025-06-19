@@ -81,7 +81,7 @@ run:
 	})
 
 	It("works in background", func() {
-		execS := flyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "--background", "--", "SOME", "ARGS",)
+		execS := flyIn(tmp, "execute", "-c", "task.yml", "-i", "fixture=./fixture", "-i", "input-1=./input-1", "-i", "input-2=./input-2", "--background", "--", "SOME", "ARGS")
 		Eventually(execS).Should(gbytes.Say("executing build"))
 	})
 
