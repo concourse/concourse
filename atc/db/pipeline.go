@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/pkg/errors"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -1133,7 +1133,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		// Interpolate variables in pipeline credential manager's config
 		newConfig, err := creds.NewParams(allVars, atc.Params{"config": cm.Config}).Evaluate()
 		if err != nil {
-			return nil, errors.Wrapf(err, "evaluate var_source '%s' error", cm.Name)
+			return nil, fmt.Errorf("evaluate var_source '%s' error: %w", cm.Name, err)
 		}
 
 		config, ok := newConfig["config"].(map[string]any)
@@ -1142,7 +1142,7 @@ func (p *pipeline) Variables(logger lager.Logger, globalSecrets creds.Secrets, v
 		}
 		secrets, err := varSourcePool.FindOrCreate(logger, config, factory)
 		if err != nil {
-			return nil, errors.Wrapf(err, "create var_source '%s' error", cm.Name)
+			return nil, fmt.Errorf("create var_source '%s' error: %w", cm.Name, err)
 		}
 		namedVarsMap[cm.Name] = creds.NewVariables(secrets, p.TeamName(), p.Name(), true)
 	}

@@ -1,11 +1,11 @@
 package emitter
 
 import (
+	"fmt"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/metric"
-	"github.com/pkg/errors"
 
 	influxclient "github.com/influxdata/influxdb1-client/v2"
 )
@@ -106,7 +106,7 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 	err = emitter.Client.Write(bp)
 	if err != nil {
 		logger.Error("failed-to-send-points",
-			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
+			fmt.Errorf("%w, %v", metric.ErrFailedToEmit, err))
 		return
 	}
 }
