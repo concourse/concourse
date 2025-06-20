@@ -278,7 +278,12 @@ func (cmd *TSACommand) configureSSHServer(sessionAuthTeam *sessionTeam, authoriz
 		return nil, fmt.Errorf("failed to create signer from host key: %s", err)
 	}
 
-	config.AddHostKey(signer)
+	signerWithAlgorithms, err := ssh.NewSignerWithAlgorithms(signer.(ssh.AlgorithmSigner), []string{ssh.KeyAlgoRSASHA256, ssh.KeyAlgoRSASHA512})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create private key with restricted algorithms: %s", err)
+	}
+
+	config.AddHostKey(signerWithAlgorithms)
 
 	return config, nil
 }
