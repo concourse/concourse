@@ -3,6 +3,7 @@ package atc
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 )
 
@@ -33,16 +34,12 @@ func (src Source) Merge(other Source) Source {
 		return nil
 	}
 
-	newSource := Source{}
-	// if src is nil or empty, range will not loop
-	for k, v := range src {
-		newSource[k] = v
+	if src == nil {
+		return maps.Clone(other)
 	}
 
-	// if other is nil or empty, range will not loop
-	for k, v := range other {
-		newSource[k] = v
-	}
+	newSource := maps.Clone(src)
+	maps.Copy(newSource, other)
 
 	return newSource
 }

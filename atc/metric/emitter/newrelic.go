@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/klauspost/compress/gzip"
-	"github.com/pkg/errors"
 )
 
 type (
@@ -227,7 +226,7 @@ func (emitter *NewRelicEmitter) emitBatch(logger lager.Logger, payload []NewReli
 	resp, err := emitter.Client.Do(req)
 	if err != nil {
 		logger.Error("failed-to-send-request",
-			errors.Wrap(metric.ErrFailedToEmit, err.Error()))
+			fmt.Errorf("%w, %v", metric.ErrFailedToEmit, err))
 		return
 	}
 	defer resp.Body.Close()
