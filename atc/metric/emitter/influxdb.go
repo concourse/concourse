@@ -2,6 +2,7 @@ package emitter
 
 import (
 	"fmt"
+	"maps"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -83,9 +84,7 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 			"host": event.Host,
 		}
 
-		for k, v := range event.Attributes {
-			tags[k] = v
-		}
+		maps.Copy(tags, event.Attributes)
 
 		point, err := influxclient.NewPoint(
 			event.Name,

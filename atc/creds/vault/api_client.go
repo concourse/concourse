@@ -1,17 +1,18 @@
 package vault
 
 import (
-	"code.cloudfoundry.org/lager/v3"
 	"crypto/tls"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/go-rootcerts"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"code.cloudfoundry.org/lager/v3"
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/hashicorp/go-rootcerts"
 
 	vaultapi "github.com/hashicorp/vault/api"
 )

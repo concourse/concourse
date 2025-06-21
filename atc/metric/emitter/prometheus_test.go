@@ -3,6 +3,7 @@ package emitter_test
 import (
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -100,10 +101,7 @@ var _ = Describe("PrometheusEmitter garbage collector", func() {
 		}
 
 		// Deep copy the labels so we can use them to verify the test results later
-		labels := make(prometheus.Labels)
-		for k, v := range labelsLong {
-			labels[k] = v
-		}
+		labels := maps.Clone(labelsLong)
 		fake.WorkerContainers().With(labels).Set(42.0)
 		fake.WorkerContainersLabels()["foo"] = make(map[string]prometheus.Labels)
 		fake.WorkerContainersLabels()["foo"]["foo_linux_main__"] = labels
@@ -112,10 +110,7 @@ var _ = Describe("PrometheusEmitter garbage collector", func() {
 		fake.WorkerVolumesLabels()["foo"] = make(map[string]prometheus.Labels)
 		fake.WorkerVolumesLabels()["foo"]["foo_linux_main__"] = labels
 
-		labels = make(prometheus.Labels)
-		for k, v := range labelsShort {
-			labels[k] = v
-		}
+		labels = maps.Clone(labelsShort)
 		fake.WorkerTasks().With(labels).Set(42.0)
 		fake.WorkerTasksLabels()["foo"] = make(map[string]prometheus.Labels)
 		fake.WorkerTasksLabels()["foo"]["foo_linux"] = labels

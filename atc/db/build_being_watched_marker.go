@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -62,11 +63,8 @@ func (m *beingWatchedBuildEventChannelMap) store(key string, value time.Time) {
 }
 
 func (m *beingWatchedBuildEventChannelMap) clone() map[string]time.Time {
-	c := map[string]time.Time{}
 	m.RLock()
-	for k, v := range m.internal {
-		c[k] = v
-	}
+	c := maps.Clone(m.internal)
 	m.RUnlock()
 	return c
 }

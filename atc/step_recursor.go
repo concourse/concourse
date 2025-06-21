@@ -89,8 +89,7 @@ func (recursor StepRecursor) VisitTry(step *TryStep) error {
 // VisitDo recurses through to the wrapped steps.
 func (recursor StepRecursor) VisitDo(step *DoStep) error {
 	for _, sub := range step.Steps {
-		err := sub.Config.Visit(recursor)
-		if err != nil {
+		if err := sub.Config.Visit(recursor); err != nil {
 			return err
 		}
 	}
@@ -101,8 +100,7 @@ func (recursor StepRecursor) VisitDo(step *DoStep) error {
 // VisitInParallel recurses through to the wrapped steps.
 func (recursor StepRecursor) VisitInParallel(step *InParallelStep) error {
 	for _, sub := range step.Config.Steps {
-		err := sub.Config.Visit(recursor)
-		if err != nil {
+		if err := sub.Config.Visit(recursor); err != nil {
 			return err
 		}
 	}

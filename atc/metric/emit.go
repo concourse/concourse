@@ -2,6 +2,7 @@ package metric
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -170,15 +171,10 @@ func (m *Monitor) emit(logger lager.Logger, event Event) {
 	event.Host = m.eventHost
 	event.Time = time.Now()
 
-	mergedAttributes := map[string]string{}
-	for k, v := range m.eventAttributes {
-		mergedAttributes[k] = v
-	}
+	mergedAttributes := maps.Clone(m.eventAttributes)
 
 	if event.Attributes != nil {
-		for k, v := range event.Attributes {
-			mergedAttributes[k] = v
-		}
+		maps.Copy(mergedAttributes, event.Attributes)
 	}
 
 	event.Attributes = mergedAttributes
