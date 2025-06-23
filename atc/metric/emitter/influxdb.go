@@ -105,7 +105,7 @@ func emitBatch(emitter *InfluxDBEmitter, logger lager.Logger, events []metric.Ev
 	err = emitter.Client.Write(bp)
 	if err != nil {
 		logger.Error("failed-to-send-points",
-			fmt.Errorf("%w, %v", metric.ErrFailedToEmit, err))
+			fmt.Errorf("%w: %v", metric.ErrFailedToEmit, err))
 		return
 	}
 }

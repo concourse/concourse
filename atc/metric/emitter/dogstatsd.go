@@ -75,7 +75,7 @@ func (emitter *DogstatsdEmitter) Emit(logger lager.Logger, event metric.Event) {
 	err := emitter.client.Gauge(name, event.Value, tags, 1)
 	if err != nil {
 		logger.Error("failed-to-send-metric",
-			fmt.Errorf("%w, %v", metric.ErrFailedToEmit, err))
+			fmt.Errorf("%w: %v", metric.ErrFailedToEmit, err))
 		return
 	}
 }
