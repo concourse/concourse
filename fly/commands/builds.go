@@ -171,7 +171,7 @@ func (command *BuildsCommand) validateJobBuilds(builds []atc.Build, currentTeam 
 }
 
 func (command *BuildsCommand) validatePipelineBuilds(builds []atc.Build, currentTeam concourse.Team, page concourse.Page) ([]atc.Build, error) {
-	_, err := command.Pipeline.Validate()
+	err := command.Pipeline.Validate()
 	if err != nil {
 		return nil, err
 	}

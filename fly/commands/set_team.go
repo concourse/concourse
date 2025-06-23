@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/jessevdk/go-flags"
 	"github.com/vito/go-interact/interact"
@@ -31,23 +30,17 @@ type SetTeamCommand struct {
 	AuthFlags       skycmd.AuthTeamFlags `group:"Authentication"`
 }
 
-func (command *SetTeamCommand) Validate() ([]concourse.ConfigWarning, error) {
-	var warnings []concourse.ConfigWarning
-	warning, err := atc.ValidateIdentifier(command.Team.Name(), "team")
-	if err != nil {
-		return nil, err
+func (command *SetTeamCommand) Validate() error {
+	configError := atc.ValidateIdentifier(command.Team.Name(), "team")
+	if configError != nil {
+		return configError
 	}
-	if warning != nil {
-		warnings = append(warnings, concourse.ConfigWarning{
-			Type:    warning.Type,
-			Message: warning.Message,
-		})
-	}
-	return warnings, nil
+
+	return nil
 }
 
 func (command *SetTeamCommand) Execute([]string) error {
-	warnings, err := command.Validate()
+	err := command.Validate()
 	if err != nil {
 		return err
 	}
@@ -101,10 +94,6 @@ func (command *SetTeamCommand) Execute([]string) error {
 		} else {
 			fmt.Printf("    %s\n", ui.OffColor.Sprint("none"))
 		}
-	}
-
-	if len(warnings) > 0 {
-		displayhelpers.ShowWarnings(warnings)
 	}
 
 	confirm := true
