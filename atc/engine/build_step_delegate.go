@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"strings"
 	"time"
 
@@ -57,9 +58,7 @@ func (delegate *buildStepDelegate) StartSpan(
 	extraAttrs tracing.Attrs,
 ) (context.Context, trace.Span) {
 	attrs := delegate.build.TracingAttrs()
-	for k, v := range extraAttrs {
-		attrs[k] = v
-	}
+	maps.Copy(attrs, extraAttrs)
 
 	return tracing.StartSpan(ctx, component, attrs)
 }

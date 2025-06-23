@@ -3,6 +3,7 @@ package runtimetest
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"sync"
 
@@ -96,19 +97,11 @@ func (c *Container) Properties() (map[string]string, error) {
 }
 
 func (c *Container) SetProperty(name string, value string) error {
-	c.Props = cloneProps(c.Props)
+	c.Props = maps.Clone(c.Props)
 	c.Props[name] = value
 	return nil
 }
 
 func (c *Container) DBContainer() db.CreatedContainer {
 	return c.DBContainer_
-}
-
-func cloneProps(m map[string]string) map[string]string {
-	m2 := make(map[string]string, len(m))
-	for k, v := range m {
-		m2[k] = v
-	}
-	return m2
 }

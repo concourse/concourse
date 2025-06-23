@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -275,8 +276,7 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 		}
 
 		sv := vars.StaticVariables{}
-		err = yaml.Unmarshal(bytes, &sv)
-		if err != nil {
+		if err = yaml.Unmarshal(bytes, &sv); err != nil {
 			return atc.Config{}, err
 		}
 
@@ -284,11 +284,7 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 	}
 
 	if len(s.step.plan.InstanceVars) > 0 {
-		iv := vars.StaticVariables{}
-		for k, v := range s.step.plan.InstanceVars {
-			iv[k] = v
-		}
-		staticVars = append(staticVars, iv)
+		staticVars = append(staticVars, vars.StaticVariables(maps.Clone(s.step.plan.InstanceVars)))
 	}
 
 	if len(staticVars) > 0 {
@@ -299,8 +295,7 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 	}
 
 	atcConfig := atc.Config{}
-	err = atc.UnmarshalConfig(config, &atcConfig)
-	if err != nil {
+	if err := atc.UnmarshalConfig(config, &atcConfig); err != nil {
 		return atc.Config{}, err
 	}
 

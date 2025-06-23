@@ -1,5 +1,7 @@
 package volume
 
+import "maps"
+
 type Properties map[string]string
 
 func (p Properties) HasProperties(other Properties) bool {
@@ -18,11 +20,7 @@ func (p Properties) HasProperties(other Properties) bool {
 }
 
 func (p Properties) UpdateProperty(name string, value string) Properties {
-	updatedProperties := Properties{}
-
-	for k, v := range p {
-		updatedProperties[k] = v
-	}
+	updatedProperties := maps.Clone(p)
 
 	updatedProperties[name] = value
 

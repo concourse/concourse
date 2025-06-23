@@ -1,8 +1,9 @@
 package metric
 
 import (
+	"errors"
+	
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/pkg/errors"
 )
 
 type ErrorSinkCollector struct {
@@ -22,7 +23,7 @@ func (c *ErrorSinkCollector) Log(f lager.LogFormat) {
 		return
 	}
 
-	if errors.Cause(f.Error) == ErrFailedToEmit {
+	if errors.Is(f.Error, ErrFailedToEmit) {
 		return
 	}
 
