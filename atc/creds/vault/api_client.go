@@ -184,6 +184,31 @@ func (ac *APIClient) Renew() (time.Duration, error) {
 
 	client := ac.client()
 
+	// Retrieve token information to determine if it is renewable before attempting renewal.
+	tokenInfo, err := client.Auth().Token().LookupSelf()
+	if err != nil {
+		logger.Error("failed-to-lookup-token", err)
+		return time.Second, err
+	}
+
+	if tokenInfo == nil {
+		err := fmt.Errorf("unexpected nil response from Vault during token lookup")
+		logger.Error("vault-token-info-missing", err)
+		return time.Second, err
+	}
+
+	isRenewable, err := tokenInfo.TokenIsRenewable()
+	if err != nil {
+		logger.Error("token-renewable-check-failed", err)
+		return time.Second, err
+	}
+
+	if !isRenewable {
+		ac.renewable = false
+		logger.Info("token-not-renewable")
+		return time.Second, nil
+	}
+
 	secret, err := client.Auth().Token().RenewSelf(0)
 	if err != nil {
 		// When tests with a Vault dev server, renew is not allowed.
