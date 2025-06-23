@@ -905,8 +905,35 @@ func (s *IntegrationSuite) TestGracefulStop() {
 }
 
 func (s *IntegrationSuite) testStop(kill bool) {
+	// Using custom backend, clean up BeforeTest() stuff
+	s.gardenBackend.Stop()
+	s.cleanupIptables()
+
+	namespace := fmt.Sprintf("test-stop-%t", kill)
+	// This test flakes if there's CPU stress on the worker, so giving it a wide
+	// margin to wait for kill to complete
+	requestTimeout := 30 * time.Second
+
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+	)
+	s.NoError(err)
+
+	customBackend, err := runtime.NewGardenBackend(
+		libcontainerd.New(
+			s.containerdSocket(),
+			namespace,
+			requestTimeout,
+		),
+		runtime.WithNetwork(network),
+		runtime.WithRequestTimeout(requestTimeout),
+	)
+	s.NoError(err)
+
+	s.NoError(customBackend.Start())
+
 	handle := uuid()
-	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+	container, err := customBackend.Create(garden.ContainerSpec{
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
@@ -914,7 +941,7 @@ func (s *IntegrationSuite) testStop(kill bool) {
 	s.NoError(err)
 
 	defer func() {
-		s.NoError(s.gardenBackend.Destroy(handle))
+		s.NoError(customBackend.Destroy(handle))
 	}()
 
 	_, err = container.Run(
