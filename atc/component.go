@@ -23,6 +23,7 @@ const (
 	ComponentCollectorPipelines         = "collector_pipelines"
 	ComponentPipelinePauser             = "pipeline_pauser"
 	ComponentBeingWatchedBuildMarker    = "being_watched_build_marker"
+	ComponentSigningKeyLifecycler       = "signing_key_lifecycler"
 )
 
 type Component struct {

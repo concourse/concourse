@@ -106,7 +106,9 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListAllResources,
 			atc.ListBuilds,
 			atc.MainJobBadge,
-			atc.GetWall:
+			atc.GetWall,
+			atc.GetOpenIDConfiguration,
+			atc.GetSigningKeys:
 			newHandler = auth.CheckAuthenticationIfProvidedHandler(handler, rejector)
 
 		// admin

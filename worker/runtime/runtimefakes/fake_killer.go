@@ -23,7 +23,7 @@ type FakeKiller struct {
 	killReturnsOnCall map[int]struct {
 		result1 error
 	}
-	invocations      map[string][][]any
+	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
@@ -37,7 +37,7 @@ func (fake *FakeKiller) Kill(arg1 context.Context, arg2 containerd.Task, arg3 ru
 	}{arg1, arg2, arg3})
 	stub := fake.KillStub
 	fakeReturns := fake.killReturns
-	fake.recordInvocation("Kill", []any{arg1, arg2, arg3})
+	fake.recordInvocation("Kill", []interface{}{arg1, arg2, arg3})
 	fake.killMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2, arg3)
@@ -90,26 +90,26 @@ func (fake *FakeKiller) KillReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeKiller) Invocations() map[string][][]any {
+func (fake *FakeKiller) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.killMutex.RLock()
 	defer fake.killMutex.RUnlock()
-	copiedInvocations := map[string][][]any{}
+	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *FakeKiller) recordInvocation(key string, args []any) {
+func (fake *FakeKiller) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]any{}
+		fake.invocations = map[string][][]interface{}{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]any{}
+		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

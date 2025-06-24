@@ -128,7 +128,9 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListSharedForResource,
 			atc.ListSharedForResourceType,
 			atc.ClearResourceVersions,
-			atc.ClearResourceTypeVersions:
+			atc.ClearResourceTypeVersions,
+			atc.GetOpenIDConfiguration,
+			atc.GetSigningKeys:
 
 		default:
 			panic("how do archived pipelines affect your endpoint?")
