@@ -20,7 +20,7 @@ app.ports.pinTeamNames.subscribe(function(config) {
   const lowestHeaderTop = (section) => body(section).offsetTop + body(section).scrollHeight - header(section).scrollHeight;
 
   const pageHeaderHeight = () => config.pageHeaderHeight;
-  const viewportTop = () => window.pageYOffset + pageHeaderHeight();
+  const viewportTop = () => window.scrollY + pageHeaderHeight();
 
   const updateHeader = (section) => {
     var scrolledFarEnough = section.offsetTop < viewportTop();
@@ -62,8 +62,7 @@ app.ports.renderPipeline.subscribe(function (values) {
   const jobs = values[0];
   const resources = values[1];
   renderingModulePromise.then(({renderPipeline}) =>
-    // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
-    setTimeout(() => renderPipeline(jobs, resources, app.ports.newUrl), 0)
+    requestAnimationFrame(() => renderPipeline(jobs, resources, app.ports.newUrl))
   );
 });
 
@@ -176,14 +175,14 @@ app.ports.syncTextareaHeight.subscribe(function(id) {
     elem.style.height = elem.scrollHeight + "px";
     return true;
   };
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     const success = attemptToSyncHeight();
     if (!success) {
       // The element does not always exist by the time we attempt to sync
-      // Try one more time after a small delay
-      setTimeout(attemptToSyncHeight, 50);
+      // Try again on the next animation frame
+      requestAnimationFrame(attemptToSyncHeight);
     }
-  }, 0);
+  });
 });
 
 let syncStickyBuildLogHeadersInterval;
@@ -304,15 +303,17 @@ app.ports.openEventStream.subscribe(function(config) {
 });
 
 app.ports.checkIsVisible.subscribe(function(id) {
-  var interval = setInterval(function() {
+  function checkVisibility() {
     var element = document.getElementById(id);
     if (element) {
-      clearInterval(interval);
-      var isVisible =
-        element.getBoundingClientRect().left < window.innerWidth;
+      var isVisible = element.getBoundingClientRect().left < window.innerWidth;
       app.ports.reportIsVisible.send([id, isVisible]);
+    } else {
+      requestAnimationFrame(checkVisibility);
     }
-  }, 20);
+  }
+
+  requestAnimationFrame(checkVisibility);
 });
 
 app.ports.setFavicon.subscribe(function(url) {
@@ -354,13 +355,14 @@ app.ports.rawHttpRequest.subscribe(function(url) {
 });
 
 app.ports.renderSvgIcon.subscribe(function(icon, id) {
-  renderingModulePromise.then(({addIcon}) => addIcon(icon, (typeof id !== 'undefined') ? id : icon));
+  renderingModulePromise.then(({addIcon}) =>
+    requestAnimationFrame(() => addIcon(icon, (typeof id !== 'undefined') ? id : icon))
+  );
 });
 
 app.ports.renderCausality.subscribe(function(dot) {
   causalityModulePromise.then(({renderCausality}) =>
-    // elm 0.17 bug, see https://github.com/elm-lang/core/issues/595
-    setTimeout(() => renderCausality(dot), 0)
+    requestAnimationFrame(() => renderCausality(dot))
   );
 });
 
