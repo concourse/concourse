@@ -851,6 +851,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
+	MiB := 1024 * 1024
+	claimsCacher := accessor.NewClaimsCacher(dbAccessTokenFactory, 1*MiB)
 	tokenVerifier := cmd.constructTokenVerifier(dbAccessTokenFactory)
 
 	teamsCacher := accessor.NewTeamsCacher(
@@ -932,6 +934,13 @@ func (cmd *RunCommand) constructAPIMembers(
 	legacyHandler, err := cmd.constructLegacyHandler(
 		logger,
 	)
+
+	logoutHandler, err := cmd.constructLogoutHandler(
+		logger,
+		dbAccessTokenFactory,
+		middleware,
+		claimsCacher,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -972,6 +981,11 @@ func (cmd *RunCommand) constructAPIMembers(
 				baseHandler:   legacyHandler,
 			},
 			middleware,
+			tlsRedirectHandler{
+				matchHostname: cmd.ExternalURL.URL.Hostname(),
+				externalHost:  cmd.ExternalURL.URL.Host,
+				baseHandler:   logoutHandler,
+			},
 		)
 
 		httpsHandler = cmd.constructHTTPHandler(
@@ -982,6 +996,7 @@ func (cmd *RunCommand) constructAPIMembers(
 			loginHandler,
 			legacyHandler,
 			middleware,
+			logoutHandler,
 		)
 	} else {
 		httpHandler = cmd.constructHTTPHandler(
@@ -992,6 +1007,7 @@ func (cmd *RunCommand) constructAPIMembers(
 			loginHandler,
 			legacyHandler,
 			middleware,
+			logoutHandler,
 		)
 	}
 
@@ -1829,6 +1845,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 	loginHandler http.Handler,
 	legacyHandler http.Handler,
 	middleware token.Middleware,
+	logoutHandler http.Handler,
 ) http.Handler {
 
 	csrfHandler := auth.CSRFValidationHandler(
@@ -1844,6 +1861,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 	webMux.Handle("/login", legacyHandler)
 	webMux.Handle("/logout", legacyHandler)
 	webMux.Handle("/.well-known/", apiHandler)
+	webMux.Handle("/sky/logout", logoutHandler)
 	webMux.Handle("/", webHandler)
 
 	httpHandler := wrappa.LoggerHandler{
@@ -1959,15 +1977,55 @@ func (cmd *RunCommand) constructLoginHandler(
 	return skyserver.NewSkyHandler(skyServer), nil
 }
 
-func (cmd *RunCommand) constructTokenVerifier(accessTokenFactory db.AccessTokenFactory) accessor.TokenVerifier {
+func (cmd *RunCommand) constructLogoutHandler(
+	logger lager.Logger,
+	accessTokenFactory db.AccessTokenFactory,
+	middleware token.Middleware,
+	claimsCacher accessor.AccessTokenFetcher,
+) (http.Handler, error) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		logger := logger.Session("token-logout")
+		if r.URL.Path != "/sky/logout" {
+			logger.Debug("not-logout-path", lager.Data{"path": r.URL.Path})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		logger.Debug("start")
+		defer logger.Debug("end")
 
+		tokenString := middleware.GetAuthToken(r)
+		if tokenString == "" {
+			logger.Debug("no-auth-token")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		parts := strings.Split(tokenString, " ")
+
+		if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+			logger.Info("failed-to-parse-cookie")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		claimsCacher.DeleteAccessToken(parts[1])
+		err := accessTokenFactory.DeleteAccessToken(parts[1])
+		if err != nil {
+			logger.Error("delete-access-token-from-db", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		middleware.UnsetAuthToken(w)
+		middleware.UnsetCSRFToken(w)
+	}), nil
+
+}
+
+func (cmd *RunCommand) constructTokenVerifier(claimsCacher accessor.AccessTokenFetcher) accessor.TokenVerifier {
 	validClients := []string{flyClientID}
 	for clientId := range cmd.Auth.AuthFlags.Clients {
 		validClients = append(validClients, clientId)
 	}
-
-	MiB := 1024 * 1024
-	claimsCacher := accessor.NewClaimsCacher(accessTokenFactory, 1*MiB)
 
 	return accessor.NewVerifier(claimsCacher, validClients)
 }
