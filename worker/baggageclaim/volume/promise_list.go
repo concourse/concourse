@@ -8,46 +8,55 @@ import (
 var ErrPromiseAlreadyExists = errors.New("promise already exists in list")
 
 type PromiseList interface {
+	// AddPromise adds a new promise with the given handle.
+	// Returns ErrPromiseAlreadyExists if a promise with the handle already exists.
 	AddPromise(handle string, promise Promise) error
+
+	// GetPromise returns the promise with the given handle.
+	// Returns nil if no promise exists with the handle.
 	GetPromise(handle string) Promise
+
+	// RemovePromise removes the promise with the given handle.
+	// If no promise exists with the handle, this is a no-op.
 	RemovePromise(handle string)
 }
 
 type promiseList struct {
-	promises map[string]Promise
-
-	sync.Mutex
+	promises sync.Map
 }
 
 func NewPromiseList() PromiseList {
-	return &promiseList{
-		promises: make(map[string]Promise),
-	}
+	return &promiseList{}
 }
 
+// AddPromise adds a new promise with the given handle.
+// Returns ErrPromiseAlreadyExists if a promise with the handle already exists.
 func (l *promiseList) AddPromise(handle string, promise Promise) error {
-	l.Lock()
-	defer l.Unlock()
-
-	if _, exists := l.promises[handle]; exists {
+	// LoadOrStore returns the existing value if the key exists
+	// and a boolean indicating if the value was loaded or stored
+	if existingPromise, loaded := l.promises.LoadOrStore(handle, promise); loaded {
+		// Promise already exists with this handle
+		_ = existingPromise // avoid compiler warning about unused variable
 		return ErrPromiseAlreadyExists
 	}
-
-	l.promises[handle] = promise
 
 	return nil
 }
 
+// GetPromise returns the promise with the given handle.
+// Returns nil if no promise exists with the handle.
 func (l *promiseList) GetPromise(handle string) Promise {
-	l.Lock()
-	defer l.Unlock()
+	// Load returns the value stored in the map for a key, or nil if no value is present
+	if promise, exists := l.promises.Load(handle); exists {
+		return promise.(Promise)
+	}
 
-	return l.promises[handle]
+	// Return nil explicitly when the promise doesn't exist
+	return nil
 }
 
+// RemovePromise removes the promise with the given handle.
+// If no promise exists with the handle, this is a no-op.
 func (l *promiseList) RemovePromise(handle string) {
-	l.Lock()
-	defer l.Unlock()
-
-	delete(l.promises, handle)
+	l.promises.Delete(handle)
 }
