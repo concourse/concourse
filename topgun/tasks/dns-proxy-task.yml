@@ -3,13 +3,13 @@ platform: linux
 
 image_resource:
   type: mock
-  source: {mirror_self: true}
+  source: { mirror_self: true }
 
 run:
   path: "bash"
   args:
-  - -c
-  - |
-    cat /etc/resolv.conf
+    - -c
+    - |
+      cat /etc/resolv.conf
 
-    wget -O- ((url))
+      ping -c 1 -w 5 ((url))
