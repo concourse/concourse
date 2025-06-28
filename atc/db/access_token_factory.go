@@ -13,6 +13,7 @@ import (
 type AccessTokenFactory interface {
 	CreateAccessToken(token string, claims Claims) error
 	GetAccessToken(token string) (AccessToken, bool, error)
+	DeleteAccessToken(token string) error
 }
 
 func NewAccessTokenFactory(conn DbConn) AccessTokenFactory {
@@ -31,6 +32,17 @@ func (a *accessTokenFactory) CreateAccessToken(token string, claims Claims) erro
 	_, err := psql.Insert("access_tokens").
 		Columns("token", "sub", "expires_at", "claims").
 		Values(token, claims.Subject, time.Unix(expiry, 0), claims).
+		RunWith(a.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *accessTokenFactory) DeleteAccessToken(token string) error {
+	_, err := psql.Delete("access_tokens").
+		Where(sq.Eq{"token": token}).
 		RunWith(a.conn).
 		Exec()
 	if err != nil {
