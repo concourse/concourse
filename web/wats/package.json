@@ -11,7 +11,7 @@
     "uuid": "11.1.0"
   },
   "devDependencies": {
-    "ava": "6.3.0"
+    "ava": "6.4.0"
   },
   "scripts": {
     "test": "ava --serial"
@@ -26,5 +26,5 @@
   "ava": {
     "timeout": "5m"
   },
-  "packageManager": "yarn@4.9.1"
+  "packageManager": "yarn@4.9.2"
 }
