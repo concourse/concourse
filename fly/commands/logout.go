@@ -23,7 +23,9 @@ func (command *LogoutCommand) Execute(args []string) error {
 		}
 
 		for targetName := range targets {
-			return command.logoutSingleTarget(targetName)
+			if err := command.logoutSingleTarget(targetName); err != nil {
+				return err
+			}
 		}
 
 		fmt.Println("logged out of all targets")
@@ -41,12 +43,10 @@ func (cmd *LogoutCommand) logoutSingleTarget(targetName rc.TargetName) error {
 	}
 
 	targetToken := target.Token()
-	if targetToken == nil || targetToken.Type == "" || targetToken.Value == "" {
-		return errors.New("no valid token found for target `" + string(targetName) + "`, cannot logout")
-	}
-
-	if err := cmd.logoutAPI(target.URL(), targetToken); err != nil {
-		return fmt.Errorf("failed to logout from API: %w", err)
+	if targetToken != nil && targetToken.Type != "" && targetToken.Value != "" {
+		if err := cmd.logoutAPI(target.URL(), targetToken); err != nil {
+			return fmt.Errorf("failed to logout from API: %w", err)
+		}
 	}
 
 	if err := rc.LogoutTarget(targetName); err != nil {

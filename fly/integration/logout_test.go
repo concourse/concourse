@@ -9,22 +9,28 @@ import (
 
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/ghttp"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("logout Command", func() {
+	var (
+		logoutATCServer *ghttp.Server
+	)
 
 	BeforeEach(func() {
+		logoutATCServer = ghttp.NewServer()
+
 		createFlyRc(rc.Targets{
 			"test1": {
-				API:      "https://example.com/test1",
+				API:      logoutATCServer.URL() + "/test1",
 				TeamName: "main",
 				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 1))},
 			},
 			"test2": {
-				API:      "https://example.com/test2",
+				API:      logoutATCServer.URL() + "/test2",
 				TeamName: "main",
 				Token:    &rc.TargetToken{Type: "Bearer", Value: validAccessToken(date(2020, 1, 2))},
 			},
@@ -44,8 +50,8 @@ var _ = Describe("logout Command", func() {
 				{Contents: "expiry", Color: color.New(color.Bold)},
 			},
 			Data: []ui.TableRow{
-				{{Contents: "test1"}, {Contents: "https://example.com/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
-				{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "Thu, 02 Jan 2020 00:00:00 UTC"}},
+				{{Contents: "test1"}, {Contents: logoutATCServer.URL() + "/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
+				{{Contents: "test2"}, {Contents: logoutATCServer.URL() + "/test2"}, {Contents: "main"}, {Contents: "Thu, 02 Jan 2020 00:00:00 UTC"}},
 			},
 		}))
 	})
@@ -80,6 +86,16 @@ var _ = Describe("logout Command", func() {
 
 	Describe("delete all", func() {
 		It("removes all tokens and all targets remain in flyrc", func() {
+			logoutATCServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/test1/sky/logout"),
+					ghttp.RespondWith(200, ""),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/test2/sky/logout"),
+					ghttp.RespondWith(200, ""),
+				),
+			)
 			flyCmd := exec.Command(flyPath, "logout", "--all")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -102,15 +118,26 @@ var _ = Describe("logout Command", func() {
 					{Contents: "expiry", Color: color.New(color.Bold)},
 				},
 				Data: []ui.TableRow{
-					{{Contents: "test1"}, {Contents: "https://example.com/test1"}, {Contents: "main"}, {Contents: "n/a"}},
-					{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "test1"}, {Contents: logoutATCServer.URL() + "/test1"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "test2"}, {Contents: logoutATCServer.URL() + "/test2"}, {Contents: "main"}, {Contents: "n/a"}},
 				},
 			}))
 		})
 	})
 
 	Describe("delete one", func() {
+
+		AfterEach(func() {
+			logoutATCServer.Close()
+		})
+
 		It("removes token of the target and the target should remain in .flyrc", func() {
+			logoutATCServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/test2/sky/logout"),
+					ghttp.RespondWith(200, ""),
+				),
+			)
 			flyCmd := exec.Command(flyPath, "logout", "-t", "test2")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -133,8 +160,8 @@ var _ = Describe("logout Command", func() {
 					{Contents: "expiry", Color: color.New(color.Bold)},
 				},
 				Data: []ui.TableRow{
-					{{Contents: "test1"}, {Contents: "https://example.com/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
-					{{Contents: "test2"}, {Contents: "https://example.com/test2"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "test1"}, {Contents: logoutATCServer.URL() + "/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
+					{{Contents: "test2"}, {Contents: logoutATCServer.URL() + "/test2"}, {Contents: "main"}, {Contents: "n/a"}},
 				},
 			}))
 		})
