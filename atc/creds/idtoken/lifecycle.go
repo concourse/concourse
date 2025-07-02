@@ -124,7 +124,7 @@ func generateNewRSAKey() (*jose.JSONWebKey, error) {
 		KeyID:     generateRandomNumericString(),
 		Algorithm: "RS256",
 		Key:       privateKey,
-		Use:       "sign",
+		Use:       "sig",
 	}, nil
 }
 
@@ -138,7 +138,7 @@ func generateNewECDSAKey() (*jose.JSONWebKey, error) {
 		KeyID:     generateRandomNumericString(),
 		Algorithm: "ES256",
 		Key:       privateKey,
-		Use:       "sign",
+		Use:       "sig",
 	}, nil
 }
 
