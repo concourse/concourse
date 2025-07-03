@@ -9,45 +9,36 @@ var ErrPromiseAlreadyExists = errors.New("promise already exists in list")
 
 type PromiseList interface {
 	AddPromise(handle string, promise Promise) error
+
 	GetPromise(handle string) Promise
+
 	RemovePromise(handle string)
 }
 
 type promiseList struct {
-	promises map[string]Promise
-
-	sync.Mutex
+	promises sync.Map
 }
 
 func NewPromiseList() PromiseList {
-	return &promiseList{
-		promises: make(map[string]Promise),
-	}
+	return &promiseList{}
 }
 
 func (l *promiseList) AddPromise(handle string, promise Promise) error {
-	l.Lock()
-	defer l.Unlock()
-
-	if _, exists := l.promises[handle]; exists {
+	if _, loaded := l.promises.LoadOrStore(handle, promise); loaded {
 		return ErrPromiseAlreadyExists
 	}
-
-	l.promises[handle] = promise
 
 	return nil
 }
 
 func (l *promiseList) GetPromise(handle string) Promise {
-	l.Lock()
-	defer l.Unlock()
+	if promise, exists := l.promises.Load(handle); exists {
+		return promise.(Promise)
+	}
 
-	return l.promises[handle]
+	return nil
 }
 
 func (l *promiseList) RemovePromise(handle string) {
-	l.Lock()
-	defer l.Unlock()
-
-	delete(l.promises, handle)
+	l.promises.Delete(handle)
 }
