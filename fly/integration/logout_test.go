@@ -126,11 +126,6 @@ var _ = Describe("logout Command", func() {
 	})
 
 	Describe("delete one", func() {
-
-		AfterEach(func() {
-			logoutATCServer.Close()
-		})
-
 		It("removes token of the target and the target should remain in .flyrc", func() {
 			logoutATCServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -162,6 +157,47 @@ var _ = Describe("logout Command", func() {
 				Data: []ui.TableRow{
 					{{Contents: "test1"}, {Contents: logoutATCServer.URL() + "/test1"}, {Contents: "main"}, {Contents: "Wed, 01 Jan 2020 00:00:00 UTC"}},
 					{{Contents: "test2"}, {Contents: logoutATCServer.URL() + "/test2"}, {Contents: "main"}, {Contents: "n/a"}},
+				},
+			}))
+		})
+	})
+
+	Describe("try to delete all, but logout API fails", func() {
+		It("try to logout from all targets, but one fails", func() {
+			logoutATCServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/test1/sky/logout"),
+					ghttp.RespondWith(200, ""),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/test2/sky/logout"),
+					ghttp.RespondWith(500, ""),
+				),
+			)
+			flyCmd := exec.Command(flyPath, "logout", "--all")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Out).To(gbytes.Say(`logged out of target: test1`))
+
+			flyCmd = exec.Command(flyPath, "targets")
+			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess).Should(gexec.Exit(0))
+			Expect(sess.Out).To(PrintTable(ui.Table{
+				Headers: ui.TableRow{
+					{Contents: "name", Color: color.New(color.Bold)},
+					{Contents: "url", Color: color.New(color.Bold)},
+					{Contents: "expiry", Color: color.New(color.Bold)},
+				},
+				Data: []ui.TableRow{
+					{{Contents: "test1"}, {Contents: logoutATCServer.URL() + "/test1"}, {Contents: "main"}, {Contents: "n/a"}},
+					{{Contents: "test2"}, {Contents: logoutATCServer.URL() + "/test2"}, {Contents: "main"}, {Contents: "Thu, 02 Jan 2020 00:00:00 UTC"}},
 				},
 			}))
 		})
