@@ -11,11 +11,16 @@ import (
 	"code.cloudfoundry.org/localip"
 )
 
+var (
+	// Regular expressions used for DNS resolution parsing
+	loopbackNameserverRegexp = regexp.MustCompile(`^\s*nameserver\s+127\.0\.0\.\d+\s*$`)
+	loopbackIPRegexp         = regexp.MustCompile(`127\.\d{1,3}\.\d{1,3}\.\d{1,3}`)
+)
+
 // Parse resolve.conf file from the provided path.
 // implementation is based on guardian's implementation
 // here: https://github.com/cloudfoundry/guardian/blob/master/kawasaki/dns/resolv_compiler.go
 func ParseHostResolveConf(path string) ([]string, error) {
-
 	resolvConf, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read host's resolv.conf: %w", err)
@@ -23,8 +28,7 @@ func ParseHostResolveConf(path string) ([]string, error) {
 
 	resolvContents := string(resolvConf)
 
-	loopbackNameserver := regexp.MustCompile(`^\s*nameserver\s+127\.0\.0\.\d+\s*$`)
-	if loopbackNameserver.MatchString(resolvContents) {
+	if loopbackNameserverRegexp.MatchString(resolvContents) {
 		ip, err := localip.LocalIP()
 		if err != nil {
 			return nil, err
@@ -44,8 +48,7 @@ func ParseHostResolveConf(path string) ([]string, error) {
 			continue
 		}
 
-		pattern := regexp.MustCompile(`127\.\d{1,3}\.\d{1,3}\.\d{1,3}`)
-		if !pattern.MatchString(strings.TrimSpace(resolvEntry)) {
+		if !loopbackIPRegexp.MatchString(strings.TrimSpace(resolvEntry)) {
 			nameserverFields := strings.Fields(resolvEntry)
 			if len(nameserverFields) != 2 {
 				continue
