@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/urljoiner"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -1236,7 +1235,7 @@ this is super secure
 							yes(stdin)
 
 							if expectCreationMessage {
-								pipelineURL := urljoiner.Join(atcServer.URL(), "teams/main/pipelines", "awesome-pipeline")
+								pipelineURL := atcServer.URL() + "/teams/main/pipelines/awesome-pipeline"
 
 								Eventually(sess).Should(gbytes.Say("pipeline created!"))
 								Eventually(sess).Should(gbytes.Say(fmt.Sprintf("you can view your pipeline here: %s", pipelineURL)))

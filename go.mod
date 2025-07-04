@@ -10,7 +10,6 @@ require (
 	code.cloudfoundry.org/garden v0.0.0-20250326022559-bc5d6fb7cf5c
 	code.cloudfoundry.org/lager/v3 v3.37.0
 	code.cloudfoundry.org/localip v0.34.0
-	code.cloudfoundry.org/urljoiner v0.0.0-20170223060717-5cabba6c0a50
 	dario.cat/mergo v1.0.1
 	github.com/DataDog/datadog-go/v5 v5.6.0
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.27.0
