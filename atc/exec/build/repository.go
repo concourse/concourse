@@ -1,6 +1,7 @@
 package build
 
 import (
+	"maps"
 	"sync"
 
 	"github.com/concourse/concourse/atc/runtime"
@@ -65,12 +66,10 @@ func (repo *Repository) AsMap() map[ArtifactName]ArtifactEntry {
 	result := make(map[ArtifactName]ArtifactEntry)
 
 	if repo.parent != nil {
-		for name, artifact := range repo.parent.AsMap() {
-			result[name] = artifact
-		}
+		maps.Copy(result, repo.parent.AsMap())
 	}
 
-	repo.repo.Range(func(key, value interface{}) bool {
+	repo.repo.Range(func(key, value any) bool {
 		name := key.(ArtifactName)
 		artifactEntry := value.(ArtifactEntry)
 		result[name] = artifactEntry
