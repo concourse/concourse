@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,8 +22,7 @@ import (
 // that, as build event notification should only be sent from running builds,
 // this map should only store running builds' event channel names.
 type beingWatchedBuildEventChannelMap struct {
-	sync.RWMutex
-	internal map[string]time.Time
+	internal sync.Map // string -> time.Time
 }
 
 var (
@@ -36,65 +34,31 @@ var (
 // beingWatchedBuildEventChannelMap.
 func NewBeingWatchedBuildEventChannelMap() *beingWatchedBuildEventChannelMap {
 	once.Do(func() {
-		beingWatchedBuildEventMap = &beingWatchedBuildEventChannelMap{
-			internal: make(map[string]time.Time),
-		}
+		beingWatchedBuildEventMap = &beingWatchedBuildEventChannelMap{}
 	})
 	return beingWatchedBuildEventMap
 }
 
-func (m *beingWatchedBuildEventChannelMap) load(key string) (value time.Time, ok bool) {
-	m.RLock()
-	result, ok := m.internal[key]
-	m.RUnlock()
-	return result, ok
-}
-
-func (m *beingWatchedBuildEventChannelMap) delete(key string) {
-	m.Lock()
-	delete(m.internal, key)
-	m.Unlock()
-}
-
-func (m *beingWatchedBuildEventChannelMap) store(key string, value time.Time) {
-	m.Lock()
-	m.internal[key] = value
-	m.Unlock()
-}
-
-func (m *beingWatchedBuildEventChannelMap) clone() map[string]time.Time {
-	m.RLock()
-	c := maps.Clone(m.internal)
-	m.RUnlock()
-	return c
-}
-
 func (m *beingWatchedBuildEventChannelMap) Mark(buildEventChannel string, t time.Time) {
-	m.store(buildEventChannel, t)
+	m.internal.Store(buildEventChannel, t)
 }
 
 // BeingWatched returns true if given buildEventChannel is being watched.
 func (m *beingWatchedBuildEventChannelMap) BeingWatched(buildEventChannel string) bool {
-	_, ok := beingWatchedBuildEventMap.load(buildEventChannel)
+	_, ok := m.internal.Load(buildEventChannel)
 	return ok
 }
 
-// Clean deletes entries based on conditionFunc returning true. To reduce holding
-// lock, it will clone the internal map, and determine which item should be deleted
-// based on cloned data.
+// Clean deletes entries based on conditionFunc returning true.
 func (m *beingWatchedBuildEventChannelMap) Clean(conditionFunc func(k string, v time.Time) bool) {
-	clone := m.clone()
-	var toClean []string
-	for k, v := range clone {
-		do := conditionFunc(k, v)
-		if do {
-			toClean = append(toClean, k)
+	m.internal.Range(func(key, value any) bool {
+		k := key.(string)
+		v := value.(time.Time)
+		if conditionFunc(k, v) {
+			m.internal.Delete(k)
 		}
-	}
-
-	for _, k := range toClean {
-		m.delete(k)
-	}
+		return true
+	})
 }
 
 const beingWatchedNotifyChannelName = "being_watched_build_event_channel"
@@ -154,7 +118,7 @@ func NewBuildBeingWatchedMarker(logger lager.Logger, conn DbConn, dataRetainDura
 		for {
 			select {
 			case notification := <-w.notifier:
-				beingWatchedBuildEventMap.Mark(notification.Payload, w.clock.Now())
+				w.watchedMap.Mark(notification.Payload, w.clock.Now())
 				logger.Debug("start-to-watch-build", lager.Data{"channel": notification.Payload})
 			case <-w.stop:
 				return
