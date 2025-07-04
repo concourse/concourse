@@ -185,13 +185,75 @@ var _ = Describe("Sky Server API", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("succeeds", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			Context("when there is no auth token", func() {
+				BeforeEach(func() {
+					fakeTokenMiddleware.GetAuthTokenReturns("")
+				})
+
+				It("returns unauthorized", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+
+				It("does not try to delete anything", func() {
+					Expect(fakeClaimsCacher.DeleteAccessTokenCallCount()).To(Equal(0))
+					Expect(fakeAccessTokenFactory.DeleteAccessTokenCallCount()).To(Equal(0))
+				})
 			})
 
-			It("removes auth token and csrf token", func() {
-				Expect(fakeTokenMiddleware.UnsetAuthTokenCallCount()).To(Equal(1))
-				Expect(fakeTokenMiddleware.UnsetCSRFTokenCallCount()).To(Equal(1))
+			Context("when there is an auth token", func() {
+				BeforeEach(func() {
+					fakeTokenMiddleware.GetAuthTokenReturns("bearer some-token")
+				})
+
+				Context("when deleting from the cache fails", func() {
+					BeforeEach(func() {
+						fakeClaimsCacher.DeleteAccessTokenReturns(errors.New("cache failed"))
+					})
+
+					It("returns an internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+
+					It("does not try to delete from the DB", func() {
+						Expect(fakeClaimsCacher.DeleteAccessTokenCallCount()).To(Equal(1))
+						Expect(fakeAccessTokenFactory.DeleteAccessTokenCallCount()).To(Equal(0))
+					})
+				})
+
+				Context("when deleting from the DB fails", func() {
+					BeforeEach(func() {
+						fakeAccessTokenFactory.DeleteAccessTokenReturns(errors.New("db failed"))
+					})
+
+					It("returns an internal server error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+
+					It("calls DeleteAccessToken on cache first", func() {
+						Expect(fakeClaimsCacher.DeleteAccessTokenCallCount()).To(Equal(1))
+						Expect(fakeClaimsCacher.DeleteAccessTokenArgsForCall(0)).To(Equal("some-token"))
+						Expect(fakeAccessTokenFactory.DeleteAccessTokenCallCount()).To(Equal(1))
+					})
+				})
+
+				Context("when everything succeeds", func() {
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("deletes from cache and DB", func() {
+						Expect(fakeClaimsCacher.DeleteAccessTokenCallCount()).To(Equal(1))
+						Expect(fakeClaimsCacher.DeleteAccessTokenArgsForCall(0)).To(Equal("some-token"))
+
+						Expect(fakeAccessTokenFactory.DeleteAccessTokenCallCount()).To(Equal(1))
+						Expect(fakeAccessTokenFactory.DeleteAccessTokenArgsForCall(0)).To(Equal("some-token"))
+					})
+
+					It("unsets the auth and csrf tokens", func() {
+						Expect(fakeTokenMiddleware.UnsetAuthTokenCallCount()).To(Equal(1))
+						Expect(fakeTokenMiddleware.UnsetCSRFTokenCallCount()).To(Equal(1))
+					})
+				})
 			})
 		})
 

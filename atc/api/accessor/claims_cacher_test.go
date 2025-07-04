@@ -99,6 +99,22 @@ var _ = Describe("ClaimsCacher", func() {
 		go claimsCacher.GetAccessToken("token3")
 		Eventually(fakeAccessTokenFetcher.GetAccessTokenCallCount).Should(Equal(3))
 	})
+
+	It("deletes token from cache", func() {
+		fakeAccessTokenFetcher.GetAccessTokenReturns(db.AccessToken{}, true, nil)
+
+		By("fetching the token for the first time (populates cache)")
+		_, _, err := claimsCacher.GetAccessToken("token1")
+		Expect(fakeAccessTokenFetcher.GetAccessTokenCallCount()).To(Equal(1))
+
+		By("deleting the token from the cache")
+		err = claimsCacher.DeleteAccessToken("token1")
+		Expect(err).ToNot(HaveOccurred())
+
+		By("fetching the token again, should refetch from DB due to deletion")
+		_, _, err = claimsCacher.GetAccessToken("token1")
+		Expect(fakeAccessTokenFetcher.GetAccessTokenCallCount()).To(Equal(2), "expected to refetch after delete")
+	})
 })
 
 func stringWithLen(l int) string {

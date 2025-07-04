@@ -14,17 +14,21 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/skymarshal/token"
-	"golang.org/x/oauth2"
 	"github.com/go-jose/go-jose/v3/jwt"
+	"golang.org/x/oauth2"
 )
 
 type SkyConfig struct {
-	Logger          lager.Logger
-	TokenMiddleware token.Middleware
-	TokenParser     token.Parser
-	OAuthConfig     *oauth2.Config
-	HTTPClient      *http.Client
+	Logger             lager.Logger
+	TokenMiddleware    token.Middleware
+	TokenParser        token.Parser
+	OAuthConfig        *oauth2.Config
+	HTTPClient         *http.Client
+	AccessTokenFactory db.AccessTokenFactory
+	ClaimsCacher       accessor.AccessTokenFetcher
 }
 
 func NewSkyHandler(server *SkyServer) http.Handler {
@@ -196,6 +200,35 @@ func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, oauth2Token
 }
 
 func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
+	logger := s.config.Logger.Session("logout")
+
+	tokenString := s.config.TokenMiddleware.GetAuthToken(r)
+	if tokenString == "" {
+		logger.Debug("no-auth-token")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	parts := strings.Split(tokenString, " ")
+
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+		logger.Info("failed-to-parse-cookie")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	err := s.config.ClaimsCacher.DeleteAccessToken(parts[1])
+	if err != nil {
+		logger.Error("delete-access-token-from-cache", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = s.config.AccessTokenFactory.DeleteAccessToken(parts[1])
+	if err != nil {
+		logger.Error("delete-access-token-from-db", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	s.config.TokenMiddleware.UnsetAuthToken(w)
 	s.config.TokenMiddleware.UnsetCSRFToken(w)
 }

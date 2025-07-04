@@ -20,6 +20,17 @@ type FakeAccessTokenFactory struct {
 	createAccessTokenReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DeleteAccessTokenStub        func(string) error
+	deleteAccessTokenMutex       sync.RWMutex
+	deleteAccessTokenArgsForCall []struct {
+		arg1 string
+	}
+	deleteAccessTokenReturns struct {
+		result1 error
+	}
+	deleteAccessTokenReturnsOnCall map[int]struct {
+		result1 error
+	}
 	GetAccessTokenStub        func(string) (db.AccessToken, bool, error)
 	getAccessTokenMutex       sync.RWMutex
 	getAccessTokenArgsForCall []struct {
@@ -101,6 +112,67 @@ func (fake *FakeAccessTokenFactory) CreateAccessTokenReturnsOnCall(i int, result
 	}{result1}
 }
 
+func (fake *FakeAccessTokenFactory) DeleteAccessToken(arg1 string) error {
+	fake.deleteAccessTokenMutex.Lock()
+	ret, specificReturn := fake.deleteAccessTokenReturnsOnCall[len(fake.deleteAccessTokenArgsForCall)]
+	fake.deleteAccessTokenArgsForCall = append(fake.deleteAccessTokenArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.DeleteAccessTokenStub
+	fakeReturns := fake.deleteAccessTokenReturns
+	fake.recordInvocation("DeleteAccessToken", []interface{}{arg1})
+	fake.deleteAccessTokenMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeAccessTokenFactory) DeleteAccessTokenCallCount() int {
+	fake.deleteAccessTokenMutex.RLock()
+	defer fake.deleteAccessTokenMutex.RUnlock()
+	return len(fake.deleteAccessTokenArgsForCall)
+}
+
+func (fake *FakeAccessTokenFactory) DeleteAccessTokenCalls(stub func(string) error) {
+	fake.deleteAccessTokenMutex.Lock()
+	defer fake.deleteAccessTokenMutex.Unlock()
+	fake.DeleteAccessTokenStub = stub
+}
+
+func (fake *FakeAccessTokenFactory) DeleteAccessTokenArgsForCall(i int) string {
+	fake.deleteAccessTokenMutex.RLock()
+	defer fake.deleteAccessTokenMutex.RUnlock()
+	argsForCall := fake.deleteAccessTokenArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeAccessTokenFactory) DeleteAccessTokenReturns(result1 error) {
+	fake.deleteAccessTokenMutex.Lock()
+	defer fake.deleteAccessTokenMutex.Unlock()
+	fake.DeleteAccessTokenStub = nil
+	fake.deleteAccessTokenReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeAccessTokenFactory) DeleteAccessTokenReturnsOnCall(i int, result1 error) {
+	fake.deleteAccessTokenMutex.Lock()
+	defer fake.deleteAccessTokenMutex.Unlock()
+	fake.DeleteAccessTokenStub = nil
+	if fake.deleteAccessTokenReturnsOnCall == nil {
+		fake.deleteAccessTokenReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteAccessTokenReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeAccessTokenFactory) GetAccessToken(arg1 string) (db.AccessToken, bool, error) {
 	fake.getAccessTokenMutex.Lock()
 	ret, specificReturn := fake.getAccessTokenReturnsOnCall[len(fake.getAccessTokenArgsForCall)]
@@ -173,6 +245,8 @@ func (fake *FakeAccessTokenFactory) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.createAccessTokenMutex.RLock()
 	defer fake.createAccessTokenMutex.RUnlock()
+	fake.deleteAccessTokenMutex.RLock()
+	defer fake.deleteAccessTokenMutex.RUnlock()
 	fake.getAccessTokenMutex.RLock()
 	defer fake.getAccessTokenMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

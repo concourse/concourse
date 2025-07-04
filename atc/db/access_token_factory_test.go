@@ -76,4 +76,22 @@ var _ = Describe("Access Token Factory", func() {
 			},
 		}))
 	})
+	It("can delete access tokens", func() {
+		err := factory.CreateAccessToken("my-delete-token", db.Claims{
+			RawClaims: map[string]any{"sub": "subject"},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		token, ok, err := factory.GetAccessToken("my-delete-token")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ok).To(BeTrue())
+		Expect(token.Token).To(Equal("my-delete-token"))
+
+		err = factory.DeleteAccessToken("my-delete-token")
+		Expect(err).ToNot(HaveOccurred())
+
+		_, ok, err = factory.GetAccessToken("my-delete-token")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ok).To(BeFalse())
+	})
 })
