@@ -182,10 +182,8 @@ func (a *access) TeamNames() []string {
 }
 
 func (a *access) hasPermission(roles []string) bool {
-	allow := false
 	for _, role := range roles {
-		allow = allow || a.hasRequiredRole(role)
-		if allow {
+		if a.hasRequiredRole(role) {
 			return true
 		}
 	}
