@@ -7,7 +7,7 @@ import (
 
 var GlobalConnectionTracker ConnectionTracker
 
-func init()  {
+func init() {
 	InitConnectionTracker(false)
 }
 
@@ -21,16 +21,12 @@ type ConnectionSession interface {
 }
 
 type connectionTracker struct {
-	sessions  map[*connectionSession]struct{}
-	sessionsL *sync.Mutex
+	sessions sync.Map
 }
 
 func InitConnectionTracker(on bool) {
 	if on {
-		GlobalConnectionTracker = &connectionTracker{
-			sessions:  map[*connectionSession]struct{}{},
-			sessionsL: &sync.Mutex{},
-		}
+		GlobalConnectionTracker = &connectionTracker{}
 	} else {
 		GlobalConnectionTracker = fakeConnectionTracker{}
 	}
@@ -42,31 +38,25 @@ func (tracker *connectionTracker) Track() ConnectionSession {
 		stack:   string(debug.Stack()),
 	}
 
-	tracker.sessionsL.Lock()
-	tracker.sessions[session] = struct{}{}
-	tracker.sessionsL.Unlock()
-
+	tracker.sessions.Store(session, struct{}{})
 	return session
 }
 
 func (tracker *connectionTracker) Current() []string {
-	stacks := []string{}
+	var stacks []string
 
-	tracker.sessionsL.Lock()
-
-	for session := range tracker.sessions {
-		stacks = append(stacks, session.stack)
-	}
-
-	tracker.sessionsL.Unlock()
+	tracker.sessions.Range(func(key, value any) bool {
+		if session, ok := key.(*connectionSession); ok {
+			stacks = append(stacks, session.stack)
+		}
+		return true
+	})
 
 	return stacks
 }
 
 func (tracker *connectionTracker) remove(session *connectionSession) {
-	tracker.sessionsL.Lock()
-	delete(tracker.sessions, session)
-	tracker.sessionsL.Unlock()
+	tracker.sessions.Delete(session)
 }
 
 type connectionSession struct {
