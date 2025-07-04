@@ -19,7 +19,7 @@
     "clean-css-cli": "5.6.3",
     "elm": "0.19.1-6",
     "elm-analyse": "0.16.5",
-    "elm-format": "0.8.7",
+    "elm-format": "0.8.8",
     "elm-test": "0.19.1-revision9",
     "less": "4.3.0",
     "less-plugin-autoprefix": "2.0.0",
@@ -44,5 +44,5 @@
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" | tr -d '\n' > web/public/mdi-svg.min.js",
     "benchmark": "cd web/elm && elm make --optimize --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
   },
-  "packageManager": "yarn@4.9.1"
+  "packageManager": "yarn@4.9.2"
 }

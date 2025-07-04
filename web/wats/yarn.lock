@@ -125,8 +125,8 @@ __metadata:
   linkType: hard
 
 "@rollup/pluginutils@npm:^5.1.3":
-  version: 5.1.4
-  resolution: "@rollup/pluginutils@npm:5.1.4"
+  version: 5.2.0
+  resolution: "@rollup/pluginutils@npm:5.2.0"
   dependencies:
     "@types/estree": "npm:^1.0.0"
     estree-walker: "npm:^2.0.2"
@@ -136,7 +136,7 @@ __metadata:
   peerDependenciesMeta:
     rollup:
       optional: true
-  checksum: 10c0/6d58fbc6f1024eb4b087bc9bf59a1d655a8056a60c0b4021d3beaeec3f0743503f52467fd89d2cf0e7eccf2831feb40a05ad541a17637ea21ba10b21c2004deb
+  checksum: 10c0/794890d512751451bcc06aa112366ef47ea8f9125dac49b1abf72ff8b079518b09359de9c60a013b33266541634e765ae61839c749fae0edb59a463418665c55
   languageName: node
   linkType: hard
 
@@ -155,9 +155,9 @@ __metadata:
   linkType: hard
 
 "@types/estree@npm:^1.0.0":
-  version: 1.0.7
-  resolution: "@types/estree@npm:1.0.7"
-  checksum: 10c0/be815254316882f7c40847336cd484c3bc1c3e34f710d197160d455dc9d6d050ffbf4c3bc76585dba86f737f020ab20bdb137ebe0e9116b0c86c7c0342221b8c
+  version: 1.0.8
+  resolution: "@types/estree@npm:1.0.8"
+  checksum: 10c0/39d34d1afaa338ab9763f37ad6066e3f349444f9052b9676a7cc0252ef9485a41c6d81c9c4e0d26e9077993354edf25efc853f3224dd4b447175ef62bdcc86a5
   languageName: node
   linkType: hard
 
@@ -179,9 +179,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vercel/nft@npm:^0.29.2":
-  version: 0.29.2
-  resolution: "@vercel/nft@npm:0.29.2"
+"@vercel/nft@npm:^0.29.4":
+  version: 0.29.4
+  resolution: "@vercel/nft@npm:0.29.4"
   dependencies:
     "@mapbox/node-pre-gyp": "npm:^2.0.0"
     "@rollup/pluginutils": "npm:^5.1.3"
@@ -197,7 +197,7 @@ __metadata:
     resolve-from: "npm:^5.0.0"
   bin:
     nft: out/cli.js
-  checksum: 10c0/3f1e3d3d2565e6e4ac191fc4f9b9b9676959de82165d6ae789410c5c0df058802f2ff9221ac325857ddc1f11f30509c73e01c43f0a91b56371d595a2eab5205f
+  checksum: 10c0/84ba32c685f9d7c2c849b1e8c963d3b7eb09d122e666143ed97c3776f5b04a4745605e1d29fd81383f72b1d1c0d7d58e39f06dc92f021b5de079dfa4e8523574
   languageName: node
   linkType: hard
 
@@ -334,11 +334,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ava@npm:6.3.0":
-  version: 6.3.0
-  resolution: "ava@npm:6.3.0"
+"ava@npm:6.4.0":
+  version: 6.4.0
+  resolution: "ava@npm:6.4.0"
   dependencies:
-    "@vercel/nft": "npm:^0.29.2"
+    "@vercel/nft": "npm:^0.29.4"
     acorn: "npm:^8.14.1"
     acorn-walk: "npm:^8.3.4"
     ansi-styles: "npm:^6.2.1"
@@ -355,7 +355,7 @@ __metadata:
     common-path-prefix: "npm:^3.0.0"
     concordance: "npm:^5.0.4"
     currently-unhandled: "npm:^0.4.1"
-    debug: "npm:^4.4.0"
+    debug: "npm:^4.4.1"
     emittery: "npm:^1.1.0"
     figures: "npm:^6.1.0"
     globby: "npm:^14.1.0"
@@ -385,7 +385,7 @@ __metadata:
       optional: true
   bin:
     ava: entrypoints/cli.mjs
-  checksum: 10c0/10abc34f2d323b74b27fa6cb3ba808603c898459b0807d506be22ced15c32e977c278de119612838718179511df91fed2bfa1767238255829cf0bafe4fd3b721
+  checksum: 10c0/d96a0bfa8758f0c0dcfc9437801e17702535f493a01fab401289ac538bb2b7633afb7b5363392499d9ebce98bc1f425767008a76c4edf2aa225f7e2195aaa54c
   languageName: node
   linkType: hard
 
@@ -493,11 +493,11 @@ __metadata:
   linkType: hard
 
 "brace-expansion@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "brace-expansion@npm:2.0.1"
+  version: 2.0.2
+  resolution: "brace-expansion@npm:2.0.2"
   dependencies:
     balanced-match: "npm:^1.0.0"
-  checksum: 10c0/b358f2fe060e2d7a87aa015979ecea07f3c37d4018f8d6deb5bd4c229ad3a0384fe6029bb76cd8be63c81e516ee52d1a0673edbe2023d53a5191732ae3c3e49f
+  checksum: 10c0/6d117a4c793488af86b83172deb6af143e94c17bc53b0b3cec259733923b4ca84679d506ac261f4ba3c7ed37c46018e2ff442f9ce453af8643ecd64f4a54e6cf
   languageName: node
   linkType: hard
 
@@ -813,15 +813,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:4, debug@npm:^4.1.1, debug@npm:^4.3.4, debug@npm:^4.4.0":
-  version: 4.4.0
-  resolution: "debug@npm:4.4.0"
+"debug@npm:4, debug@npm:^4.1.1, debug@npm:^4.3.4, debug@npm:^4.4.0, debug@npm:^4.4.1":
+  version: 4.4.1
+  resolution: "debug@npm:4.4.1"
   dependencies:
     ms: "npm:^2.1.3"
   peerDependenciesMeta:
     supports-color:
       optional: true
-  checksum: 10c0/db94f1a182bf886f57b4755f85b3a74c39b5114b9377b7ab375dc2cfa3454f09490cc6c30f829df3fc8042bc8b8995f6567ce5cd96f3bc3688bd24027197d9de
+  checksum: 10c0/d2b44bc1afd912b49bb7ebb0d50a860dc93a4dd7d946e8de94abc957bb63726b7dd5aa48c18c2386c379ec024c46692e15ed3ed97d481729f929201e671fcd55
   languageName: node
   linkType: hard
 
@@ -1862,7 +1862,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer@npm:^24.8.1":
+"puppeteer@npm:^24.0.0":
   version: 24.8.1
   resolution: "puppeteer@npm:24.8.1"
   dependencies:
@@ -2291,10 +2291,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "wats@workspace:."
   dependencies:
-    ava: "npm:6.3.0"
+    ava: "npm:6.4.0"
     child-process-promise: "npm:2.2.1"
     color: "npm:5.0.0"
-    puppeteer: "npm:^24.8.1"
+    puppeteer: "npm:^24.0.0"
     tmp-promise: "npm:3.0.3"
     uuid: "npm:11.1.0"
   languageName: unknown
