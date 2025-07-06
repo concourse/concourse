@@ -199,18 +199,16 @@ concourseInfo { hovered, version } =
                 , style "display" "flex"
                 ]
                 [ Html.div Styles.docsIcon []
-                , Html.text "docs"
+                , Html.text "Docs"
                 ]
+            ]
+        , Html.div Styles.footerLink
+            [ Html.div Styles.consoleIcon []
+            , Html.text "Download fly cli"
             ]
         , Html.div
             Styles.footerLink
-            [ Html.text <| "version: v" ++ version ]
-        , Html.div Styles.footerLink <|
-            [ Html.span
-                [ style "margin-right" "10px" ]
-                [ Html.text "cli: " ]
-            ]
-                ++ List.map (cliIcon hovered) Cli.clis
+            [ Html.text <| "Version: v" ++ version ]
         ]
 
 
