@@ -3,14 +3,15 @@ module Dashboard.Styles exposing
     , cardFooter
     , cardTooltip
     , content
+    , docsIcon
     , dropdownContainer
     , dropdownItem
     , emptyCardBody
+    , footerLink
     , highDensityToggle
     , info
     , infoBar
     , infoCliIcon
-    , infoItem
     , inlineInstanceVar
     , instanceGroupCard
     , instanceGroupCardBadge
@@ -85,7 +86,7 @@ import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Grid.Constants as GridConstants
 import Html
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (id, style)
 import ScreenSize exposing (ScreenSize(..))
 import Tooltip
 import Views.Styles
@@ -635,12 +636,9 @@ info =
     ]
 
 
-infoItem : List (Html.Attribute msg)
-infoItem =
-    [ style "margin-right" "30px"
-    , style "display" "flex"
-    , style "align-items" "center"
-    ]
+footerLink : List (Html.Attribute msg)
+footerLink =
+    [ id "footer-link" ]
 
 
 infoCliIcon : { hovered : Bool, cli : Cli.Cli } -> List (Html.Attribute msg)
@@ -654,12 +652,21 @@ infoCliIcon { hovered, cli } =
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
-    , style "opacity" <|
-        if hovered then
-            "1"
+    ]
 
-        else
-            "0.5"
+
+docsIcon : List (Html.Attribute msg)
+docsIcon =
+    [ style "margin-right" "5px"
+    , style "width" "20px"
+    , style "height" "20px"
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.BookClosed
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "background-size" "contain"
+    , style "display" "inline-block"
     ]
 
 

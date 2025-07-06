@@ -10,7 +10,7 @@ import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, download, href, id, style, title)
+import Html.Attributes exposing (attribute, class, download, href, id, rel, src, style, target, title)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Keyboard
 import Message.Effects as Effects
@@ -190,9 +190,22 @@ concourseInfo :
 concourseInfo { hovered, version } =
     Html.div (id "concourse-info" :: Styles.info)
         [ Html.div
-            Styles.infoItem
+            Styles.footerLink
+            [ Html.a
+                [ href "https://concourse-ci.org/docs.html"
+                , target "_blank"
+                , rel "noopener noreferrer"
+                , style "align-items" "center"
+                , style "display" "flex"
+                ]
+                [ Html.div Styles.docsIcon []
+                , Html.text "docs"
+                ]
+            ]
+        , Html.div
+            Styles.footerLink
             [ Html.text <| "version: v" ++ version ]
-        , Html.div Styles.infoItem <|
+        , Html.div Styles.footerLink <|
             [ Html.span
                 [ style "margin-right" "10px" ]
                 [ Html.text "cli: " ]
