@@ -2,6 +2,7 @@ module Dashboard.Styles exposing
     ( asciiArt
     , cardFooter
     , cardTooltip
+    , consoleIcon
     , content
     , docsIcon
     , dropdownContainer
@@ -663,6 +664,21 @@ docsIcon =
     , style "background-image" <|
         Assets.backgroundImage <|
             Just Assets.BookClosed
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "background-size" "contain"
+    , style "display" "inline-block"
+    ]
+
+
+consoleIcon : List (Html.Attribute msg)
+consoleIcon =
+    [ style "margin-right" "5px"
+    , style "width" "20px"
+    , style "height" "20px"
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.Console
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
