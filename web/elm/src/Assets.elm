@@ -15,6 +15,7 @@ import Url.Builder
 
 type Asset
     = CliIcon Cli
+    | BookClosed
     | ChevronLeft
     | ChevronRight
     | ToggleSwitch Bool
@@ -121,6 +122,9 @@ toPath asset =
                             "linux"
             in
             basePath ++ [ imageName ++ "-logo.svg" ]
+
+        BookClosed ->
+            basePath ++ [ "book-closed.svg" ]
 
         ChevronLeft ->
             basePath ++ [ "baseline-chevron-left.svg" ]
