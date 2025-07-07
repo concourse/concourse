@@ -1,4 +1,4 @@
-#footer-link {
+.footer-item {
     margin-right: 30px;
     display: flex;
     align-items: center;
@@ -6,6 +6,13 @@
     opacity: 0.5;
 }
 
-#footer-link:hover {
-    opacity: 1;
+#footer-link {
+    .footer-item();
+    &:hover {
+        opacity: 1;
+    }
+}
+
+#version-info {
+    .footer-item();
 }
