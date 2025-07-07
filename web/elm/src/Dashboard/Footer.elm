@@ -207,7 +207,7 @@ concourseInfo { hovered, version } =
             , Html.text "Download fly cli"
             ]
         , Html.div
-            Styles.footerLink
+            [ id "version-info" ]
             [ Html.text <| "Version: v" ++ version ]
         ]
 
