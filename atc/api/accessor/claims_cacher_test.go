@@ -112,7 +112,7 @@ var _ = Describe("ClaimsCacher", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("fetching the token again, should refetch from DB due to deletion")
-		_, _, err = claimsCacher.GetAccessToken("token1")
+		claimsCacher.GetAccessToken("token1")
 		Expect(fakeAccessTokenFetcher.GetAccessTokenCallCount()).To(Equal(2), "expected to refetch after delete")
 	})
 })

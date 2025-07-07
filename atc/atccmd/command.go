@@ -851,7 +851,8 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
 
-	claimsCacher := accessor.NewClaimsCacher(dbAccessTokenFactory, 1*1024*1024)
+	MiB := 1024 * 1024
+	claimsCacher := accessor.NewClaimsCacher(dbAccessTokenFactory, 1*MiB)
 	tokenVerifier := cmd.constructTokenVerifier(claimsCacher)
 
 	teamsCacher := accessor.NewTeamsCacher(

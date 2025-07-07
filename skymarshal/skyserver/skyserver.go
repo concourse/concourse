@@ -211,21 +211,21 @@ func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(tokenString, " ")
 
 	if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-		logger.Info("failed-to-parse-cookie")
+		logger.Info("failed-to-parse-auth-token")
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	err := s.config.ClaimsCacher.DeleteAccessToken(parts[1])
 	if err != nil {
-		logger.Error("delete-access-token-from-cache", err)
+		logger.Error("delete-auth-token-from-cache", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = s.config.AccessTokenFactory.DeleteAccessToken(parts[1])
 	if err != nil {
-		logger.Error("delete-access-token-from-db", err)
+		logger.Error("delete-auth-token-from-db", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
