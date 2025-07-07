@@ -15,7 +15,7 @@ import Url.Builder
 
 type Asset
     = CliIcon Cli
-    | BookClosed
+    | FileDocument
     | Console
     | ChevronLeft
     | ChevronRight
@@ -124,8 +124,8 @@ toPath asset =
             in
             basePath ++ [ imageName ++ "-logo.svg" ]
 
-        BookClosed ->
-            basePath ++ [ "book-closed.svg" ]
+        FileDocument ->
+            basePath ++ [ "file-document.svg" ]
 
         Console ->
             basePath ++ [ "console.svg" ]
