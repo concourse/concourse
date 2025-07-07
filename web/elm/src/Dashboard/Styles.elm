@@ -663,7 +663,7 @@ docsIcon =
     , style "height" "20px"
     , style "background-image" <|
         Assets.backgroundImage <|
-            Just Assets.BookClosed
+            Just Assets.FileDocument
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
