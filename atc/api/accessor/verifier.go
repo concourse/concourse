@@ -21,6 +21,7 @@ var (
 //counterfeiter:generate . AccessTokenFetcher
 type AccessTokenFetcher interface {
 	GetAccessToken(rawToken string) (db.AccessToken, bool, error)
+	DeleteAccessToken(rawToken string) error
 }
 
 func NewVerifier(accessTokenFetcher AccessTokenFetcher, audience []string) *verifier {

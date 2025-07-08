@@ -70,3 +70,12 @@ func (c *claimsCacher) GetAccessToken(rawToken string) (db.AccessToken, bool, er
 
 	return token, true, nil
 }
+
+func (c *claimsCacher) DeleteAccessToken(rawToken string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.cache.Remove(rawToken)
+
+	return nil
+}
