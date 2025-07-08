@@ -83,6 +83,12 @@ pageBelowTopBar route =
                 Routes.FlySuccess _ _ ->
                     [ style "height" "100%" ]
 
+                Routes.DownloadFly ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
+
                 Routes.Resource _ ->
                     [ style "box-sizing" "border-box"
                     , style "height" "100%"
