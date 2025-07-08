@@ -18,6 +18,8 @@ import Build.Models
 import Causality.Causality as Causality
 import Dashboard.Dashboard as Dashboard
 import Dashboard.Models
+import DownloadFly.DownloadFly as DownloadFly
+import DownloadFly.Model
 import EffectTransformer exposing (ET)
 import FlySuccess.FlySuccess as FlySuccess
 import FlySuccess.Models
@@ -48,6 +50,7 @@ type Model
     | DashboardModel Dashboard.Models.Model
     | FlySuccessModel FlySuccess.Models.Model
     | CausalityModel Causality.Model
+    | DownloadFlyModel DownloadFly.Model.Model
 
 
 init : Session -> Routes.Route -> ( Model, List Effect )
@@ -107,6 +110,11 @@ init session route =
                 }
                 |> Tuple.mapFirst FlySuccessModel
 
+        Routes.DownloadFly ->
+            DownloadFly.init
+                { route = session.route }
+                |> Tuple.mapFirst DownloadFlyModel
+
         Routes.Causality { id, direction } ->
             if session.featureFlags.resource_causality then
                 Causality.init
@@ -165,8 +173,9 @@ genericUpdate :
     -> ET Causality.Model
     -> ET NotFound.Model.Model
     -> ET FlySuccess.Models.Model
+    -> ET DownloadFly.Model.Model
     -> ET Model
-genericUpdate fBuild fJob fRes fPipe fDash fCaus fNF fFS ( model, effects ) =
+genericUpdate fBuild fJob fRes fPipe fDash fCaus fNF fFS dFly ( model, effects ) =
     case model of
         BuildModel buildModel ->
             fBuild ( buildModel, effects )
@@ -200,6 +209,10 @@ genericUpdate fBuild fJob fRes fPipe fDash fCaus fNF fFS ( model, effects ) =
             fNF ( notFoundModel, effects )
                 |> Tuple.mapFirst NotFoundModel
 
+        DownloadFlyModel downloadFlyModel ->
+            dFly ( downloadFlyModel, effects )
+                |> Tuple.mapFirst DownloadFlyModel
+
 
 handleCallback : Callback -> Session -> ET Model
 handleCallback callback session =
@@ -212,9 +225,11 @@ handleCallback callback session =
         (Causality.handleCallback callback)
         identity
         identity
+        identity
         >> (case callback of
                 LoggedOut (Ok ()) ->
                     genericUpdate
+                        handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
@@ -254,6 +269,7 @@ handleDelivery session delivery =
         (Causality.handleDelivery delivery)
         (NotFound.handleDelivery delivery)
         (FlySuccess.handleDelivery delivery)
+        (DownloadFly.handleDelivery delivery)
 
 
 update : Session -> Message -> ET Model
@@ -267,6 +283,7 @@ update session msg =
         (Login.update msg >> Causality.update msg)
         (Login.update msg)
         (Login.update msg >> FlySuccess.update msg)
+        (Login.update msg)
         >> (case msg of
                 GoToRoute route ->
                     handleGoToRoute route
@@ -373,6 +390,7 @@ urlUpdateValid routes =
         )
         identity
         identity
+        identity
 
 
 view : Session -> Model -> ( String, Html Message )
@@ -413,6 +431,11 @@ view ({ userState } as session) mdl =
             , FlySuccess.view userState model
             )
 
+        DownloadFlyModel model ->
+            ( DownloadFly.documentTitle
+            , DownloadFly.view session model
+            )
+
         CausalityModel model ->
             ( Causality.documentTitle model
             , Causality.view session model
@@ -443,6 +466,9 @@ tooltip mdl =
         FlySuccessModel model ->
             FlySuccess.tooltip model
 
+        DownloadFlyModel model ->
+            DownloadFly.tooltip model
+
         CausalityModel model ->
             Causality.tooltip model
 
@@ -470,6 +496,9 @@ subscriptions mdl =
 
         FlySuccessModel _ ->
             FlySuccess.subscriptions
+
+        DownloadFlyModel _ ->
+            DownloadFly.subscriptions
 
         CausalityModel _ ->
             Causality.subscriptions
