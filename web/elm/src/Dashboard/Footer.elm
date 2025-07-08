@@ -203,8 +203,14 @@ concourseInfo { hovered, version } =
                 ]
             ]
         , Html.div Styles.footerLink
-            [ Html.div Styles.consoleIcon []
-            , Html.text "Download fly cli"
+            [ Html.a
+                [ href "/download-fly"
+                , style "align-items" "center"
+                , style "display" "flex"
+                ]
+                [ Html.div Styles.consoleIcon []
+                , Html.text "Download fly cli"
+                ]
             ]
         , Html.div
             [ id "version-info" ]
