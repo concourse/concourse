@@ -27,8 +27,10 @@ import Html.Attributes
         , download
         , href
         , id
+        , rel
         , src
         , style
+        , target
         )
 import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
@@ -611,34 +613,41 @@ viewSubPage session model =
                     ]
             , Html.table [ class "lower-right-info" ]
                 [ Html.tr []
-                    [ Html.td [ class "label" ] [ Html.text "cli:" ]
-                    , Html.td []
-                        [ Html.ul [ class "cli-downloads" ] <|
-                            List.map
-                                (\cli ->
-                                    Html.li []
-                                        [ Html.a
-                                            ([ href <| Cli.downloadUrl cli
-                                             , ariaLabel <| Cli.label cli
-                                             , download ""
-                                             ]
-                                                ++ Styles.cliIcon cli
-                                            )
-                                            []
-                                        ]
-                                )
-                                Cli.clis
+                    [ Html.td [ class "label" ]
+                        [ Html.a
+                            [ href "https://concourse-ci.org/docs.html"
+                            , target "_blank"
+                            , rel "noopener noreferrer"
+                            , style "align-items" "center"
+                            , style "justify-content" "right"
+                            , style "display" "flex"
+                            ]
+                            [ Html.div Styles.docsIcon []
+                            , Html.text "Docs"
+                            ]
                         ]
                     ]
                 , Html.tr []
-                    [ Html.td [ class "label" ] [ Html.text "version:" ]
-                    , Html.td []
-                        [ Html.div [ id "concourse-version" ]
-                            [ Html.text "v"
-                            , Html.span
-                                [ class "number" ]
-                                [ Html.text session.version ]
+                    [ Html.td [ class "label" ]
+                        [ Html.a
+                            [ href "/download-fly"
+                            , target "_self"
+                            , style "align-items" "center"
+                            , style "justify-content" "right"
+                            , style "display" "flex"
                             ]
+                            [ Html.div Styles.consoleIcon []
+                            , Html.text "Download fly cli"
+                            ]
+                        ]
+                    ]
+                , Html.tr []
+                    [ Html.td [ class "label" ]
+                        [ Html.text "version: "
+                        , Html.text "v"
+                        , Html.span
+                            [ class "number" ]
+                            [ Html.text session.version ]
                         ]
                     ]
                 ]

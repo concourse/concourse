@@ -1,5 +1,6 @@
 module Pipeline.Styles exposing
-    ( cliIcon
+    ( consoleIcon
+    , docsIcon
     , favoritedIcon
     , groupItem
     , groupsBar
@@ -66,13 +67,29 @@ pauseToggle =
     ]
 
 
-cliIcon : Cli.Cli -> List (Html.Attribute msg)
-cliIcon cli =
-    [ style "width" "12px"
+docsIcon : List (Html.Attribute msg)
+docsIcon =
+    [ style "margin-right" "5px"
+    , style "width" "12px"
     , style "height" "12px"
     , style "background-image" <|
         Assets.backgroundImage <|
-            Just (Assets.CliIcon cli)
+            Just Assets.FileDocument
+    , style "background-repeat" "no-repeat"
+    , style "background-position" "50% 50%"
+    , style "background-size" "contain"
+    , style "display" "inline-block"
+    ]
+
+
+consoleIcon : List (Html.Attribute msg)
+consoleIcon =
+    [ style "margin-right" "5px"
+    , style "width" "12px"
+    , style "height" "12px"
+    , style "background-image" <|
+        Assets.backgroundImage <|
+            Just Assets.Console
     , style "background-repeat" "no-repeat"
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
