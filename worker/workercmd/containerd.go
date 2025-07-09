@@ -246,7 +246,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 					}
 					return err == nil
 				},
-				Timeout: 10 * time.Second,
+				Timeout: 60 * time.Second,
 			},
 		},
 		{
