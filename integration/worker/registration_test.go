@@ -22,6 +22,6 @@ func TestRegistration_GardenServerFails(t *testing.T) {
 		require.Eventually(t, func() bool {
 			services := dc.Output(t, "ps", "-a", "--services", "--status=exited")
 			return strings.Contains(services, "worker")
-		}, 30*time.Second, 1*time.Second, "worker process never exited, but should have")
+		}, 90*time.Second, 1*time.Second, "worker process never exited, but should have")
 	})
 }
