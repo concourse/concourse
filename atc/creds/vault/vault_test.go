@@ -859,3 +859,290 @@ var _ = Describe("Vault KV1", func() {
 		})
 	})
 })
+
+var _ = Describe("Vault KV1 and KV2", func() {
+
+	var server *ghttp.Server
+	var returnedMountInfo vaultapi.Secret
+	var returnedMountInfoKv1 vaultapi.Secret
+	var returnedMountInfoKv2 vaultapi.Secret
+	var statusCodeOK int
+
+	var secretsFactory creds.SecretsFactory
+	var variables vars.Variables
+	var varFooKv1 vars.Reference
+	var varFooKv2 vars.Reference
+
+	BeforeEach(func() {
+		server = ghttp.NewServer()
+
+		//var manager vault.VaultManager
+		manager := vault.VaultManager{
+			URL:             "http://" + server.Addr(),
+			Auth:            vault.AuthConfig{ClientToken: "xxx"},
+			TLS:             vault.TLSConfig{},
+			Namespace:       "",
+			QueryTimeout:    2764800 * time.Second,
+			LoginTimeout:    2764800 * time.Second,
+			PathPrefix:      "",
+			PathPrefixes:    []string{"/kv2", "/kv1"},
+			SharedPath:      "shared",
+			LookupTemplates: []string{"/{{.Team}}/{{.Pipeline}}/{{.Secret}}", "/{{.Team}}/{{.Secret}}"},
+		}
+
+		err := manager.Validate()
+		Expect(err).To(BeNil())
+
+		// set up Vault API client
+		err = manager.Init(lagertest.NewTestLogger("test"))
+		Expect(err).To(BeNil())
+
+		// apparently we need to call NewSecretsFactory() so it will set manager.SecretFactory
+		secretsFactory, err = manager.NewSecretsFactory(lagertest.NewTestLogger("test"))
+		Expect(err).To(BeNil())
+
+		statusCodeOK = 200
+
+		returnedMountInfo = vaultapi.Secret{}
+		_ = json.Unmarshal([]byte(`
+		{
+		    "auth": null,
+		    "data": {
+		        "auth": {},
+		        "secret": {
+		            "kv2/": {
+		                "accessor": "kv2_4cezb9b5",
+		                "config": {
+		                    "default_lease_ttl": 2764800,
+		                    "force_no_cache": false,
+		                    "max_lease_ttl": 2764800
+		                },
+		                "description": "kv_v2 secret storage",
+		                "external_entropy_access": false,
+		                "local": false,
+		                "options": {
+		                    "version": "2"
+		                },
+		                "seal_wrap": false,
+		                "type": "kv",
+		                "uuid": "6235eb1c-db7b-4b0b-b60f-d91cdc6a5bc6"
+		            },
+		            "kv1/": {
+		                "accessor": "kv1_69pda40e",
+		                "config": {
+		                    "default_lease_ttl": 2764800,
+		                    "force_no_cache": false,
+		                    "max_lease_ttl": 2764800
+		                },
+		                "description": "kv v1 secret storage",
+		                "external_entropy_access": false,
+		                "local": false,
+		                "options": null,
+		                "seal_wrap": false,
+		                "type": "generic",
+		                "uuid": "0d22d970-ab97-4586-985e-61a5dd24cbf4"
+		            }
+		        }
+		    },
+		    "lease_duration": 2764800,
+		    "lease_id": "",
+		    "renewable": false,
+		    "request_id": "224dbe47-fe8c-500c-db23-1e1dd677b87c",
+		    "warnings": null,
+		    "wrap_info": null
+		}`), &returnedMountInfo.Data)
+
+		returnedMountInfoKv1 = vaultapi.Secret{}
+		_ = json.Unmarshal([]byte(`{"accessor":"kv_db2ac651","config":{"default_lease_ttl":2764800,"force_no_cache":false,"max_lease_ttl":2764800},"description":"A KV v1 Mount","external_entropy_access":false,"local":false,"options":{"version":"1"},"path":"kv1/","seal_wrap":false,"type":"kv","uuid":"40d031ff-8fed-2406-8965-39616be0bd42"}`), &returnedMountInfoKv1.Data)
+
+		returnedMountInfoKv2 = vaultapi.Secret{}
+		_ = json.Unmarshal([]byte(`{"accessor":"kv_a92a6156","config":{"default_lease_ttl":2764800,"force_no_cache":false,"max_lease_ttl":2764800},"description":"A KV v2 Mount","external_entropy_access":false,"local":false,"options":{"version":"2"},"path":"kv2/","seal_wrap":false,"type":"kv_v2","uuid":"1e54b331-04a4-4f31-455c-48955e713e67"}`), &returnedMountInfoKv2.Data)
+
+		mountPathRegex, _ := regexp.Compile("/v1/sys/internal/ui/mounts/$")
+		server.RouteToHandler("GET", mountPathRegex, ghttp.CombineHandlers(
+			ghttp.VerifyRequest("GET", MatchRegexp("/v1/sys/internal/ui/mounts/$")),
+			ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfo),
+		))
+
+		mountPathRegexKv1, _ := regexp.Compile("/v1/sys/internal/ui/mounts/kv1/.*")
+		server.RouteToHandler("GET", mountPathRegexKv1, ghttp.CombineHandlers(
+			ghttp.VerifyRequest("GET", MatchRegexp("/v1/sys/internal/ui/mounts/kv1/.*")),
+			ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfoKv1),
+		))
+
+		mountPathRegexKv2, _ := regexp.Compile("/v1/sys/internal/ui/mounts/kv2/.*")
+		server.RouteToHandler("GET", mountPathRegexKv2, ghttp.CombineHandlers(
+			ghttp.VerifyRequest("GET", MatchRegexp("/v1/sys/internal/ui/mounts/kv2/.*")),
+			ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, &returnedMountInfoKv2),
+		))
+
+		variables = creds.NewVariables(secretsFactory.NewSecrets(), "team", "pipeline", false)
+		varFooKv1 = vars.Reference{Path: "foo_kv1"}
+		varFooKv2 = vars.Reference{Path: "foo_kv2"}
+	})
+
+	AfterEach(func() {
+		server.Close()
+	})
+
+	Describe("Get()", func() {
+		When("the secret is in the kv2 pipeline folder", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/pipeline/foo_kv2"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("pipeline var kv2")),
+					),
+				)
+			})
+			It("should find the secret in kv2 pipeline folder", func() {
+				value, found, err := variables.Get(varFooKv2)
+				Expect(err).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(value).To(BeEquivalentTo("pipeline var kv2"))
+			})
+		})
+
+		When("the secret is in the kv2 team folder", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/pipeline/foo_kv2"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/foo_kv2"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("team var kv2")),
+					),
+				)
+			})
+			It("should look in the kv2 pipeline folder and find the secret in the team folder", func() {
+				value, found, err := variables.Get(varFooKv2)
+				Expect(err).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(value).To(BeEquivalentTo("team var kv2"))
+			})
+		})
+
+		When("the secret is in the kv2 shared folder", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/pipeline/foo_kv2"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/foo_kv2"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/team/pipeline/foo_kv2"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/team/foo_kv2"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/shared/foo_kv2"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("shared var kv2")),
+					),
+				)
+			})
+			It("should look in the kv2 and kv1 folders and find the secret in the kv2 shared folder", func() {
+				value, found, err := variables.Get(varFooKv2)
+				Expect(err).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(value).To(BeEquivalentTo("shared var kv2"))
+			})
+		})
+
+		When("the secret is in the kv1 pipeline folder", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/pipeline/foo_kv1"), ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/foo_kv1"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/team/pipeline/foo_kv1"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("pipeline var kv1")),
+					),
+				)
+			})
+			It("should look in the kv2 folders and find the secret in the kv1 pipeline folder", func() {
+				value, found, err := variables.Get(varFooKv1)
+				Expect(err).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(value).To(BeEquivalentTo("pipeline var kv1"))
+			})
+		})
+
+		When("the secret is in the kv1 team folder", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/pipeline/foo_kv1"), ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/foo_kv1"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/team/pipeline/foo_kv1"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/team/foo_kv1"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("team var kv1")),
+					),
+				)
+			})
+			It("should look in the kv2 folders, kv1 pipeline folder, and find the secret in the kv1 team folder", func() {
+				value, found, err := variables.Get(varFooKv1)
+				Expect(err).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(value).To(BeEquivalentTo("team var kv1"))
+			})
+		})
+
+		When("the secret is in the kv1 shared folder", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/pipeline/foo_kv1"), ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/team/foo_kv1"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/team/pipeline/foo_kv1"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/team/foo_kv1"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv2/data/shared/foo_kv1"),
+						ghttp.RespondWith(404, ""),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/kv1/shared/foo_kv1"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("shared var kv1")),
+					),
+				)
+			})
+			It("should look in the kv2 and kv2 folders, kv1 shared folder, and find the secret in the kv1 shared folder", func() {
+				value, found, err := variables.Get(varFooKv1)
+				Expect(err).To(BeNil())
+				Expect(found).To(BeTrue())
+				Expect(value).To(BeEquivalentTo("shared var kv1"))
+			})
+		})
+	})
+})
