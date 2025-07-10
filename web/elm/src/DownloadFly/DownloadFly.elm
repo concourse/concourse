@@ -61,7 +61,7 @@ view session model =
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
             [ SideBar.view session Nothing
             , Html.div [ class "notfound" ]
-                [ Html.div [ class "title" ] [ Html.text "404" ]
+                [ Html.div [ class "title" ] [ Html.text "Download Fly" ]
                 , Html.div [ class "reason" ] [ Html.text "DOWNLOAD FLY CLI" ]
                 ]
             ]
