@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/v2/client"
 )
 
 type FakeProcessKiller struct {
-	KillStub        func(context.Context, containerd.Process, syscall.Signal, time.Duration) error
+	KillStub        func(context.Context, client.Process, syscall.Signal, time.Duration) error
 	killMutex       sync.RWMutex
 	killArgsForCall []struct {
 		arg1 context.Context
-		arg2 containerd.Process
+		arg2 client.Process
 		arg3 syscall.Signal
 		arg4 time.Duration
 	}
@@ -30,12 +30,12 @@ type FakeProcessKiller struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeProcessKiller) Kill(arg1 context.Context, arg2 containerd.Process, arg3 syscall.Signal, arg4 time.Duration) error {
+func (fake *FakeProcessKiller) Kill(arg1 context.Context, arg2 client.Process, arg3 syscall.Signal, arg4 time.Duration) error {
 	fake.killMutex.Lock()
 	ret, specificReturn := fake.killReturnsOnCall[len(fake.killArgsForCall)]
 	fake.killArgsForCall = append(fake.killArgsForCall, struct {
 		arg1 context.Context
-		arg2 containerd.Process
+		arg2 client.Process
 		arg3 syscall.Signal
 		arg4 time.Duration
 	}{arg1, arg2, arg3, arg4})
@@ -58,13 +58,13 @@ func (fake *FakeProcessKiller) KillCallCount() int {
 	return len(fake.killArgsForCall)
 }
 
-func (fake *FakeProcessKiller) KillCalls(stub func(context.Context, containerd.Process, syscall.Signal, time.Duration) error) {
+func (fake *FakeProcessKiller) KillCalls(stub func(context.Context, client.Process, syscall.Signal, time.Duration) error) {
 	fake.killMutex.Lock()
 	defer fake.killMutex.Unlock()
 	fake.KillStub = stub
 }
 
-func (fake *FakeProcessKiller) KillArgsForCall(i int) (context.Context, containerd.Process, syscall.Signal, time.Duration) {
+func (fake *FakeProcessKiller) KillArgsForCall(i int) (context.Context, client.Process, syscall.Signal, time.Duration) {
 	fake.killMutex.RLock()
 	defer fake.killMutex.RUnlock()
 	argsForCall := fake.killArgsForCall[i]

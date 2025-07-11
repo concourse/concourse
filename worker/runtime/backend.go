@@ -17,9 +17,9 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	bespec "github.com/concourse/concourse/worker/runtime/spec"
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/errdefs"
+	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/pkg/cio"
+	"github.com/containerd/errdefs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -139,7 +139,7 @@ type When struct {
 type HookFile struct {
 	Version string     `json:"version"`
 	Hook    specs.Hook `json:"hook"`
-	When    When       `json:"when,omitempty"`
+	When    When       `json:"when"`
 	Stages  []string   `json:"stages,omitempty"`
 }
 

@@ -6,15 +6,15 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/worker/runtime"
-	"github.com/containerd/containerd"
+	"github.com/containerd/containerd/v2/client"
 )
 
 type FakeKiller struct {
-	KillStub        func(context.Context, containerd.Task, runtime.KillBehaviour) error
+	KillStub        func(context.Context, client.Task, runtime.KillBehaviour) error
 	killMutex       sync.RWMutex
 	killArgsForCall []struct {
 		arg1 context.Context
-		arg2 containerd.Task
+		arg2 client.Task
 		arg3 runtime.KillBehaviour
 	}
 	killReturns struct {
@@ -27,12 +27,12 @@ type FakeKiller struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeKiller) Kill(arg1 context.Context, arg2 containerd.Task, arg3 runtime.KillBehaviour) error {
+func (fake *FakeKiller) Kill(arg1 context.Context, arg2 client.Task, arg3 runtime.KillBehaviour) error {
 	fake.killMutex.Lock()
 	ret, specificReturn := fake.killReturnsOnCall[len(fake.killArgsForCall)]
 	fake.killArgsForCall = append(fake.killArgsForCall, struct {
 		arg1 context.Context
-		arg2 containerd.Task
+		arg2 client.Task
 		arg3 runtime.KillBehaviour
 	}{arg1, arg2, arg3})
 	stub := fake.KillStub
@@ -54,13 +54,13 @@ func (fake *FakeKiller) KillCallCount() int {
 	return len(fake.killArgsForCall)
 }
 
-func (fake *FakeKiller) KillCalls(stub func(context.Context, containerd.Task, runtime.KillBehaviour) error) {
+func (fake *FakeKiller) KillCalls(stub func(context.Context, client.Task, runtime.KillBehaviour) error) {
 	fake.killMutex.Lock()
 	defer fake.killMutex.Unlock()
 	fake.KillStub = stub
 }
 
-func (fake *FakeKiller) KillArgsForCall(i int) (context.Context, containerd.Task, runtime.KillBehaviour) {
+func (fake *FakeKiller) KillArgsForCall(i int) (context.Context, client.Task, runtime.KillBehaviour) {
 	fake.killMutex.RLock()
 	defer fake.killMutex.RUnlock()
 	argsForCall := fake.killArgsForCall[i]

@@ -10,9 +10,9 @@ import (
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/protobuf"
-	"github.com/containerd/containerd/runtime/v2/runc/options"
+	"github.com/containerd/containerd/api/types/runc/options"
+	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/typeurl/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -86,7 +86,7 @@ func (s *KillerSuite) TestKillTaskWithOnlyInitProc() {
 }
 
 func (s *KillerSuite) TestKillTaskLoadProcessError() {
-	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
+	procInfo, err := typeurl.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -110,7 +110,7 @@ func (s *KillerSuite) TestKillTaskLoadProcessError() {
 }
 
 func (s *KillerSuite) TestUngracefulKillTaskProcKillError() {
-	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
+	procInfo, err := typeurl.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -127,7 +127,7 @@ func (s *KillerSuite) TestUngracefulKillTaskProcKillError() {
 }
 
 func (s *KillerSuite) TestGracefulKillTaskProcKillGracePeriodTimeoutError() {
-	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
+	procInfo, err := typeurl.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -146,7 +146,7 @@ func (s *KillerSuite) TestGracefulKillTaskProcKillGracePeriodTimeoutError() {
 }
 
 func (s *KillerSuite) TestGracefulKillTaskProcKillUncaughtError() {
-	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
+	procInfo, err := typeurl.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)
@@ -165,7 +165,7 @@ func (s *KillerSuite) TestGracefulKillTaskProcKillUncaughtError() {
 }
 
 func (s *KillerSuite) TestGracefulKillTaskProcKillErrorOnUngracefulTry() {
-	procInfo, err := protobuf.MarshalAnyToProto(&options.ProcessDetails{
+	procInfo, err := typeurl.MarshalAnyToProto(&options.ProcessDetails{
 		ExecID: "execution-1",
 	})
 	s.NoError(err)

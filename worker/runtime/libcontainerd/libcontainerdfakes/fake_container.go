@@ -5,34 +5,34 @@ import (
 	"context"
 	"sync"
 
-	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/containers"
-	"github.com/containerd/containerd/oci"
+	"github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/core/containers"
+	"github.com/containerd/containerd/v2/pkg/cio"
+	"github.com/containerd/containerd/v2/pkg/oci"
 	typeurl "github.com/containerd/typeurl/v2"
 )
 
 type FakeContainer struct {
-	CheckpointStub        func(context.Context, string, ...containerd.CheckpointOpts) (containerd.Image, error)
+	CheckpointStub        func(context.Context, string, ...client.CheckpointOpts) (client.Image, error)
 	checkpointMutex       sync.RWMutex
 	checkpointArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
-		arg3 []containerd.CheckpointOpts
+		arg3 []client.CheckpointOpts
 	}
 	checkpointReturns struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}
 	checkpointReturnsOnCall map[int]struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}
-	DeleteStub        func(context.Context, ...containerd.DeleteOpts) error
+	DeleteStub        func(context.Context, ...client.DeleteOpts) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
 		arg1 context.Context
-		arg2 []containerd.DeleteOpts
+		arg2 []client.DeleteOpts
 	}
 	deleteReturns struct {
 		result1 error
@@ -63,24 +63,24 @@ type FakeContainer struct {
 	iDReturnsOnCall map[int]struct {
 		result1 string
 	}
-	ImageStub        func(context.Context) (containerd.Image, error)
+	ImageStub        func(context.Context) (client.Image, error)
 	imageMutex       sync.RWMutex
 	imageArgsForCall []struct {
 		arg1 context.Context
 	}
 	imageReturns struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}
 	imageReturnsOnCall map[int]struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}
-	InfoStub        func(context.Context, ...containerd.InfoOpts) (containers.Container, error)
+	InfoStub        func(context.Context, ...client.InfoOpts) (containers.Container, error)
 	infoMutex       sync.RWMutex
 	infoArgsForCall []struct {
 		arg1 context.Context
-		arg2 []containerd.InfoOpts
+		arg2 []client.InfoOpts
 	}
 	infoReturns struct {
 		result1 containers.Container
@@ -103,19 +103,19 @@ type FakeContainer struct {
 		result1 map[string]string
 		result2 error
 	}
-	NewTaskStub        func(context.Context, cio.Creator, ...containerd.NewTaskOpts) (containerd.Task, error)
+	NewTaskStub        func(context.Context, cio.Creator, ...client.NewTaskOpts) (client.Task, error)
 	newTaskMutex       sync.RWMutex
 	newTaskArgsForCall []struct {
 		arg1 context.Context
 		arg2 cio.Creator
-		arg3 []containerd.NewTaskOpts
+		arg3 []client.NewTaskOpts
 	}
 	newTaskReturns struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}
 	newTaskReturnsOnCall map[int]struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}
 	SetLabelsStub        func(context.Context, map[string]string) (map[string]string, error)
@@ -145,25 +145,25 @@ type FakeContainer struct {
 		result1 *oci.Spec
 		result2 error
 	}
-	TaskStub        func(context.Context, cio.Attach) (containerd.Task, error)
+	TaskStub        func(context.Context, cio.Attach) (client.Task, error)
 	taskMutex       sync.RWMutex
 	taskArgsForCall []struct {
 		arg1 context.Context
 		arg2 cio.Attach
 	}
 	taskReturns struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}
 	taskReturnsOnCall map[int]struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}
-	UpdateStub        func(context.Context, ...containerd.UpdateContainerOpts) error
+	UpdateStub        func(context.Context, ...client.UpdateContainerOpts) error
 	updateMutex       sync.RWMutex
 	updateArgsForCall []struct {
 		arg1 context.Context
-		arg2 []containerd.UpdateContainerOpts
+		arg2 []client.UpdateContainerOpts
 	}
 	updateReturns struct {
 		result1 error
@@ -175,13 +175,13 @@ type FakeContainer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeContainer) Checkpoint(arg1 context.Context, arg2 string, arg3 ...containerd.CheckpointOpts) (containerd.Image, error) {
+func (fake *FakeContainer) Checkpoint(arg1 context.Context, arg2 string, arg3 ...client.CheckpointOpts) (client.Image, error) {
 	fake.checkpointMutex.Lock()
 	ret, specificReturn := fake.checkpointReturnsOnCall[len(fake.checkpointArgsForCall)]
 	fake.checkpointArgsForCall = append(fake.checkpointArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
-		arg3 []containerd.CheckpointOpts
+		arg3 []client.CheckpointOpts
 	}{arg1, arg2, arg3})
 	stub := fake.CheckpointStub
 	fakeReturns := fake.checkpointReturns
@@ -202,51 +202,51 @@ func (fake *FakeContainer) CheckpointCallCount() int {
 	return len(fake.checkpointArgsForCall)
 }
 
-func (fake *FakeContainer) CheckpointCalls(stub func(context.Context, string, ...containerd.CheckpointOpts) (containerd.Image, error)) {
+func (fake *FakeContainer) CheckpointCalls(stub func(context.Context, string, ...client.CheckpointOpts) (client.Image, error)) {
 	fake.checkpointMutex.Lock()
 	defer fake.checkpointMutex.Unlock()
 	fake.CheckpointStub = stub
 }
 
-func (fake *FakeContainer) CheckpointArgsForCall(i int) (context.Context, string, []containerd.CheckpointOpts) {
+func (fake *FakeContainer) CheckpointArgsForCall(i int) (context.Context, string, []client.CheckpointOpts) {
 	fake.checkpointMutex.RLock()
 	defer fake.checkpointMutex.RUnlock()
 	argsForCall := fake.checkpointArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeContainer) CheckpointReturns(result1 containerd.Image, result2 error) {
+func (fake *FakeContainer) CheckpointReturns(result1 client.Image, result2 error) {
 	fake.checkpointMutex.Lock()
 	defer fake.checkpointMutex.Unlock()
 	fake.CheckpointStub = nil
 	fake.checkpointReturns = struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) CheckpointReturnsOnCall(i int, result1 containerd.Image, result2 error) {
+func (fake *FakeContainer) CheckpointReturnsOnCall(i int, result1 client.Image, result2 error) {
 	fake.checkpointMutex.Lock()
 	defer fake.checkpointMutex.Unlock()
 	fake.CheckpointStub = nil
 	if fake.checkpointReturnsOnCall == nil {
 		fake.checkpointReturnsOnCall = make(map[int]struct {
-			result1 containerd.Image
+			result1 client.Image
 			result2 error
 		})
 	}
 	fake.checkpointReturnsOnCall[i] = struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) Delete(arg1 context.Context, arg2 ...containerd.DeleteOpts) error {
+func (fake *FakeContainer) Delete(arg1 context.Context, arg2 ...client.DeleteOpts) error {
 	fake.deleteMutex.Lock()
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 		arg1 context.Context
-		arg2 []containerd.DeleteOpts
+		arg2 []client.DeleteOpts
 	}{arg1, arg2})
 	stub := fake.DeleteStub
 	fakeReturns := fake.deleteReturns
@@ -267,13 +267,13 @@ func (fake *FakeContainer) DeleteCallCount() int {
 	return len(fake.deleteArgsForCall)
 }
 
-func (fake *FakeContainer) DeleteCalls(stub func(context.Context, ...containerd.DeleteOpts) error) {
+func (fake *FakeContainer) DeleteCalls(stub func(context.Context, ...client.DeleteOpts) error) {
 	fake.deleteMutex.Lock()
 	defer fake.deleteMutex.Unlock()
 	fake.DeleteStub = stub
 }
 
-func (fake *FakeContainer) DeleteArgsForCall(i int) (context.Context, []containerd.DeleteOpts) {
+func (fake *FakeContainer) DeleteArgsForCall(i int) (context.Context, []client.DeleteOpts) {
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	argsForCall := fake.deleteArgsForCall[i]
@@ -420,7 +420,7 @@ func (fake *FakeContainer) IDReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeContainer) Image(arg1 context.Context) (containerd.Image, error) {
+func (fake *FakeContainer) Image(arg1 context.Context) (client.Image, error) {
 	fake.imageMutex.Lock()
 	ret, specificReturn := fake.imageReturnsOnCall[len(fake.imageArgsForCall)]
 	fake.imageArgsForCall = append(fake.imageArgsForCall, struct {
@@ -445,7 +445,7 @@ func (fake *FakeContainer) ImageCallCount() int {
 	return len(fake.imageArgsForCall)
 }
 
-func (fake *FakeContainer) ImageCalls(stub func(context.Context) (containerd.Image, error)) {
+func (fake *FakeContainer) ImageCalls(stub func(context.Context) (client.Image, error)) {
 	fake.imageMutex.Lock()
 	defer fake.imageMutex.Unlock()
 	fake.ImageStub = stub
@@ -458,38 +458,38 @@ func (fake *FakeContainer) ImageArgsForCall(i int) context.Context {
 	return argsForCall.arg1
 }
 
-func (fake *FakeContainer) ImageReturns(result1 containerd.Image, result2 error) {
+func (fake *FakeContainer) ImageReturns(result1 client.Image, result2 error) {
 	fake.imageMutex.Lock()
 	defer fake.imageMutex.Unlock()
 	fake.ImageStub = nil
 	fake.imageReturns = struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) ImageReturnsOnCall(i int, result1 containerd.Image, result2 error) {
+func (fake *FakeContainer) ImageReturnsOnCall(i int, result1 client.Image, result2 error) {
 	fake.imageMutex.Lock()
 	defer fake.imageMutex.Unlock()
 	fake.ImageStub = nil
 	if fake.imageReturnsOnCall == nil {
 		fake.imageReturnsOnCall = make(map[int]struct {
-			result1 containerd.Image
+			result1 client.Image
 			result2 error
 		})
 	}
 	fake.imageReturnsOnCall[i] = struct {
-		result1 containerd.Image
+		result1 client.Image
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) Info(arg1 context.Context, arg2 ...containerd.InfoOpts) (containers.Container, error) {
+func (fake *FakeContainer) Info(arg1 context.Context, arg2 ...client.InfoOpts) (containers.Container, error) {
 	fake.infoMutex.Lock()
 	ret, specificReturn := fake.infoReturnsOnCall[len(fake.infoArgsForCall)]
 	fake.infoArgsForCall = append(fake.infoArgsForCall, struct {
 		arg1 context.Context
-		arg2 []containerd.InfoOpts
+		arg2 []client.InfoOpts
 	}{arg1, arg2})
 	stub := fake.InfoStub
 	fakeReturns := fake.infoReturns
@@ -510,13 +510,13 @@ func (fake *FakeContainer) InfoCallCount() int {
 	return len(fake.infoArgsForCall)
 }
 
-func (fake *FakeContainer) InfoCalls(stub func(context.Context, ...containerd.InfoOpts) (containers.Container, error)) {
+func (fake *FakeContainer) InfoCalls(stub func(context.Context, ...client.InfoOpts) (containers.Container, error)) {
 	fake.infoMutex.Lock()
 	defer fake.infoMutex.Unlock()
 	fake.InfoStub = stub
 }
 
-func (fake *FakeContainer) InfoArgsForCall(i int) (context.Context, []containerd.InfoOpts) {
+func (fake *FakeContainer) InfoArgsForCall(i int) (context.Context, []client.InfoOpts) {
 	fake.infoMutex.RLock()
 	defer fake.infoMutex.RUnlock()
 	argsForCall := fake.infoArgsForCall[i]
@@ -613,13 +613,13 @@ func (fake *FakeContainer) LabelsReturnsOnCall(i int, result1 map[string]string,
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) NewTask(arg1 context.Context, arg2 cio.Creator, arg3 ...containerd.NewTaskOpts) (containerd.Task, error) {
+func (fake *FakeContainer) NewTask(arg1 context.Context, arg2 cio.Creator, arg3 ...client.NewTaskOpts) (client.Task, error) {
 	fake.newTaskMutex.Lock()
 	ret, specificReturn := fake.newTaskReturnsOnCall[len(fake.newTaskArgsForCall)]
 	fake.newTaskArgsForCall = append(fake.newTaskArgsForCall, struct {
 		arg1 context.Context
 		arg2 cio.Creator
-		arg3 []containerd.NewTaskOpts
+		arg3 []client.NewTaskOpts
 	}{arg1, arg2, arg3})
 	stub := fake.NewTaskStub
 	fakeReturns := fake.newTaskReturns
@@ -640,41 +640,41 @@ func (fake *FakeContainer) NewTaskCallCount() int {
 	return len(fake.newTaskArgsForCall)
 }
 
-func (fake *FakeContainer) NewTaskCalls(stub func(context.Context, cio.Creator, ...containerd.NewTaskOpts) (containerd.Task, error)) {
+func (fake *FakeContainer) NewTaskCalls(stub func(context.Context, cio.Creator, ...client.NewTaskOpts) (client.Task, error)) {
 	fake.newTaskMutex.Lock()
 	defer fake.newTaskMutex.Unlock()
 	fake.NewTaskStub = stub
 }
 
-func (fake *FakeContainer) NewTaskArgsForCall(i int) (context.Context, cio.Creator, []containerd.NewTaskOpts) {
+func (fake *FakeContainer) NewTaskArgsForCall(i int) (context.Context, cio.Creator, []client.NewTaskOpts) {
 	fake.newTaskMutex.RLock()
 	defer fake.newTaskMutex.RUnlock()
 	argsForCall := fake.newTaskArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeContainer) NewTaskReturns(result1 containerd.Task, result2 error) {
+func (fake *FakeContainer) NewTaskReturns(result1 client.Task, result2 error) {
 	fake.newTaskMutex.Lock()
 	defer fake.newTaskMutex.Unlock()
 	fake.NewTaskStub = nil
 	fake.newTaskReturns = struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) NewTaskReturnsOnCall(i int, result1 containerd.Task, result2 error) {
+func (fake *FakeContainer) NewTaskReturnsOnCall(i int, result1 client.Task, result2 error) {
 	fake.newTaskMutex.Lock()
 	defer fake.newTaskMutex.Unlock()
 	fake.NewTaskStub = nil
 	if fake.newTaskReturnsOnCall == nil {
 		fake.newTaskReturnsOnCall = make(map[int]struct {
-			result1 containerd.Task
+			result1 client.Task
 			result2 error
 		})
 	}
 	fake.newTaskReturnsOnCall[i] = struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}{result1, result2}
 }
@@ -808,7 +808,7 @@ func (fake *FakeContainer) SpecReturnsOnCall(i int, result1 *oci.Spec, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) Task(arg1 context.Context, arg2 cio.Attach) (containerd.Task, error) {
+func (fake *FakeContainer) Task(arg1 context.Context, arg2 cio.Attach) (client.Task, error) {
 	fake.taskMutex.Lock()
 	ret, specificReturn := fake.taskReturnsOnCall[len(fake.taskArgsForCall)]
 	fake.taskArgsForCall = append(fake.taskArgsForCall, struct {
@@ -834,7 +834,7 @@ func (fake *FakeContainer) TaskCallCount() int {
 	return len(fake.taskArgsForCall)
 }
 
-func (fake *FakeContainer) TaskCalls(stub func(context.Context, cio.Attach) (containerd.Task, error)) {
+func (fake *FakeContainer) TaskCalls(stub func(context.Context, cio.Attach) (client.Task, error)) {
 	fake.taskMutex.Lock()
 	defer fake.taskMutex.Unlock()
 	fake.TaskStub = stub
@@ -847,38 +847,38 @@ func (fake *FakeContainer) TaskArgsForCall(i int) (context.Context, cio.Attach) 
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeContainer) TaskReturns(result1 containerd.Task, result2 error) {
+func (fake *FakeContainer) TaskReturns(result1 client.Task, result2 error) {
 	fake.taskMutex.Lock()
 	defer fake.taskMutex.Unlock()
 	fake.TaskStub = nil
 	fake.taskReturns = struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) TaskReturnsOnCall(i int, result1 containerd.Task, result2 error) {
+func (fake *FakeContainer) TaskReturnsOnCall(i int, result1 client.Task, result2 error) {
 	fake.taskMutex.Lock()
 	defer fake.taskMutex.Unlock()
 	fake.TaskStub = nil
 	if fake.taskReturnsOnCall == nil {
 		fake.taskReturnsOnCall = make(map[int]struct {
-			result1 containerd.Task
+			result1 client.Task
 			result2 error
 		})
 	}
 	fake.taskReturnsOnCall[i] = struct {
-		result1 containerd.Task
+		result1 client.Task
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeContainer) Update(arg1 context.Context, arg2 ...containerd.UpdateContainerOpts) error {
+func (fake *FakeContainer) Update(arg1 context.Context, arg2 ...client.UpdateContainerOpts) error {
 	fake.updateMutex.Lock()
 	ret, specificReturn := fake.updateReturnsOnCall[len(fake.updateArgsForCall)]
 	fake.updateArgsForCall = append(fake.updateArgsForCall, struct {
 		arg1 context.Context
-		arg2 []containerd.UpdateContainerOpts
+		arg2 []client.UpdateContainerOpts
 	}{arg1, arg2})
 	stub := fake.UpdateStub
 	fakeReturns := fake.updateReturns
@@ -899,13 +899,13 @@ func (fake *FakeContainer) UpdateCallCount() int {
 	return len(fake.updateArgsForCall)
 }
 
-func (fake *FakeContainer) UpdateCalls(stub func(context.Context, ...containerd.UpdateContainerOpts) error) {
+func (fake *FakeContainer) UpdateCalls(stub func(context.Context, ...client.UpdateContainerOpts) error) {
 	fake.updateMutex.Lock()
 	defer fake.updateMutex.Unlock()
 	fake.UpdateStub = stub
 }
 
-func (fake *FakeContainer) UpdateArgsForCall(i int) (context.Context, []containerd.UpdateContainerOpts) {
+func (fake *FakeContainer) UpdateArgsForCall(i int) (context.Context, []client.UpdateContainerOpts) {
 	fake.updateMutex.RLock()
 	defer fake.updateMutex.RUnlock()
 	argsForCall := fake.updateArgsForCall[i]
@@ -981,4 +981,4 @@ func (fake *FakeContainer) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ containerd.Container = new(FakeContainer)
+var _ client.Container = new(FakeContainer)
