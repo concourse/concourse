@@ -9,6 +9,8 @@ import (
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
+	"github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/errdefs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
@@ -25,7 +27,7 @@ type ContainerSuite struct {
 	containerdTask      *libcontainerdfakes.FakeTask
 	rootfsManager       *runtimefakes.FakeRootfsManager
 	killer              *runtimefakes.FakeKiller
-	ioManager           *runtime.IOManager
+	ioManager           *runtimefakes.FakeIOManager
 }
 
 func (s *ContainerSuite) SetupTest() {
@@ -34,12 +36,13 @@ func (s *ContainerSuite) SetupTest() {
 	s.containerdTask = new(libcontainerdfakes.FakeTask)
 	s.rootfsManager = new(runtimefakes.FakeRootfsManager)
 	s.killer = new(runtimefakes.FakeKiller)
+	s.ioManager = new(runtimefakes.FakeIOManager)
 
 	s.container = runtime.NewContainer(
 		s.containerdContainer,
 		s.killer,
 		s.rootfsManager,
-		runtime.NewIOManager(),
+		s.ioManager,
 	)
 }
 
@@ -79,6 +82,18 @@ func (s *ContainerSuite) TestStopErrorsKill() {
 
 	err := s.container.Stop(false)
 	s.True(errors.Is(err, expectedErr))
+}
+
+func (s *ContainerSuite) TestStopCallsIOManager() {
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	id := "some-id"
+	s.containerdTask.IDReturns(id)
+
+	err := s.container.Stop(false)
+	s.NoError(err)
+	s.Equal(1, s.ioManager.DeleteCallCount())
+	actualId := s.ioManager.DeleteArgsForCall(0)
+	s.Equal(id, actualId, "container.Stop() should have called IOManager.Delete()")
 }
 
 func (s *ContainerSuite) TestRunContainerSpecErr() {
@@ -348,6 +363,55 @@ func (s *ContainerSuite) TestRunWithUserLookupNotFound() {
 
 	_, err := s.container.Run(garden.ProcessSpec{User: "some_invalid_user"}, garden.ProcessIO{})
 	s.True(errors.Is(err, runtime.UserNotFoundError{User: "some_invalid_user"}))
+}
+
+func (s *ContainerSuite) TestRunCallsIOManager() {
+	s.containerdContainer.SpecReturns(&specs.Spec{
+		Process: &specs.Process{},
+		Root:    &specs.Root{},
+	}, nil)
+
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	fakeIO := &runtimefakes.FakeIO{}
+	fakeCreator := func(_ string) (cio.IO, error) {
+		return fakeIO, nil
+	}
+	s.ioManager.CreatorReturns(fakeCreator)
+	s.containerdTask.ExecReturns(s.containerdProcess, nil)
+
+	expectedUser := specs.User{UID: 1, GID: 2, Username: "some_user"}
+	s.rootfsManager.LookupUserReturns(expectedUser, true, nil)
+
+	_, err := s.container.Run(garden.ProcessSpec{User: "some_user"}, garden.ProcessIO{})
+	s.NoError(err)
+
+	_, _, _, ioCreator := s.containerdTask.ExecArgsForCall(0)
+	expected, _ := fakeCreator("")
+	given, _ := ioCreator("")
+	s.Equal(expected, given)
+}
+
+func (s *ContainerSuite) TestAttachCallsIOManager() {
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	fakeIO := &runtimefakes.FakeIO{}
+	fakeAttach := func(f *cio.FIFOSet) (cio.IO, error) {
+		return fakeIO, nil
+	}
+	s.ioManager.AttachReturns(fakeAttach)
+
+	s.containerdTask.LoadProcessReturns(s.containerdProcess, nil)
+	s.containerdProcess.StatusReturns(client.Status{
+		Status: client.Running,
+	}, nil)
+
+	id := "some-id"
+	_, err := s.container.Attach(id, garden.ProcessIO{})
+	s.NoError(err)
+
+	_, _, ioAttach := s.containerdTask.LoadProcessArgsForCall(0)
+	expected, _ := fakeAttach(nil)
+	given, _ := ioAttach(nil)
+	s.Equal(expected, given, "task.Load() should have been called with IOManager.Attach()")
 }
 
 func (s *ContainerSuite) TestSetGraceTimeSetLabelsFails() {
