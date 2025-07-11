@@ -24,10 +24,6 @@ type Certs struct {
 	Dir string `long:"certs-dir" description:"Directory to use when creating the resource certificates volume."`
 }
 
-type RuntimeConfiguration struct {
-	Runtime string `long:"runtime" default:"guardian" choice:"guardian" choice:"containerd" choice:"houdini" description:"Runtime to use with the worker. Please note that Houdini is insecure and doesn't run 'tasks' in containers."`
-}
-
 type GuardianRuntime struct {
 	Bin            string        `long:"bin"        description:"Path to a garden server executable (non-absolute names get resolved from $PATH)."`
 	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
