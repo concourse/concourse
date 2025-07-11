@@ -25,6 +25,7 @@ type ContainerSuite struct {
 	containerdTask      *libcontainerdfakes.FakeTask
 	rootfsManager       *runtimefakes.FakeRootfsManager
 	killer              *runtimefakes.FakeKiller
+	ioManager           *runtime.IOManager
 }
 
 func (s *ContainerSuite) SetupTest() {
@@ -38,6 +39,7 @@ func (s *ContainerSuite) SetupTest() {
 		s.containerdContainer,
 		s.killer,
 		s.rootfsManager,
+		runtime.NewIOManager(),
 	)
 }
 
