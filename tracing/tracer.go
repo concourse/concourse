@@ -63,7 +63,6 @@ func (c Config) traceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace
 	}
 
 	options := append([]sdktrace.TracerProviderOption{
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithBatcher(exp),
 		sdktrace.WithResource(c.resource()),
 	}, exporterOptions...)
