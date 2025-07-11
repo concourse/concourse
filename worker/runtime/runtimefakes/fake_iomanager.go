@@ -38,6 +38,19 @@ type FakeIOManager struct {
 	deleteArgsForCall []struct {
 		arg1 string
 	}
+	GetStub        func(string) (cio.IO, bool)
+	getMutex       sync.RWMutex
+	getArgsForCall []struct {
+		arg1 string
+	}
+	getReturns struct {
+		result1 cio.IO
+		result2 bool
+	}
+	getReturnsOnCall map[int]struct {
+		result1 cio.IO
+		result2 bool
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -198,6 +211,70 @@ func (fake *FakeIOManager) DeleteArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
+func (fake *FakeIOManager) Get(arg1 string) (cio.IO, bool) {
+	fake.getMutex.Lock()
+	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
+	fake.getArgsForCall = append(fake.getArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.GetStub
+	fakeReturns := fake.getReturns
+	fake.recordInvocation("Get", []interface{}{arg1})
+	fake.getMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeIOManager) GetCallCount() int {
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
+	return len(fake.getArgsForCall)
+}
+
+func (fake *FakeIOManager) GetCalls(stub func(string) (cio.IO, bool)) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = stub
+}
+
+func (fake *FakeIOManager) GetArgsForCall(i int) string {
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
+	argsForCall := fake.getArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeIOManager) GetReturns(result1 cio.IO, result2 bool) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = nil
+	fake.getReturns = struct {
+		result1 cio.IO
+		result2 bool
+	}{result1, result2}
+}
+
+func (fake *FakeIOManager) GetReturnsOnCall(i int, result1 cio.IO, result2 bool) {
+	fake.getMutex.Lock()
+	defer fake.getMutex.Unlock()
+	fake.GetStub = nil
+	if fake.getReturnsOnCall == nil {
+		fake.getReturnsOnCall = make(map[int]struct {
+			result1 cio.IO
+			result2 bool
+		})
+	}
+	fake.getReturnsOnCall[i] = struct {
+		result1 cio.IO
+		result2 bool
+	}{result1, result2}
+}
+
 func (fake *FakeIOManager) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -207,6 +284,8 @@ func (fake *FakeIOManager) Invocations() map[string][][]interface{} {
 	defer fake.creatorMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
+	fake.getMutex.RLock()
+	defer fake.getMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

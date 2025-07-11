@@ -1,3 +1,5 @@
+//go:build linux
+
 package runtime
 
 import (
@@ -6,12 +8,14 @@ import (
 	"github.com/containerd/containerd/v2/pkg/cio"
 )
 
+//counterfeiter:generate github.com/containerd/containerd/v2/pkg/cio.IO
 //counterfeiter:generate . IOManager
 
 type IOManager interface {
 	Creator(procId string, creator cio.Creator) cio.Creator
 	Attach(id string, attach cio.Attach) cio.Attach
 	Delete(id string)
+	Get(id string) (cio.IO, bool)
 }
 
 // IOManager keeps track of the Readers that are attached to containerd Task
@@ -74,4 +78,11 @@ func (i *ioManager) Delete(id string) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
 	delete(i.ioReaders, id)
+}
+
+func (i *ioManager) Get(id string) (cio.IO, bool) {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+	cIO, exists := i.ioReaders[id]
+	return cIO, exists
 }

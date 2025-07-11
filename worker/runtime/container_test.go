@@ -44,6 +44,8 @@ func (s *ContainerSuite) SetupTest() {
 }
 
 func (s *ContainerSuite) TestStopWithKillUngracefullyStops() {
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.IDReturns("some-id")
 	err := s.container.Stop(true)
 	s.NoError(err)
 	s.Equal(1, s.killer.KillCallCount())
@@ -52,6 +54,8 @@ func (s *ContainerSuite) TestStopWithKillUngracefullyStops() {
 }
 
 func (s *ContainerSuite) TestStopWithKillGracefullyStops() {
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.IDReturns("some-id")
 	err := s.container.Stop(false)
 	s.NoError(err)
 	s.Equal(1, s.killer.KillCallCount())
@@ -70,6 +74,8 @@ func (s *ContainerSuite) TestStopErrorsTaskLookup() {
 func (s *ContainerSuite) TestStopErrorsKill() {
 	expectedErr := errors.New("kill-err")
 	s.killer.KillReturns(expectedErr)
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	s.containerdTask.IDReturns("some-id")
 
 	err := s.container.Stop(false)
 	s.True(errors.Is(err, expectedErr))
