@@ -22,27 +22,29 @@ func (s *IOManagerSuite) SetupTest() {
 }
 
 func (s *IOManagerSuite) TestTrackingNewIOReaders() {
-	id := "some-id"
-	ioCreater := s.ioManager.Creator(id, cio.NullIO)
-	expectedCIO, err := ioCreater(id)
+	containerId := "cid"
+	taskID := "tid"
+	ioCreater := s.ioManager.Creator(containerId, taskID, cio.NullIO)
+	expectedCIO, err := ioCreater("some-other-id")
 	s.NoError(err)
 
-	actualCIO, exists := s.ioManager.Get(id)
+	actualCIO, exists := s.ioManager.Get(containerId, taskID)
 	s.True(exists)
 	s.Equal(expectedCIO, actualCIO)
 }
 
 func (s *IOManagerSuite) TestClosingPreviousReaders() {
-	id := "some-id"
+	containerId := ""
+	taskID := "tid"
 	firstIO := &runtimefakes.FakeIO{}
-	ioCreater := s.ioManager.Creator(id, func(id string) (cio.IO, error) {
+	ioCreater := s.ioManager.Creator(containerId, taskID, func(id string) (cio.IO, error) {
 		return firstIO, nil
 	})
-	_, err := ioCreater(id)
+	_, err := ioCreater("some-other-id")
 	s.NoError(err)
 
 	secondIO := &runtimefakes.FakeIO{}
-	ioAttach := s.ioManager.Attach(id, func(_ *cio.FIFOSet) (cio.IO, error) {
+	ioAttach := s.ioManager.Attach(containerId, taskID, func(_ *cio.FIFOSet) (cio.IO, error) {
 		s.Zero(firstIO.CancelCallCount(), "should only be called AFTER the new IO is attached")
 		s.Zero(firstIO.CloseCallCount(), "should only be called AFTER the new IO is attached")
 		return secondIO, nil
@@ -53,20 +55,21 @@ func (s *IOManagerSuite) TestClosingPreviousReaders() {
 	s.Equal(1, firstIO.CancelCallCount(), "should have been called now that the new IO is attached")
 	s.Equal(1, firstIO.CloseCallCount(), "should have been called now that the new IO is attached")
 
-	actualIO, exists := s.ioManager.Get(id)
+	actualIO, exists := s.ioManager.Get(containerId, taskID)
 	s.True(exists)
 	s.Equal(secondIO, actualIO, "IOManager should have the new IO")
 }
 
 func (s *IOManagerSuite) TestDeletingReader() {
-	id := "some-id"
-	ioCreater := s.ioManager.Creator(id, cio.NullIO)
-	_, err := ioCreater(id)
+	containerId := "cid"
+	taskID := "tid"
+	ioCreater := s.ioManager.Creator(containerId, taskID, cio.NullIO)
+	_, err := ioCreater("some-other-id")
 	s.NoError(err)
 
-	s.ioManager.Delete(id)
+	s.ioManager.Delete(containerId)
 
-	actualCIO, exists := s.ioManager.Get(id)
+	actualCIO, exists := s.ioManager.Get(containerId, taskID)
 	s.False(exists, "the IO should have been removed from the IOManager")
 	s.Nil(actualCIO)
 }

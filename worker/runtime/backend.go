@@ -130,6 +130,12 @@ func WithPrivilegedMode(privilegedMode bespec.PrivilegedMode) GardenBackendOpt {
 	}
 }
 
+func WithIOManager(ioManager IOManager) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.ioManager = ioManager
+	}
+}
+
 type When struct {
 	Always      bool              `json:"always,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -387,6 +393,9 @@ func (b *GardenBackend) Destroy(handle string) error {
 	}
 
 	ctx := context.Background()
+
+	// Releases tracked cio.IO's for the container
+	b.ioManager.Delete(handle)
 
 	container, err := b.client.GetContainer(ctx, handle)
 	if err != nil {

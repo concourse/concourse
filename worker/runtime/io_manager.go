@@ -12,10 +12,10 @@ import (
 //counterfeiter:generate . IOManager
 
 type IOManager interface {
-	Creator(procId string, creator cio.Creator) cio.Creator
-	Attach(id string, attach cio.Attach) cio.Attach
-	Delete(id string)
-	Get(id string) (cio.IO, bool)
+	Creator(containerID, taskID string, creator cio.Creator) cio.Creator
+	Attach(containerID, taskID string, attach cio.Attach) cio.Attach
+	Delete(containerID string)
+	Get(containerID, taskID string) (cio.IO, bool)
 }
 
 // IOManager keeps track of the Readers that are attached to containerd Task
@@ -26,26 +26,32 @@ type IOManager interface {
 // client (that's us!) have to ensure only one reader is attached to the task
 // FIFO files.
 type ioManager struct {
-	ioReaders map[string]cio.IO
+	ioReaders map[string]map[string]cio.IO
 	lock      sync.Mutex
 }
 
 func NewIOManager() IOManager {
 	return &ioManager{
-		ioReaders: map[string]cio.IO{},
+		ioReaders: map[string]map[string]cio.IO{},
 		lock:      sync.Mutex{},
 	}
 }
 
-func (i *ioManager) Creator(procId string, creator cio.Creator) cio.Creator {
+func (i *ioManager) Creator(containerId, taskId string, creator cio.Creator) cio.Creator {
 	return func(id string) (cio.IO, error) {
-		cio, err := creator(id)
-		if cio != nil {
+		cIO, err := creator(id)
+		if cIO != nil {
 			i.lock.Lock()
 			defer i.lock.Unlock()
-			i.ioReaders[procId] = cio
+			if _, exists := i.ioReaders[containerId]; exists {
+				i.ioReaders[containerId][taskId] = cIO
+			} else {
+				i.ioReaders[containerId] = map[string]cio.IO{
+					taskId: cIO,
+				}
+			}
 		}
-		return cio, err
+		return cIO, err
 	}
 }
 
@@ -54,15 +60,15 @@ func (i *ioManager) Creator(procId string, creator cio.Creator) cio.Creator {
 // readers to the FIFO files BEFORE closing the previous readers. If we close
 // the previous readers first, the FIFO files will be deleted and our new
 // readers will fail to attach to the FIFO files.
-func (i *ioManager) Attach(id string, attach cio.Attach) cio.Attach {
+func (i *ioManager) Attach(containerID, taskID string, attach cio.Attach) cio.Attach {
 	return func(f *cio.FIFOSet) (cio.IO, error) {
 		i.lock.Lock()
 		defer i.lock.Unlock()
-		prevIO, exists := i.ioReaders[id]
+		prevIO, exists := i.ioReaders[containerID][taskID]
 
 		cio, err := attach(f)
 		if cio != nil {
-			i.ioReaders[id] = cio
+			i.ioReaders[containerID][taskID] = cio
 		}
 
 		if exists && prevIO != nil {
@@ -74,15 +80,15 @@ func (i *ioManager) Attach(id string, attach cio.Attach) cio.Attach {
 	}
 }
 
-func (i *ioManager) Delete(id string) {
+func (i *ioManager) Delete(containerId string) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
-	delete(i.ioReaders, id)
+	delete(i.ioReaders, containerId)
 }
 
-func (i *ioManager) Get(id string) (cio.IO, bool) {
+func (i *ioManager) Get(containerID, taskID string) (cio.IO, bool) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
-	cIO, exists := i.ioReaders[id]
+	cIO, exists := i.ioReaders[containerID][taskID]
 	return cIO, exists
 }

@@ -26,11 +26,12 @@ type BackendSuite struct {
 	suite.Suite
 	*require.Assertions
 
-	backend runtime.GardenBackend
-	client  *libcontainerdfakes.FakeClient
-	network *runtimefakes.FakeNetwork
-	userns  *runtimefakes.FakeUserNamespace
-	killer  *runtimefakes.FakeKiller
+	backend   runtime.GardenBackend
+	client    *libcontainerdfakes.FakeClient
+	network   *runtimefakes.FakeNetwork
+	userns    *runtimefakes.FakeUserNamespace
+	killer    *runtimefakes.FakeKiller
+	ioManager *runtimefakes.FakeIOManager
 }
 
 func (s *BackendSuite) SetupTest() {
@@ -38,12 +39,14 @@ func (s *BackendSuite) SetupTest() {
 	s.killer = new(runtimefakes.FakeKiller)
 	s.network = new(runtimefakes.FakeNetwork)
 	s.userns = new(runtimefakes.FakeUserNamespace)
+	s.ioManager = new(runtimefakes.FakeIOManager)
 
 	var err error
 	s.backend, err = runtime.NewGardenBackend(s.client,
 		runtime.WithKiller(s.killer),
 		runtime.WithNetwork(s.network),
 		runtime.WithUserNamespace(s.userns),
+		runtime.WithIOManager(s.ioManager),
 	)
 	s.NoError(err)
 }
@@ -526,6 +529,21 @@ func (s *BackendSuite) TestDestroySucceeds() {
 
 	err := s.backend.Destroy("some handle")
 	s.NoError(err)
+}
+
+func (s *BackendSuite) TestDestroyCallsIOManager() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeTask := new(libcontainerdfakes.FakeTask)
+	s.client.GetContainerReturns(fakeContainer, nil)
+	fakeContainer.TaskReturns(fakeTask, nil)
+
+	id := "some-handle"
+	err := s.backend.Destroy(id)
+	s.NoError(err)
+
+	s.Equal(1, s.ioManager.DeleteCallCount())
+	actualID := s.ioManager.DeleteArgsForCall(0)
+	s.Equal(id, actualID, "IOManager.Delete() should be given the container ID/Handle")
 }
 
 func (s *BackendSuite) TestDestroyCallResumeContainerTraffic() {

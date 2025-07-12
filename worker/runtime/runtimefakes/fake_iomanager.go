@@ -9,11 +9,12 @@ import (
 )
 
 type FakeIOManager struct {
-	AttachStub        func(string, cio.Attach) cio.Attach
+	AttachStub        func(string, string, cio.Attach) cio.Attach
 	attachMutex       sync.RWMutex
 	attachArgsForCall []struct {
 		arg1 string
-		arg2 cio.Attach
+		arg2 string
+		arg3 cio.Attach
 	}
 	attachReturns struct {
 		result1 cio.Attach
@@ -21,11 +22,12 @@ type FakeIOManager struct {
 	attachReturnsOnCall map[int]struct {
 		result1 cio.Attach
 	}
-	CreatorStub        func(string, cio.Creator) cio.Creator
+	CreatorStub        func(string, string, cio.Creator) cio.Creator
 	creatorMutex       sync.RWMutex
 	creatorArgsForCall []struct {
 		arg1 string
-		arg2 cio.Creator
+		arg2 string
+		arg3 cio.Creator
 	}
 	creatorReturns struct {
 		result1 cio.Creator
@@ -38,10 +40,11 @@ type FakeIOManager struct {
 	deleteArgsForCall []struct {
 		arg1 string
 	}
-	GetStub        func(string) (cio.IO, bool)
+	GetStub        func(string, string) (cio.IO, bool)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 string
+		arg2 string
 	}
 	getReturns struct {
 		result1 cio.IO
@@ -55,19 +58,20 @@ type FakeIOManager struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeIOManager) Attach(arg1 string, arg2 cio.Attach) cio.Attach {
+func (fake *FakeIOManager) Attach(arg1 string, arg2 string, arg3 cio.Attach) cio.Attach {
 	fake.attachMutex.Lock()
 	ret, specificReturn := fake.attachReturnsOnCall[len(fake.attachArgsForCall)]
 	fake.attachArgsForCall = append(fake.attachArgsForCall, struct {
 		arg1 string
-		arg2 cio.Attach
-	}{arg1, arg2})
+		arg2 string
+		arg3 cio.Attach
+	}{arg1, arg2, arg3})
 	stub := fake.AttachStub
 	fakeReturns := fake.attachReturns
-	fake.recordInvocation("Attach", []interface{}{arg1, arg2})
+	fake.recordInvocation("Attach", []interface{}{arg1, arg2, arg3})
 	fake.attachMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -81,17 +85,17 @@ func (fake *FakeIOManager) AttachCallCount() int {
 	return len(fake.attachArgsForCall)
 }
 
-func (fake *FakeIOManager) AttachCalls(stub func(string, cio.Attach) cio.Attach) {
+func (fake *FakeIOManager) AttachCalls(stub func(string, string, cio.Attach) cio.Attach) {
 	fake.attachMutex.Lock()
 	defer fake.attachMutex.Unlock()
 	fake.AttachStub = stub
 }
 
-func (fake *FakeIOManager) AttachArgsForCall(i int) (string, cio.Attach) {
+func (fake *FakeIOManager) AttachArgsForCall(i int) (string, string, cio.Attach) {
 	fake.attachMutex.RLock()
 	defer fake.attachMutex.RUnlock()
 	argsForCall := fake.attachArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeIOManager) AttachReturns(result1 cio.Attach) {
@@ -117,19 +121,20 @@ func (fake *FakeIOManager) AttachReturnsOnCall(i int, result1 cio.Attach) {
 	}{result1}
 }
 
-func (fake *FakeIOManager) Creator(arg1 string, arg2 cio.Creator) cio.Creator {
+func (fake *FakeIOManager) Creator(arg1 string, arg2 string, arg3 cio.Creator) cio.Creator {
 	fake.creatorMutex.Lock()
 	ret, specificReturn := fake.creatorReturnsOnCall[len(fake.creatorArgsForCall)]
 	fake.creatorArgsForCall = append(fake.creatorArgsForCall, struct {
 		arg1 string
-		arg2 cio.Creator
-	}{arg1, arg2})
+		arg2 string
+		arg3 cio.Creator
+	}{arg1, arg2, arg3})
 	stub := fake.CreatorStub
 	fakeReturns := fake.creatorReturns
-	fake.recordInvocation("Creator", []interface{}{arg1, arg2})
+	fake.recordInvocation("Creator", []interface{}{arg1, arg2, arg3})
 	fake.creatorMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -143,17 +148,17 @@ func (fake *FakeIOManager) CreatorCallCount() int {
 	return len(fake.creatorArgsForCall)
 }
 
-func (fake *FakeIOManager) CreatorCalls(stub func(string, cio.Creator) cio.Creator) {
+func (fake *FakeIOManager) CreatorCalls(stub func(string, string, cio.Creator) cio.Creator) {
 	fake.creatorMutex.Lock()
 	defer fake.creatorMutex.Unlock()
 	fake.CreatorStub = stub
 }
 
-func (fake *FakeIOManager) CreatorArgsForCall(i int) (string, cio.Creator) {
+func (fake *FakeIOManager) CreatorArgsForCall(i int) (string, string, cio.Creator) {
 	fake.creatorMutex.RLock()
 	defer fake.creatorMutex.RUnlock()
 	argsForCall := fake.creatorArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeIOManager) CreatorReturns(result1 cio.Creator) {
@@ -211,18 +216,19 @@ func (fake *FakeIOManager) DeleteArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeIOManager) Get(arg1 string) (cio.IO, bool) {
+func (fake *FakeIOManager) Get(arg1 string, arg2 string) (cio.IO, bool) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 string
+	}{arg1, arg2})
 	stub := fake.GetStub
 	fakeReturns := fake.getReturns
-	fake.recordInvocation("Get", []interface{}{arg1})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2})
 	fake.getMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -236,17 +242,17 @@ func (fake *FakeIOManager) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeIOManager) GetCalls(stub func(string) (cio.IO, bool)) {
+func (fake *FakeIOManager) GetCalls(stub func(string, string) (cio.IO, bool)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FakeIOManager) GetArgsForCall(i int) string {
+func (fake *FakeIOManager) GetArgsForCall(i int) (string, string) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeIOManager) GetReturns(result1 cio.IO, result2 bool) {

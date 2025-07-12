@@ -84,18 +84,6 @@ func (s *ContainerSuite) TestStopErrorsKill() {
 	s.True(errors.Is(err, expectedErr))
 }
 
-func (s *ContainerSuite) TestStopCallsIOManager() {
-	s.containerdContainer.TaskReturns(s.containerdTask, nil)
-	id := "some-id"
-	s.containerdTask.IDReturns(id)
-
-	err := s.container.Stop(false)
-	s.NoError(err)
-	s.Equal(1, s.ioManager.DeleteCallCount())
-	actualId := s.ioManager.DeleteArgsForCall(0)
-	s.Equal(id, actualId, "container.Stop() should have called IOManager.Delete()")
-}
-
 func (s *ContainerSuite) TestRunContainerSpecErr() {
 	expectedErr := errors.New("spec-err")
 	s.containerdContainer.SpecReturns(nil, expectedErr)

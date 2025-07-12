@@ -75,8 +75,6 @@ func (c *Container) Stop(kill bool) error {
 		return fmt.Errorf("task lookup: %w", err)
 	}
 
-	c.ioManager.Delete(task.ID())
-
 	behaviour := KillGracefully
 	if kill {
 		behaviour = KillUngracefully
@@ -135,7 +133,7 @@ func (c *Container) Run(
 
 	id := procID(spec)
 	cioOpts := containerdCIO(processIO, spec.TTY != nil)
-	ioCreator := c.ioManager.Creator(id, cio.NewCreator(cioOpts...))
+	ioCreator := c.ioManager.Creator(c.Handle(), id, cio.NewCreator(cioOpts...))
 
 	proc, err := task.Exec(ctx, id, &procSpec, ioCreator)
 	if err != nil {
@@ -193,7 +191,7 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 	}
 
 	cioOpts := containerdCIO(processIO, false)
-	ioAttach := c.ioManager.Attach(pid, cio.NewAttach(cioOpts...))
+	ioAttach := c.ioManager.Attach(c.Handle(), pid, cio.NewAttach(cioOpts...))
 
 	proc, err := task.LoadProcess(ctx, pid, ioAttach)
 	if err != nil {
