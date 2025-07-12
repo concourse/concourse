@@ -33,6 +33,7 @@ type GardenBackend struct {
 	killer        Killer
 	network       Network
 	rootfsManager RootfsManager
+	ioManager     IOManager
 	userNamespace UserNamespace
 	initBinPath   string
 	// override path for the seccomp profile
@@ -248,6 +249,10 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		b.initBinPath = bespec.DefaultInitBinPath
 	}
 
+	if b.ioManager == nil {
+		b.ioManager = NewIOManager()
+	}
+
 	return b, nil
 }
 
@@ -305,6 +310,7 @@ func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, 
 		cont,
 		b.killer,
 		b.rootfsManager,
+		b.ioManager,
 	), nil
 }
 
@@ -451,6 +457,7 @@ func (b *GardenBackend) Containers(properties garden.Properties) ([]garden.Conta
 			containerdContainer,
 			b.killer,
 			b.rootfsManager,
+			b.ioManager,
 		)
 	}
 
@@ -472,6 +479,7 @@ func (b *GardenBackend) Lookup(handle string) (garden.Container, error) {
 		containerdContainer,
 		b.killer,
 		b.rootfsManager,
+		b.ioManager,
 	), nil
 }
 
