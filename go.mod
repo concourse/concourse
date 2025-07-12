@@ -30,7 +30,7 @@ require (
 	github.com/concourse/retryhttp v1.2.4
 	github.com/containerd/containerd v1.7.27
 	github.com/containerd/containerd/api v1.8.0
-	github.com/containerd/containerd/v2 v2.0.4
+	github.com/containerd/containerd/v2 v2.0.5
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/go-cni v1.1.12
 	github.com/containerd/typeurl/v2 v2.2.3
