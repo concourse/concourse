@@ -34,7 +34,7 @@ func (s *IOManagerSuite) TestTrackingNewIOReaders() {
 }
 
 func (s *IOManagerSuite) TestClosingPreviousReaders() {
-	containerId := ""
+	containerId := "cid"
 	taskID := "tid"
 	firstIO := &runtimefakes.FakeIO{}
 	ioCreater := s.ioManager.Creator(containerId, taskID, func(id string) (cio.IO, error) {
@@ -58,6 +58,22 @@ func (s *IOManagerSuite) TestClosingPreviousReaders() {
 	actualIO, exists := s.ioManager.Get(containerId, taskID)
 	s.True(exists)
 	s.Equal(secondIO, actualIO, "IOManager should have the new IO")
+}
+
+func (s *IOManagerSuite) TestAttachWhenNoPreviousIOExists() {
+	containerId := "cid"
+	taskID := "tid"
+	fakeIO := &runtimefakes.FakeIO{}
+
+	ioAttach := s.ioManager.Attach(containerId, taskID, func(_ *cio.FIFOSet) (cio.IO, error) {
+		return fakeIO, nil
+	})
+	_, err := ioAttach(nil)
+	s.NoError(err)
+
+	actualIO, exists := s.ioManager.Get(containerId, taskID)
+	s.True(exists)
+	s.Equal(fakeIO, actualIO, "IOManager should have the new IO")
 }
 
 func (s *IOManagerSuite) TestDeletingReader() {

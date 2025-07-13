@@ -39,19 +39,19 @@ func NewIOManager() IOManager {
 
 func (i *ioManager) Creator(containerId, taskId string, creator cio.Creator) cio.Creator {
 	return func(id string) (cio.IO, error) {
-		cIO, err := creator(id)
-		if cIO != nil {
+		newCIO, err := creator(id)
+		if newCIO != nil {
 			i.lock.Lock()
 			defer i.lock.Unlock()
-			if _, exists := i.ioReaders[containerId]; exists {
-				i.ioReaders[containerId][taskId] = cIO
+			if _, containerIsTracked := i.ioReaders[containerId]; containerIsTracked {
+				i.ioReaders[containerId][taskId] = newCIO
 			} else {
 				i.ioReaders[containerId] = map[string]cio.IO{
-					taskId: cIO,
+					taskId: newCIO,
 				}
 			}
 		}
-		return cIO, err
+		return newCIO, err
 	}
 }
 
@@ -66,9 +66,15 @@ func (i *ioManager) Attach(containerID, taskID string, attach cio.Attach) cio.At
 		defer i.lock.Unlock()
 		prevIO, exists := i.ioReaders[containerID][taskID]
 
-		cio, err := attach(f)
-		if cio != nil {
-			i.ioReaders[containerID][taskID] = cio
+		newCIO, err := attach(f)
+		if newCIO != nil {
+			if _, containerIsTracked := i.ioReaders[containerID]; containerIsTracked {
+				i.ioReaders[containerID][taskID] = newCIO
+			} else {
+				i.ioReaders[containerID] = map[string]cio.IO{
+					taskID: newCIO,
+				}
+			}
 		}
 
 		if exists && prevIO != nil {
@@ -76,7 +82,7 @@ func (i *ioManager) Attach(containerID, taskID string, attach cio.Attach) cio.At
 			prevIO.Close()
 		}
 
-		return cio, err
+		return newCIO, err
 	}
 }
 
