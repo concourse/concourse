@@ -11,7 +11,7 @@ import Application.Models exposing (Session)
 import DownloadFly.Model exposing (Model)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, src, style)
+import Html.Attributes exposing (class, href, id, src, style, value)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
@@ -64,9 +64,21 @@ view session model =
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
             [ SideBar.view session Nothing
-            , Html.div [ class "notfound" ]
-                [ Html.div [ class "title" ] [ Html.text "Download Fly" ]
-                , Html.div [ class "reason" ] [ Html.text "DOWNLOAD FLY CLI" ]
+            , Html.div [ class "download-fly-card" ]
+                [ Html.p
+                    [ class "title" ]
+                    [ Html.text "Download fly CLI" ]
+                , Html.div
+                    [ class "body" ]
+                    [ Html.select []
+                        [ Html.option [ value "none" ] [ Html.text "Select a platform..." ]
+                        , Html.option [ value "linux/x86_64" ] [ Html.text "linux/x86_64" ]
+                        , Html.option [ value "linux/arm64" ] [ Html.text "linux/arm64" ]
+                        , Html.option [ value "macos/arm64" ] [ Html.text "macos/arm64" ]
+                        , Html.option [ value "macos/x86_64" ] [ Html.text "macos/x86_64" ]
+                        , Html.option [ value "windows/x86_64" ] [ Html.text "windows/x86_64" ]
+                        ]
+                    ]
                 ]
             ]
         ]
