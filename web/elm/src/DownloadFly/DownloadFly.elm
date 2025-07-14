@@ -11,7 +11,7 @@ import Application.Models exposing (Session)
 import DownloadFly.Model exposing (Model)
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, src)
+import Html.Attributes exposing (class, href, id, src, style)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
@@ -53,10 +53,14 @@ view session model =
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
         [ Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
-            (SideBar.sideBarIcon session
-                :: TopBar.breadcrumbs session model.route
-                ++ [ Login.view session.userState model ]
-            )
+            [ Html.div
+                [ style "display" "flex", style "align-items" "center" ]
+                (SideBar.sideBarIcon session
+                    :: TopBar.breadcrumbs session model.route
+                )
+            , Html.div []
+                [ Login.view session.userState model ]
+            ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
             [ SideBar.view session Nothing
