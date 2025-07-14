@@ -8,7 +8,13 @@ module DownloadFly.DownloadFly exposing
     )
 
 import Application.Models exposing (Session)
-import DownloadFly.Model exposing (Model)
+import DownloadFly.Model
+    exposing
+        ( Model
+        , Platform(..)
+        , platformText
+        , platformValue
+        )
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style, value)
@@ -71,12 +77,12 @@ view session model =
                 , Html.div
                     [ class "body" ]
                     [ Html.select []
-                        [ Html.option [ value "none" ] [ Html.text "Select a platform..." ]
-                        , Html.option [ value "linux/x86_64" ] [ Html.text "linux/x86_64" ]
-                        , Html.option [ value "linux/arm64" ] [ Html.text "linux/arm64" ]
-                        , Html.option [ value "macos/arm64" ] [ Html.text "macos/arm64" ]
-                        , Html.option [ value "macos/x86_64" ] [ Html.text "macos/x86_64" ]
-                        , Html.option [ value "windows/x86_64" ] [ Html.text "windows/x86_64" ]
+                        [ Html.option [ platformValue None ] [ platformText None ]
+                        , Html.option [ platformValue LinuxAmd64 ] [ platformText LinuxAmd64 ]
+                        , Html.option [ platformValue LinuxArm64 ] [ platformText LinuxArm64 ]
+                        , Html.option [ platformValue MacosAmd64 ] [ platformText MacosAmd64 ]
+                        , Html.option [ platformValue MacosArm64 ] [ platformText MacosArm64 ]
+                        , Html.option [ platformValue WindowsAmd64 ] [ platformText WindowsAmd64 ]
                         ]
                     ]
                 ]
