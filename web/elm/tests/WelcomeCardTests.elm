@@ -181,168 +181,36 @@ hasWelcomeCard setup =
                     body >> Query.children [] >> Query.index 0
             in
             [ test
-                ("lays out contents horizontally, "
-                    ++ "centers vertically"
-                )
+                "lays out contents horizontally, centers vertically"
               <|
                 downloadSection
                     >> Query.has
                         [ style "display" "flex"
                         , style "align-items" "center"
                         ]
-            , test "says 'first, download the CLI tools:'" <|
+            , test "says 'first, ' with a trailing space" <|
                 let
                     instruction =
-                        "first, download the CLI tools:"
+                        "first, "
                 in
                 downloadSection
                     >> Query.children []
                     >> Query.index 0
                     >> Query.has [ text instruction ]
-            , test
-                ("there is space between the label and "
-                    ++ "the icons"
-                )
-              <|
+            , test "has 'download fly cli' as a link to /download-fly" <|
+                let
+                    instruction =
+                        "download the fly cli"
+
+                    link =
+                        "/download-fly"
+                in
                 downloadSection
                     >> Query.children []
                     >> Query.index 0
-                    >> Query.has
-                        [ style "margin-right" "10px" ]
-            , describe "cli download icons" <|
-                let
-                    cliIcons =
-                        downloadSection
-                            >> Query.children [ tag "a" ]
-                in
-                [ test "have 'download' attribute" <|
-                    cliIcons
-                        >> Query.each
-                            (Query.has
-                                [ attribute <| Attr.download "" ]
-                            )
-                , test "icons have descriptive ARIA labels" <|
-                    cliIcons
-                        >> Expect.all
-                            [ Query.count (Expect.equal 3)
-                            , Query.index 0
-                                >> Query.has
-                                    [ attribute <|
-                                        Attr.attribute
-                                            "aria-label"
-                                            "Download OS X CLI"
-                                    ]
-                            , Query.index 1
-                                >> Query.has
-                                    [ attribute <|
-                                        Attr.attribute
-                                            "aria-label"
-                                            "Download Windows CLI"
-                                    ]
-                            , Query.index 2
-                                >> Query.has
-                                    [ attribute <|
-                                        Attr.attribute
-                                            "aria-label"
-                                            "Download Linux CLI"
-                                    ]
-                            ]
-                , defineHoverBehaviour
-                    { name = "os x cli icon"
-                    , setup = setup () |> Tuple.first
-                    , query =
-                        Common.queryView
-                            >> Query.find [ id "top-cli-osx" ]
-                    , unhoveredSelector =
-                        { description = "grey apple icon"
-                        , selector =
-                            [ style "opacity" "0.5"
-                            , style "margin" "5px"
-                            ]
-                                ++ iconSelector
-                                    { size = "32px"
-                                    , image = Assets.CliIcon Cli.OSX
-                                    }
-                        }
-                    , hoverable =
-                        Msgs.WelcomeCardCliIcon Cli.OSX
-                    , hoveredSelector =
-                        { description = "white apple icon"
-                        , selector =
-                            [ style "opacity" "1"
-                            , style "margin" "5px"
-                            ]
-                                ++ iconSelector
-                                    { size = "32px"
-                                    , image = Assets.CliIcon Cli.OSX
-                                    }
-                        }
-                    }
-                , defineHoverBehaviour
-                    { name = "windows cli icon"
-                    , setup = setup () |> Tuple.first
-                    , query =
-                        Common.queryView
-                            >> Query.find
-                                [ id "top-cli-windows" ]
-                    , unhoveredSelector =
-                        { description = "grey windows icon"
-                        , selector =
-                            [ style "opacity" "0.5"
-                            , style "margin" "5px"
-                            ]
-                                ++ iconSelector
-                                    { size = "32px"
-                                    , image = Assets.CliIcon Cli.Windows
-                                    }
-                        }
-                    , hoverable =
-                        Msgs.WelcomeCardCliIcon Cli.Windows
-                    , hoveredSelector =
-                        { description = "white windows icon"
-                        , selector =
-                            [ style "opacity" "1"
-                            , style "margin" "5px"
-                            ]
-                                ++ iconSelector
-                                    { size = "32px"
-                                    , image = Assets.CliIcon Cli.Windows
-                                    }
-                        }
-                    }
-                , defineHoverBehaviour
-                    { name = "linux cli icon"
-                    , setup = setup () |> Tuple.first
-                    , query =
-                        Common.queryView
-                            >> Query.find
-                                [ id "top-cli-linux" ]
-                    , unhoveredSelector =
-                        { description = "grey linux icon"
-                        , selector =
-                            [ style "opacity" "0.5"
-                            , style "margin" "5px"
-                            ]
-                                ++ iconSelector
-                                    { size = "32px"
-                                    , image = Assets.CliIcon Cli.Linux
-                                    }
-                        }
-                    , hoverable =
-                        Msgs.WelcomeCardCliIcon Cli.Linux
-                    , hoveredSelector =
-                        { description = "white linux icon"
-                        , selector =
-                            [ style "opacity" "1"
-                            , style "margin" "5px"
-                            ]
-                                ++ iconSelector
-                                    { size = "32px"
-                                    , image = Assets.CliIcon Cli.Linux
-                                    }
-                        }
-                    }
-                ]
+                    >> Query.children []
+                    >> Query.index 1
+                    >> Query.has [ text instruction, attribute <| Attr.href "/download-fly" ]
             ]
         ]
     , describe "ascii art" <|

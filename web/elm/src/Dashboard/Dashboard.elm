@@ -48,7 +48,7 @@ import EffectTransformer exposing (ET)
 import Favorites
 import FetchResult exposing (FetchResult(..), changedFrom)
 import HoverState
-import Html exposing (Html)
+import Html exposing (Html, a)
 import Html.Attributes
     exposing
         ( attribute
@@ -1241,10 +1241,15 @@ welcomeCard session =
                 ]
               <|
                 [ Html.div
-                    [ style "margin-right" "10px" ]
-                    [ Html.text Text.cliInstructions ]
+                    []
+                    [ Html.text "first, "
+                    , Html.a
+                        [ href "/download-fly"
+                        , style "text-decoration" "underline"
+                        ]
+                        [ Html.text "download the fly cli" ]
+                    ]
                 ]
-                    ++ List.map (cliIcon session.hovered) Cli.clis
             , Html.div
                 []
                 [ Html.text Text.setPipelineInstructions ]
