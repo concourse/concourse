@@ -317,19 +317,6 @@ all =
                         , style "filter" "grayscale(100%) opacity(30%)"
                         ]
         , describe "update" <|
-            let
-                defaultModel : Pipeline.Model
-                defaultModel =
-                    Pipeline.init
-                        { pipelineLocator =
-                            Data.pipelineId
-                                |> Data.withTeamName "some-team"
-                                |> Data.withPipelineName "some-pipeline"
-                        , turbulenceImgSrc = "some-turbulence-img-src"
-                        , selectedGroups = []
-                        }
-                        |> Tuple.first
-            in
             [ test "links at bottom right" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
