@@ -22,7 +22,7 @@ services:
         condition: service_healthy
     ports: [8080]
     volumes:
-    - ../hack/keys:/concourse-keys
+      - ../hack/keys:/concourse-keys
     environment:
       CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
       CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
@@ -49,7 +49,7 @@ services:
     depends_on: [web]
     ports: [7777, 7788]
     volumes:
-    - ../hack/keys:/concourse-keys
+      - ../hack/keys:/concourse-keys
     stop_signal: SIGUSR2
     environment:
       CONCOURSE_RUNTIME: containerd

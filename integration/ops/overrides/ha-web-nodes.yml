@@ -1,0 +1,72 @@
+services:
+  web: !override
+    image: nginx:latest
+    ports: [8080:8080]
+    volumes:
+      - ./ops/overrides/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - web-1
+      - web-2
+    networks:
+      - default
+
+  web-1:
+    image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
+    command: web
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../hack/keys:/concourse-keys
+    environment:
+      CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
+      CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
+      CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
+      CONCOURSE_PEER_ADDRESS: web-1
+
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_POSTGRES_HOST: db
+      CONCOURSE_POSTGRES_USER: dev
+      CONCOURSE_POSTGRES_PASSWORD: dev
+      CONCOURSE_POSTGRES_DATABASE: concourse
+      CONCOURSE_EXTERNAL_URL: http://localhost:8080
+      CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
+      CONCOURSE_MAIN_TEAM_LOCAL_USER: test
+      CONCOURSE_CLUSTER_NAME: test
+      CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
+      CONCOURSE_ENABLE_ACROSS_STEP: "true"
+      CONCOURSE_ENABLE_CACHE_STREAMED_VOLUMES: "true"
+
+  web-2:
+    image: ${TEST_CONCOURSE_DEV_IMAGE:-concourse/concourse:local}
+    command: web
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../hack/keys:/concourse-keys
+    environment:
+      CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
+      CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
+      CONCOURSE_TSA_HOST_KEY: /concourse-keys/tsa_host_key
+      CONCOURSE_PEER_ADDRESS: web-2
+
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_POSTGRES_HOST: db
+      CONCOURSE_POSTGRES_USER: dev
+      CONCOURSE_POSTGRES_PASSWORD: dev
+      CONCOURSE_POSTGRES_DATABASE: concourse
+      CONCOURSE_EXTERNAL_URL: http://localhost:8080
+      CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
+      CONCOURSE_MAIN_TEAM_LOCAL_USER: test
+      CONCOURSE_CLUSTER_NAME: test
+      CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
+      CONCOURSE_ENABLE_ACROSS_STEP: "true"
+      CONCOURSE_ENABLE_CACHE_STREAMED_VOLUMES: "true"
+
+  worker:
+    depends_on: !reset
+      - web-1
+      - web-2
+    environment:
+      CONCOURSE_TSA_HOST: web-1:2222,web-2:2222
