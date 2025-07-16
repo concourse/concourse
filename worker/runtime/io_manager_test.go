@@ -3,6 +3,8 @@
 package runtime_test
 
 import (
+	"errors"
+
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	"github.com/containerd/containerd/v2/pkg/cio"
@@ -75,6 +77,30 @@ func (s *IOManagerSuite) TestAttachWhenNoPreviousIOExists() {
 	actualIO, exists := s.ioManager.Get(containerId, taskID)
 	s.True(exists)
 	s.Equal(fakeIO, actualIO, "IOManager should have the new IO")
+}
+
+func (s *IOManagerSuite) TestAttachErrors() {
+	containerId := "cid"
+	taskID := "tid"
+	firstIO := &runtimefakes.FakeIO{}
+	ioCreater := s.ioManager.Creator(containerId, taskID, func(id string) (cio.IO, error) {
+		return firstIO, nil
+	})
+	_, err := ioCreater("some-other-id")
+	s.NoError(err)
+
+	ioAttach := s.ioManager.Attach(containerId, taskID, func(_ *cio.FIFOSet) (cio.IO, error) {
+		return nil, errors.New("some error from containerd's Attach func")
+	})
+	_, err = ioAttach(nil)
+	s.Error(err)
+
+	s.Equal(0, firstIO.CancelCallCount(), "Cancel() should not be called if the inner attach() func error'd")
+	s.Zero(firstIO.CloseCallCount(), "should never be called")
+
+	actualIO, exists := s.ioManager.Get(containerId, taskID)
+	s.True(exists)
+	s.Equal(firstIO, actualIO, "should return the first CIO still")
 }
 
 func (s *IOManagerSuite) TestDeletingReader() {

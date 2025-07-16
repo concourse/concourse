@@ -75,13 +75,13 @@ func (i *ioManager) Attach(containerID, taskID string, attach cio.Attach) cio.At
 					taskID: newCIO,
 				}
 			}
-		}
 
-		if exists && prevIO != nil {
-			// Calling Cancel() stops the old cio's from reading the FIFO files
-			prevIO.Cancel()
-			// Don't call prevIO.Close() because that can result in containerd
-			// deleting the FIFO files and re-attachment to fail.
+			if exists && prevIO != nil {
+				// Calling Cancel() stops the old cio's from reading the FIFO files
+				prevIO.Cancel()
+				// Don't call prevIO.Close() because that can result in containerd
+				// deleting the FIFO files and re-attachment to fail.
+			}
 		}
 
 		return newCIO, err
