@@ -37,17 +37,17 @@ func NewIOManager() IOManager {
 	}
 }
 
-func (i *ioManager) Creator(containerId, taskId string, creator cio.Creator) cio.Creator {
+func (i *ioManager) Creator(containerID, taskID string, creator cio.Creator) cio.Creator {
 	return func(id string) (cio.IO, error) {
 		newCIO, err := creator(id)
 		if newCIO != nil {
 			i.lock.Lock()
 			defer i.lock.Unlock()
-			if _, containerIsTracked := i.ioReaders[containerId]; containerIsTracked {
-				i.ioReaders[containerId][taskId] = newCIO
+			if _, containerIsTracked := i.ioReaders[containerID]; containerIsTracked {
+				i.ioReaders[containerID][taskID] = newCIO
 			} else {
-				i.ioReaders[containerId] = map[string]cio.IO{
-					taskId: newCIO,
+				i.ioReaders[containerID] = map[string]cio.IO{
+					taskID: newCIO,
 				}
 			}
 		}
@@ -78,8 +78,10 @@ func (i *ioManager) Attach(containerID, taskID string, attach cio.Attach) cio.At
 		}
 
 		if exists && prevIO != nil {
+			// Calling Cancel() stops the old cio's from reading the FIFO files
 			prevIO.Cancel()
-			prevIO.Close()
+			// Don't call prevIO.Close() because that can result in containerd
+			// deleting the FIFO files and re-attachment to fail.
 		}
 
 		return newCIO, err

@@ -46,18 +46,19 @@ func (s *IOManagerSuite) TestClosingPreviousReaders() {
 	secondIO := &runtimefakes.FakeIO{}
 	ioAttach := s.ioManager.Attach(containerId, taskID, func(_ *cio.FIFOSet) (cio.IO, error) {
 		s.Zero(firstIO.CancelCallCount(), "should only be called AFTER the new IO is attached")
-		s.Zero(firstIO.CloseCallCount(), "should only be called AFTER the new IO is attached")
+		s.Zero(firstIO.CloseCallCount(), "should never be called")
 		return secondIO, nil
 	})
 	_, err = ioAttach(nil)
 	s.NoError(err)
 
 	s.Equal(1, firstIO.CancelCallCount(), "should have been called now that the new IO is attached")
-	s.Equal(1, firstIO.CloseCallCount(), "should have been called now that the new IO is attached")
+	s.Zero(firstIO.CloseCallCount(), "should never be called")
 
 	actualIO, exists := s.ioManager.Get(containerId, taskID)
 	s.True(exists)
 	s.Equal(secondIO, actualIO, "IOManager should have the new IO")
+	s.NotEqual(actualIO, firstIO, "the previous IO should never be re-used")
 }
 
 func (s *IOManagerSuite) TestAttachWhenNoPreviousIOExists() {
