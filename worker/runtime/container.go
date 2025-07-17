@@ -43,17 +43,20 @@ type Container struct {
 	container     containerd.Container
 	killer        Killer
 	rootfsManager RootfsManager
+	ioManager     IOManager
 }
 
 func NewContainer(
 	container containerd.Container,
 	killer Killer,
 	rootfsManager RootfsManager,
+	ioManager IOManager,
 ) *Container {
 	return &Container{
 		container:     container,
 		killer:        killer,
 		rootfsManager: rootfsManager,
+		ioManager:     ioManager,
 	}
 }
 
@@ -130,8 +133,9 @@ func (c *Container) Run(
 
 	id := procID(spec)
 	cioOpts := containerdCIO(processIO, spec.TTY != nil)
+	ioCreator := c.ioManager.Creator(c.Handle(), id, cio.NewCreator(cioOpts...))
 
-	proc, err := task.Exec(ctx, id, &procSpec, cio.NewCreator(cioOpts...))
+	proc, err := task.Exec(ctx, id, &procSpec, ioCreator)
 	if err != nil {
 		return nil, fmt.Errorf("task exec: %w", err)
 	}
@@ -178,7 +182,7 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 	ctx := context.Background()
 
 	if pid == "" {
-		return nil, ErrInvalidInput("empty pid")
+		return nil, ErrInvalidInput("empty process id")
 	}
 
 	task, err := c.container.Task(ctx, cio.Load)
@@ -187,8 +191,9 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 	}
 
 	cioOpts := containerdCIO(processIO, false)
+	ioAttach := c.ioManager.Attach(c.Handle(), pid, cio.NewAttach(cioOpts...))
 
-	proc, err := task.LoadProcess(ctx, pid, cio.NewAttach(cioOpts...))
+	proc, err := task.LoadProcess(ctx, pid, ioAttach)
 	if err != nil {
 		return nil, fmt.Errorf("load proc: %w", err)
 	}

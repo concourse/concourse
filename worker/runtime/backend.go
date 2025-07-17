@@ -33,6 +33,7 @@ type GardenBackend struct {
 	killer        Killer
 	network       Network
 	rootfsManager RootfsManager
+	ioManager     IOManager
 	userNamespace UserNamespace
 	initBinPath   string
 	// override path for the seccomp profile
@@ -126,6 +127,12 @@ func WithOciHooksDir(ociHooksDir string) GardenBackendOpt {
 func WithPrivilegedMode(privilegedMode bespec.PrivilegedMode) GardenBackendOpt {
 	return func(b *GardenBackend) {
 		b.privilegedMode = privilegedMode
+	}
+}
+
+func WithIOManager(ioManager IOManager) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.ioManager = ioManager
 	}
 }
 
@@ -248,6 +255,10 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		b.initBinPath = bespec.DefaultInitBinPath
 	}
 
+	if b.ioManager == nil {
+		b.ioManager = NewIOManager()
+	}
+
 	return b, nil
 }
 
@@ -305,6 +316,7 @@ func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, 
 		cont,
 		b.killer,
 		b.rootfsManager,
+		b.ioManager,
 	), nil
 }
 
@@ -382,6 +394,9 @@ func (b *GardenBackend) Destroy(handle string) error {
 
 	ctx := context.Background()
 
+	// Releases tracked cio.IO's for the container
+	b.ioManager.Delete(handle)
+
 	container, err := b.client.GetContainer(ctx, handle)
 	if err != nil {
 		return fmt.Errorf("get container: %w", err)
@@ -451,6 +466,7 @@ func (b *GardenBackend) Containers(properties garden.Properties) ([]garden.Conta
 			containerdContainer,
 			b.killer,
 			b.rootfsManager,
+			b.ioManager,
 		)
 	}
 
@@ -472,6 +488,7 @@ func (b *GardenBackend) Lookup(handle string) (garden.Container, error) {
 		containerdContainer,
 		b.killer,
 		b.rootfsManager,
+		b.ioManager,
 	), nil
 }
 
