@@ -42,7 +42,7 @@ func InitUnauthenticated(t *testing.T, dc dctest.Cmd) (Cmd, string) {
 	require.Eventually(t, func() bool {
 		var err error
 		flyResp, err = http.Get(cliURL)
-		return err == nil
+		return err == nil && flyResp.StatusCode == 200
 	}, time.Minute, time.Second)
 
 	flyPath := filepath.Join(home, "fly")

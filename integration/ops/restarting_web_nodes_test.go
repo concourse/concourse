@@ -13,10 +13,7 @@ import (
 
 func TestRollingRestartsOfWebNodes(t *testing.T) {
 	dc := dctest.Init(t, "../docker-compose.yml", "overrides/ha-web-nodes.yml")
-
-	t.Run("deploy two web nodes", func(t *testing.T) {
-		dc.Run(t, "up", "-d")
-	})
+	dc.Run(t, "up", "-d")
 
 	fly := flytest.Init(t, dc)
 
