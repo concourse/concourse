@@ -87,4 +87,3 @@ services:
 
       # work with docker-compose's dns
       CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
-      CONCOURSE_CONTAINERD_ADDITIONAL_HOSTS: ["1.2.3.4 example.com", "5.6.7.8 another-example.com"]
