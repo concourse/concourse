@@ -287,6 +287,13 @@ func WithRestrictedNetworks(restrictedNetworks []string) CNINetworkOpt {
 	}
 }
 
+// WithAdditionalHosts defines the additional hosts that will be added to the /etc/hosts file in containers.
+func WithAdditionalHosts(additionalHosts []string) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.additionalHosts = additionalHosts
+	}
+}
+
 // WithAllowHostAccess allows containers to talk to the host
 func WithAllowHostAccess() CNINetworkOpt {
 	return func(n *cniNetwork) {
@@ -319,6 +326,7 @@ type cniNetwork struct {
 	store              FileStore
 	config             CNINetworkConfig
 	nameServers        []string
+	additionalHosts    []string
 	binariesDir        string
 	restrictedNetworks []string
 	allowHostAccess    bool
@@ -406,6 +414,10 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 		return nil, fmt.Errorf("creating /etc/hosts: %w", err)
 	}
 
+	// Adding Additional hosts as in guardian original implementation
+	// https://github.com/cloudfoundry/guardian/blob/main/kawasaki/dns/hosts_file_compiler.go
+	n.addHostsFileEntries(handle)
+
 	etcHostName, err := n.store.Create(
 		filepath.Join(handle, "/hostname"),
 		[]byte(handle+"\n"),
@@ -483,6 +495,17 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 	contents = strings.Join(resolvConfEntries, "\n") + "\n"
 
 	return []byte(contents), err
+}
+
+func (n cniNetwork) addHostsFileEntries(handle string) {
+	if len(n.additionalHosts) > 0 {
+		for _, entry := range n.additionalHosts {
+			err := n.store.Append(filepath.Join(handle, "/hosts"), []byte(entry+"\n"))
+			if err != nil {
+				fmt.Errorf("appending entry to /etc/hosts: %w", err)
+			}
+		}
+	}
 }
 
 func (n cniNetwork) restrictHostAccess() error {
