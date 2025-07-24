@@ -41,6 +41,8 @@ type Message
     | EditCommentBar DomID String
     | FocusCommentBar DomID
     | BlurCommentBar DomID
+      -- Download Fly Page
+    | PlatformSelected String
       -- common
     | Hover (Maybe DomID)
     | Click DomID

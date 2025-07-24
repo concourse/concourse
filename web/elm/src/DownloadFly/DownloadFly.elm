@@ -4,6 +4,7 @@ module DownloadFly.DownloadFly exposing
     , init
     , subscriptions
     , tooltip
+    , update
     , view
     )
 
@@ -14,10 +15,12 @@ import DownloadFly.Model
         , Platform(..)
         , platformText
         , platformValue
+        , valueToPlatform
         )
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style, value)
+import Html.Events exposing (onInput)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
 import Message.Message exposing (Message(..))
@@ -43,6 +46,7 @@ init : Flags -> ( Model, List Effect )
 init flags =
     ( { route = flags.route
       , isUserMenuExpanded = False
+      , selectedPlatform = None
       }
     , []
     )
@@ -76,7 +80,9 @@ view session model =
                     [ Html.text "Download fly CLI" ]
                 , Html.div
                     [ class "body" ]
-                    [ Html.select []
+                    [ Html.select
+                        [ onInput PlatformSelected
+                        ]
                         [ Html.option [ platformValue None ] [ platformText None ]
                         , Html.option [ platformValue LinuxAmd64 ] [ platformText LinuxAmd64 ]
                         , Html.option [ platformValue LinuxArm64 ] [ platformText LinuxArm64 ]
@@ -84,10 +90,29 @@ view session model =
                         , Html.option [ platformValue MacosArm64 ] [ platformText MacosArm64 ]
                         , Html.option [ platformValue WindowsAmd64 ] [ platformText WindowsAmd64 ]
                         ]
+                    , if model.selectedPlatform /= None then
+                        Html.div
+                            [ class "selected-platform" ]
+                            [ Html.text "Selected platform: ", platformText model.selectedPlatform ]
+
+                      else
+                        Html.text ""
                     ]
                 ]
             ]
         ]
+
+
+update : Message -> ET Model
+update msg ( model, effects ) =
+    case msg of
+        PlatformSelected platform ->
+            ( { model | selectedPlatform = valueToPlatform platform }
+            , effects
+            )
+
+        _ ->
+            ( model, effects )
 
 
 tooltip : Model -> a -> Maybe Tooltip.Tooltip

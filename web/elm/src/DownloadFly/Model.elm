@@ -3,6 +3,7 @@ module DownloadFly.Model exposing
     , Platform(..)
     , platformText
     , platformValue
+    , valueToPlatform
     )
 
 import Html
@@ -13,7 +14,9 @@ import Routes
 
 type alias Model =
     Login.Model
-        { route : Routes.Route }
+        { route : Routes.Route
+        , selectedPlatform : Platform
+        }
 
 
 type Platform
@@ -67,3 +70,25 @@ platformText platform =
 
         _ ->
             Html.text "Select a platform..."
+
+
+valueToPlatform : String -> Platform
+valueToPlatform platformStr =
+    case platformStr of
+        "linux-amd64" ->
+            LinuxAmd64
+
+        "linux-arm64" ->
+            LinuxArm64
+
+        "macos-amd64" ->
+            MacosAmd64
+
+        "macos-arm64" ->
+            MacosArm64
+
+        "windows-amd64" ->
+            WindowsAmd64
+
+        _ ->
+            None

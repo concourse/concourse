@@ -283,7 +283,7 @@ update session msg =
         (Login.update msg >> Causality.update msg)
         (Login.update msg)
         (Login.update msg >> FlySuccess.update msg)
-        (Login.update msg)
+        (Login.update msg >> DownloadFly.update msg)
         >> (case msg of
                 GoToRoute route ->
                     handleGoToRoute route
