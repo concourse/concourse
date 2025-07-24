@@ -8,7 +8,9 @@ module DownloadFly.DownloadFly exposing
     , view
     )
 
+import Api.Endpoints as Endpoints
 import Application.Models exposing (Session)
+import Assets exposing (Asset(..))
 import DownloadFly.Model
     exposing
         ( Model
@@ -34,6 +36,7 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Routes
 import SideBar.SideBar as SideBar
 import Tooltip
+import Url.Builder
 import Views.Styles
 import Views.TopBar as TopBar
 
@@ -72,6 +75,7 @@ view session model =
                 [ Login.view session.userState model ]
             ]
         , Html.div
+            --TODO: styles here is weird if you refresh the page
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
             [ SideBar.view session Nothing
             , Html.div [ class "download-fly-card" ]
@@ -91,9 +95,7 @@ view session model =
                         , Html.option [ platformValue WindowsAmd64 ] [ platformText WindowsAmd64 ]
                         ]
                     , if model.selectedPlatform /= None then
-                        Html.div
-                            [ class "selected-platform" ]
-                            [ Html.text "Selected platform: ", platformText model.selectedPlatform ]
+                        installSteps model.selectedPlatform
 
                       else
                         Html.text ""
@@ -130,3 +132,106 @@ handleDelivery delivery ( model, effects ) =
     case delivery of
         _ ->
             ( model, effects )
+
+
+installSteps : Platform -> Html msg
+installSteps platform =
+    case platform of
+        LinuxAmd64 ->
+            linuxSteps "amd64"
+
+        LinuxArm64 ->
+            linuxSteps "arm64"
+
+        MacosAmd64 ->
+            macOSSteps "amd64"
+
+        MacosArm64 ->
+            macOSSteps "arm64"
+
+        WindowsAmd64 ->
+            windowsSteps "amd64"
+
+        None ->
+            Html.div [] []
+
+
+linuxSteps : String -> Html msg
+linuxSteps arch =
+    let
+        url =
+            downloadUrlBuilder "linux" arch
+    in
+    Html.div
+        [ class "install-steps" ]
+        [ Html.div [] [ Html.text "Follow these steps to install fly:" ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text <|
+                    """curl '"""
+                        ++ url
+                        ++ """' -o fly
+chmod +x ./fly
+mv ./fly /usr/local/bin/"""
+                ]
+            ]
+        ]
+
+
+macOSSteps : String -> Html msg
+macOSSteps arch =
+    let
+        url =
+            downloadUrlBuilder "darwin" arch
+    in
+    Html.div
+        [ class "install-steps" ]
+        [ Html.div [] [ Html.text "Follow these steps to install fly:" ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text <|
+                    """curl '"""
+                        ++ url
+                        ++ """' -o fly
+chmod +x ./fly
+mv ./fly /usr/local/bin/"""
+                ]
+            ]
+        ]
+
+
+windowsSteps : String -> Html msg
+windowsSteps arch =
+    let
+        url =
+            downloadUrlBuilder "windows" arch
+    in
+    Html.div
+        [ class "install-steps" ]
+        [ Html.div [] [ Html.text "Follow these steps to install fly using PowerShell:" ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text <|
+                    -- TODO: verify windows steps work
+                    """$concoursePath = 'C:\\concourse\\'
+mkdir $concoursePath
+[Environment]::SetEnvironmentVariable('PATH', "$ENV:PATH;${concoursePath}", 'USER')
+$concourseURL = '"""
+                        ++ url
+                        ++ """'
+Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\\fly.exe\\\""""
+                ]
+            ]
+        ]
+
+
+downloadUrlBuilder : String -> String -> String
+downloadUrlBuilder os arch =
+    Endpoints.Cli
+        |> Endpoints.toString
+            [ Url.Builder.string "arch" arch
+            , Url.Builder.string "platform" os
+            ]

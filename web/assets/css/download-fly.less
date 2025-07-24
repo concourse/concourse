@@ -16,7 +16,7 @@
     }
 
     .body {
-        font-size: 14px;
+        font-size: 18px;
         margin: 10px 0px;
         display: flex;
         flex-direction: column;
@@ -36,6 +36,30 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        a {
+            text-decoration: underline;
+        }
+
+        code {
+            border: 1px solid rgb(230, 231, 232);
+            display: flex;
+            justify-content: left;
+            align-items: center;
+            margin: 15px 0px;
+            padding: 10px;
+            width: 700px;
+            text-align: left;
+            background-color: rgb(50, 48, 48);
+            color: rgb(230, 231, 232);
+            white-space: nowrap;
+            overflow: scroll;
+
+            pre {
+                margin: 0;
+                white-space: preserve nowrap;
+            }
         }
     }
 }
