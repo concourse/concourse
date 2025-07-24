@@ -500,10 +500,7 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 func (n cniNetwork) addHostsFileEntries(handle string) {
 	if len(n.additionalHosts) > 0 {
 		for _, entry := range n.additionalHosts {
-			err := n.store.Append(filepath.Join(handle, "/hosts"), []byte(entry+"\n"))
-			if err != nil {
-				fmt.Errorf("appending entry to /etc/hosts: %w", err)
-			}
+			n.store.Append(filepath.Join(handle, "/hosts"), []byte(entry+"\n"))
 		}
 	}
 }

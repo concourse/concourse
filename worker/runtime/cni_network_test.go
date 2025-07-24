@@ -176,6 +176,38 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	s.Equal(resolvConfContents, []byte(contents))
 }
 
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithAdditionalHosts() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithAdditionalHosts([]string{"example 1.2.3.4", "another-example 5.6.7.8"}),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle")
+	s.NoError(err)
+
+	_, firstHost := s.store.AppendArgsForCall(0)
+	_, secondHost := s.store.AppendArgsForCall(1)
+
+	s.Equal(firstHost, []byte("example 1.2.3.4\n"))
+	s.Equal(secondHost, []byte("another-example 5.6.7.8\n"))
+}
+
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutAdditionalHosts() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle")
+	s.NoError(err)
+
+	s.Equal(0, s.store.AppendCallCount())
+}
 func (s *CNINetworkSuite) TestSetupHostNetwork() {
 	testCases := map[string]struct {
 		cniNetworkSetup   func() (runtime.Network, error)
