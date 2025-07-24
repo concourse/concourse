@@ -416,7 +416,9 @@ func (n cniNetwork) SetupMounts(handle string) ([]specs.Mount, error) {
 
 	// Adding Additional hosts as in guardian original implementation
 	// https://github.com/cloudfoundry/guardian/blob/main/kawasaki/dns/hosts_file_compiler.go
-	n.addHostsFileEntries(handle)
+	if err := n.addHostsFileEntries(handle); err != nil {
+		return nil, fmt.Errorf("adding additional hosts: %w", err)
+	}
 
 	etcHostName, err := n.store.Create(
 		filepath.Join(handle, "/hostname"),
@@ -497,12 +499,21 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 	return []byte(contents), err
 }
 
-func (n cniNetwork) addHostsFileEntries(handle string) {
-	if len(n.additionalHosts) > 0 {
-		for _, entry := range n.additionalHosts {
-			n.store.Append(filepath.Join(handle, "/hosts"), []byte(entry+"\n"))
+func (n cniNetwork) addHostsFileEntries(handle string) error {
+	for _, entry := range n.additionalHosts {
+		fields := strings.Fields(entry)
+		if len(fields) < 2 {
+			return fmt.Errorf("invalid host entry %q: must have IP and hostname", entry)
+		}
+		ip := fields[0]
+		if net.ParseIP(ip) == nil {
+			return fmt.Errorf("invalid IP in host entry %q", entry)
+		}
+		if err := n.store.Append(filepath.Join(handle, "hosts"), []byte(entry+"\n")); err != nil {
+			return fmt.Errorf("failed to append host entry %q: %w", entry, err)
 		}
 	}
+	return nil
 }
 
 func (n cniNetwork) restrictHostAccess() error {
