@@ -12,7 +12,6 @@ module Dashboard.Styles exposing
     , highDensityToggle
     , info
     , infoBar
-    , infoCliIcon
     , inlineInstanceVar
     , instanceGroupCard
     , instanceGroupCardBadge
@@ -70,7 +69,6 @@ module Dashboard.Styles exposing
     , striped
     , teamNameHd
     , topBarContent
-    , topCliIcon
     , visibilityToggle
     , welcomeCard
     , welcomeCardBody
@@ -83,7 +81,6 @@ import ColorValues
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Grid.Constants as GridConstants
 import Html
@@ -642,20 +639,6 @@ footerLink =
     [ id "footer-link" ]
 
 
-infoCliIcon : { hovered : Bool, cli : Cli.Cli } -> List (Html.Attribute msg)
-infoCliIcon { hovered, cli } =
-    [ style "margin-right" "10px"
-    , style "width" "20px"
-    , style "height" "20px"
-    , style "background-image" <|
-        Assets.backgroundImage <|
-            Just (Assets.CliIcon cli)
-    , style "background-repeat" "no-repeat"
-    , style "background-position" "50% 50%"
-    , style "background-size" "contain"
-    ]
-
-
 docsIcon : List (Html.Attribute msg)
 docsIcon =
     [ style "margin-right" "5px"
@@ -683,26 +666,6 @@ consoleIcon =
     , style "background-position" "50% 50%"
     , style "background-size" "contain"
     , style "display" "inline-block"
-    ]
-
-
-topCliIcon : { hovered : Bool, cli : Cli.Cli } -> List (Html.Attribute msg)
-topCliIcon { hovered, cli } =
-    [ style "opacity" <|
-        if hovered then
-            "1"
-
-        else
-            "0.5"
-    , style "background-image" <|
-        Assets.backgroundImage <|
-            Just (Assets.CliIcon cli)
-    , style "background-position" "50% 50%"
-    , style "background-repeat" "no-repeat"
-    , style "width" "32px"
-    , style "height" "32px"
-    , style "margin" "5px"
-    , style "z-index" "1"
     ]
 
 

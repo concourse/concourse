@@ -16,7 +16,6 @@ module Pipeline.Pipeline exposing
 import Application.Models exposing (Session)
 import Colors
 import Concourse
-import Concourse.Cli as Cli
 import EffectTransformer exposing (ET)
 import Favorites
 import HoverState

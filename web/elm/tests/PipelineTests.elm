@@ -7,7 +7,6 @@ import ColorValues
 import Colors
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
-import Concourse.Cli exposing (Cli(..))
 import DashboardTests exposing (iconSelector)
 import Data
 import Expect exposing (..)

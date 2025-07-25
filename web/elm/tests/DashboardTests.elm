@@ -32,7 +32,6 @@ import ColorValues exposing (pinned80, pinned90)
 import Common exposing (givenDataUnauthenticated)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Card(..))
 import Data

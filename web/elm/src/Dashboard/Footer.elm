@@ -1,7 +1,6 @@
 module Dashboard.Footer exposing (handleDelivery, view)
 
 import Assets
-import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Filter as Filter
 import Dashboard.Group.Models exposing (Pipeline)
@@ -275,22 +274,3 @@ legendSeparator screenSize =
 
         ScreenSize.BigDesktop ->
             [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
-
-
-cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
-cliIcon hovered cli =
-    Html.a
-        ([ href <| Cli.downloadUrl cli
-         , title <| Cli.label cli
-         , attribute "aria-label" <| Cli.label cli
-         , id <| "cli-" ++ Cli.id cli
-         , onMouseEnter <| Hover <| Just <| FooterCliIcon cli
-         , onMouseLeave <| Hover Nothing
-         , download ""
-         ]
-            ++ Styles.infoCliIcon
-                { hovered = HoverState.isHovered (FooterCliIcon cli) hovered
-                , cli = cli
-                }
-        )
-        []

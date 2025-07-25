@@ -10,7 +10,6 @@ module Message.Message exposing
     )
 
 import Concourse
-import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Routes exposing (StepID)
@@ -89,8 +88,6 @@ type DomID
     | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.DatabaseID
-    | FooterCliIcon Cli.Cli
-    | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
     | SendTokenButton
     | CopyTokenInput

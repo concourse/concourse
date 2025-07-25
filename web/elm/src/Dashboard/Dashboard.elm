@@ -14,7 +14,6 @@ import Application.Models exposing (Session)
 import Colors
 import Concourse exposing (hyphenNotation)
 import Concourse.BuildStatus
-import Concourse.Cli as Cli
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Drag as Drag
 import Dashboard.Filter as Filter
@@ -1206,27 +1205,6 @@ welcomeCard :
     { a | hovered : HoverState.HoverState, userState : UserState.UserState }
     -> Html Message
 welcomeCard session =
-    let
-        cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
-        cliIcon hoverable cli =
-            Html.a
-                ([ href <| Cli.downloadUrl cli
-                 , attribute "aria-label" <| Cli.label cli
-                 , id <| "top-cli-" ++ Cli.id cli
-                 , onMouseEnter <| Hover <| Just <| Message.WelcomeCardCliIcon cli
-                 , onMouseLeave <| Hover Nothing
-                 , download ""
-                 ]
-                    ++ Styles.topCliIcon
-                        { hovered =
-                            HoverState.isHovered
-                                (Message.WelcomeCardCliIcon cli)
-                                hoverable
-                        , cli = cli
-                        }
-                )
-                []
-    in
     Html.div
         (id "welcome-card" :: Styles.welcomeCard)
         [ Html.div

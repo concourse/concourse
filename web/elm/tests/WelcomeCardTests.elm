@@ -5,7 +5,6 @@ import Assets
 import ColorValues
 import Common exposing (defineHoverBehaviour, givenDataUnauthenticated)
 import Concourse
-import Concourse.Cli as Cli
 import DashboardTests exposing (apiData, darkGrey, givenDataAndUser, iconSelector, userWithRoles, whenOnDashboard)
 import Data
 import Expect

@@ -10,7 +10,6 @@ module Pipeline.Styles exposing
 
 import Assets
 import Colors
-import Concourse.Cli as Cli
 import Html
 import Html.Attributes exposing (style)
 
