@@ -221,14 +221,13 @@ windowsSteps baseUrl arch =
             []
             [ Html.pre []
                 [ Html.text <|
-                    -- TODO: verify windows steps work
                     """$concoursePath = 'C:\\concourse\\'
 mkdir $concoursePath
 [Environment]::SetEnvironmentVariable('PATH', "$ENV:PATH;${concoursePath}", 'USER')
 $concourseURL = '"""
                         ++ url
                         ++ """'
-Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\\fly.exe\\\""""
+Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\\fly.exe\""""
                 ]
             ]
         ]
