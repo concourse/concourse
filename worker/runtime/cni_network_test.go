@@ -210,11 +210,10 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutAdditionalHosts() {
 }
 
 func (s *CNINetworkSuite) TestSetupMountsFailsToAppendAdditionalHost() {
-	// Arrange: set up a network with additional hosts
 	network, err := runtime.NewCNINetwork(
 		runtime.WithDefaultsForTesting(),
 		runtime.WithCNIFileStore(s.store),
-		runtime.WithAdditionalHosts([]string{"1.2.3.4 myhost"}),
+		runtime.WithAdditionalHosts([]string{"example 1.2.3.4"}),
 		runtime.WithIptables(s.iptables),
 	)
 	s.NoError(err)
@@ -227,8 +226,7 @@ func (s *CNINetworkSuite) TestSetupMountsFailsToAppendAdditionalHost() {
 
 	// Assert
 	s.Error(err)
-	s.Contains(err.Error(), "failed to append host entry")
-	s.Contains(err.Error(), "append-error")
+	s.EqualError(errors.Unwrap(err), "failed to append host entry \"example 1.2.3.4\": append-error")
 }
 
 func (s *CNINetworkSuite) TestSetupHostNetwork() {
