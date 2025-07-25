@@ -1,11 +1,16 @@
 module DownloadFly.DownloadFly exposing
-    ( documentTitle
+    ( defaultHostname
+    , directDownloadLink
+    , documentTitle
     , handleDelivery
     , init
+    , linuxSteps
+    , macosSteps
     , subscriptions
     , tooltip
     , update
     , view
+    , windowsSteps
     )
 
 import Api.Endpoints as Endpoints
@@ -45,12 +50,16 @@ type alias Flags =
     { route : Routes.Route }
 
 
+defaultHostname =
+    "https://CONCOURSE-URL"
+
+
 init : Flags -> ( Model, List Effect )
 init flags =
     ( { route = flags.route
       , isUserMenuExpanded = False
       , selectedPlatform = None
-      , hostname = "https://CONCOURSE-URL"
+      , hostname = defaultHostname
       }
     , []
     )
@@ -84,7 +93,8 @@ view session model =
                 , Html.div
                     [ class "body" ]
                     [ Html.select
-                        [ onInput PlatformSelected
+                        [ class "platforms"
+                        , onInput PlatformSelected
                         , onFocus Message.GetHostname
                         ]
                         [ Html.option [ platformValue None ] [ platformText None ]
@@ -150,10 +160,10 @@ installSteps platform baseUrl =
             linuxSteps baseUrl "arm64"
 
         MacosAmd64 ->
-            macOSSteps baseUrl "amd64"
+            macosSteps baseUrl "amd64"
 
         MacosArm64 ->
-            macOSSteps baseUrl "arm64"
+            macosSteps baseUrl "arm64"
 
         WindowsAmd64 ->
             windowsSteps baseUrl "amd64"
@@ -186,8 +196,8 @@ mv ./fly /usr/local/bin/"""
         ]
 
 
-macOSSteps : String -> String -> Html msg
-macOSSteps baseUrl arch =
+macosSteps : String -> String -> Html msg
+macosSteps baseUrl arch =
     let
         url =
             downloadUrlBuilder baseUrl "darwin" arch
