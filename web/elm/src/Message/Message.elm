@@ -43,6 +43,7 @@ type Message
     | BlurCommentBar DomID
       -- Download Fly Page
     | PlatformSelected String
+    | GetHostname
       -- common
     | Hover (Maybe DomID)
     | Click DomID

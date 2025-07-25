@@ -22,10 +22,10 @@ import DownloadFly.Model
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style, value)
-import Html.Events exposing (onInput)
+import Html.Events exposing (onClick, onInput)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
-import Message.Message exposing (Message(..))
+import Message.Message as Message exposing (Message(..))
 import Message.Subscription
     exposing
         ( Delivery(..)
@@ -50,6 +50,7 @@ init flags =
     ( { route = flags.route
       , isUserMenuExpanded = False
       , selectedPlatform = None
+      , hostname = "https://CONCOURSE-URL"
       }
     , []
     )
@@ -86,6 +87,7 @@ view session model =
                     [ class "body" ]
                     [ Html.select
                         [ onInput PlatformSelected
+                        , onClick Message.GetHostname
                         ]
                         [ Html.option [ platformValue None ] [ platformText None ]
                         , Html.option [ platformValue LinuxAmd64 ] [ platformText LinuxAmd64 ]
@@ -95,7 +97,7 @@ view session model =
                         , Html.option [ platformValue WindowsAmd64 ] [ platformText WindowsAmd64 ]
                         ]
                     , if model.selectedPlatform /= None then
-                        installSteps model.selectedPlatform
+                        installSteps model.selectedPlatform model.hostname
 
                       else
                         Html.text ""
@@ -113,6 +115,9 @@ update msg ( model, effects ) =
             , effects
             )
 
+        Message.GetHostname ->
+            ( model, Message.Effects.GetHostname :: effects )
+
         _ ->
             ( model, effects )
 
@@ -124,47 +129,50 @@ tooltip _ _ =
 
 subscriptions : List Subscription
 subscriptions =
-    []
+    [ OnHostnameReceived ]
 
 
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
     case delivery of
+        GotHostname hostname ->
+            ( { model | hostname = hostname }, effects )
+
         _ ->
             ( model, effects )
 
 
-installSteps : Platform -> Html msg
-installSteps platform =
+installSteps : Platform -> String -> Html msg
+installSteps platform baseUrl =
     case platform of
         LinuxAmd64 ->
-            linuxSteps "amd64"
+            linuxSteps baseUrl "amd64"
 
         LinuxArm64 ->
-            linuxSteps "arm64"
+            linuxSteps baseUrl "arm64"
 
         MacosAmd64 ->
-            macOSSteps "amd64"
+            macOSSteps baseUrl "amd64"
 
         MacosArm64 ->
-            macOSSteps "arm64"
+            macOSSteps baseUrl "arm64"
 
         WindowsAmd64 ->
-            windowsSteps "amd64"
+            windowsSteps baseUrl "amd64"
 
         None ->
             Html.div [] []
 
 
-linuxSteps : String -> Html msg
-linuxSteps arch =
+linuxSteps : String -> String -> Html msg
+linuxSteps baseUrl arch =
     let
         url =
-            downloadUrlBuilder "linux" arch
+            downloadUrlBuilder baseUrl "linux" arch
     in
     Html.div
         [ class "install-steps" ]
-        [ Html.div [] [ Html.text "Follow these steps to install fly:" ]
+        [ Html.div [] [ Html.text "Run these steps in your terminal to install fly:" ]
         , Html.code
             []
             [ Html.pre []
@@ -179,15 +187,15 @@ mv ./fly /usr/local/bin/"""
         ]
 
 
-macOSSteps : String -> Html msg
-macOSSteps arch =
+macOSSteps : String -> String -> Html msg
+macOSSteps baseUrl arch =
     let
         url =
-            downloadUrlBuilder "darwin" arch
+            downloadUrlBuilder baseUrl "darwin" arch
     in
     Html.div
         [ class "install-steps" ]
-        [ Html.div [] [ Html.text "Follow these steps to install fly:" ]
+        [ Html.div [] [ Html.text "Run these steps in your terminal to install fly:" ]
         , Html.code
             []
             [ Html.pre []
@@ -202,15 +210,15 @@ mv ./fly /usr/local/bin/"""
         ]
 
 
-windowsSteps : String -> Html msg
-windowsSteps arch =
+windowsSteps : String -> String -> Html msg
+windowsSteps baseUrl arch =
     let
         url =
-            downloadUrlBuilder "windows" arch
+            downloadUrlBuilder baseUrl "windows" arch
     in
     Html.div
         [ class "install-steps" ]
-        [ Html.div [] [ Html.text "Follow these steps to install fly using PowerShell:" ]
+        [ Html.div [] [ Html.text "Run these steps in your PowerShell terminal to install fly:" ]
         , Html.code
             []
             [ Html.pre []
@@ -228,10 +236,12 @@ Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\\fly.exe\\\""""
         ]
 
 
-downloadUrlBuilder : String -> String -> String
-downloadUrlBuilder os arch =
-    Endpoints.Cli
-        |> Endpoints.toString
-            [ Url.Builder.string "arch" arch
-            , Url.Builder.string "platform" os
-            ]
+downloadUrlBuilder : String -> String -> String -> String
+downloadUrlBuilder baseUrl os arch =
+    baseUrl
+        ++ (Endpoints.Cli
+                |> Endpoints.toString
+                    [ Url.Builder.string "arch" arch
+                    , Url.Builder.string "platform" os
+                    ]
+           )

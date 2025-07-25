@@ -16,6 +16,7 @@ type alias Model =
     Login.Model
         { route : Routes.Route
         , selectedPlatform : Platform
+        , hostname : String
         }
 
 
