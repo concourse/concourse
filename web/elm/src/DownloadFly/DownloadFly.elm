@@ -72,8 +72,7 @@ view session model =
                 (SideBar.sideBarIcon session
                     :: TopBar.breadcrumbs session model.route
                 )
-            , Html.div []
-                [ Login.view session.userState model ]
+            , Login.view session.userState model
             ]
         , Html.div
             (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar Routes.DownloadFly)
