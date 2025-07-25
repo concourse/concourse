@@ -22,7 +22,7 @@ import DownloadFly.Model
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
 import Html.Attributes exposing (class, href, id, src, style, value)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onFocus, onInput)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
 import Message.Message as Message exposing (Message(..))
@@ -86,7 +86,7 @@ view session model =
                     [ class "body" ]
                     [ Html.select
                         [ onInput PlatformSelected
-                        , onClick Message.GetHostname
+                        , onFocus Message.GetHostname
                         ]
                         [ Html.option [ platformValue None ] [ platformText None ]
                         , Html.option [ platformValue LinuxAmd64 ] [ platformText LinuxAmd64 ]
