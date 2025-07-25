@@ -583,7 +583,8 @@ toString route =
                 |> RouteBuilder.build
 
         DownloadFly ->
-            "download-fly"
+            ( [ "download-fly" ], [] )
+                |> RouteBuilder.build
 
 
 parsePath : Url.Url -> Maybe Route
