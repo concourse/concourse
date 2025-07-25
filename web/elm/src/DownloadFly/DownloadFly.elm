@@ -182,6 +182,7 @@ chmod +x ./fly
 mv ./fly /usr/local/bin/"""
                 ]
             ]
+        , directDownloadLink url
         ]
 
 
@@ -205,6 +206,7 @@ chmod +x ./fly
 mv ./fly /usr/local/bin/"""
                 ]
             ]
+        , directDownloadLink url
         ]
 
 
@@ -230,6 +232,7 @@ $concourseURL = '"""
 Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\\fly.exe\""""
                 ]
             ]
+        , directDownloadLink url
         ]
 
 
@@ -242,3 +245,11 @@ downloadUrlBuilder baseUrl os arch =
                     , Url.Builder.string "platform" os
                     ]
            )
+
+
+directDownloadLink : String -> Html msg
+directDownloadLink url =
+    Html.div []
+        [ Html.div [] [ Html.text "Or use this link to download the binary:" ]
+        , Html.a [ href url ] [ Html.text url ]
+        ]
