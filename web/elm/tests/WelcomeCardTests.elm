@@ -196,7 +196,7 @@ hasWelcomeCard setup =
                     >> Query.children []
                     >> Query.index 0
                     >> Query.has [ text instruction ]
-            , test "has 'download fly cli' as a link to /download-fly" <|
+            , test "has 'download fly cli' as a link to '/download-fly'" <|
                 let
                     instruction =
                         "download the fly cli"
@@ -209,7 +209,7 @@ hasWelcomeCard setup =
                     >> Query.index 0
                     >> Query.children []
                     >> Query.index 1
-                    >> Query.has [ text instruction, attribute <| Attr.href "/download-fly" ]
+                    >> Query.has [ text instruction, attribute <| Attr.href link ]
             ]
         ]
     , describe "ascii art" <|
