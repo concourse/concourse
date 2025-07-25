@@ -76,8 +76,7 @@ view session model =
                 [ Login.view session.userState model ]
             ]
         , Html.div
-            --TODO: styles here is weird if you refresh the page
-            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar Routes.DownloadFly)
             [ SideBar.view session Nothing
             , Html.div [ class "download-fly-card" ]
                 [ Html.p
