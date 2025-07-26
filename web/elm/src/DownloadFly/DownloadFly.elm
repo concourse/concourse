@@ -26,7 +26,7 @@ import DownloadFly.Model
         )
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, src, style, value)
+import Html.Attributes exposing (class, href, id, style)
 import Html.Events exposing (onFocus, onInput)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
@@ -46,17 +46,14 @@ import Views.Styles
 import Views.TopBar as TopBar
 
 
-type alias Flags =
-    { route : Routes.Route }
-
-
+defaultHostname : String
 defaultHostname =
     "https://CONCOURSE-URL"
 
 
-init : Flags -> ( Model, List Effect )
-init flags =
-    ( { route = flags.route
+init : Routes.Route -> ( Model, List Effect )
+init route =
+    ( { route = route
       , isUserMenuExpanded = False
       , selectedPlatform = None
       , hostname = defaultHostname

@@ -50,9 +50,7 @@ import HoverState
 import Html exposing (Html, a)
 import Html.Attributes
     exposing
-        ( attribute
-        , class
-        , download
+        ( class
         , href
         , id
         , src

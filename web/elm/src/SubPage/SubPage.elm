@@ -112,7 +112,7 @@ init session route =
 
         Routes.DownloadFly ->
             DownloadFly.init
-                { route = session.route }
+                session.route
                 |> Tuple.mapFirst DownloadFlyModel
 
         Routes.Causality { id, direction } ->

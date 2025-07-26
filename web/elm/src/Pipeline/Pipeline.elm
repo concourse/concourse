@@ -23,7 +23,6 @@ import Html exposing (Html)
 import Html.Attributes
     exposing
         ( class
-        , download
         , href
         , id
         , rel
@@ -31,7 +30,6 @@ import Html.Attributes
         , style
         , target
         )
-import Html.Attributes.Aria exposing (ariaLabel)
 import Html.Events exposing (onMouseEnter, onMouseLeave)
 import Http
 import Keyboard

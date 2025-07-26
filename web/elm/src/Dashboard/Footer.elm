@@ -9,8 +9,7 @@ import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, download, href, id, rel, src, style, target, title)
-import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Html.Attributes exposing (class, href, id, rel, style, target)
 import Keyboard
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
@@ -186,7 +185,7 @@ legend session model =
 concourseInfo :
     { a | hovered : HoverState.HoverState, version : String }
     -> Html Message
-concourseInfo { hovered, version } =
+concourseInfo { version } =
     Html.div (id "concourse-info" :: Styles.info)
         [ Html.div
             Styles.footerLink
