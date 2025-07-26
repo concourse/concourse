@@ -9,7 +9,6 @@ import Assets
         , toString
         )
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Cli exposing (Cli(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import Expect
 import Test exposing (Test, describe, test)
@@ -18,24 +17,7 @@ import Test exposing (Test, describe, test)
 toStringTests : Test
 toStringTests =
     describe "Assets"
-        [ describe "CliIcon"
-            [ test "OSX" <|
-                \_ ->
-                    CliIcon OSX
-                        |> toString
-                        |> Expect.equal "/public/images/apple-logo.svg"
-            , test "Windows" <|
-                \_ ->
-                    CliIcon Windows
-                        |> toString
-                        |> Expect.equal "/public/images/windows-logo.svg"
-            , test "Linux" <|
-                \_ ->
-                    CliIcon Linux
-                        |> toString
-                        |> Expect.equal "/public/images/linux-logo.svg"
-            ]
-        , test "ChevronLeft" <|
+        [ test "ChevronLeft" <|
             \_ ->
                 ChevronLeft
                     |> toString
@@ -309,13 +291,7 @@ toStringTests =
 backgroundImageTests : Test
 backgroundImageTests =
     describe "backgroundImage"
-        [ test "Just" <|
-            \_ ->
-                CliIcon OSX
-                    |> Just
-                    |> Assets.backgroundImage
-                    |> Expect.equal "url(/public/images/apple-logo.svg)"
-        , test "Nothing" <|
+        [ test "Nothing" <|
             \_ ->
                 Nothing
                     |> Assets.backgroundImage

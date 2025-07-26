@@ -1,7 +1,6 @@
 module Dashboard.Footer exposing (handleDelivery, view)
 
 import Assets
-import Concourse.Cli as Cli
 import Concourse.PipelineStatus as PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Filter as Filter
 import Dashboard.Group.Models exposing (Pipeline)
@@ -10,8 +9,7 @@ import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, download, href, id, style, title)
-import Html.Events exposing (onMouseEnter, onMouseLeave)
+import Html.Attributes exposing (class, href, id, rel, style, target)
 import Keyboard
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
@@ -187,17 +185,34 @@ legend session model =
 concourseInfo :
     { a | hovered : HoverState.HoverState, version : String }
     -> Html Message
-concourseInfo { hovered, version } =
+concourseInfo { version } =
     Html.div (id "concourse-info" :: Styles.info)
         [ Html.div
-            Styles.infoItem
-            [ Html.text <| "version: v" ++ version ]
-        , Html.div Styles.infoItem <|
-            [ Html.span
-                [ style "margin-right" "10px" ]
-                [ Html.text "cli: " ]
+            Styles.footerLink
+            [ Html.a
+                [ href "https://concourse-ci.org/docs.html"
+                , target "_blank"
+                , rel "noopener noreferrer"
+                , style "align-items" "center"
+                , style "display" "flex"
+                ]
+                [ Html.div Styles.docsIcon []
+                , Html.text "Docs"
+                ]
             ]
-                ++ List.map (cliIcon hovered) Cli.clis
+        , Html.div Styles.footerLink
+            [ Html.a
+                [ href "/download-fly"
+                , style "align-items" "center"
+                , style "display" "flex"
+                ]
+                [ Html.div Styles.consoleIcon []
+                , Html.text "Download fly cli"
+                ]
+            ]
+        , Html.div
+            [ id "version-info" ]
+            [ Html.text <| "Version: v" ++ version ]
         ]
 
 
@@ -258,22 +273,3 @@ legendSeparator screenSize =
 
         ScreenSize.BigDesktop ->
             [ Html.div Styles.legendSeparator [ Html.text "|" ] ]
-
-
-cliIcon : HoverState.HoverState -> Cli.Cli -> Html Message
-cliIcon hovered cli =
-    Html.a
-        ([ href <| Cli.downloadUrl cli
-         , title <| Cli.label cli
-         , attribute "aria-label" <| Cli.label cli
-         , id <| "cli-" ++ Cli.id cli
-         , onMouseEnter <| Hover <| Just <| FooterCliIcon cli
-         , onMouseLeave <| Hover Nothing
-         , download ""
-         ]
-            ++ Styles.infoCliIcon
-                { hovered = HoverState.isHovered (FooterCliIcon cli) hovered
-                , cli = cli
-                }
-        )
-        []

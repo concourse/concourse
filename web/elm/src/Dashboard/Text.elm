@@ -1,6 +1,5 @@
 module Dashboard.Text exposing
     ( asciiArt
-    , cliInstructions
     , setPipelineInstructions
     , welcome
     )
@@ -58,11 +57,6 @@ asciiArt =
 welcome : String
 welcome =
     "welcome to concourse!"
-
-
-cliInstructions : String
-cliInstructions =
-    "first, download the CLI tools:"
 
 
 setPipelineInstructions : String
