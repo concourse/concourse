@@ -503,7 +503,7 @@ func (n cniNetwork) addHostsFileEntries(handle string) error {
 	for _, entry := range n.additionalHosts {
 		fields := strings.Fields(entry)
 		if len(fields) < 2 {
-			return fmt.Errorf("invalid host entry %q: must have IP and hostname", entry)
+			return fmt.Errorf("invalid host entry %q: must have IP and hostname separated by a space", entry)
 		}
 		ip := fields[0]
 		if net.ParseIP(ip) == nil {
