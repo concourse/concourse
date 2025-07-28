@@ -14,20 +14,22 @@ import (
 )
 
 func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool, enableAcrossStep bool) error {
-	evaluatedTemplate, err := yamlTemplate.Evaluate(true)
+	evaluatedTemplate, err := yamlTemplate.Evaluate(strict)
 	if err != nil {
 		return err
 	}
 
 	var unmarshalledTemplate atc.Config
 	if strict {
-		// additionally catches unknown keys
-		err = yaml.UnmarshalStrict(evaluatedTemplate, &unmarshalledTemplate)
+		// UnmarshalStrict will pick up fields in structs that have the wrong names, as well as any duplicate keys in maps
+		// we should consider always using this everywhere in a later release...
+		if err := yaml.UnmarshalStrict([]byte(evaluatedTemplate), &unmarshalledTemplate); err != nil {
+			return err
+		}
 	} else {
-		err = yaml.Unmarshal(evaluatedTemplate, &unmarshalledTemplate)
-	}
-	if err != nil {
-		return err
+		if err := yaml.Unmarshal([]byte(evaluatedTemplate), &unmarshalledTemplate); err != nil {
+			return err
+		}
 	}
 
 	if enableAcrossStep {
