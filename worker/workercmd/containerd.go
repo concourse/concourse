@@ -105,6 +105,10 @@ func (cmd *WorkerCommand) buildUpNetworkOpts(logger lager.Logger, dnsServers []s
 		networkOpts = append(networkOpts, runtime.WithNameServers(dnsServers))
 	}
 
+	if len(cmd.Containerd.Network.AdditionalHosts) > 0 {
+		networkOpts = append(networkOpts, runtime.WithAdditionalHosts(cmd.Containerd.Network.AdditionalHosts))
+	}
+
 	if len(cmd.Containerd.Network.RestrictedNetworks) > 0 {
 		networkOpts = append(networkOpts, runtime.WithRestrictedNetworks(cmd.Containerd.Network.RestrictedNetworks))
 	}
