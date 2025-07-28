@@ -988,7 +988,7 @@ var _ = Describe("Pipeline", func() {
 					"some-input-name": db.InputResult{
 						Input: &db.AlgorithmInput{
 							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "1"})),
+								Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "1"})),
 								ResourceID: resource.ID(),
 							},
 							FirstOccurrence: true,
@@ -1163,7 +1163,7 @@ var _ = Describe("Pipeline", func() {
 				"build-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"key": "value"})),
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"key": "value"})),
 							ResourceID: scenario.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
@@ -1589,7 +1589,7 @@ var _ = Describe("Pipeline", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "v1"})),
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "v1"})),
 							ResourceID: scenario.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
@@ -1617,7 +1617,7 @@ var _ = Describe("Pipeline", func() {
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "v1"})),
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "v1"})),
 							ResourceID: scenario.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
@@ -1627,7 +1627,7 @@ var _ = Describe("Pipeline", func() {
 				"some-other-input": db.InputResult{
 					Input: &db.AlgorithmInput{
 						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "v3"})),
+							Version:    db.ResourceVersion(convertToMD5(atc.Version{"version": "v3"})),
 							ResourceID: scenario.Resource("some-resource").ID(),
 						},
 						FirstOccurrence: true,
