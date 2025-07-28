@@ -149,7 +149,7 @@ func (r *resourceConfigScope) FindVersion(v atc.Version) (ResourceConfigVersion,
 		Where(sq.Eq{
 			"v.resource_config_scope_id": r.id,
 		}).
-		Where(sq.Expr("v.version_sha256 = encode(digest(?, 'sha256'), 'hex')", versionByte)).
+		Where(sq.Expr("v.version_md5 = md5(?)", versionByte)).
 		RunWith(r.conn).
 		QueryRow()
 
@@ -276,9 +276,9 @@ func saveResourceVersion(tx Tx, rcsID int, version atc.Version, metadata Resourc
 
 	var checkOrder int
 	err = tx.QueryRow(`
-		INSERT INTO resource_config_versions (resource_config_scope_id, version, version_sha256, metadata, span_context)
-		SELECT $1, $2, encode(digest($3, 'sha256'), 'hex'), $4, $5
-		ON CONFLICT (resource_config_scope_id, version_sha256)
+		INSERT INTO resource_config_versions (resource_config_scope_id, version, version_md5, metadata, span_context)
+		SELECT $1, $2, md5($3), $4, $5
+		ON CONFLICT (resource_config_scope_id, version_md5)
 		DO UPDATE SET metadata = COALESCE(NULLIF(excluded.metadata, 'null'::jsonb), resource_config_versions.metadata)
 		RETURNING check_order
 		`, rcsID, string(versionJSON), string(versionJSON), string(metadataJSON), string(spanContextJSON)).Scan(&checkOrder)
@@ -305,7 +305,7 @@ func incrementCheckOrder(tx Tx, rcsID int, version string) error {
 		SET check_order = mc.co + 1
 		FROM max_checkorder mc
 		WHERE resource_config_scope_id = $1
-		AND version_sha256 = encode(digest($2, 'sha256'), 'hex')
+		AND version_md5 = md5($2)
 		AND check_order <= mc.co;`, rcsID, version)
 	return err
 }

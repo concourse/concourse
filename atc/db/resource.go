@@ -42,12 +42,12 @@ const (
 WITH RECURSIVE build_ids AS (
 		SELECT DISTINCT i.build_id
 		FROM build_resource_config_version_inputs i
-		WHERE i.resource_id=$1 AND i.version_sha256=$2
+		WHERE i.resource_id=$1 AND i.version_md5=$2
 	UNION
 		SELECT i.build_id
 		FROM build_ids bi
 		INNER JOIN build_resource_config_version_outputs o ON o.build_id = bi.build_id
-		INNER JOIN build_resource_config_version_inputs i ON i.resource_id = o.resource_id AND i.version_sha256 = o.version_sha256
+		INNER JOIN build_resource_config_version_inputs i ON i.resource_id = o.resource_id AND i.version_md5 = o.version_md5
 		WHERE i.resource_id!=$1
 )
 `
@@ -56,12 +56,12 @@ WITH RECURSIVE build_ids AS (
 WITH RECURSIVE build_ids AS (
 		SELECT DISTINCT o.build_id
 		FROM build_resource_config_version_outputs o
-		WHERE o.resource_id=$1 AND o.version_sha256=$2
+		WHERE o.resource_id=$1 AND o.version_md5=$2
 	UNION
 		SELECT o.build_id
 		FROM build_ids bi
 		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
-		INNER JOIN build_resource_config_version_outputs o ON o.resource_id = i.resource_id AND o.version_sha256 = i.version_sha256
+		INNER JOIN build_resource_config_version_outputs o ON o.resource_id = i.resource_id AND o.version_md5 = i.version_md5
 		WHERE i.resource_id!=$1
 )
 `
@@ -412,7 +412,7 @@ func (r *resource) UpdateMetadata(version atc.Version, metadata ResourceConfigMe
 			"resource_config_scope_id": r.ResourceConfigScopeID(),
 		}).
 		Where(sq.Expr(
-			"version_sha256 = encode(digest(?, 'sha256'), 'hex')", versionJSON,
+			"version_md5 = md5(?)", versionJSON,
 		)).
 		RunWith(r.conn).
 		Exec()
@@ -445,7 +445,7 @@ func (r *resource) FindVersion(v atc.Version) (ResourceConfigVersion, bool, erro
 		Where(sq.Eq{
 			"v.resource_config_scope_id": r.resourceConfigScopeID,
 		}).
-		Where(sq.Expr("v.version_sha256 = encode(digest(?, 'sha256'), 'hex')", versionByte)).
+		Where(sq.Expr("v.version_md5 = md5(?)", versionByte)).
 		RunWith(r.conn).
 		QueryRow()
 
@@ -514,7 +514,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			NOT EXISTS (
 				SELECT 1
 				FROM resource_disabled_versions d
-				WHERE v.version_sha256 = d.version_sha256
+				WHERE v.version_md5 = d.version_md5
 				AND r.resource_config_scope_id = v.resource_config_scope_id
 				AND r.id = d.resource_id
 			)
@@ -783,12 +783,12 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 		results, err = tx.Exec(`
 			DELETE FROM resource_disabled_versions
 			WHERE resource_id = $1
-			AND version_sha256 = (SELECT version_sha256 FROM resource_config_versions rcv WHERE rcv.id = $2)
+			AND version_md5 = (SELECT version_md5 FROM resource_config_versions rcv WHERE rcv.id = $2)
 			`, r.id, rcvID)
 	} else {
 		results, err = tx.Exec(`
-			INSERT INTO resource_disabled_versions (resource_id, version_sha256)
-			SELECT $1, rcv.version_sha256
+			INSERT INTO resource_disabled_versions (resource_id, version_md5)
+			SELECT $1, rcv.version_md5
 			FROM resource_config_versions rcv
 			WHERE rcv.id = $2
 			`, r.id, rcvID)
@@ -839,7 +839,7 @@ func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 		}
 
 		selectStatement = selectStatement.Where(
-			sq.Expr("version_sha256 = encode(digest(?, 'sha256'), 'hex')", versionJson),
+			sq.Expr("version_md5 = md5(?)", versionJson),
 		)
 	}
 
@@ -1184,11 +1184,11 @@ type resourceVersionKey struct {
 // causalityBuilds figures out all the builds that are related to a particular resource version
 // This can include builds that were used the resource version (and its descendents) as an input,
 // and builds that generated some ancestor of the build that generated the resource version itself.
-func causalityBuilds(tx Tx, resourceID int, versionSHA256 string, direction CausalityDirection) (map[int]*atc.CausalityBuild, map[int]*atc.CausalityJob, error) {
+func causalityBuilds(tx Tx, resourceID int, versionMD5 string, direction CausalityDirection) (map[int]*atc.CausalityBuild, map[int]*atc.CausalityJob, error) {
 	query := causalityQuery(direction)
 	// construct the job and build nodes. These are placed into a map for easy access down the line
 	rows, err := psql.Select("b.id", "b.name", "b.status", "j.id", "j.name").
-		Prefix(query, resourceID, versionSHA256).
+		Prefix(query, resourceID, versionMD5).
 		From("build_ids bi").
 		Join("builds b ON b.id = bi.build_id").
 		Join("jobs j ON b.job_id = j.id").
@@ -1241,7 +1241,7 @@ func causalityBuilds(tx Tx, resourceID int, versionSHA256 string, direction Caus
 	return builds, jobs, nil
 }
 
-func causalityResourceVersions(tx Tx, resourceID int, versionSHA256 string, direction CausalityDirection, result *atc.Causality) error {
+func causalityResourceVersions(tx Tx, resourceID int, versionMD5 string, direction CausalityDirection, result *atc.Causality) error {
 	// Bitmap to filter out resources that are not part of a output-input chain. This is done to filter out any other "root" resources.
 	// For now, the causality view is only intersted in the "downstream" resources, not neccessarily "parallel input" resources
 	// (reverse is true for upstream causality). If this ever changes in the future, it would be trivial to remove this filtering and get
@@ -1276,7 +1276,7 @@ func causalityResourceVersions(tx Tx, resourceID int, versionSHA256 string, dire
 		handleOutput = buildAsChild
 	}
 
-	builds, jobs, err := causalityBuilds(tx, resourceID, versionSHA256, direction)
+	builds, jobs, err := causalityBuilds(tx, resourceID, versionMD5, direction)
 	if err != nil {
 		return err
 	}
@@ -1285,18 +1285,18 @@ func causalityResourceVersions(tx Tx, resourceID int, versionSHA256 string, dire
 	SELECT r.id, rcv.id, r.name, rcv.version, i.build_id, 'input' AS type
 	FROM build_resource_config_version_inputs i
 	JOIN resources r ON r.id = i.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_sha256 = i.version_sha256 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN resource_config_versions rcv ON rcv.version_md5 = i.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
 	JOIN build_ids bi ON i.build_id = bi.build_id
 UNION ALL
 	SELECT r.id, rcv.id, r.name, rcv.version, o.build_id, 'output' AS type
 	FROM build_resource_config_version_outputs o
 	JOIN resources r ON r.id = o.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_sha256 = o.version_sha256 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN resource_config_versions rcv ON rcv.version_md5 = o.version_md5 AND rcv.resource_config_scope_id = r.resource_config_scope_id
 	JOIN build_ids bi ON o.build_id = bi.build_id
 LIMIT $3
 `
 
-	rows, err := tx.Query(query, resourceID, versionSHA256, causalityMaxInputsOutputs)
+	rows, err := tx.Query(query, resourceID, versionMD5, causalityMaxInputsOutputs)
 	if err != nil {
 		return err
 	}
@@ -1407,17 +1407,17 @@ func (r *resource) Causality(rcvID int, direction CausalityDirection) (atc.Causa
 
 	defer Rollback(tx) // everything is readonly, so no need to commit
 
-	var versionSHA256 string
-	err = psql.Select("version_sha256").
+	var versionMD5 string
+	err = psql.Select("version_md5").
 		From("resource_config_versions").
 		Where(sq.Eq{"id": rcvID}).
 		RunWith(tx).
-		Scan(&versionSHA256)
+		Scan(&versionMD5)
 	if err != nil {
 		return result, false, err
 	}
 
-	err = causalityResourceVersions(tx, r.id, versionSHA256, direction, &result)
+	err = causalityResourceVersions(tx, r.id, versionMD5, direction, &result)
 	if err != nil {
 		return result, false, err
 	}

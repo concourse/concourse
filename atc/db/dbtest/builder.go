@@ -2,7 +2,7 @@ package dbtest
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -619,7 +619,7 @@ func (builder Builder) WithNextInputMapping(jobName string, inputs JobInputs) Se
 			mapping[input.Name] = db.InputResult{
 				Input: &db.AlgorithmInput{
 					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(sha256Version(i.Version)),
+						Version:    db.ResourceVersion(md5Version(i.Version)),
 						ResourceID: input.ResourceID,
 					},
 					FirstOccurrence: i.FirstOccurrence,
@@ -1006,13 +1006,13 @@ func unique(kind string) string {
 	return kind + "-" + id.String()
 }
 
-func sha256Version(version atc.Version) string {
+func md5Version(version atc.Version) string {
 	versionJSON, err := json.Marshal(version)
 	if err != nil {
 		panic(err)
 	}
 
-	hasher := sha256.New()
+	hasher := md5.New()
 	hasher.Write([]byte(versionJSON))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
