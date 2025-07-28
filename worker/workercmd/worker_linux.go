@@ -34,13 +34,15 @@ type GuardianRuntime struct {
 }
 
 type ContainerdRuntime struct {
-	Config             flag.File     `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
-	Bin                string        `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
-	InitBin            string        `long:"init-bin"   description:"Path to an init executable. By default will search within the concourse/bin directory the concourse binary is in."`
-	SeccompProfilePath string        `long:"seccomp-profile" description:"Path to a seccomp filter override. By default will use a restrictive default set."`
-	OCIHooksDir        string        `long:"oci-hooks-dir" description:"Path to the oci hooks dir. By default none is provided."`
-	CNIPluginsDir      string        `long:"cni-plugins-dir" description:"Path to CNI network plugins. By default will set to the concourse/bin directory the concourse binary is in."`
-	RequestTimeout     time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
+	Config             flag.File             `long:"config"     description:"Path to a config file to use for the Containerd daemon."`
+	Bin                string                `long:"bin"        description:"Path to a containerd executable (non-absolute names get resolved from $PATH)."`
+	InitBin            string                `long:"init-bin"   description:"Path to an init executable. By default will search within the concourse/bin directory the concourse binary is in."`
+	SeccompProfilePath string                `long:"seccomp-profile" description:"Path to a seccomp filter override. By default will use a restrictive default set."`
+	OCIHooksDir        string                `long:"oci-hooks-dir" description:"Path to the oci hooks dir. By default none is provided."`
+	CNIPluginsDir      string                `long:"cni-plugins-dir" description:"Path to CNI network plugins. By default will set to the concourse/bin directory the concourse binary is in."`
+	RequestTimeout     time.Duration         `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
+	MaxContainers      int                   `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
+	PrivilegedMode     bespec.PrivilegedMode `long:"privileged-mode" default:"full" choice:"full" choice:"fuse-only" choice:"ignore" description:"How many privileges privileged containers get. full is equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
 
 	Network struct {
 		ExternalIP flag.IP `long:"external-ip" description:"IP address to use to reach container's mapped ports. Autodetected if not specified."`
@@ -57,10 +59,7 @@ type ContainerdRuntime struct {
 			Pool          string `long:"pool" default:"fd9c:31a6:c759::/64" description:"IPv6 network range to use for dynamically allocated container addresses."`
 			DisableIPMasq bool   `long:"disable-masquerade" description:"Masquerade container traffic with worker address."`
 		} `group:"IPv6 Configuration" namespace:"v6"`
-	} `group:"Container Networking"`
-
-	MaxContainers  int                   `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
-	PrivilegedMode bespec.PrivilegedMode `long:"privileged-mode" default:"full" choice:"full" choice:"fuse-only" choice:"ignore" description:"How many privileges privileged containers get. full is equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
+	} `group:"Containerd Networking"`
 }
 
 type DNSConfig struct {
