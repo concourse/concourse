@@ -35,7 +35,6 @@ import Url.Parser
         ( (</>)
         , (<?>)
         , Parser
-        , custom
         , fragment
         , int
         , map
@@ -58,6 +57,7 @@ type Route
     | FlySuccess Bool (Maybe Int)
       -- the version field is really only used as a hack to populate the breadcrumbs, it's not actually used by anyhting else
     | Causality { id : Concourse.VersionedResourceIdentifier, direction : Concourse.CausalityDirection, version : Maybe Concourse.Version, groups : List String }
+    | DownloadFly
 
 
 type SearchType
@@ -306,6 +306,11 @@ flySuccess =
         )
 
 
+downloadFly : Parser ((b -> Route) -> a) a
+downloadFly =
+    map (always DownloadFly) (s "download-fly")
+
+
 causality : Parser ((InstanceVars -> Route) -> a) a
 causality =
     let
@@ -476,6 +481,7 @@ sitemap =
         , oneOffBuild
         , flySuccess
         , causality
+        , downloadFly
         ]
 
 
@@ -574,6 +580,10 @@ toString route =
                 |> appendPath [ "resources", id.resourceName ]
                 |> appendPath [ "causality", String.fromInt id.versionID ]
                 |> appendPath [ path ]
+                |> RouteBuilder.build
+
+        DownloadFly ->
+            ( [ "download-fly" ], [] )
                 |> RouteBuilder.build
 
 
@@ -680,6 +690,9 @@ getGroups route =
         FlySuccess _ _ ->
             []
 
+        DownloadFly ->
+            []
+
 
 withGroups : List String -> Route -> Route
 withGroups groups route =
@@ -706,4 +719,7 @@ withGroups groups route =
             route
 
         FlySuccess _ _ ->
+            route
+
+        DownloadFly ->
             route

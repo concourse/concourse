@@ -28,15 +28,10 @@ module DashboardTests exposing
 
 import Application.Application as Application
 import Assets
-import ColorValues
-import Common
-    exposing
-        ( defineHoverBehaviour
-        , givenDataUnauthenticated
-        )
+import ColorValues exposing (pinned80, pinned90)
+import Common exposing (givenDataUnauthenticated)
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Cli as Cli
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Dashboard.Group.Models exposing (Card(..))
 import Data
@@ -1642,200 +1637,97 @@ all =
                     \_ ->
                         info
                             |> Query.has [ style "font-size" "1.25em" ]
-                , test "each info item is spaced out by 30px" <|
-                    \_ ->
-                        info
-                            |> Query.children []
-                            |> Query.each
-                                (Query.has [ style "margin-right" "30px" ])
-                , test "each info item centers contents vertically" <|
-                    \_ ->
-                        info
-                            |> Query.children []
-                            |> Query.each
-                                (Query.has
-                                    [ style "align-items" "center"
+                , describe "docs footer link" <|
+                    let
+                        docsFooterLink =
+                            info
+                                |> Query.children [ id "footer-link" ]
+                                |> Query.index 0
+                    in
+                    [ test "is a link to the Concourse docs website" <|
+                        \_ ->
+                            docsFooterLink
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.has
+                                    [ tag "a"
+                                    , attribute <| Attr.href "https://concourse-ci.org/docs.html"
+                                    , attribute <| Attr.rel "noopener noreferrer"
+                                    , attribute <| Attr.target "_blank"
+                                    , style "align-items" "center"
                                     , style "display" "flex"
                                     ]
-                                )
-                , test "items in CLI section are 10 px apart" <|
-                    \_ ->
-                        info
-                            |> Query.children []
-                            |> Query.index -1
-                            |> Query.children []
-                            |> Query.each
-                                (Query.has [ style "margin-right" "10px" ])
-                , describe "cli download icons" <|
-                    let
-                        cliIcons =
-                            info
+                    , test "has the FileDocument icon" <|
+                        \_ ->
+                            docsFooterLink
                                 |> Query.children []
-                                |> Query.index -1
-                                |> Query.children [ tag "a" ]
-                    in
-                    [ test "icons are grey" <|
-                        \_ ->
-                            cliIcons
-                                |> Query.each
-                                    (Query.has [ style "opacity" "0.5" ])
-                    , test "have 'download' attribute" <|
-                        \_ ->
-                            cliIcons
-                                |> Query.each
-                                    (Query.has
-                                        [ attribute <| Attr.download "" ]
-                                    )
-                    , test "icons have descriptive ARIA labels" <|
-                        \_ ->
-                            cliIcons
-                                |> Expect.all
-                                    [ Query.count (Expect.equal 3)
-                                    , Query.index 0
-                                        >> Query.has
-                                            [ attribute <|
-                                                Attr.attribute
-                                                    "aria-label"
-                                                    "Download OS X CLI"
-                                            ]
-                                    , Query.index 1
-                                        >> Query.has
-                                            [ attribute <|
-                                                Attr.attribute
-                                                    "aria-label"
-                                                    "Download Windows CLI"
-                                            ]
-                                    , Query.index 2
-                                        >> Query.has
-                                            [ attribute <|
-                                                Attr.attribute
-                                                    "aria-label"
-                                                    "Download Linux CLI"
-                                            ]
+                                |> Query.index 0
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.has
+                                    [ tag "div"
+                                    , style "background-image" "url(/public/images/file-document.svg)"
+                                    , style "background-position" "50% 50%"
+                                    , style "background-repeat" "no-repeat"
+                                    , style "background-size" "contain"
+                                    , style "display" "inline-block"
+                                    , style "width" "20px"
+                                    , style "height" "20px"
+                                    , style "margin-right" "5px"
                                     ]
-                    , defineHoverBehaviour
-                        { name = "os x cli icon"
-                        , setup =
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataUnauthenticated
-                                    (apiData [ ( "team", [] ) ])
-                                |> Tuple.first
-                                |> Application.handleCallback
-                                    (Callback.AllPipelinesFetched <|
-                                        Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
-                                    )
-                                |> Tuple.first
-                        , query = Common.queryView >> Query.find [ id "cli-osx" ]
-                        , unhoveredSelector =
-                            { description = "grey apple icon"
-                            , selector =
-                                [ style "opacity" "0.5"
-                                , style "background-size" "contain"
-                                ]
-                                    ++ iconSelector
-                                        { image = Assets.CliIcon Cli.OSX
-                                        , size = "20px"
-                                        }
-                            }
-                        , hoverable =
-                            Msgs.FooterCliIcon Cli.OSX
-                        , hoveredSelector =
-                            { description = "white apple icon"
-                            , selector =
-                                [ style "opacity" "1"
-                                , style "background-size" "contain"
-                                ]
-                                    ++ iconSelector
-                                        { image = Assets.CliIcon Cli.OSX
-                                        , size = "20px"
-                                        }
-                            }
-                        }
-                    , defineHoverBehaviour
-                        { name = "windows cli icon"
-                        , setup =
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataUnauthenticated
-                                    (apiData [ ( "team", [] ) ])
-                                |> Tuple.first
-                                |> Application.handleCallback
-                                    (Callback.AllPipelinesFetched <|
-                                        Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
-                                    )
-                                |> Tuple.first
-                        , query =
-                            Common.queryView
-                                >> Query.find [ id "cli-windows" ]
-                        , unhoveredSelector =
-                            { description = "grey windows icon"
-                            , selector =
-                                [ style "opacity" "0.5"
-                                , style "background-size" "contain"
-                                ]
-                                    ++ iconSelector
-                                        { image = Assets.CliIcon Cli.Windows
-                                        , size = "20px"
-                                        }
-                            }
-                        , hoverable =
-                            Msgs.FooterCliIcon Cli.Windows
-                        , hoveredSelector =
-                            { description = "white windows icon"
-                            , selector =
-                                [ style "opacity" "1"
-                                , style "background-size" "contain"
-                                ]
-                                    ++ iconSelector
-                                        { image = Assets.CliIcon Cli.Windows
-                                        , size = "20px"
-                                        }
-                            }
-                        }
-                    , defineHoverBehaviour
-                        { name = "linux cli icon"
-                        , setup =
-                            whenOnDashboard { highDensity = False }
-                                |> givenDataUnauthenticated
-                                    (apiData
-                                        [ ( "team", [] ) ]
-                                    )
-                                |> Tuple.first
-                                |> Application.handleCallback
-                                    (Callback.AllPipelinesFetched <|
-                                        Ok
-                                            [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
-                                    )
-                                |> Tuple.first
-                        , query =
-                            Common.queryView
-                                >> Query.find [ id "cli-linux" ]
-                        , unhoveredSelector =
-                            { description = "grey linux icon"
-                            , selector =
-                                [ style "opacity" "0.5"
-                                , style "background-size" "contain"
-                                ]
-                                    ++ iconSelector
-                                        { image = Assets.CliIcon Cli.Linux
-                                        , size = "20px"
-                                        }
-                            }
-                        , hoverable =
-                            Msgs.FooterCliIcon Cli.Linux
-                        , hoveredSelector =
-                            { description = "white linux icon"
-                            , selector =
-                                [ style "opacity" "1"
-                                , style "background-size" "contain"
-                                ]
-                                    ++ iconSelector
-                                        { image = Assets.CliIcon Cli.Linux
-                                        , size = "20px"
-                                        }
-                            }
-                        }
+                    , test "has the text 'Docs'" <|
+                        \_ ->
+                            docsFooterLink
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.children []
+                                |> Query.index 1
+                                |> Query.has [ text "Docs" ]
+                    ]
+                , describe "download fly cli footer link" <|
+                    let
+                        downloadFlyLink =
+                            info
+                                |> Query.children [ id "footer-link" ]
+                                |> Query.index 1
+                    in
+                    [ test "is a link to '/download-fly'" <|
+                        \_ ->
+                            downloadFlyLink
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.has
+                                    [ tag "a"
+                                    , attribute <| Attr.href "/download-fly"
+                                    , style "align-items" "center"
+                                    , style "display" "flex"
+                                    ]
+                    , test "has the Console icon" <|
+                        \_ ->
+                            downloadFlyLink
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.has
+                                    [ tag "div"
+                                    , style "background-image" "url(/public/images/console.svg)"
+                                    , style "background-position" "50% 50%"
+                                    , style "background-repeat" "no-repeat"
+                                    , style "background-size" "contain"
+                                    , style "display" "inline-block"
+                                    , style "width" "20px"
+                                    , style "height" "20px"
+                                    , style "margin-right" "5px"
+                                    ]
+                    , test "has the text 'Download fly cli'" <|
+                        \_ ->
+                            downloadFlyLink
+                                |> Query.children []
+                                |> Query.index 0
+                                |> Query.children []
+                                |> Query.index 1
+                                |> Query.has [ text "Download fly cli" ]
                     ]
                 , test "shows concourse version" <|
                     \_ ->
@@ -1843,7 +1735,7 @@ all =
                             |> givenClusterInfo "1.2.3" "cluster-name"
                             |> Tuple.first
                             |> Common.queryView
-                            |> Query.find [ id "concourse-info" ]
+                            |> Query.find [ id "version-info" ]
                             |> Query.has [ text "v1.2.3" ]
                 ]
             , test "hides after 10 seconds" <|

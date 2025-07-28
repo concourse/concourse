@@ -164,6 +164,9 @@ breadcrumbs session route =
                         , pipeline.archived
                         )
 
+            Routes.DownloadFly ->
+                ( [ clusterNameBreadcrumb session ], False, False )
+
             _ ->
                 ( [], False, False )
 

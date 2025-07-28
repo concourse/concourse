@@ -7,7 +7,6 @@ import ColorValues
 import Colors
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
-import Concourse.Cli exposing (Cli(..))
 import DashboardTests exposing (iconSelector)
 import Data
 import Expect exposing (..)
@@ -317,61 +316,38 @@ all =
                         , style "filter" "grayscale(100%) opacity(30%)"
                         ]
         , describe "update" <|
-            let
-                defaultModel : Pipeline.Model
-                defaultModel =
-                    Pipeline.init
-                        { pipelineLocator =
-                            Data.pipelineId
-                                |> Data.withTeamName "some-team"
-                                |> Data.withPipelineName "some-pipeline"
-                        , turbulenceImgSrc = "some-turbulence-img-src"
-                        , selectedGroups = []
-                        }
-                        |> Tuple.first
-            in
-            [ test "CLI icons at bottom right" <|
+            [ test "links at bottom right" <|
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
                         |> Common.queryView
-                        |> Query.find [ class "cli-downloads" ]
+                        |> Query.find [ class "lower-right-info" ]
                         |> Query.children []
                         |> Expect.all
                             [ Query.index 0
                                 >> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.CliIcon OSX)
+                                            Just Assets.FileDocument
                                     , style "background-position" "50% 50%"
                                     , style "background-repeat" "no-repeat"
                                     , style "width" "12px"
                                     , style "height" "12px"
                                     , style "display" "inline-block"
-                                    , attribute <| Attr.download ""
+                                    , attribute <| Attr.href "https://concourse-ci.org/docs.html"
+                                    , attribute <| Attr.rel "noopener noreferrer"
+                                    , attribute <| Attr.target "_blank"
                                     ]
                             , Query.index 1
                                 >> Query.has
                                     [ style "background-image" <|
                                         Assets.backgroundImage <|
-                                            Just (Assets.CliIcon Windows)
+                                            Just Assets.Console
                                     , style "background-position" "50% 50%"
                                     , style "background-repeat" "no-repeat"
                                     , style "width" "12px"
                                     , style "height" "12px"
                                     , style "display" "inline-block"
-                                    , attribute <| Attr.download ""
-                                    ]
-                            , Query.index 2
-                                >> Query.has
-                                    [ style "background-image" <|
-                                        Assets.backgroundImage <|
-                                            Just (Assets.CliIcon Linux)
-                                    , style "background-position" "50% 50%"
-                                    , style "background-repeat" "no-repeat"
-                                    , style "width" "12px"
-                                    , style "height" "12px"
-                                    , style "display" "inline-block"
-                                    , attribute <| Attr.download ""
+                                    , attribute <| Attr.href "/download-fly"
                                     ]
                             ]
             , test "pipeline subscribes to 1s, 5s, and 1m timers" <|

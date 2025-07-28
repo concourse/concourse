@@ -57,6 +57,9 @@ port rawHttpResponse : (String -> msg) -> Sub msg
 port scrolledToId : (( String, String ) -> msg) -> Sub msg
 
 
+port gotHostname : (String -> msg) -> Sub msg
+
+
 type alias Position =
     { x : Float
     , y : Float
@@ -88,6 +91,7 @@ type Subscription
     | OnLocalStorageReceived
     | OnCacheReceived
     | OnScrolledToId
+    | OnHostnameReceived
 
 
 type Delivery
@@ -111,6 +115,7 @@ type Delivery
     | FavoritedPipelinesReceived (Result Json.Decode.Error (Set DatabaseID))
     | FavoritedInstanceGroupsReceived (Result Json.Decode.Error (Set ( Concourse.TeamName, Concourse.PipelineName )))
     | ScrolledToId ( String, String )
+    | GotHostname String
     | Noop
 
 
@@ -189,6 +194,9 @@ runSubscription s =
 
         OnScrolledToId ->
             scrolledToId ScrolledToId
+
+        OnHostnameReceived ->
+            gotHostname GotHostname
 
 
 decodePosition : Json.Decode.Decoder Position

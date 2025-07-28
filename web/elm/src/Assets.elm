@@ -8,13 +8,13 @@ module Assets exposing
     )
 
 import Concourse.BuildStatus exposing (BuildStatus(..))
-import Concourse.Cli exposing (Cli(..))
 import Concourse.PipelineStatus exposing (PipelineStatus(..))
 import Url.Builder
 
 
 type Asset
-    = CliIcon Cli
+    = FileDocument
+    | Console
     | ChevronLeft
     | ChevronRight
     | ToggleSwitch Bool
@@ -107,20 +107,11 @@ toPath asset =
             [ "public", "images" ]
     in
     case asset of
-        CliIcon cli ->
-            let
-                imageName =
-                    case cli of
-                        OSX ->
-                            "apple"
+        FileDocument ->
+            basePath ++ [ "file-document.svg" ]
 
-                        Windows ->
-                            "windows"
-
-                        Linux ->
-                            "linux"
-            in
-            basePath ++ [ imageName ++ "-logo.svg" ]
+        Console ->
+            basePath ++ [ "console.svg" ]
 
         ChevronLeft ->
             basePath ++ [ "baseline-chevron-left.svg" ]

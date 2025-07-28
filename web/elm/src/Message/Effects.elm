@@ -96,6 +96,9 @@ port syncStickyBuildLogHeaders : () -> Cmd msg
 port scrollToId : ( String, String ) -> Cmd msg
 
 
+port getHostname : () -> Cmd msg
+
+
 type alias StickyHeaderConfig =
     { pageHeaderHeight : Float
     , pageBodyClass : String
@@ -206,6 +209,7 @@ type Effect
     | LoadFavoritedPipelines
     | SaveFavoritedInstanceGroups (Set ( Concourse.TeamName, Concourse.PipelineName ))
     | LoadFavoritedInstanceGroups
+    | GetHostname
 
 
 type alias VersionId =
@@ -735,6 +739,9 @@ runEffect effect key csrfToken =
 
         SyncStickyBuildLogHeaders ->
             syncStickyBuildLogHeaders ()
+
+        GetHostname ->
+            getHostname ()
 
 
 pipelinesSectionName : PipelinesSection -> String

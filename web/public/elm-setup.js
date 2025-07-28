@@ -364,4 +364,8 @@ app.ports.renderCausality.subscribe(function(dot) {
   );
 });
 
+app.ports.getHostname.subscribe(function () {
+  app.ports.gotHostname.send(window.location.origin);
+});
+
 var clipboard = new ClipboardJS('#copy-token');
