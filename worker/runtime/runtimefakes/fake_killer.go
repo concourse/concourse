@@ -93,8 +93,6 @@ func (fake *FakeKiller) KillReturnsOnCall(i int, result1 error) {
 func (fake *FakeKiller) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.killMutex.RLock()
-	defer fake.killMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

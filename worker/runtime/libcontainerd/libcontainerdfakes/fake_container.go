@@ -118,6 +118,21 @@ type FakeContainer struct {
 		result1 client.Task
 		result2 error
 	}
+	RestoreStub        func(context.Context, cio.Creator, string) (int, error)
+	restoreMutex       sync.RWMutex
+	restoreArgsForCall []struct {
+		arg1 context.Context
+		arg2 cio.Creator
+		arg3 string
+	}
+	restoreReturns struct {
+		result1 int
+		result2 error
+	}
+	restoreReturnsOnCall map[int]struct {
+		result1 int
+		result2 error
+	}
 	SetLabelsStub        func(context.Context, map[string]string) (map[string]string, error)
 	setLabelsMutex       sync.RWMutex
 	setLabelsArgsForCall []struct {
@@ -679,6 +694,72 @@ func (fake *FakeContainer) NewTaskReturnsOnCall(i int, result1 client.Task, resu
 	}{result1, result2}
 }
 
+func (fake *FakeContainer) Restore(arg1 context.Context, arg2 cio.Creator, arg3 string) (int, error) {
+	fake.restoreMutex.Lock()
+	ret, specificReturn := fake.restoreReturnsOnCall[len(fake.restoreArgsForCall)]
+	fake.restoreArgsForCall = append(fake.restoreArgsForCall, struct {
+		arg1 context.Context
+		arg2 cio.Creator
+		arg3 string
+	}{arg1, arg2, arg3})
+	stub := fake.RestoreStub
+	fakeReturns := fake.restoreReturns
+	fake.recordInvocation("Restore", []interface{}{arg1, arg2, arg3})
+	fake.restoreMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeContainer) RestoreCallCount() int {
+	fake.restoreMutex.RLock()
+	defer fake.restoreMutex.RUnlock()
+	return len(fake.restoreArgsForCall)
+}
+
+func (fake *FakeContainer) RestoreCalls(stub func(context.Context, cio.Creator, string) (int, error)) {
+	fake.restoreMutex.Lock()
+	defer fake.restoreMutex.Unlock()
+	fake.RestoreStub = stub
+}
+
+func (fake *FakeContainer) RestoreArgsForCall(i int) (context.Context, cio.Creator, string) {
+	fake.restoreMutex.RLock()
+	defer fake.restoreMutex.RUnlock()
+	argsForCall := fake.restoreArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeContainer) RestoreReturns(result1 int, result2 error) {
+	fake.restoreMutex.Lock()
+	defer fake.restoreMutex.Unlock()
+	fake.RestoreStub = nil
+	fake.restoreReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeContainer) RestoreReturnsOnCall(i int, result1 int, result2 error) {
+	fake.restoreMutex.Lock()
+	defer fake.restoreMutex.Unlock()
+	fake.RestoreStub = nil
+	if fake.restoreReturnsOnCall == nil {
+		fake.restoreReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.restoreReturnsOnCall[i] = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeContainer) SetLabels(arg1 context.Context, arg2 map[string]string) (map[string]string, error) {
 	fake.setLabelsMutex.Lock()
 	ret, specificReturn := fake.setLabelsReturnsOnCall[len(fake.setLabelsArgsForCall)]
@@ -938,30 +1019,6 @@ func (fake *FakeContainer) UpdateReturnsOnCall(i int, result1 error) {
 func (fake *FakeContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkpointMutex.RLock()
-	defer fake.checkpointMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.extensionsMutex.RLock()
-	defer fake.extensionsMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.imageMutex.RLock()
-	defer fake.imageMutex.RUnlock()
-	fake.infoMutex.RLock()
-	defer fake.infoMutex.RUnlock()
-	fake.labelsMutex.RLock()
-	defer fake.labelsMutex.RUnlock()
-	fake.newTaskMutex.RLock()
-	defer fake.newTaskMutex.RUnlock()
-	fake.setLabelsMutex.RLock()
-	defer fake.setLabelsMutex.RUnlock()
-	fake.specMutex.RLock()
-	defer fake.specMutex.RUnlock()
-	fake.taskMutex.RLock()
-	defer fake.taskMutex.RUnlock()
-	fake.updateMutex.RLock()
-	defer fake.updateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

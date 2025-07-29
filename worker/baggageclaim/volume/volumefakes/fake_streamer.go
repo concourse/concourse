@@ -173,10 +173,6 @@ func (fake *FakeStreamer) OutReturnsOnCall(i int, result1 error) {
 func (fake *FakeStreamer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.inMutex.RLock()
-	defer fake.inMutex.RUnlock()
-	fake.outMutex.RLock()
-	defer fake.outMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

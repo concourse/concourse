@@ -837,28 +837,6 @@ func (fake *FakeVolume) StreamP2pOutReturnsOnCall(i int, result1 error) {
 func (fake *FakeVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.destroyMutex.RLock()
-	defer fake.destroyMutex.RUnlock()
-	fake.getPrivilegedMutex.RLock()
-	defer fake.getPrivilegedMutex.RUnlock()
-	fake.getStreamInP2pUrlMutex.RLock()
-	defer fake.getStreamInP2pUrlMutex.RUnlock()
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	fake.pathMutex.RLock()
-	defer fake.pathMutex.RUnlock()
-	fake.propertiesMutex.RLock()
-	defer fake.propertiesMutex.RUnlock()
-	fake.setPrivilegedMutex.RLock()
-	defer fake.setPrivilegedMutex.RUnlock()
-	fake.setPropertyMutex.RLock()
-	defer fake.setPropertyMutex.RUnlock()
-	fake.streamInMutex.RLock()
-	defer fake.streamInMutex.RUnlock()
-	fake.streamOutMutex.RLock()
-	defer fake.streamOutMutex.RUnlock()
-	fake.streamP2pOutMutex.RLock()
-	defer fake.streamP2pOutMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

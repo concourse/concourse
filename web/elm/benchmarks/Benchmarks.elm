@@ -828,6 +828,8 @@ log =
     , savedPosition = Nothing
     , style = ansiLogStyle
     , remainder = ""
+    , currentLinkParams = []
+    , currentLinkUrl = Nothing
     }
 
 

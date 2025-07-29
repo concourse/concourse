@@ -77,3 +77,7 @@ func (c *container) Update(ctx context.Context, opts ...containerd.UpdateContain
 func (c *container) Checkpoint(ctx context.Context, id string, opts ...containerd.CheckpointOpts) (containerd.Image, error) {
 	return c.container.Checkpoint(ctx, id, opts...)
 }
+
+func (c *container) Restore(ctx context.Context, ioCreate cio.Creator, rootDir string) (int, error) {
+	return c.container.Restore(ctx, ioCreate, rootDir)
+}

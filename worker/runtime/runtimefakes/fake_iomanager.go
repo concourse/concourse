@@ -284,14 +284,6 @@ func (fake *FakeIOManager) GetReturnsOnCall(i int, result1 cio.IO, result2 bool)
 func (fake *FakeIOManager) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.attachMutex.RLock()
-	defer fake.attachMutex.RUnlock()
-	fake.creatorMutex.RLock()
-	defer fake.creatorMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.getMutex.RLock()
-	defer fake.getMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
