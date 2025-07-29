@@ -32,7 +32,7 @@ func loginAndRetry(parser *flags.Parser, err error) error {
 	if err == concourse.ErrUnauthorized && stdoutIsTTY && stdinIsTTY {
 		fmt.Fprintln(ui.Stderr, "could not find a valid token.")
 
-		login := &commands.LoginCommand{BrowserOnly: true}
+		login := &commands.LoginCommand{}
 		err = login.Execute([]string{})
 
 		if err == nil {
