@@ -738,26 +738,6 @@ func (fake *FakeProcess) WaitReturnsOnCall(i int, result1 <-chan client.ExitStat
 func (fake *FakeProcess) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeIOMutex.RLock()
-	defer fake.closeIOMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.iOMutex.RLock()
-	defer fake.iOMutex.RUnlock()
-	fake.killMutex.RLock()
-	defer fake.killMutex.RUnlock()
-	fake.pidMutex.RLock()
-	defer fake.pidMutex.RUnlock()
-	fake.resizeMutex.RLock()
-	defer fake.resizeMutex.RUnlock()
-	fake.startMutex.RLock()
-	defer fake.startMutex.RUnlock()
-	fake.statusMutex.RLock()
-	defer fake.statusMutex.RUnlock()
-	fake.waitMutex.RLock()
-	defer fake.waitMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

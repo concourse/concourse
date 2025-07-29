@@ -619,22 +619,6 @@ func (fake *FakeTSAClient) VolumesToDestroyReturnsOnCall(i int, result1 []string
 func (fake *FakeTSAClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.containersToDestroyMutex.RLock()
-	defer fake.containersToDestroyMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.landMutex.RLock()
-	defer fake.landMutex.RUnlock()
-	fake.registerMutex.RLock()
-	defer fake.registerMutex.RUnlock()
-	fake.reportContainersMutex.RLock()
-	defer fake.reportContainersMutex.RUnlock()
-	fake.reportVolumesMutex.RLock()
-	defer fake.reportVolumesMutex.RUnlock()
-	fake.retireMutex.RLock()
-	defer fake.retireMutex.RUnlock()
-	fake.volumesToDestroyMutex.RLock()
-	defer fake.volumesToDestroyMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

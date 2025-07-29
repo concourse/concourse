@@ -625,24 +625,6 @@ func (fake *FakeFilesystemInitVolume) StorePropertiesReturnsOnCall(i int, result
 func (fake *FakeFilesystemInitVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.dataPathMutex.RLock()
-	defer fake.dataPathMutex.RUnlock()
-	fake.destroyMutex.RLock()
-	defer fake.destroyMutex.RUnlock()
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	fake.initializeMutex.RLock()
-	defer fake.initializeMutex.RUnlock()
-	fake.loadPrivilegedMutex.RLock()
-	defer fake.loadPrivilegedMutex.RUnlock()
-	fake.loadPropertiesMutex.RLock()
-	defer fake.loadPropertiesMutex.RUnlock()
-	fake.parentMutex.RLock()
-	defer fake.parentMutex.RUnlock()
-	fake.storePrivilegedMutex.RLock()
-	defer fake.storePrivilegedMutex.RUnlock()
-	fake.storePropertiesMutex.RLock()
-	defer fake.storePropertiesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

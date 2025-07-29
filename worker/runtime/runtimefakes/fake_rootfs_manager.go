@@ -174,10 +174,6 @@ func (fake *FakeRootfsManager) SetupCwdReturnsOnCall(i int, result1 error) {
 func (fake *FakeRootfsManager) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.lookupUserMutex.RLock()
-	defer fake.lookupUserMutex.RUnlock()
-	fake.setupCwdMutex.RLock()
-	defer fake.setupCwdMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
