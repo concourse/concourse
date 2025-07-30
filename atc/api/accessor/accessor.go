@@ -244,11 +244,7 @@ func (a *access) userID() string {
 }
 
 func (a *access) userName() string {
-	if a.claim("preferred_username") != "" {
-		return a.claim("preferred_username")
-	}
-
-	return a.claim("name")
+	return a.claim("preferred_username")
 }
 
 func (a *access) connectorID() string {
