@@ -41,7 +41,7 @@ type environment struct {
 	ConcourseImageName   string `env:"CONCOURSE_IMAGE_NAME,required"`
 	ConcourseImageTag    string `env:"CONCOURSE_IMAGE_TAG"`
 	FlyPath              string `env:"FLY_PATH"`
-	K8sEngine            string `env:"K8S_ENGINE" envDefault:"LKE"`
+	K8sEngine            string `env:"K8S_ENGINE" envDefault:"GKE"`
 	InCluster            bool   `env:"IN_CLUSTER" envDefault:"false"`
 }
 
