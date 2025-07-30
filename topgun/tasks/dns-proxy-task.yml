@@ -12,4 +12,5 @@ run:
     - |
       cat /etc/resolv.conf
 
-      ping -c 1 -w 5 ((url))
+      apk add --quiet --no-progress --no-cache wget
+      wget -O- ((url))
