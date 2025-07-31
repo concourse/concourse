@@ -21,12 +21,12 @@ func TestRollingRestartsOfWebNodes(t *testing.T) {
 	fly.Run(t, "unpause-pipeline", "-p", "test")
 	fly.Run(t, "trigger-job", "--job", "test/stream-logs")
 
+	buildLogs := new(bytes.Buffer)
 	t.Run("check logs and restart web nodes", func(t *testing.T) {
 		t.Parallel()
 		t.Run("build logs continue to stream", func(t *testing.T) {
 			t.Parallel()
-			logs := new(bytes.Buffer)
-			fly.Stdout = logs
+			fly.Stdout = buildLogs
 			t.Run("run fly in parallel", func(t *testing.T) {
 				t.Parallel()
 				fly.Run(t, "watch", "--job", "test/stream-logs")
@@ -34,7 +34,7 @@ func TestRollingRestartsOfWebNodes(t *testing.T) {
 			t.Run("check logs", func(t *testing.T) {
 				t.Parallel()
 				require.EventuallyWithT(t, func(collect *assert.CollectT) {
-					output := logs.String()
+					output := buildLogs.String()
 					require.Contains(collect, output, "Hello 1")
 					require.Contains(collect, output, "Hello 2")
 					require.Contains(collect, output, "Hello 3")
@@ -47,7 +47,13 @@ func TestRollingRestartsOfWebNodes(t *testing.T) {
 
 		t.Run("Web nodes are restarted", func(t *testing.T) {
 			t.Parallel()
-			time.Sleep(10 * time.Second)
+			require.EventuallyWithT(t, func(collect *assert.CollectT) {
+				output := buildLogs.String()
+				require.Contains(collect, output, "Hello 1")
+				require.Contains(collect, output, "Hello 2")
+				require.Contains(collect, output, "Hello 3")
+			}, 60*time.Second, 1*time.Second)
+
 			dc.Run(t, "restart", "web-1")
 			time.Sleep(10 * time.Second)
 			dc.Run(t, "restart", "web-2")
