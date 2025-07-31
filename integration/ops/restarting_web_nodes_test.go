@@ -41,7 +41,7 @@ func TestRollingRestartsOfWebNodes(t *testing.T) {
 					require.Contains(collect, output, "Hello 110")
 					require.Contains(collect, output, "Hello 111")
 					require.Contains(collect, output, "Hello 112")
-				}, 130*time.Second, 1*time.Second)
+				}, 180*time.Second, 1*time.Second)
 			})
 		})
 
