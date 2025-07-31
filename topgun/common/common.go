@@ -282,7 +282,7 @@ func JobInstances(job string) []BoshInstance {
 }
 
 func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
-	session := SpawnBosh("instances", "-p", "--dns")
+	session := SpawnBosh("instances", "-p")
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 
