@@ -180,7 +180,6 @@ type BoshInstance struct {
 	Group string
 	ID    string
 	IP    string
-	DNS   string
 }
 
 func StartDeploy(manifest string, args ...string) *gexec.Session {
@@ -304,7 +303,6 @@ func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 				Group: group,
 				ID:    id,
 				IP:    instanceMatch[4],
-				DNS:   instanceMatch[5],
 			}
 
 			instances[group] = append(instances[group], instance)

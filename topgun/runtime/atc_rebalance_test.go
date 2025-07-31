@@ -37,18 +37,12 @@ var _ = Describe("Rebalancing workers", func() {
 			Eventually(func() string {
 				workers := FlyTable("workers", "-d")
 				return strings.Split(workers[0]["garden address"], ":")[0]
-			}).Should(SatisfyAny(
-				Equal(webInstances[0].IP),
-				Equal(webInstances[0].DNS),
-			))
+			}).Should(Equal(webInstances[0].IP))
 
 			Eventually(func() string {
 				workers := FlyTable("workers", "-d")
 				return strings.Split(workers[0]["garden address"], ":")[0]
-			}).Should(SatisfyAny(
-				Equal(webInstances[1].IP),
-				Equal(webInstances[1].DNS),
-			))
+			}).Should(Equal(webInstances[1].IP))
 		})
 
 		Context("while the worker is draining", func() {
