@@ -130,10 +130,6 @@ func (fake *FakeTranslator) TranslatePathReturnsOnCall(i int, result1 error) {
 func (fake *FakeTranslator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.translateCommandMutex.RLock()
-	defer fake.translateCommandMutex.RUnlock()
-	fake.translatePathMutex.RLock()
-	defer fake.translatePathMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

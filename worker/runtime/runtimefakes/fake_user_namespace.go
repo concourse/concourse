@@ -88,8 +88,6 @@ func (fake *FakeUserNamespace) MaxValidIdsReturnsOnCall(i int, result1 uint32, r
 func (fake *FakeUserNamespace) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.maxValidIdsMutex.RLock()
-	defer fake.maxValidIdsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

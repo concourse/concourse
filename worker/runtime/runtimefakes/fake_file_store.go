@@ -327,14 +327,6 @@ func (fake *FakeFileStore) DeleteReturnsOnCall(i int, result1 error) {
 func (fake *FakeFileStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.appendMutex.RLock()
-	defer fake.appendMutex.RUnlock()
-	fake.containerIpLookupMutex.RLock()
-	defer fake.containerIpLookupMutex.RUnlock()
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

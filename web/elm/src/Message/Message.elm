@@ -10,7 +10,6 @@ module Message.Message exposing
     )
 
 import Concourse
-import Concourse.Cli as Cli
 import Concourse.Pagination exposing (Page)
 import Dashboard.Group.Models
 import Routes exposing (StepID)
@@ -41,6 +40,9 @@ type Message
     | EditCommentBar DomID String
     | FocusCommentBar DomID
     | BlurCommentBar DomID
+      -- Download Fly Page
+    | PlatformSelected String
+    | GetHostname
       -- common
     | Hover (Maybe DomID)
     | Click DomID
@@ -86,8 +88,6 @@ type DomID
     | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.DatabaseID
-    | FooterCliIcon Cli.Cli
-    | WelcomeCardCliIcon Cli.Cli
     | CopyTokenButton
     | SendTokenButton
     | CopyTokenInput

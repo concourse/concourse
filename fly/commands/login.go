@@ -18,8 +18,8 @@ import (
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"github.com/skratchdot/open-golang/open"
 	"github.com/vito/go-interact/interact"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/oauth2"
+	"golang.org/x/term"
 )
 
 type LoginCommand struct {
@@ -32,8 +32,6 @@ type LoginCommand struct {
 	ClientCertPath atc.PathFlag `long:"client-cert" description:"Path to a PEM-encoded client certificate file."`
 	ClientKeyPath  atc.PathFlag `long:"client-key" description:"Path to a PEM-encoded client key file."`
 	OpenBrowser    bool         `short:"b" long:"open-browser" description:"Open browser to the auth endpoint"`
-
-	BrowserOnly bool
 }
 
 func (command *LoginCommand) Execute(args []string) error {
@@ -120,14 +118,14 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	isRawMode := pty.IsTerminal() && !command.BrowserOnly
+	isRawMode := pty.IsTerminal()
 	if isRawMode {
-		state, err := terminal.MakeRaw(int(os.Stdin.Fd()))
+		state, err := term.MakeRaw(int(os.Stdin.Fd()))
 		if err != nil {
 			isRawMode = false
 		} else {
 			defer func() {
-				terminal.Restore(int(os.Stdin.Fd()), state)
+				term.Restore(int(os.Stdin.Fd()), state)
 				fmt.Print("\r")
 			}()
 		}
@@ -135,12 +133,12 @@ func (command *LoginCommand) Execute(args []string) error {
 
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
 		// Legacy Auth Support
-		tokenType, tokenValue, err = command.legacyAuth(target, command.BrowserOnly, isRawMode)
+		tokenType, tokenValue, err = command.legacyAuth(target, isRawMode)
 	} else {
 		if command.Username != "" && command.Password != "" {
 			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
 		} else {
-			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), command.BrowserOnly, isRawMode)
+			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), isRawMode)
 		}
 	}
 
@@ -195,7 +193,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	return token.TokenType, token.AccessToken, nil
 }
 
-func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool, isRawMode bool) (string, string, error) {
+func (command *LoginCommand) authCodeGrant(targetUrl string, isRawMode bool) (string, string, error) {
 	var tokenStr string
 
 	stdinChannel := make(chan string)
@@ -222,9 +220,9 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, browserOnly bool, i
 		_ = open.Start(openURL)
 	}
 
-	if !browserOnly {
-		go waitForTokenInput(stdinChannel, errorChannel, isRawMode)
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go waitForTokenInput(ctx, stdinChannel, errorChannel, isRawMode)
 
 	select {
 	case tokenStrMsg := <-tokenChannel:
@@ -293,7 +291,7 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-func waitForTokenInput(tokenChannel chan string, errorChannel chan error, isRawMode bool) {
+func waitForTokenInput(ctx context.Context, tokenChannel chan string, errorChannel chan error, isRawMode bool) {
 	fmt.Println()
 
 	for {
@@ -302,7 +300,7 @@ func waitForTokenInput(tokenChannel chan string, errorChannel chan error, isRawM
 		} else {
 			fmt.Print("or enter token manually: ")
 		}
-		tokenBytes, err := pty.ReadLine(os.Stdin)
+		tokenBytes, err := pty.ReadLine(ctx, os.Stdin)
 		token := strings.TrimSpace(string(tokenBytes))
 		if len(token) == 0 && err == io.EOF {
 			return
@@ -346,7 +344,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	return nil
 }
 
-func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool, isRawMode bool) (string, string, error) {
+func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (string, string, error) {
 
 	httpClient := target.Client().HTTPClient()
 
@@ -434,9 +432,9 @@ func (command *LoginCommand) legacyAuth(target rc.Target, browserOnly bool, isRa
 			_ = open.Start(theURL)
 		}
 
-		if !browserOnly {
-			go waitForTokenInput(stdinChannel, errorChannel, isRawMode)
-		}
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go waitForTokenInput(ctx, stdinChannel, errorChannel, isRawMode)
 
 		select {
 		case tokenStrMsg := <-tokenChannel:

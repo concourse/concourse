@@ -305,14 +305,6 @@ func (fake *FakeDriver) RecoverReturnsOnCall(i int, result1 error) {
 func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createCopyOnWriteLayerMutex.RLock()
-	defer fake.createCopyOnWriteLayerMutex.RUnlock()
-	fake.createVolumeMutex.RLock()
-	defer fake.createVolumeMutex.RUnlock()
-	fake.destroyVolumeMutex.RLock()
-	defer fake.destroyVolumeMutex.RUnlock()
-	fake.recoverMutex.RLock()
-	defer fake.recoverMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

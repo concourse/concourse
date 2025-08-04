@@ -454,18 +454,6 @@ func (fake *FakeNetwork) SetupMountsReturnsOnCall(i int, result1 []specs.Mount, 
 func (fake *FakeNetwork) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.addMutex.RLock()
-	defer fake.addMutex.RUnlock()
-	fake.dropContainerTrafficMutex.RLock()
-	defer fake.dropContainerTrafficMutex.RUnlock()
-	fake.removeMutex.RLock()
-	defer fake.removeMutex.RUnlock()
-	fake.resumeContainerTrafficMutex.RLock()
-	defer fake.resumeContainerTrafficMutex.RUnlock()
-	fake.setupHostNetworkMutex.RLock()
-	defer fake.setupHostNetworkMutex.RUnlock()
-	fake.setupMountsMutex.RLock()
-	defer fake.setupMountsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -44,12 +44,14 @@ all =
                         , displayUserId = "test"
                         }
                         |> isAnonymous
-                        |> Expect.false "logged-in user should not be anonymous"
+                        |> Expect.equal False
+                        |> Expect.onFail "logged-in user should not be anonymous"
             , test "is true when the user is logged out" <|
                 \_ ->
                     UserStateLoggedOut
                         |> isAnonymous
-                        |> Expect.true "logged-out user should be anonymous"
+                        |> Expect.equal True
+                        |> Expect.onFail "logged-out user should be anonymous"
             ]
         , describe "isMember"
             [ test "is true when the super admin user is NOT the member on the given team" <|

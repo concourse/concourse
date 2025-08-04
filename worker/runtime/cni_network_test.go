@@ -176,6 +176,76 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	s.Equal(resolvConfContents, []byte(contents))
 }
 
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithAdditionalHosts() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithAdditionalHosts([]string{"1.2.3.4 example", "5.6.7.8 another-example"}),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle")
+	s.NoError(err)
+
+	_, firstHost := s.store.AppendArgsForCall(0)
+	_, secondHost := s.store.AppendArgsForCall(1)
+
+	s.Equal(firstHost, []byte("1.2.3.4 example\n"))
+	s.Equal(secondHost, []byte("5.6.7.8 another-example\n"))
+}
+
+func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutAdditionalHosts() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle")
+	s.NoError(err)
+
+	s.Equal(0, s.store.AppendCallCount())
+}
+
+func (s *CNINetworkSuite) TestSetupMountsFailsToAppendAdditionalHost() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithAdditionalHosts([]string{"1.2.3.4 example"}),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	// Simulate failure on first Append call
+	s.store.AppendReturns(errors.New("append-error"))
+
+	// Act
+	_, err = network.SetupMounts("some-handle")
+
+	// Assert
+	s.Error(err)
+	s.EqualError(errors.Unwrap(err), "failed to append host entry \"1.2.3.4 example\": append-error")
+}
+
+func (s *CNINetworkSuite) TestSetupMountsFailsWithInvalidIP() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithAdditionalHosts([]string{"1.2.3.4.5 example"}),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	// Act
+	_, err = network.SetupMounts("some-handle")
+
+	// Assert
+	s.Error(err)
+	s.EqualError(errors.Unwrap(err), "invalid IP in host entry: \"1.2.3.4.5 example\"")
+}
+
 func (s *CNINetworkSuite) TestSetupHostNetwork() {
 	testCases := map[string]struct {
 		cniNetworkSetup   func() (runtime.Network, error)

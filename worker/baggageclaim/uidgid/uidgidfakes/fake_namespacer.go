@@ -128,10 +128,6 @@ func (fake *FakeNamespacer) NamespacePathReturnsOnCall(i int, result1 error) {
 func (fake *FakeNamespacer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.namespaceCommandMutex.RLock()
-	defer fake.namespaceCommandMutex.RUnlock()
-	fake.namespacePathMutex.RLock()
-	defer fake.namespacePathMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

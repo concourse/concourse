@@ -180,7 +180,6 @@ type BoshInstance struct {
 	Group string
 	ID    string
 	IP    string
-	DNS   string
 }
 
 func StartDeploy(manifest string, args ...string) *gexec.Session {
@@ -282,7 +281,7 @@ func JobInstances(job string) []BoshInstance {
 }
 
 func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
-	session := SpawnBosh("instances", "-p", "--dns")
+	session := SpawnBosh("instances", "-p")
 	<-session.Exited
 	Expect(session.ExitCode()).To(Equal(0))
 
@@ -304,7 +303,6 @@ func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 				Group: group,
 				ID:    id,
 				IP:    instanceMatch[4],
-				DNS:   instanceMatch[5],
 			}
 
 			instances[group] = append(instances[group], instance)

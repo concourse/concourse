@@ -242,12 +242,6 @@ func (fake *FakeFilesystem) NewVolumeReturnsOnCall(i int, result1 volume.Filesys
 func (fake *FakeFilesystem) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.listVolumesMutex.RLock()
-	defer fake.listVolumesMutex.RUnlock()
-	fake.lookupVolumeMutex.RLock()
-	defer fake.lookupVolumeMutex.RUnlock()
-	fake.newVolumeMutex.RLock()
-	defer fake.newVolumeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

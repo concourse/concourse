@@ -319,14 +319,6 @@ func (fake *FakeIptables) InsertRuleReturnsOnCall(i int, result1 error) {
 func (fake *FakeIptables) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.appendRuleMutex.RLock()
-	defer fake.appendRuleMutex.RUnlock()
-	fake.createChainOrFlushIfExistsMutex.RLock()
-	defer fake.createChainOrFlushIfExistsMutex.RUnlock()
-	fake.deleteRuleMutex.RLock()
-	defer fake.deleteRuleMutex.RUnlock()
-	fake.insertRuleMutex.RLock()
-	defer fake.insertRuleMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
