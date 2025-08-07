@@ -827,9 +827,9 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		concurrentRequestsLimitHit: concurrentRequestsLimitHit,
 		concurrentRequests:         concurrentRequests,
 
-		latestCompletedBuildStatus:            latestCompletedBuildStatus,
-		stepsWaiting:         stepsWaiting,
-		stepsWaitingDuration: stepsWaitingDuration,
+		latestCompletedBuildStatus: latestCompletedBuildStatus,
+		stepsWaiting:               stepsWaiting,
+		stepsWaitingDuration:       stepsWaitingDuration,
 
 		creatingContainersToBeGarbageCollected:   creatingContainersToBeGarbageCollected,
 		createdContainersToBeGarbageCollected:    createdContainersToBeGarbageCollected,
@@ -1076,16 +1076,14 @@ func (emitter *PrometheusEmitter) buildFinishedMetrics(logger lager.Logger, even
 		return
 	}
 
-	pipeline, exists := event.Attributes["pipeline"]
-	if !exists {
-		logger.Error("failed-to-find-pipeline-in-event", fmt.Errorf("expected pipeline to exist in event.Attributes"))
-		return
+	pipeline := ""
+	if val, ok := event.Attributes["pipeline"]; ok {
+		pipeline = val
 	}
 
-	job, exists := event.Attributes["job"]
-	if !exists {
-		logger.Error("failed-to-find-job-in-event", fmt.Errorf("expected job to exist in event.Attributes"))
-		return
+	job := ""
+	if val, ok := event.Attributes["job"]; ok {
+		job = val
 	}
 
 	buildStatus, exists := event.Attributes["build_status"]

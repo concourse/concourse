@@ -223,8 +223,16 @@ var _ = Describe("PrometheusEmitter", func() {
 			Expect(res.StatusCode).To(Equal(http.StatusOK))
 			return string(body)
 		}
-
 		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_steps_waiting{invalid_label=\"foo\",platform=\"darwin\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamId=\"42\",teamName=\"teamdev\",type=\"get\",workerTags=\"tester\"} 4"))
 		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_builds_latest_completed_build_status{invalid_label=\"foo\",jobName=\"job1\",pipelineName=\"pipeline1\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamName=\"team1\"} 0"))
+
+		prometheusEmitter.Emit(logger, metric.Event{
+			Name:  "latest completed build status",
+			Value: 1,
+			Attributes: map[string]string{
+				"teamName": "team1",
+			},
+		})
+		Eventually(getPrometheusMetrics()).Should(ContainSubstring("concourse_builds_latest_completed_build_status{invalid_label=\"foo\",jobName=\"\",pipelineName=\"\",prefix_test=\"bar\",prefix_testtwo=\"baz\",teamName=\"team1\"} 1"))
 	})
 })
