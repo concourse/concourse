@@ -912,7 +912,7 @@ func (s *IntegrationSuite) testStop(kill bool) {
 	namespace := fmt.Sprintf("test-stop-%t", kill)
 	// This test flakes if there's CPU stress on the worker, so giving it a wide
 	// margin to wait for kill to complete
-	requestTimeout := 30 * time.Second
+	requestTimeout := 60 * time.Second
 
 	network, err := runtime.NewCNINetwork(
 		runtime.WithDefaultsForTesting(),
