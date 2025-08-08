@@ -32,12 +32,12 @@ echo all credentials matched expected values
 `
 
 func testCredentialManagement(
-	pipelineSetup func(),
-	oneOffSetup func(),
+	pipelineSetup func(ctx SpecContext),
+	oneOffSetup func(ctx SpecContext),
 ) {
 	Context("with a pipeline build", func() {
-		BeforeEach(func() {
-			pipelineSetup()
+		BeforeEach(func(ctx SpecContext) {
+			pipelineSetup(ctx)
 
 			By("setting a pipeline that uses vars for secrets")
 			Fly.Run("set-pipeline", "-n", "-c", "pipelines/credential-management.yml", "-p", "pipeline-creds-test")

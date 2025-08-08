@@ -33,7 +33,7 @@ var _ = Describe("AWS SSM", func() {
 		}
 	})
 
-	Describe("A deployment with SSM", func(ctx SpecContext) {
+	Describe("A deployment with SSM", func() {
 		BeforeEach(func() {
 			sessionToken := awsCreds.SessionToken
 			if sessionToken == "" {
@@ -93,7 +93,7 @@ var _ = Describe("AWS SSM", func() {
 			})
 		})
 
-		testCredentialManagement(func() {
+		testCredentialManagement(func(ctx SpecContext) {
 			secrets := map[string]string{
 				"/concourse-topgun/main/team_secret":                              "some_team_secret",
 				"/concourse-topgun/main/pipeline-creds-test/assertion_script":     assertionScript,
@@ -114,7 +114,7 @@ var _ = Describe("AWS SSM", func() {
 				})
 				Expect(err).To(BeNil())
 			}
-		}, func() {
+		}, func(ctx SpecContext) {
 			secrets := map[string]string{
 				"/concourse-topgun/main/team_secret":      "some_team_secret",
 				"/concourse-topgun/main/resource_version": "some_exposed_version_secret",
