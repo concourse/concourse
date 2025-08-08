@@ -78,7 +78,7 @@ func (p processKiller) Kill(
 	case exitStatus := <-procWaitStatus:
 		err = exitStatus.Error()
 		if err != nil {
-			if strings.Contains(err.Error(), "context deadline exceeded") {
+			if strings.Contains(err.Error(), "DeadlineExceeded") {
 				return ErrGracePeriodTimeout
 			}
 			return fmt.Errorf("waiting for exit status from grpc: %w", err)
