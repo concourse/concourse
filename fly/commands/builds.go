@@ -28,8 +28,8 @@ type BuildsCommand struct {
 	Json        bool                      `long:"json" description:"Print command result as JSON"`
 	Pipeline    *flaghelpers.PipelineFlag `short:"p" long:"pipeline" description:"Name of a pipeline to get builds for"`
 	Teams       []string                  `short:"n"  long:"team" description:"Show builds for these teams"`
-	Since       string                    `long:"since" description:"Start of the range to filter builds"`
-	Until       string                    `long:"until" description:"End of the range to filter builds"`
+	Since       string                    `long:"since" description:"Start of the range to filter builds. Expected time format of 'yyyy-mm-dd HH:mm:ss'"`
+	Until       string                    `long:"until" description:"End of the range to filter builds. Expected time format of 'yyyy-mm-dd HH:mm:ss'"`
 }
 
 func (command *BuildsCommand) Execute([]string) error {
