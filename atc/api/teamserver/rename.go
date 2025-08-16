@@ -29,16 +29,13 @@ func (s *Server) RenameTeam(team db.Team) http.Handler {
 			return
 		}
 
-		var warnings []atc.ConfigWarning
+		var configErrors []atc.ConfigErrors
 		var errs []string
-		warning, err := atc.ValidateIdentifier(rename.NewName, "team")
-		if err != nil {
-			errs = append(errs, err.Error())
+		configError := atc.ValidateIdentifier(rename.NewName, "team")
+		if configError != nil {
+			errs = append(errs, configError.Error())
 			HandleBadRequest(w, errs...)
 			return
-		}
-		if warning != nil {
-			warnings = append(warnings, *warning)
 		}
 
 		err = team.Rename(rename.NewName)
@@ -49,7 +46,7 @@ func (s *Server) RenameTeam(team db.Team) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(atc.SaveConfigResponse{Warnings: warnings, Errors: errs})
+		err = json.NewEncoder(w).Encode(atc.SaveConfigResponse{ConfigErrors: configErrors, Errors: errs})
 		if err != nil {
 			s.logger.Error("failed-to-encode-response", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -15,7 +15,7 @@ type ExposePipelineCommand struct {
 }
 
 func (command *ExposePipelineCommand) Validate() error {
-	_, err := command.Pipeline.Validate()
+	err := command.Pipeline.Validate()
 	return err
 }
 

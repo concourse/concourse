@@ -61,7 +61,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	warnings, errorMessages := configvalidate.Validate(config)
+	configErrors, errorMessages := configvalidate.Validate(config)
 	if len(errorMessages) > 0 {
 		session.Info("ignoring-invalid-config", lager.Data{"errors": errorMessages})
 		HandleBadRequest(w, errorMessages...)
@@ -69,28 +69,23 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pipelineName := rata.Param(r, "pipeline_name")
-	warning, err := atc.ValidateIdentifier(pipelineName, "pipeline")
-	if err != nil {
-		session.Info("ignoring-pipeline-name", lager.Data{"error": err.Error()})
-		HandleBadRequest(w, err.Error())
+	configError := atc.ValidateIdentifier(pipelineName, "pipeline")
+	if configError != nil {
+		session.Info("ignoring-pipeline-name", lager.Data{"error": configError.Error()})
+		HandleBadRequest(w, configError.Error())
 		return
-	}
-	if warning != nil {
-		warnings = append(warnings, *warning)
 	}
 
 	teamName := rata.Param(r, "team_name")
-	warning, err = atc.ValidateIdentifier(teamName, "team")
-	if err != nil {
-		session.Info("ignoring-team-name", lager.Data{"error": err.Error()})
-		HandleBadRequest(w, err.Error())
+	configError = atc.ValidateIdentifier(teamName, "team")
+	if configError != nil {
+		session.Info("ignoring-team-name", lager.Data{"error": configError.Error()})
+		HandleBadRequest(w, configError.Error())
 		return
-	}
-	if warning != nil {
-		warnings = append(warnings, *warning)
 	}
 
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
+	var err error
 	pipelineRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
 	if atc.EnablePipelineInstances {
 		if err != nil {
@@ -152,7 +147,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	WriteSaveConfigResponse(w, atc.SaveConfigResponse{Warnings: warnings})
+	WriteSaveConfigResponse(w, atc.SaveConfigResponse{ConfigErrors: configErrors})
 }
 
 // Simply validate that the credentials exist; don't do anything with the actual secrets
