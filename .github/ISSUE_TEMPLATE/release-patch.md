@@ -21,9 +21,8 @@ Steps for a new patch release:
 * [ ] Once everything is ready, the `shipit` job can be triggered. The `publish-binaries` job will convert your draft release into a final release including the body of your draft release (which will persist any changes you made to the draft release body). Subsequently, the [promote concourse job](https://ci.concourse-ci.org/teams/main/pipelines/promote) will run automatically. The `publish-docs` job runs automatically, *as long as the version is actually the latest version available*.
 
 * [ ] The [helm-chart pipeline](https://ci.concourse-ci.org/teams/main/pipelines/helm-chart?group=dependencies&group=publish) is used to bump & then publish the chart.
-
-  * Merge the `release/` branch into `master` (`git merge release/...`) locally from your workstation
-  * Next, run the `concourse-app-bump` job (bumps the app version and image to point to the latest release)
-  * Next, run the `k8s-smoke` job
+  * (Optional) Merge the `release/` branch into `master` by making a PR
+  * Next, run the `concourse-app-bump` job (bumps the app version and image to point to the latest release): https://ci.concourse-ci.org/teams/main/pipelines/helm-chart?vars.version=7&group=dependencies
+  * Run the `k8s-smoke` job
   * Finally, run the `publish-chart-{major|minor|patch}` job, depending on what has changed in the chart
   * If you make a major bump, be sure to update the `CHANGELOG.md` in the concourse-chart repo
