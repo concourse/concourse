@@ -139,7 +139,7 @@ var _ = Describe("Credhub", func() {
 			})
 		})
 
-		testCredentialManagement(func() {
+		testCredentialManagement(func(ctx SpecContext) {
 			_, err := credhubClient.SetValue("/concourse/main/team_secret", values.Value("some_team_secret"))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -163,7 +163,7 @@ var _ = Describe("Credhub", func() {
 
 			_, err = credhubClient.SetValue("/concourse/main/pipeline-creds-test/resource_version", values.Value("some_exposed_version_secret"))
 			Expect(err).ToNot(HaveOccurred())
-		}, func() {
+		}, func(ctx SpecContext) {
 			_, err := credhubClient.SetValue("/concourse/main/team_secret", values.Value("some_team_secret"))
 			Expect(err).ToNot(HaveOccurred())
 
