@@ -131,7 +131,7 @@ var _ = XDescribe("Vault", func() {
 				)
 			})
 
-			testCredentialManagement(func() {
+			testCredentialManagement(func(ctx SpecContext) {
 				v.Run("write", "concourse/main/team_secret", "value=some_team_secret")
 				v.Run("write", "concourse/main/pipeline-creds-test/assertion_script", "value="+assertionScript)
 				v.Run("write", "concourse/main/pipeline-creds-test/canary", "value=some_canary")
@@ -139,7 +139,7 @@ var _ = XDescribe("Vault", func() {
 				v.Run("write", "concourse/main/pipeline-creds-test/resource_secret", "value=some_resource_secret")
 				v.Run("write", "concourse/main/pipeline-creds-test/job_secret", "username=some_username", "password=some_password")
 				v.Run("write", "concourse/main/pipeline-creds-test/resource_version", "value=some_exposed_version_secret")
-			}, func() {
+			}, func(ctx SpecContext) {
 				v.Run("write", "concourse/main/team_secret", "value=some_team_secret")
 				v.Run("write", "concourse/main/resource_version", "value=some_exposed_version_secret")
 			})
