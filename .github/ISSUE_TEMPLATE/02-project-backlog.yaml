@@ -1,0 +1,25 @@
+name: 📥 Add to the backlog
+description: Create an issue for concrete work that anyone in the community can work on.
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Issues are for backlog work that has been discussed in a discussion post or RFC.
+
+        If you're intending to request a feature, please open a Discussion using the
+        "Idea" link instead so we can understand your workflow first. Thanks!
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A brief summary of the task to be completed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Links to any related discussions, issues, or RFC
