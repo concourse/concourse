@@ -7,8 +7,7 @@ body:
       value: |
         Issues are for backlog work that has been discussed in a discussion post or RFC.
 
-        If you're intending to request a feature, please open a Discussion using the
-        "Idea" link instead so we can understand your workflow first. Thanks!
+        If you're intending to request a feature, please open a Discussion using the "Idea" link instead so we can understand your workflow first. Thanks!
 
   - type: textarea
     id: summary
@@ -23,3 +22,7 @@ body:
     attributes:
       label: Context
       description: Links to any related discussions, issues, or RFC
+      placeholder: |
+        Discussion Post(s):
+        Related Issue(s):
+        RFC:
