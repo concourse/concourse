@@ -1,0 +1,95 @@
+name: 🐛 Report a bug
+description: Find something broken? Let us know! (If it's not yet reproducible, please "ask for help" instead!)
+title: ""
+labels: [bug]
+
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A brief summary of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: |
+        Provide detailed steps for reproducing the bug. This will make it
+        easier to triage and resolve the issue. It would be very helpful if you
+        can reproduce the issue using a locally run Concourse using `docker
+        compose up`.
+
+        Please use https://gist.github.com for large snippets!
+      placeholder: |
+        1. First `docker compose up -d` Concourse...
+        2. Then...
+        3. Finally...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-result
+    attributes:
+      label: Expected Results
+      description: What did you expect to happen?
+
+  - type: textarea
+    id: actual-result
+    attributes:
+      label: Actual Results
+      description: What actually happen?
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Additional Context
+        The following information helps us triage the issue faster.
+
+  - type: textarea
+    id: web-config
+    attributes:
+      label: Web Node(s) configuration
+      description: How many web nodes do you have? Provide their configuration here, omitting any secrets.
+      placeholder: |
+        e.g. I have one web node with the following configuration:
+        CONCOURSE_CLUSTER_NAME: dev
+        CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
+        CONCOURSE_ENABLE_ACROSS_STEP: "true"
+        CONCOURSE_ENABLE_CACHE_STREAMED_VOLUMES: "true"
+        CONCOURSE_ENABLE_RESOURCE_CAUSALITY: "true"
+        ...
+
+  - type: textarea
+    id: worker-config
+    attributes:
+      label: Worker(s) configuration
+      description: How many workers do you have? Provide their configuration here, omitting any secrets.
+      placeholder: |
+        e.g. I have three workers with the following configuration:
+        CONCOURSE_RUNTIME: containerd
+        CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+        CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+        ...
+
+  - type: input
+    id: concourse-version
+    attributes:
+      label: Concourse Version
+      placeholder: e.g. 7.14.1
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (if applicable)
+      placeholder: e.g. Firefox 141.0.2
+
+  - type: input
+    id: used-to-work
+    attributes:
+      label: Did this use to work?
+      placeholder: e.g. Yes, on v7.11.2 of Concourse
