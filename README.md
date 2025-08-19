@@ -1,7 +1,7 @@
 # Concourse: the continuous thing-doer
 
 [![Discord](https://img.shields.io/discord/219899946617274369.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)][discord]
-[![Build](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/badge)](https://ci.concourse-ci.org/teams/main/pipelines/concourse)
+[![Unit Tests](https://ci.concourse-ci.org/api/v1/teams/main/pipelines/concourse/jobs/unit/badge?title=tests)](https://ci.concourse-ci.org/teams/main/pipelines/concourse)
 [![Contributors](https://img.shields.io/github/contributors/concourse/concourse)](https://github.com/concourse/concourse/graphs/contributors)
 [![Help Wanted](https://img.shields.io/github/labels/concourse/concourse/help%20wanted)](https://github.com/concourse/concourse/labels/help%20wanted)
 
@@ -9,7 +9,7 @@ Concourse is an automation system written in Go. It is most commonly used for
 CI/CD, and is built to scale to any kind of automation pipeline, from simple to
 complex.
 
-![booklit pipeline](screenshots/booklit-pipeline.png)
+![registry-image pipeline](screenshots/registry-image-pipeline.png)
 
 Concourse is very opinionated about a few things: idempotency, immutability,
 declarative config, stateless workers, and reproducible builds.
@@ -95,8 +95,8 @@ In addition to the `concourse` binary, there are a few other supported formats.
 Consult their GitHub repos for more information:
 
 * [Docker image](https://github.com/concourse/concourse-docker)
-* [BOSH release](https://github.com/concourse/concourse-bosh-release)
 * [Kubernetes Helm chart](https://github.com/concourse/concourse-chart)
+* [BOSH release](https://github.com/concourse/concourse-bosh-release)
 
 
 ## Quick Start
@@ -108,20 +108,12 @@ Creating docs_concourse-db_1 ... done
 Creating docs_concourse_1    ... done
 ```
 
-Concourse will be running at [localhost:8080](http://localhost:8080). You can
-log in with the username/password as `test`/`test`.
+Concourse will be running at [http://localhost:8080](http://localhost:8080).
+You can log in with the username/password as `test`/`test`.
 
-> :warning: **If you are using an M-series mac**, note that they are
-> incompatible with the `containerd` runtime until
-> [#9182](https://github.com/concourse/concourse/issues/9182) is resolved.
-> After downloading the docker-compose file, change:
->
-> `CONCOURSE_WORKER_RUNTIME: "containerd"` to
->
-> `CONCOURSE_WORKER_RUNTIME: "houdini"`.
-
-Next, install `fly` by downloading it from the web UI and target your local
-Concourse as the `test` user:
+Next, install `fly` by downloading it from the web UI at
+[http://localhost:8080/download-fly](http://localhost:8080/download-fly) and
+target your local Concourse as the `test` user:
 
 ```sh
 $ fly -t ci login -c http://localhost:8080 -u test -p test
