@@ -1,6 +1,5 @@
 name: 🐛 Report a bug
 description: Find something broken? Let us know! (If it's not yet reproducible, please "ask for help" instead!)
-title: ""
 labels: [bug]
 
 body:
