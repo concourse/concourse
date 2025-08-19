@@ -163,7 +163,7 @@ Concourse instances.
 * The [Official Site](https://concourse-ci.org) for documentation,
   reference material, and example pipelines.
 * The [Getting Started Tutorial](https://concourse-ci.org/getting-started.html)
-  to learn the basics of pipelines
+  to learn the basics of Concourse
 * See Concourse in action with our [own pipelines](https://ci.concourse-ci.org/)
 * Hang around in the [GitHub discussions](https://github.com/concourse/concourse/discussions) or in
   [Discord][discord]
