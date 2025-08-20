@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/concourse/concourse/atc/creds/idtoken"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	. "github.com/onsi/ginkgo/v2"
@@ -40,7 +41,7 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 		token := extractIDtokenFromBuffer(outputText, "default-token")
 		Expect(token).ToNot(BeEmpty())
 
-		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.ES256, jose.RS256})
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 		var claims claimStruct
 		err = parsed.Claims(jwks, &claims)
@@ -56,7 +57,7 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 		token := extractIDtokenFromBuffer(outputText, "custom-token")
 		Expect(token).ToNot(BeEmpty())
 
-		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.ES256, jose.RS256})
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.ES256})
 		Expect(err).ToNot(HaveOccurred())
 		var claims claimStruct
 		err = parsed.Claims(jwks, &claims)
