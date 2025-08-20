@@ -64,3 +64,5 @@ Steps for a new major/minor release:
   * If you make a major bump, be sure to update the `CHANGELOG.md` in the concourse-chart repo
 
 * [ ] Once the Concourse release is shipped, the final version should be deployed to production
+
+* [ ] Post about the release to socials (Bluesky, Mastodon, Discord, Linkedin, etc.)
