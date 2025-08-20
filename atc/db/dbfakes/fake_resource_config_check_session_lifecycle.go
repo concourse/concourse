@@ -141,10 +141,6 @@ func (fake *FakeResourceConfigCheckSessionLifecycle) CleanInactiveResourceConfig
 func (fake *FakeResourceConfigCheckSessionLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.cleanExpiredResourceConfigCheckSessionsMutex.RLock()
-	defer fake.cleanExpiredResourceConfigCheckSessionsMutex.RUnlock()
-	fake.cleanInactiveResourceConfigCheckSessionsMutex.RLock()
-	defer fake.cleanInactiveResourceConfigCheckSessionsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

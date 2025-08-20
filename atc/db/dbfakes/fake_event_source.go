@@ -147,10 +147,6 @@ func (fake *FakeEventSource) NextReturnsOnCall(i int, result1 event.Envelope, re
 func (fake *FakeEventSource) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	fake.nextMutex.RLock()
-	defer fake.nextMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

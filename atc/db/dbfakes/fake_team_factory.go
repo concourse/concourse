@@ -509,20 +509,6 @@ func (fake *FakeTeamFactory) NotifyResourceScannerReturnsOnCall(i int, result1 e
 func (fake *FakeTeamFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createDefaultTeamIfNotExistsMutex.RLock()
-	defer fake.createDefaultTeamIfNotExistsMutex.RUnlock()
-	fake.createTeamMutex.RLock()
-	defer fake.createTeamMutex.RUnlock()
-	fake.findTeamMutex.RLock()
-	defer fake.findTeamMutex.RUnlock()
-	fake.getByIDMutex.RLock()
-	defer fake.getByIDMutex.RUnlock()
-	fake.getTeamsMutex.RLock()
-	defer fake.getTeamsMutex.RUnlock()
-	fake.notifyCacherMutex.RLock()
-	defer fake.notifyCacherMutex.RUnlock()
-	fake.notifyResourceScannerMutex.RLock()
-	defer fake.notifyResourceScannerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

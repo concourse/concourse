@@ -345,16 +345,6 @@ func (fake *FakeCreatingVolume) InitializeArtifactReturnsOnCall(i int, result1 d
 func (fake *FakeCreatingVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createdMutex.RLock()
-	defer fake.createdMutex.RUnlock()
-	fake.failedMutex.RLock()
-	defer fake.failedMutex.RUnlock()
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.initializeArtifactMutex.RLock()
-	defer fake.initializeArtifactMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

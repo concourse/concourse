@@ -237,12 +237,6 @@ func (fake *FakeUserFactory) GetAllUsersByLoginDateReturnsOnCall(i int, result1 
 func (fake *FakeUserFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createOrUpdateUserMutex.RLock()
-	defer fake.createOrUpdateUserMutex.RUnlock()
-	fake.getAllUsersMutex.RLock()
-	defer fake.getAllUsersMutex.RUnlock()
-	fake.getAllUsersByLoginDateMutex.RLock()
-	defer fake.getAllUsersByLoginDateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

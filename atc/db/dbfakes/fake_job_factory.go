@@ -234,12 +234,6 @@ func (fake *FakeJobFactory) VisibleJobsReturnsOnCall(i int, result1 []atc.JobSum
 func (fake *FakeJobFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.allActiveJobsMutex.RLock()
-	defer fake.allActiveJobsMutex.RUnlock()
-	fake.jobsToScheduleMutex.RLock()
-	defer fake.jobsToScheduleMutex.RUnlock()
-	fake.visibleJobsMutex.RLock()
-	defer fake.visibleJobsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

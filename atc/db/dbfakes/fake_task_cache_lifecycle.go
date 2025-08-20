@@ -83,8 +83,6 @@ func (fake *FakeTaskCacheLifecycle) CleanUpInvalidTaskCachesReturnsOnCall(i int,
 func (fake *FakeTaskCacheLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.cleanUpInvalidTaskCachesMutex.RLock()
-	defer fake.cleanUpInvalidTaskCachesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

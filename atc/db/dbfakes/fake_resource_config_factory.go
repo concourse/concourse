@@ -252,12 +252,6 @@ func (fake *FakeResourceConfigFactory) FindResourceConfigByIDReturnsOnCall(i int
 func (fake *FakeResourceConfigFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.cleanUnreferencedConfigsMutex.RLock()
-	defer fake.cleanUnreferencedConfigsMutex.RUnlock()
-	fake.findOrCreateResourceConfigMutex.RLock()
-	defer fake.findOrCreateResourceConfigMutex.RUnlock()
-	fake.findResourceConfigByIDMutex.RLock()
-	defer fake.findResourceConfigByIDMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
