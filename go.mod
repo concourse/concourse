@@ -1,8 +1,6 @@
 module github.com/concourse/concourse
 
-go 1.24.2
-
-toolchain go1.25.0
+go 1.25.0
 
 require (
 	code.cloudfoundry.org/clock v1.43.0
@@ -40,7 +38,6 @@ require (
 	github.com/cyberark/conjur-api-go v0.13.3
 	github.com/fatih/color v1.18.0
 	github.com/felixge/httpsnoop v1.0.4
-	github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/go-jose/go-jose/v4 v4.1.2
 	github.com/go-viper/mapstructure/v2 v2.4.0
 	github.com/gobwas/glob v0.2.3
@@ -128,9 +125,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.6.0
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/gorilla/handlers v1.5.2 // indirect
