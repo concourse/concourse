@@ -243,12 +243,6 @@ func (fake *FakeAccessTokenFactory) GetAccessTokenReturnsOnCall(i int, result1 d
 func (fake *FakeAccessTokenFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createAccessTokenMutex.RLock()
-	defer fake.createAccessTokenMutex.RUnlock()
-	fake.deleteAccessTokenMutex.RLock()
-	defer fake.deleteAccessTokenMutex.RUnlock()
-	fake.getAccessTokenMutex.RLock()
-	defer fake.getAccessTokenMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

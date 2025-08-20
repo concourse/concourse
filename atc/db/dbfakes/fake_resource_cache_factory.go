@@ -341,14 +341,6 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataReturnsOnCall(i
 func (fake *FakeResourceCacheFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.findOrCreateResourceCacheMutex.RLock()
-	defer fake.findOrCreateResourceCacheMutex.RUnlock()
-	fake.findResourceCacheByIDMutex.RLock()
-	defer fake.findResourceCacheByIDMutex.RUnlock()
-	fake.resourceCacheMetadataMutex.RLock()
-	defer fake.resourceCacheMetadataMutex.RUnlock()
-	fake.updateResourceCacheMetadataMutex.RLock()
-	defer fake.updateResourceCacheMetadataMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

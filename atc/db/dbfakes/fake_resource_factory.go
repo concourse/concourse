@@ -247,12 +247,6 @@ func (fake *FakeResourceFactory) VisibleResourcesReturnsOnCall(i int, result1 []
 func (fake *FakeResourceFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.allResourcesMutex.RLock()
-	defer fake.allResourcesMutex.RUnlock()
-	fake.resourceMutex.RLock()
-	defer fake.resourceMutex.RUnlock()
-	fake.visibleResourcesMutex.RLock()
-	defer fake.visibleResourcesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

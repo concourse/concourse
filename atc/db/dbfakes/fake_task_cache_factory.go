@@ -182,10 +182,6 @@ func (fake *FakeTaskCacheFactory) FindOrCreateReturnsOnCall(i int, result1 db.Us
 func (fake *FakeTaskCacheFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.findMutex.RLock()
-	defer fake.findMutex.RUnlock()
-	fake.findOrCreateMutex.RLock()
-	defer fake.findOrCreateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

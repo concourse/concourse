@@ -399,18 +399,6 @@ func (fake *FakeResourceConfigVersion) VersionReturnsOnCall(i int, result1 db.Ve
 func (fake *FakeResourceConfigVersion) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkOrderMutex.RLock()
-	defer fake.checkOrderMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.metadataMutex.RLock()
-	defer fake.metadataMutex.RUnlock()
-	fake.reloadMutex.RLock()
-	defer fake.reloadMutex.RUnlock()
-	fake.spanContextMutex.RLock()
-	defer fake.spanContextMutex.RUnlock()
-	fake.versionMutex.RLock()
-	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

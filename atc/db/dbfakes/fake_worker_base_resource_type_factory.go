@@ -99,8 +99,6 @@ func (fake *FakeWorkerBaseResourceTypeFactory) FindReturnsOnCall(i int, result1 
 func (fake *FakeWorkerBaseResourceTypeFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.findMutex.RLock()
-	defer fake.findMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

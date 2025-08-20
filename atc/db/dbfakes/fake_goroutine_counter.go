@@ -78,8 +78,6 @@ func (fake *FakeGoroutineCounter) NumGoroutineReturnsOnCall(i int, result1 int) 
 func (fake *FakeGoroutineCounter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.numGoroutineMutex.RLock()
-	defer fake.numGoroutineMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

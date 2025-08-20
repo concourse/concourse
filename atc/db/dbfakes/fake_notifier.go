@@ -141,10 +141,6 @@ func (fake *FakeNotifier) NotifyReturnsOnCall(i int, result1 <-chan struct{}) {
 func (fake *FakeNotifier) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	fake.notifyMutex.RLock()
-	defer fake.notifyMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

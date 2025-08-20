@@ -378,16 +378,6 @@ func (fake *FakeResourceCacheLifecycle) CleanUsesForFinishedBuildsReturnsOnCall(
 func (fake *FakeResourceCacheLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.cleanBuildImageResourceCachesMutex.RLock()
-	defer fake.cleanBuildImageResourceCachesMutex.RUnlock()
-	fake.cleanDirtyInMemoryBuildUsesMutex.RLock()
-	defer fake.cleanDirtyInMemoryBuildUsesMutex.RUnlock()
-	fake.cleanInvalidWorkerResourceCachesMutex.RLock()
-	defer fake.cleanInvalidWorkerResourceCachesMutex.RUnlock()
-	fake.cleanUpInvalidCachesMutex.RLock()
-	defer fake.cleanUpInvalidCachesMutex.RUnlock()
-	fake.cleanUsesForFinishedBuildsMutex.RLock()
-	defer fake.cleanUsesForFinishedBuildsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

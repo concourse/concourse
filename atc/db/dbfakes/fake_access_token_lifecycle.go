@@ -93,8 +93,6 @@ func (fake *FakeAccessTokenLifecycle) RemoveExpiredAccessTokensReturnsOnCall(i i
 func (fake *FakeAccessTokenLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.removeExpiredAccessTokensMutex.RLock()
-	defer fake.removeExpiredAccessTokensMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

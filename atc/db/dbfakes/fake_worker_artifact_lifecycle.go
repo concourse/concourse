@@ -78,8 +78,6 @@ func (fake *FakeWorkerArtifactLifecycle) RemoveExpiredArtifactsReturnsOnCall(i i
 func (fake *FakeWorkerArtifactLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.removeExpiredArtifactsMutex.RLock()
-	defer fake.removeExpiredArtifactsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

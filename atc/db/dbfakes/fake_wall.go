@@ -219,12 +219,6 @@ func (fake *FakeWall) SetWallReturnsOnCall(i int, result1 error) {
 func (fake *FakeWall) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.clearMutex.RLock()
-	defer fake.clearMutex.RUnlock()
-	fake.getWallMutex.RLock()
-	defer fake.getWallMutex.RUnlock()
-	fake.setWallMutex.RLock()
-	defer fake.setWallMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
