@@ -60,7 +60,7 @@ import (
 	"github.com/concourse/concourse/web"
 	"github.com/concourse/flag/v2"
 	"github.com/cppforlife/go-semi-semantic/version"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jessevdk/go-flags"
 	gocache "github.com/patrickmn/go-cache"

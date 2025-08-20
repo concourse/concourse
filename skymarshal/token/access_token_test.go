@@ -13,9 +13,9 @@ import (
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/skymarshal/token"
 	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
+	"github.com/go-jose/go-jose/v4/jwt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/go-jose/go-jose/v3/jwt"
 )
 
 var _ = Describe("Access Tokens", func() {

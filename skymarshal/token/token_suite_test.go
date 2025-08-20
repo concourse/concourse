@@ -7,12 +7,9 @@ import (
 	"encoding/binary"
 	"strings"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/go-jose/go-jose/v3/jwt"
 )
 
 func TestToken(t *testing.T) {
@@ -33,20 +30,4 @@ func e(pub *rsa.PublicKey) string {
 func encode(payload []byte) string {
 	result := base64.URLEncoding.EncodeToString(payload)
 	return strings.TrimRight(result, "=")
-}
-
-func parse(token string, key *rsa.PrivateKey, result any) error {
-
-	parsed, err := jwt.ParseSigned(token)
-	if err != nil {
-		return err
-	}
-
-	var claims jwt.Claims
-
-	if err = parsed.Claims(&key.PublicKey, &claims, &result); err != nil {
-		return err
-	}
-
-	return claims.Validate(jwt.Expected{Time: time.Now()})
 }
