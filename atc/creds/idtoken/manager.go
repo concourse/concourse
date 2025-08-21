@@ -9,7 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 )
 
 type Manager struct {
@@ -38,7 +38,7 @@ func NewManager(issuer string, signingKeyFactory db.SigningKeyFactory, config ma
 	for key, value := range config {
 		switch key {
 		case "audience":
-			if audList, ok := value.([]interface{}); ok {
+			if audList, ok := value.([]any); ok {
 				aud := make([]string, 0, len(audList))
 				for _, e := range audList {
 					if audience, ok := e.(string); ok {
@@ -94,7 +94,7 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 
-	return json.Marshal(&map[string]interface{}{
+	return json.Marshal(&map[string]any{
 		"health": health,
 	})
 }

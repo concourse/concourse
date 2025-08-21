@@ -275,14 +275,6 @@ func (fake *FakeCheckFactory) TryCreateCheckReturnsOnCall(i int, result1 db.Buil
 func (fake *FakeCheckFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.drainMutex.RLock()
-	defer fake.drainMutex.RUnlock()
-	fake.resourceTypesByPipelineMutex.RLock()
-	defer fake.resourceTypesByPipelineMutex.RUnlock()
-	fake.resourcesMutex.RLock()
-	defer fake.resourcesMutex.RUnlock()
-	fake.tryCreateCheckMutex.RLock()
-	defer fake.tryCreateCheckMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

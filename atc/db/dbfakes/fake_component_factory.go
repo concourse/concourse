@@ -175,10 +175,6 @@ func (fake *FakeComponentFactory) FindReturnsOnCall(i int, result1 db.Component,
 func (fake *FakeComponentFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createOrUpdateMutex.RLock()
-	defer fake.createOrUpdateMutex.RUnlock()
-	fake.findMutex.RLock()
-	defer fake.findMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

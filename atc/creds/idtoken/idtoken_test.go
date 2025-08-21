@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/concourse/atc/creds/idtoken"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -64,7 +64,7 @@ var _ = Describe("IDToken Secret", func() {
 		token, _, _, err := secrets.GetWithParams("token", params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token.(string))
+		parsed, err := jwt.ParseSigned(token.(string), []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		type claimStruct struct {

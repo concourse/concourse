@@ -151,10 +151,6 @@ func (fake *FakeClock) UntilReturnsOnCall(i int, result1 time.Duration) {
 func (fake *FakeClock) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.nowMutex.RLock()
-	defer fake.nowMutex.RUnlock()
-	fake.untilMutex.RLock()
-	defer fake.untilMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

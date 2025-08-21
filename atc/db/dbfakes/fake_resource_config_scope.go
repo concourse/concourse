@@ -748,26 +748,6 @@ func (fake *FakeResourceConfigScope) UpdateLastCheckStartTimeReturnsOnCall(i int
 func (fake *FakeResourceConfigScope) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireResourceCheckingLockMutex.RLock()
-	defer fake.acquireResourceCheckingLockMutex.RUnlock()
-	fake.findVersionMutex.RLock()
-	defer fake.findVersionMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.lastCheckMutex.RLock()
-	defer fake.lastCheckMutex.RUnlock()
-	fake.latestVersionMutex.RLock()
-	defer fake.latestVersionMutex.RUnlock()
-	fake.resourceConfigMutex.RLock()
-	defer fake.resourceConfigMutex.RUnlock()
-	fake.resourceIDMutex.RLock()
-	defer fake.resourceIDMutex.RUnlock()
-	fake.saveVersionsMutex.RLock()
-	defer fake.saveVersionsMutex.RUnlock()
-	fake.updateLastCheckEndTimeMutex.RLock()
-	defer fake.updateLastCheckEndTimeMutex.RUnlock()
-	fake.updateLastCheckStartTimeMutex.RLock()
-	defer fake.updateLastCheckStartTimeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -631,22 +631,6 @@ func (fake *FakeBuildFactory) VisibleBuildsReturnsOnCall(i int, result1 []db.Bui
 func (fake *FakeBuildFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.allBuildsMutex.RLock()
-	defer fake.allBuildsMutex.RUnlock()
-	fake.buildMutex.RLock()
-	defer fake.buildMutex.RUnlock()
-	fake.buildForAPIMutex.RLock()
-	defer fake.buildForAPIMutex.RUnlock()
-	fake.getAllStartedBuildsMutex.RLock()
-	defer fake.getAllStartedBuildsMutex.RUnlock()
-	fake.getDrainableBuildsMutex.RLock()
-	defer fake.getDrainableBuildsMutex.RUnlock()
-	fake.markNonInterceptibleBuildsMutex.RLock()
-	defer fake.markNonInterceptibleBuildsMutex.RUnlock()
-	fake.publicBuildsMutex.RLock()
-	defer fake.publicBuildsMutex.RUnlock()
-	fake.visibleBuildsMutex.RLock()
-	defer fake.visibleBuildsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

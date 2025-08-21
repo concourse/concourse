@@ -8,8 +8,8 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 type SubjectScope string
@@ -76,7 +76,7 @@ func (g TokenGenerator) GenerateToken(params creds.SecretLookupParams) (token st
 		InstanceVars: params.InstanceVars,
 	}
 
-	signed, err := jwt.Signed(signer).Claims(claims).Claims(customClaims).CompactSerialize()
+	signed, err := jwt.Signed(signer).Claims(claims).Claims(customClaims).Serialize()
 	if err != nil {
 		return "", time.Time{}, err
 	}

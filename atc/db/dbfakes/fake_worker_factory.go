@@ -552,20 +552,6 @@ func (fake *FakeWorkerFactory) WorkersReturnsOnCall(i int, result1 []db.Worker, 
 func (fake *FakeWorkerFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.buildContainersCountPerWorkerMutex.RLock()
-	defer fake.buildContainersCountPerWorkerMutex.RUnlock()
-	fake.findWorkersForContainerByOwnerMutex.RLock()
-	defer fake.findWorkersForContainerByOwnerMutex.RUnlock()
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
-	fake.heartbeatWorkerMutex.RLock()
-	defer fake.heartbeatWorkerMutex.RUnlock()
-	fake.saveWorkerMutex.RLock()
-	defer fake.saveWorkerMutex.RUnlock()
-	fake.visibleWorkersMutex.RLock()
-	defer fake.visibleWorkersMutex.RUnlock()
-	fake.workersMutex.RLock()
-	defer fake.workersMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

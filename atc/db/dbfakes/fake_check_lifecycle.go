@@ -88,8 +88,6 @@ func (fake *FakeCheckLifecycle) DeleteCompletedChecksReturnsOnCall(i int, result
 func (fake *FakeCheckLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.deleteCompletedChecksMutex.RLock()
-	defer fake.deleteCompletedChecksMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

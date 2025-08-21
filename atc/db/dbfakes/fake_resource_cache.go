@@ -345,16 +345,6 @@ func (fake *FakeResourceCache) VersionReturnsOnCall(i int, result1 atc.Version) 
 func (fake *FakeResourceCache) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.baseResourceTypeMutex.RLock()
-	defer fake.baseResourceTypeMutex.RUnlock()
-	fake.destroyMutex.RLock()
-	defer fake.destroyMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.resourceConfigMutex.RLock()
-	defer fake.resourceConfigMutex.RUnlock()
-	fake.versionMutex.RLock()
-	defer fake.versionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

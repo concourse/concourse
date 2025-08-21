@@ -141,10 +141,6 @@ func (fake *FakePipelineLifecycle) RemoveBuildEventsForDeletedPipelinesReturnsOn
 func (fake *FakePipelineLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.archiveAbandonedPipelinesMutex.RLock()
-	defer fake.archiveAbandonedPipelinesMutex.RUnlock()
-	fake.removeBuildEventsForDeletedPipelinesMutex.RLock()
-	defer fake.removeBuildEventsForDeletedPipelinesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

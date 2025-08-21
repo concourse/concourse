@@ -286,14 +286,6 @@ func (fake *FakeListener) UnlistenReturnsOnCall(i int, result1 error) {
 func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	fake.listenMutex.RLock()
-	defer fake.listenMutex.RUnlock()
-	fake.notificationChannelMutex.RLock()
-	defer fake.notificationChannelMutex.RUnlock()
-	fake.unlistenMutex.RLock()
-	defer fake.unlistenMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

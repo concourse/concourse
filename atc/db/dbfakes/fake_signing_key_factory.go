@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/concourse/concourse/atc/db"
-	jose "github.com/go-jose/go-jose/v3"
+	jose "github.com/go-jose/go-jose/v4"
 )
 
 type FakeSigningKeyFactory struct {
@@ -233,12 +233,6 @@ func (fake *FakeSigningKeyFactory) GetNewestKeyReturnsOnCall(i int, result1 db.S
 func (fake *FakeSigningKeyFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createKeyMutex.RLock()
-	defer fake.createKeyMutex.RUnlock()
-	fake.getAllKeysMutex.RLock()
-	defer fake.getAllKeysMutex.RUnlock()
-	fake.getNewestKeyMutex.RLock()
-	defer fake.getNewestKeyMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

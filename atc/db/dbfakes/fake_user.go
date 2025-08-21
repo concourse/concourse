@@ -331,16 +331,6 @@ func (fake *FakeUser) SubReturnsOnCall(i int, result1 string) {
 func (fake *FakeUser) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.connectorMutex.RLock()
-	defer fake.connectorMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.lastLoginMutex.RLock()
-	defer fake.lastLoginMutex.RUnlock()
-	fake.nameMutex.RLock()
-	defer fake.nameMutex.RUnlock()
-	fake.subMutex.RLock()
-	defer fake.subMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

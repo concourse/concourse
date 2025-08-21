@@ -408,18 +408,6 @@ func (fake *FakeResourceConfig) OriginBaseResourceTypeReturnsOnCall(i int, resul
 func (fake *FakeResourceConfig) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createdByBaseResourceTypeMutex.RLock()
-	defer fake.createdByBaseResourceTypeMutex.RUnlock()
-	fake.createdByResourceCacheMutex.RLock()
-	defer fake.createdByResourceCacheMutex.RUnlock()
-	fake.findOrCreateScopeMutex.RLock()
-	defer fake.findOrCreateScopeMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.lastReferencedMutex.RLock()
-	defer fake.lastReferencedMutex.RUnlock()
-	fake.originBaseResourceTypeMutex.RLock()
-	defer fake.originBaseResourceTypeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
