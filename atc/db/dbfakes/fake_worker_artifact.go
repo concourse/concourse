@@ -350,16 +350,6 @@ func (fake *FakeWorkerArtifact) VolumeReturnsOnCall(i int, result1 db.CreatedVol
 func (fake *FakeWorkerArtifact) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.buildIDMutex.RLock()
-	defer fake.buildIDMutex.RUnlock()
-	fake.createdAtMutex.RLock()
-	defer fake.createdAtMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.nameMutex.RLock()
-	defer fake.nameMutex.RUnlock()
-	fake.volumeMutex.RLock()
-	defer fake.volumeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

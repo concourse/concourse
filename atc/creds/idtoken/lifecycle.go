@@ -14,7 +14,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 )
 
 type SigningKeyLifecycler struct {

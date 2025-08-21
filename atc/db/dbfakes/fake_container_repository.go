@@ -631,22 +631,6 @@ func (fake *FakeContainerRepository) UpdateContainersMissingSinceReturnsOnCall(i
 func (fake *FakeContainerRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.destroyDirtyInMemoryBuildContainersMutex.RLock()
-	defer fake.destroyDirtyInMemoryBuildContainersMutex.RUnlock()
-	fake.destroyFailedContainersMutex.RLock()
-	defer fake.destroyFailedContainersMutex.RUnlock()
-	fake.destroyUnknownContainersMutex.RLock()
-	defer fake.destroyUnknownContainersMutex.RUnlock()
-	fake.findDestroyingContainersMutex.RLock()
-	defer fake.findDestroyingContainersMutex.RUnlock()
-	fake.findOrphanedContainersMutex.RLock()
-	defer fake.findOrphanedContainersMutex.RUnlock()
-	fake.removeDestroyingContainersMutex.RLock()
-	defer fake.removeDestroyingContainersMutex.RUnlock()
-	fake.removeMissingContainersMutex.RLock()
-	defer fake.removeMissingContainersMutex.RUnlock()
-	fake.updateContainersMissingSinceMutex.RLock()
-	defer fake.updateContainersMissingSinceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

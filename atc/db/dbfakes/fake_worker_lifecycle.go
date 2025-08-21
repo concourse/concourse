@@ -355,16 +355,6 @@ func (fake *FakeWorkerLifecycle) StallUnresponsiveWorkersReturnsOnCall(i int, re
 func (fake *FakeWorkerLifecycle) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.deleteFinishedRetiringWorkersMutex.RLock()
-	defer fake.deleteFinishedRetiringWorkersMutex.RUnlock()
-	fake.deleteUnresponsiveEphemeralWorkersMutex.RLock()
-	defer fake.deleteUnresponsiveEphemeralWorkersMutex.RUnlock()
-	fake.getWorkerStateByNameMutex.RLock()
-	defer fake.getWorkerStateByNameMutex.RUnlock()
-	fake.landFinishedLandingWorkersMutex.RLock()
-	defer fake.landFinishedLandingWorkersMutex.RUnlock()
-	fake.stallUnresponsiveWorkersMutex.RLock()
-	defer fake.stallUnresponsiveWorkersMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -466,20 +466,6 @@ func (fake *FakeCreatingContainer) WorkerNameReturnsOnCall(i int, result1 string
 func (fake *FakeCreatingContainer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createdMutex.RLock()
-	defer fake.createdMutex.RUnlock()
-	fake.failedMutex.RLock()
-	defer fake.failedMutex.RUnlock()
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.metadataMutex.RLock()
-	defer fake.metadataMutex.RUnlock()
-	fake.stateMutex.RLock()
-	defer fake.stateMutex.RUnlock()
-	fake.workerNameMutex.RLock()
-	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

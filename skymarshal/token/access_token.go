@@ -16,7 +16,8 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/db"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -140,7 +141,9 @@ type claimsParserNoVerify struct {
 }
 
 func (claimsParserNoVerify) ParseClaims(idToken string) (db.Claims, error) {
-	token, err := jwt.ParseSigned(idToken)
+	// RSA256 is the alg that Dex uses. They don't export this from any package.
+	// I had to look through their code to figure out which alg they were using.
+	token, err := jwt.ParseSigned(idToken, []jose.SignatureAlgorithm{jose.RS256})
 	if err != nil {
 		return db.Claims{}, err
 	}

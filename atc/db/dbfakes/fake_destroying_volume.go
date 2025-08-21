@@ -209,12 +209,6 @@ func (fake *FakeDestroyingVolume) WorkerNameReturnsOnCall(i int, result1 string)
 func (fake *FakeDestroyingVolume) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.destroyMutex.RLock()
-	defer fake.destroyMutex.RUnlock()
-	fake.handleMutex.RLock()
-	defer fake.handleMutex.RUnlock()
-	fake.workerNameMutex.RLock()
-	defer fake.workerNameMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -9,8 +9,8 @@ import (
 	"github.com/concourse/concourse/atc/creds/idtoken"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/go-jose/go-jose/v3"
-	"github.com/go-jose/go-jose/v3/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -74,7 +74,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		token, _, err := tokenGenerator.GenerateToken(params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token)
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		claims := jwt.Claims{}
@@ -88,7 +88,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		token, _, err := tokenGenerator.GenerateToken(params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token)
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		claims := jwt.Claims{}
@@ -103,7 +103,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		token, _, err := tokenGenerator.GenerateToken(params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token)
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		claims := jwt.Claims{}
@@ -118,7 +118,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		token, _, err := tokenGenerator.GenerateToken(params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token)
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		claims := jwt.Claims{}
@@ -141,7 +141,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		token, _, err := tokenGenerator.GenerateToken(params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token)
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		claims := jwt.Claims{}
@@ -156,7 +156,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		token, _, err := tokenGenerator.GenerateToken(params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token)
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		claims := jwt.Claims{}
@@ -171,7 +171,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		token, _, err := tokenGenerator.GenerateToken(params)
 		Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token)
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{tokenGenerator.Algorithm})
 		Expect(err).ToNot(HaveOccurred())
 
 		claims := jwt.Claims{}
@@ -201,7 +201,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 			generatedAt = time.Now()
 
-			parsed, err := jwt.ParseSigned(generatedToken)
+			parsed, err := jwt.ParseSigned(generatedToken, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = parsed.Claims(rsaVerificationKey, &claims)

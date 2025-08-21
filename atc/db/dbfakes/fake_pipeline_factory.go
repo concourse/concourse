@@ -233,12 +233,6 @@ func (fake *FakePipelineFactory) VisiblePipelinesReturnsOnCall(i int, result1 []
 func (fake *FakePipelineFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.allPipelinesMutex.RLock()
-	defer fake.allPipelinesMutex.RUnlock()
-	fake.pipelinesToScheduleMutex.RLock()
-	defer fake.pipelinesToScheduleMutex.RUnlock()
-	fake.visiblePipelinesMutex.RLock()
-	defer fake.visiblePipelinesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

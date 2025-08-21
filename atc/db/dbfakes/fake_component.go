@@ -525,22 +525,6 @@ func (fake *FakeComponent) UpdateLastRanReturnsOnCall(i int, result1 error) {
 func (fake *FakeComponent) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.intervalMutex.RLock()
-	defer fake.intervalMutex.RUnlock()
-	fake.intervalElapsedMutex.RLock()
-	defer fake.intervalElapsedMutex.RUnlock()
-	fake.lastRanMutex.RLock()
-	defer fake.lastRanMutex.RUnlock()
-	fake.nameMutex.RLock()
-	defer fake.nameMutex.RUnlock()
-	fake.pausedMutex.RLock()
-	defer fake.pausedMutex.RUnlock()
-	fake.reloadMutex.RLock()
-	defer fake.reloadMutex.RUnlock()
-	fake.updateLastRanMutex.RLock()
-	defer fake.updateLastRanMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

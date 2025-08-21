@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc/db"
-	jose "github.com/go-jose/go-jose/v3"
+	jose "github.com/go-jose/go-jose/v4"
 )
 
 type FakeSigningKey struct {
@@ -332,16 +332,6 @@ func (fake *FakeSigningKey) KeyTypeReturnsOnCall(i int, result1 db.SigningKeyTyp
 func (fake *FakeSigningKey) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createdAtMutex.RLock()
-	defer fake.createdAtMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	fake.iDMutex.RLock()
-	defer fake.iDMutex.RUnlock()
-	fake.jWKMutex.RLock()
-	defer fake.jWKMutex.RUnlock()
-	fake.keyTypeMutex.RLock()
-	defer fake.keyTypeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
