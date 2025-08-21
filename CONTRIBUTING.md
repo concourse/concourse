@@ -139,8 +139,8 @@ development:
 
 * [`go`](https://golang.org/dl/) v1.16+
 * [`git`](https://git-scm.com/) v2.11+
-* [`yarn`](https://yarnpkg.com/en/docs/install)
-* [`docker-compose`](https://docs.docker.com/compose/install/)
+* [`yarn`](https://yarnpkg.com/getting-started/install) v4+
+* [`docker compose`](https://docs.docker.com/compose/install/)
 * [`postgresql`](https://www.postgresql.org/download/)
 
 > *Concourse uses Go's module system, so make sure it's **not** cloned under
@@ -155,7 +155,7 @@ repo:
 ```sh
 $ yarn install
 $ yarn build
-$ docker-compose up
+$ docker compose up -d
 ```
 
 Concourse will be running at [localhost:8080](http://localhost:8080).
@@ -207,14 +207,15 @@ silly air-traffic-themed names.
 | :-------------- | :----------- |
 | `/atc`          | The "brain" of Concourse: pipeline scheduling, build tracking, resource checking, and web UI/API server. One half of `concourse web`. |
 | `/fly`          | The [`fly` CLI](https://concourse-ci.org/fly.html). |
-| `/testflight`   | The acceptance test suite, exercising pipeline and `fly` features. Runs against a single Concourse deployment. |
 | `/web`          | The Elm source code and other assets for the web UI, which gets built and then embedded into the `concourse` executable and served by the ATC's web server. |
-| `/go-concourse` | A Go client library for using the ATC API, used internally by `fly`. |
+| `/go-concourse` | A Go client library for using the ATC API, used internally by `fly`. DO NOT try and use this in an external project, you'll end up fighting your `go.mod`. |
 | `/skymarshal`   | Adapts [Dex](https://github.com/dexidp/dex) into an embeddable auth component for the ATC, plus the auth flag specifications for `fly` and `concourse web`. |
 | `/tsa`          | A custom-built SSH server responsible for securely authenticating and registering workers. The other half of `concourse web`. |
 | `/worker`       | The `concourse worker` library code for registering with the TSA, periodically reaping containers/volumes, etc. |
 | `/cmd`          | This is mainly glue code to wire the ATC, TSA, and Garden into the single `concourse` CLI. |
-| `/topgun`       | Another acceptance suite which covers operator-level features and technical aspects of the Concourse runtime. Deploys its own Concourse clusters, runs tests against them, and tears them down. |
+| `/testflight`   | The acceptance test suite, exercising pipeline and `fly` features. Runs against a single Concourse deployment. Can be run locally on a dev machine. |
+| `/topgun`       | Another acceptance suite which covers operator-level features and technical aspects of the Concourse runtime using [Bosh](https://bosh.io/) and [K8s](https://kubernetes.io/). Deploys its own Concourse clusters, runs tests against them, and tears them down. Can only be run in CI. |
+| `/integration`  | Similar to `/topgun`, but spins up Concourse clusters using `docker compose`. Can be run locally on a dev machine. |
 
 ### Rebuilding to test your changes
 
@@ -222,10 +223,10 @@ After making any changes, you can try them out by rebuilding and recreating the
 `web` and `worker` containers:
 
 ```sh
-$ docker-compose up --build -d
+$ docker compose up --build -d
 ```
 
-This can be run in a separate terminal while the original `docker-compose up`
+This can be run in a separate terminal while the original `docker compose up`
 command is still running.
 
 In certain cases, when a change is done to the underlying development image (e.g. Go upgrade from 1.11 to 1.12), you
@@ -233,7 +234,7 @@ will need to pull the latest version of `concourse/dev` image, so that `web` and
 using the fresh image:
 ```sh
 $ docker pull concourse/dev
-$ docker-compose up --build -d
+$ docker compose up --build -d
 ```
 
 If you're working on a dependency that doesn't live under this repository (for instance,
@@ -252,7 +253,7 @@ $ echo 'replace github.com/concourse/dex => github.com/your-user/dex v0.0.0-2021
   > ./go.mod
 
 # run the usual build
-$ docker-compose up --build -d
+$ docker compose up --build -d
 ```
 
 ### Working on the web UI
@@ -288,7 +289,7 @@ To trace a running worker instance:
 $ ./hack/trace worker
 ```
 
-To attach IDE debugger to a running instance, you can use the `--listen` flag followed by a port and the dlv will be started in headless mode listening on the specified port.   
+To attach IDE debugger to a running instance, you can use the `--listen` flag followed by a port and the dlv will be started in headless mode listening on the specified port.
 
 To debug a running web instance:
 
@@ -316,23 +317,15 @@ tying Concourse to it through the right environment variables.
 
 [Jaeger]: https://jaegertracing.io
 
-To leverage that extension, run `docker-compose up` specifying where all the
+To leverage that extension, run `docker compose up` specifying where all the
 yaml files are:
 
 ```sh
-$ docker-compose \
+$ docker compose \
   -f ./docker-compose.yml \
   -f ./hack/overrides/jaeger.yml \
   up -d
 ```
-
-### Using the experimental `containerd` garden backend locally
-
-There a docker-compose override (`./hack/overrides/containerd.yml`) that sets up
-the necessary environment variables needed to have [`containerd`] up an running as
-a Garden backend.
-
-[`containerd`]: https://containerd.io
 
 ### Running Vault locally
 
@@ -354,7 +347,7 @@ necessary configuraton for collecting Concourse metrics.
 
 
 ```sh
-$ docker-compose \
+$ docker compose \
   -f ./docker-compose.yml \
   -f ./hack/overrides/prometheus.yml \
   up -d
@@ -384,9 +377,9 @@ To reset the database, you'll need to stop everything and then blow away the
 `db` container:
 
 ```sh
-$ docker-compose stop # or Ctrl+C the running session
-$ docker-compose rm db
-$ docker-compose start
+$ docker compose stop
+$ docker compose rm db
+$ docker compose start
 ```
 
 ### Adding migrations
@@ -509,7 +502,7 @@ This will run the tests for all packages found in the current working directory,
 recursively (`-r`), running all examples within each package in parallel (`-p`).
 
 You can also pass the path to a package to run as an argument, rather than
-`cd`ing.
+`cd`'ing.
 
 Note that running `go test ./...` will break, as the tests currently assume only
 one package is running at a time (the `ginkgo` default). The `go test` default
@@ -521,7 +514,7 @@ following command, which skips all integration tests and linux-specific tests:
 
 ```sh
 ginkgo -r -p -race -flake-attempts=3 \
-    -skip-package ./integration,testflight,topgun,./worker/runtime/integration,./worker/baggageclaim
+    -skip-package ./integration,testflight,topgun,./worker/integration,./worker/runtime/integration,./worker/baggageclaim
 ```
 
 If you're on a non-linux platform you may want to run the tests using Docker
@@ -538,7 +531,7 @@ the following to run all the unit tests, including the linux-specific tests:
 cd /src
 go install github.com/onsi/ginkgo/v2/ginkgo
 ginkgo -r -p -race -flake-attempts=3 \
-    -skip-package ./integration,testflight,topgun,./worker/runtime/integration,./worker/baggageclaim
+    -skip-package ./integration,testflight,topgun
 ```
 
 #### Running elm tests
@@ -567,10 +560,10 @@ Run `yarn benchmark`.
 ### Running the acceptance tests (`testflight`)
 
 The `testflight` package contains tests that run against a real live Concourse.
-By default, it will run against `localhost:8080`, i.e. the `docker-compose up`'d
+By default, it will run against `localhost:8080`, i.e. the `docker compose up`'d
 Concourse.
 
-If you've already got Concourse running via `docker-compose up`, you should be
+If you've already got Concourse running via `docker compose up`, you should be
 able to just run the acceptance tests by running `ginkgo` the same way you would
 run it for unit tests:
 
