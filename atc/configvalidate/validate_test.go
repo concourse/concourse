@@ -17,7 +17,7 @@ import (
 var _ = Describe("ValidateConfig", func() {
 	var (
 		config        atc.Config
-		warnings      []atc.ConfigWarning
+		configErrors  []atc.ConfigErrors
 		errorMessages []string
 	)
 
@@ -130,12 +130,13 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		warnings, errorMessages = configvalidate.Validate(config)
+		configErrors, errorMessages = configvalidate.Validate(config)
 	})
 
 	Context("when the config is valid", func() {
 		It("returns no error", func() {
 			Expect(errorMessages).To(HaveLen(0))
+			Expect(configErrors).To(HaveLen(0))
 		})
 	})
 
@@ -149,9 +150,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'_some-group' is not a valid identifier"))
+			It("returns an error", func() {
+				Expect(configErrors).To(HaveLen(1))
+				Expect(configErrors[0].Message).To(ContainSubstring("'_some-group' is not a valid identifier"))
 			})
 		})
 
@@ -166,9 +167,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource' is not a valid identifier"))
+			It("returns an error", func() {
+				Expect(configErrors).To(HaveLen(1))
+				Expect(configErrors[0].Message).To(ContainSubstring("'_some-resource' is not a valid identifier"))
 			})
 		})
 
@@ -183,9 +184,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'_some-resource-type' is not a valid identifier"))
+			It("returns an error", func() {
+				Expect(configErrors).To(HaveLen(1))
+				Expect(configErrors[0].Message).To(ContainSubstring("'_some-resource-type' is not a valid identifier"))
 			})
 		})
 
@@ -200,9 +201,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'_some-prototype' is not a valid identifier"))
+			It("returns an error", func() {
+				Expect(configErrors).To(HaveLen(1))
+				Expect(configErrors[0].Message).To(ContainSubstring("'_some-prototype' is not a valid identifier"))
 			})
 		})
 
@@ -215,9 +216,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'_some-var-source' is not a valid identifier"))
+			It("returns an error", func() {
+				Expect(configErrors).To(HaveLen(1))
+				Expect(configErrors[0].Message).To(ContainSubstring("'_some-var-source' is not a valid identifier"))
 			})
 		})
 
@@ -228,9 +229,9 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(1))
-				Expect(warnings[0].Message).To(ContainSubstring("'_some-job' is not a valid identifier"))
+			It("returns an error", func() {
+				Expect(configErrors).To(HaveLen(1))
+				Expect(configErrors[0].Message).To(ContainSubstring("'_some-job' is not a valid identifier"))
 			})
 		})
 
@@ -270,13 +271,13 @@ var _ = Describe("ValidateConfig", func() {
 				)
 			})
 
-			It("returns a warning", func() {
-				Expect(warnings).To(HaveLen(5))
-				Expect(warnings[0].Message).To(ContainSubstring("'_get-step' is not a valid identifier"))
-				Expect(warnings[1].Message).To(ContainSubstring("'_task-step' is not a valid identifier"))
-				Expect(warnings[2].Message).To(ContainSubstring("'_put-step' is not a valid identifier"))
-				Expect(warnings[3].Message).To(ContainSubstring("'_set-pipeline-step' is not a valid identifier"))
-				Expect(warnings[4].Message).To(ContainSubstring("'_load-var-step' is not a valid identifier"))
+			It("returns an error", func() {
+				Expect(configErrors).To(HaveLen(5))
+				Expect(configErrors[0].Message).To(ContainSubstring("'_get-step' is not a valid identifier"))
+				Expect(configErrors[1].Message).To(ContainSubstring("'_task-step' is not a valid identifier"))
+				Expect(configErrors[2].Message).To(ContainSubstring("'_put-step' is not a valid identifier"))
+				Expect(configErrors[3].Message).To(ContainSubstring("'_set-pipeline-step' is not a valid identifier"))
+				Expect(configErrors[4].Message).To(ContainSubstring("'_load-var-step' is not a valid identifier"))
 
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("'_run-step' is not a valid identifier"))
@@ -1067,7 +1068,7 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): must specify either `file:` or `config:`"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): identifier cannot be an empty string"))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1116,29 +1117,6 @@ var _ = Describe("ValidateConfig", func() {
 					Expect(errorMessages[0]).To(ContainSubstring("invalid jobs:"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(some-resource).config: missing 'platform'"))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].task(some-resource).config: missing path to executable to run"))
-				})
-			})
-
-			Context("when a task plan sets hermetic", func() {
-				BeforeEach(func() {
-					job.PlanSequence = append(job.PlanSequence, atc.Step{
-						Config: &atc.TaskStep{
-							Name:     "some-resource",
-							Hermetic: true,
-							Config: &atc.TaskConfig{
-								Params: atc.TaskEnv{
-									"param1": "value1",
-								},
-							},
-						},
-					})
-
-					config.Jobs = append(config.Jobs, job)
-				})
-
-				It("returns a warning", func() {
-					Expect(warnings).To(HaveLen(1))
-					Expect(warnings[0].Message).To(ContainSubstring("specifies `hermetic:` only works against worker containerd runtime"))
 				})
 			})
 
@@ -1811,7 +1789,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("does return an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): no file specified"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): identifier cannot be an empty string"))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[0].set_pipeline(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -1922,7 +1900,7 @@ var _ = Describe("ValidateConfig", func() {
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): no file specified"))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): identifier cannot be an empty string"))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[0].load_var(): identifier cannot be an empty string"))
 				})
 			})
 
@@ -2072,10 +2050,10 @@ var _ = Describe("ValidateConfig", func() {
 					config.Jobs = append(config.Jobs, job)
 				})
 
-				It("returns a warning", func() {
+				It("returns an error", func() {
 					Expect(errorMessages).To(BeEmpty())
-					Expect(warnings).To(HaveLen(1))
-					Expect(warnings[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across[0]: shadows local var 'var1'"))
+					Expect(configErrors).To(HaveLen(1))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across[0]: shadows local var 'var1'"))
 				})
 			})
 
@@ -2103,10 +2081,10 @@ var _ = Describe("ValidateConfig", func() {
 					config.Jobs = append(config.Jobs, job)
 				})
 
-				It("returns a warning", func() {
+				It("returns an error", func() {
 					Expect(errorMessages).To(BeEmpty())
-					Expect(warnings).To(HaveLen(1))
-					Expect(warnings[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across.load_var(a): shadows local var 'a'"))
+					Expect(configErrors).To(HaveLen(1))
+					Expect(configErrors[0].Message).To(ContainSubstring("jobs.some-other-job.plan.do[1].across.load_var(a): shadows local var 'a'"))
 				})
 			})
 

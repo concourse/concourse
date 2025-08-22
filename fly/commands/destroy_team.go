@@ -15,6 +15,7 @@ import (
 type DestroyTeamCommand struct {
 	Team            flaghelpers.TeamFlag `short:"n" long:"team-name" required:"true"        description:"The team to delete"`
 	SkipInteractive bool                 `long:"non-interactive"        description:"Force apply configuration"`
+	SkipValidation  bool                 `long:"skip-validation" required:"false" description:"Skip identifier validation before destroying"`
 }
 
 func (command *DestroyTeamCommand) Execute([]string) error {
@@ -23,9 +24,12 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 		return err
 	}
 
-	err = target.Validate()
-	if err != nil {
-		return err
+	skip_validation := command.SkipValidation
+	if !skip_validation {
+		err = target.Validate()
+		if err != nil {
+			return err
+		}
 	}
 
 	teamName := command.Team.Name()

@@ -2,8 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"os"
+
+	"github.com/concourse/concourse/go-concourse/concourse"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
@@ -18,11 +19,11 @@ type ArchivePipelineCommand struct {
 	Pipeline        *flaghelpers.PipelineFlag `short:"p"  long:"pipeline"        description:"Pipeline to archive"`
 	All             bool                      `short:"a"  long:"all"             description:"Archive all pipelines"`
 	SkipInteractive bool                      `short:"n"  long:"non-interactive" description:"Skips interactions, uses default values"`
-	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Team            flaghelpers.TeamFlag      `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *ArchivePipelineCommand) Validate() error {
-	_, err := command.Pipeline.Validate()
+	err := command.Pipeline.Validate()
 	return err
 }
 
