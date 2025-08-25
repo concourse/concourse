@@ -17,7 +17,7 @@ import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
 import Html
-import Html.Attributes exposing (id, style)
+import Html.Attributes exposing (href, id, rel, style, target)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -54,6 +54,7 @@ type alias Flags =
 type alias Model =
     { subModel : SubPage.Model
     , session : Session
+    , wallMessage : Maybe String
     }
 
 
@@ -101,6 +102,7 @@ init flags url =
         model =
             { subModel = subModel
             , session = session
+            , wallMessage = Nothing
             }
 
         handleTokenEffect =
@@ -121,6 +123,7 @@ init flags url =
       , LoadFavoritedPipelines
       , LoadFavoritedInstanceGroups
       , FetchClusterInfo
+    , FetchWall
       ]
         ++ handleTokenEffect
         ++ subEffects
@@ -234,15 +237,26 @@ handleCallback callback model =
 
         GotCurrentTimeZone zone ->
             let
-                session =
-                    model.session
-
-                newSession =
-                    { session | timeZone = zone }
+                session = model.session
             in
-            ( { model | session = newSession }, [] )
+            ( { model | session = { session | timeZone = zone } }, [] )
 
-        -- otherwise, pass down
+        WallFetched (Ok wall) ->
+            let
+                newMsg =
+                    let
+                        trimmed = String.trim wall.message
+                    in
+                    if trimmed == "" || wall.ttl == 0 then
+                        Nothing
+                    else
+                        Just trimmed
+            in
+            ( { model | wallMessage = newMsg }, [] )
+
+        WallFetched (Err _) ->
+            ( model, [] )
+
         _ ->
             sideBarHandleCallback callback ( model, [] )
                 |> subpageHandleCallback callback
@@ -381,6 +395,12 @@ handleDeliveryForApplication delivery model =
                 Browser.External url ->
                     ( model, [ LoadExternal url ] )
 
+        ClockTicked Message.Subscription.FiveSeconds _ ->
+            ( model, [ FetchWall ] )
+
+        ClockTicked _ _ ->
+            ( model, [] )
+
         _ ->
             ( model, [] )
 
@@ -454,12 +474,24 @@ view model =
             , SideBar.tooltip model.session
                 |> Maybe.map (Tooltip.view model.session)
                 |> Maybe.withDefault (Html.text "")
+            , (case model.wallMessage of
+                    Just msg ->
+                        Html.div [ id "wall-banner" ] (
+                            [ Html.span [ Html.Attributes.class "wall-icon" ] [ Html.text "⚠️" ] ]
+                                ++ wallLinks msg
+                        )
+                    Nothing -> Html.text ""
+              )
             , Html.div
-                (id "page-wrapper"
-                    :: style "height" "100%"
-                    :: (if model.session.draggingSideBar then
+                ([ id "page-wrapper", style "height" "100%" ]
+                    ++ (case model.wallMessage of
+                            Just _ ->
+                                [ style "padding-top" "36px" ]
+                            Nothing ->
+                                []
+                       )
+                    ++ (if model.session.draggingSideBar then
                             Styles.disableInteraction
-
                         else
                             []
                        )
@@ -475,6 +507,7 @@ subscriptions model =
     , OnLocalStorageReceived
     , OnCacheReceived
     , OnWindowResize
+    , OnClockTick Message.Subscription.FiveSeconds
     ]
         ++ (if model.session.draggingSideBar then
                 [ OnMouse
@@ -510,3 +543,48 @@ routeMatchesModel route model =
 
         _ ->
             False
+
+
+wallLinks : String -> List (Html.Html msg)
+wallLinks msg =
+    let
+        tokens = String.split " " msg
+
+        stripTrailingPunct original =
+            let
+                punctuations = [ '.', ',' ]
+
+                dropWhileEnd s =
+                    case String.uncons (String.reverse s) of
+                        Just ( c, restRev ) ->
+                            if List.member c punctuations then
+                                let
+                                    trimmed = String.reverse restRev
+                                    ( url, trailing ) = dropWhileEnd trimmed
+                                in
+                                ( url, String.fromChar c ++ trailing )
+                            else
+                                ( s, "" )
+
+                        Nothing ->
+                            ( s, "" )
+            in
+            dropWhileEnd original
+
+        render t =
+            if String.startsWith "http://" t || String.startsWith "https://" t then
+                let
+                    ( url, trailing ) = stripTrailingPunct t
+                    anchor = Html.a [ href url, target "_blank", rel "noopener noreferrer" ] [ Html.text url ]
+                in
+                if trailing == "" then
+                    [ anchor ]
+                else
+                    [ anchor, Html.text trailing ]
+            else
+                [ Html.text t ]
+    in
+    tokens
+        |> List.map render
+        |> List.intersperse [ Html.text " " ]
+        |> List.concat

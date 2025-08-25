@@ -35,6 +35,9 @@ type Client interface {
 	Team(teamName string) Team
 	UserInfo() (atc.UserInfo, error)
 	ListActiveUsersSince(since time.Time) ([]atc.User, error)
+	GetWall() (atc.Wall, error)
+	SetWall(atc.Wall) error
+	ClearWall() error
 }
 
 type client struct {
