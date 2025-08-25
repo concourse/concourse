@@ -64,7 +64,7 @@ init route =
 
 documentTitle : String
 documentTitle =
-    "Download fly cli"
+    "Download fly CLI"
 
 
 view : Session -> Model -> Html Message
