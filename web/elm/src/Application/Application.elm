@@ -474,14 +474,13 @@ view model =
             , SideBar.tooltip model.session
                 |> Maybe.map (Tooltip.view model.session)
                 |> Maybe.withDefault (Html.text "")
-            , (case model.wallMessage of
-                    Just msg ->
-                        Html.div [ id "wall-banner" ] (
-                            [ Html.span [ Html.Attributes.class "wall-icon" ] [ Html.text "⚠️" ] ]
-                                ++ wallLinks msg
-                        )
-                    Nothing -> Html.text ""
-              )
+            , case model.wallMessage of
+                Just msg ->
+                    Html.div [ id "wall-banner" ] <|
+                        Html.span [ Html.Attributes.class "wall-icon" ] [ Html.text "⚠️" ]
+                            :: wallLinks msg
+                Nothing ->
+                    Html.text ""
             , Html.div
                 ([ id "page-wrapper", style "height" "100%" ]
                     ++ (case model.wallMessage of
