@@ -22,6 +22,7 @@ module Concourse exposing
     , CausalityResource
     , CausalityResourceVersion
     , ClusterInfo
+    , Wall
     , DatabaseID
     , FeatureFlags
     , HookedPlan
@@ -61,6 +62,7 @@ module Concourse exposing
     , decodeBuildResources
     , decodeCausality
     , decodeInfo
+    , decodeWall
     , decodeInstanceGroupId
     , decodeInstanceVars
     , decodeJob
@@ -936,6 +938,22 @@ decodeInfo =
     Json.Decode.succeed ClusterInfo
         |> andMap (Json.Decode.field "version" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "cluster_name" Json.Decode.string)
+
+
+-- Wall
+
+
+type alias Wall =
+    { message : String
+    , ttl : Int -- nanoseconds remaining; 0 when unset
+    }
+
+
+decodeWall : Json.Decode.Decoder Wall
+decodeWall =
+    Json.Decode.succeed Wall
+        |> andMap (defaultTo "" <| Json.Decode.field "message" Json.Decode.string)
+        |> andMap (defaultTo 0 <| Json.Decode.field "TTL" Json.Decode.int)
 
 
 
