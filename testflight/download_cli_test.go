@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Download Fly Cli", func() {
+var _ = Describe("Download Fly CLI", func() {
 	var beforeFly string
 
 	BeforeEach(func() {
@@ -27,7 +27,7 @@ var _ = Describe("Download Fly Cli", func() {
 		config.FlyBin = beforeFly
 	})
 
-	It("can download fly cli without issue", func() {
+	It("can download fly CLI without issue", func() {
 		watch := fly("sync", "--force")
 		Expect(watch).ToNot(gbytes.Say("warning: failed to parse Content-Length"))
 		Expect(watch).To(gbytes.Say("done"))
