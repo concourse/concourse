@@ -634,7 +634,7 @@ viewSubPage session model =
                             , style "display" "flex"
                             ]
                             [ Html.div Styles.consoleIcon []
-                            , Html.text "Download fly cli"
+                            , Html.text "Download fly CLI"
                             ]
                         ]
                     ]
