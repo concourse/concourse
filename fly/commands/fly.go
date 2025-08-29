@@ -90,9 +90,9 @@ type FlyCommand struct {
 
 	Curl CurlCommand `command:"curl" alias:"c" description:"curl the api"`
 
-	GetWall   GetWallCommand   `command:"get-wall" description:"Get the current wall message"`
-	SetWall   SetWallCommand   `command:"set-wall" description:"Set a wall message"`
-	ClearWall ClearWallCommand `command:"clear-wall" description:"Clear the wall message"`
+	GetWall   GetWallCommand   `command:"get-wall" alias:"gw" description:"Get the current wall message"`
+	SetWall   SetWallCommand   `command:"set-wall" alias:"sw" description:"Set a wall message"`
+	ClearWall ClearWallCommand `command:"clear-wall" alias:"cw" description:"Clear the wall message"`
 
 	Completion CompletionCommand `command:"completion" description:"generate shell completion code"`
 }

@@ -476,7 +476,7 @@ view model =
                 |> Maybe.withDefault (Html.text "")
             , case model.wallMessage of
                 Just msg ->
-                    Html.div [ id "wall-banner" ] <|
+                    Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
                         Html.span [ Html.Attributes.class "wall-icon" ] [ Html.text "⚠️" ]
                             :: wallLinks msg
                 Nothing ->
@@ -574,7 +574,7 @@ wallLinks msg =
             if String.startsWith "http://" t || String.startsWith "https://" t then
                 let
                     ( url, trailing ) = stripTrailingPunct t
-                    anchor = Html.a [ href url, target "_blank", rel "noopener noreferrer" ] [ Html.text url ]
+                    anchor = Html.a [ href url, target "_blank", rel "noopener noreferrer", style "text-decoration" "underline", style "margin-right" "0.25em" ] [ Html.text url ]
                 in
                 if trailing == "" then
                     [ anchor ]
