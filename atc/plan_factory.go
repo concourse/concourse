@@ -7,13 +7,13 @@ import (
 )
 
 type PlanFactory struct {
-	currentNum *int64
+	currentNum atomic.Int64
 }
 
 func NewPlanFactory(startingNum int64) PlanFactory {
-	return PlanFactory{
-		currentNum: &startingNum,
-	}
+	factory := PlanFactory{}
+	factory.currentNum.Store(startingNum)
+	return factory
 }
 
 type PlanConfig interface {
@@ -21,7 +21,7 @@ type PlanConfig interface {
 }
 
 func (factory PlanFactory) NewPlan(step PlanConfig) Plan {
-	num := atomic.AddInt64(factory.currentNum, 1)
+	num := factory.currentNum.Add(1)
 
 	var plan Plan
 	switch t := step.(type) {
