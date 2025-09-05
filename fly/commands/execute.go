@@ -203,7 +203,7 @@ func (command *ExecuteCommand) CreateTaskConfig(args []string) (atc.TaskConfig, 
 		nil,
 	)
 
-	taskTemplateEvaluated, err := taskTemplate.Evaluate(false)
+	taskTemplateEvaluated, err := taskTemplate.Evaluate(false, false)
 	if err != nil {
 		return atc.TaskConfig{}, err
 	}

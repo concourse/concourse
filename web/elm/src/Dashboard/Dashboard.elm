@@ -1223,7 +1223,7 @@ welcomeCard session =
                         [ href "/download-fly"
                         , style "text-decoration" "underline"
                         ]
-                        [ Html.text "download the fly cli" ]
+                        [ Html.text "download the fly CLI" ]
                     ]
                 ]
             , Html.div

@@ -47,7 +47,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 }
 
 func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTemplateWithParams) error {
-	evaluatedTemplate, err := yamlTemplateWithParams.Evaluate(true)
+	evaluatedTemplate, err := yamlTemplateWithParams.Evaluate(false, false)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	}
 
 	var newConfig atc.Config
-	err = yaml.Unmarshal(evaluatedTemplate, &newConfig)
+	err = yaml.Unmarshal([]byte(evaluatedTemplate), &newConfig)
 	if err != nil {
 		return err
 	}

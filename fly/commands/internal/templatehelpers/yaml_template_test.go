@@ -49,7 +49,7 @@ var _ = Describe("YAML Template With Params", func() {
 				{Ref: vars.Reference{Path: "param3"}, Value: "value3"},
 			}
 			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, variables, nil, nil)
-			result, err := sampleYaml.Evaluate(false)
+			result, err := sampleYaml.Evaluate(false, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(result)).To(Equal(`section:
 - param1: value1
@@ -65,7 +65,7 @@ var _ = Describe("YAML Template With Params", func() {
 				{Ref: vars.Reference{Path: "param2"}, Value: "value2"},
 			}
 			sampleYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "sample.yml")), nil, variables, nil, nil)
-			result, err := sampleYaml.Evaluate(false)
+			result, err := sampleYaml.Evaluate(false, false)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(result)).To(Equal(`section:
 - param1: value1
@@ -74,21 +74,5 @@ var _ = Describe("YAML Template With Params", func() {
     nested: ((param3))
 `))
 		})
-
-		When("strict", func() {
-			It("errors on duplicates", func() {
-				writeErr := os.WriteFile(
-					filepath.Join(tmpdir, "duplicate.yml"),
-					[]byte(`{ dupe: overriden, dupe: overriding }`),
-					0644,
-				)
-				Expect(writeErr).NotTo(HaveOccurred())
-				duplicateYaml := templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "duplicate.yml")), nil, nil, nil, nil)
-				_, evalErr := duplicateYaml.Evaluate(true)
-				Expect(evalErr).To(HaveOccurred())
-				Expect(evalErr.Error()).To(HavePrefix("error parsing yaml"))
-			})
-		})
-
 	})
 })

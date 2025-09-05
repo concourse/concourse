@@ -34,7 +34,10 @@ func NewYamlTemplateWithParams(
 	}
 }
 
-func (yamlTemplate YamlTemplateWithParams) Evaluate(strict bool) ([]byte, error) {
+func (yamlTemplate YamlTemplateWithParams) Evaluate(
+	allowEmpty bool,
+	strict bool,
+) ([]byte, error) {
 	config, err := os.ReadFile(string(yamlTemplate.filePath))
 	if err != nil {
 		return nil, fmt.Errorf("could not read file: %s", err.Error())
@@ -45,6 +48,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(strict bool) ([]byte, error)
 		// (else a template string may cause an error when a struct is expected)
 		// If we don't check Strict now, then the subsequent steps will mask any
 		// duplicate key errors.
+		// We should consider being strict throughout the entire stack by default.
 		err = yaml.UnmarshalStrict(config, make(map[string]any))
 		if err != nil {
 			return nil, fmt.Errorf("error parsing yaml before applying templates: %s", err.Error())
@@ -85,7 +89,7 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(strict bool) ([]byte, error)
 		params = append(params, staticVars)
 	}
 
-	evaluatedConfig, err := vars.NewTemplateResolver(config, params).Resolve(false)
+	evaluatedConfig, err := vars.NewTemplateResolver(config, params).Resolve(false, allowEmpty)
 	if err != nil {
 		return nil, err
 	}
