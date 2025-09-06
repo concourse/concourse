@@ -1684,7 +1684,7 @@ all =
                                 |> Query.index 1
                                 |> Query.has [ text "Docs" ]
                     ]
-                , describe "download fly cli footer link" <|
+                , describe "download fly CLI footer link" <|
                     let
                         downloadFlyLink =
                             info
@@ -1720,14 +1720,14 @@ all =
                                     , style "height" "20px"
                                     , style "margin-right" "5px"
                                     ]
-                    , test "has the text 'Download fly cli'" <|
+                    , test "has the text 'Download fly CLI'" <|
                         \_ ->
                             downloadFlyLink
                                 |> Query.children []
                                 |> Query.index 0
                                 |> Query.children []
                                 |> Query.index 1
-                                |> Query.has [ text "Download fly cli" ]
+                                |> Query.has [ text "Download fly CLI" ]
                     ]
                 , test "shows concourse version" <|
                     \_ ->
