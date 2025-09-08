@@ -2,10 +2,7 @@ package driver
 
 import (
 	"bytes"
-	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
@@ -28,49 +25,12 @@ func NewBtrFSDriver(
 
 func (driver *BtrFSDriver) CreateVolume(vol volume.FilesystemInitVolume) error {
 	_, _, err := driver.run(driver.btrfsBin, "subvolume", "create", vol.DataPath())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (driver *BtrFSDriver) DestroyVolume(vol volume.FilesystemVolume) error {
-	volumePathsToDelete := []string{}
-
-	findSubvolumes := func(p string, f os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !f.IsDir() {
-			return nil
-		}
-
-		isSub, err := isSubvolume(p)
-		if err != nil {
-			return fmt.Errorf("failed to check if %s is a subvolume: %s", p, err)
-		}
-
-		if isSub {
-			volumePathsToDelete = append(volumePathsToDelete, p)
-		}
-
-		return nil
-	}
-
-	if err := filepath.Walk(vol.DataPath(), findSubvolumes); err != nil {
-		return fmt.Errorf("recursively walking subvolumes for %s failed: %v", vol.DataPath(), err)
-	}
-
-	for i := len(volumePathsToDelete) - 1; i >= 0; i-- {
-		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", volumePathsToDelete[i])
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", "-R", vol.DataPath())
+	return err
 }
 
 func (driver *BtrFSDriver) CreateCopyOnWriteLayer(
