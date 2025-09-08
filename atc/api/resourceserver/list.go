@@ -1,9 +1,9 @@
 package resourceserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -30,7 +30,7 @@ func (s *Server) ListResources(pipeline db.Pipeline) http.Handler {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(presentedResources)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(presentedResources)
 		if err != nil {
 			logger.Error("failed-to-encode-resources", err)
 			w.WriteHeader(http.StatusInternalServerError)

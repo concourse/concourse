@@ -1,9 +1,9 @@
 package infoserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/creds"
 )
 
@@ -23,7 +23,7 @@ func (s *Server) Creds(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err := json.NewEncoder(w).Encode(configuredManagers)
+	err := sonic.ConfigDefault.NewEncoder(w).Encode(configuredManagers)
 	if err != nil {
 		logger.Error("failed-to-encode-info", err)
 		w.WriteHeader(http.StatusInternalServerError)

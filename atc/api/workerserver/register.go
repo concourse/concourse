@@ -1,7 +1,6 @@
 package workerserver
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,6 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/metric"
@@ -30,7 +30,7 @@ func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&registration)
+	err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&registration)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

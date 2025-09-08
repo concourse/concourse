@@ -1,10 +1,10 @@
 package artifactserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
@@ -44,6 +44,6 @@ func (s *Server) CreateArtifact(team db.Team) http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 
-		json.NewEncoder(w).Encode(present.WorkerArtifact(artifact))
+		sonic.ConfigDefault.NewEncoder(w).Encode(present.WorkerArtifact(artifact))
 	})
 }

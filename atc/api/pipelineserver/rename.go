@@ -1,11 +1,11 @@
 package pipelineserver
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/api/helpers"
 	"github.com/concourse/concourse/atc/db"
@@ -23,7 +23,7 @@ func (s *Server) RenamePipeline(team db.Team) http.Handler {
 		}
 
 		var rename atc.RenameRequest
-		err = json.Unmarshal(data, &rename)
+		err = sonic.Unmarshal(data, &rename)
 		if err != nil {
 			logger.Error("failed-to-unmarshal-body", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -56,7 +56,7 @@ func (s *Server) RenamePipeline(team db.Team) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(atc.SaveConfigResponse{Warnings: warnings, Errors: errs})
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(atc.SaveConfigResponse{Warnings: warnings, Errors: errs})
 		if err != nil {
 			logger.Error("failed-to-encode-response", err)
 			w.WriteHeader(http.StatusInternalServerError)

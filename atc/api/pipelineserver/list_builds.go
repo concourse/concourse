@@ -1,11 +1,11 @@
 package pipelineserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -85,7 +85,7 @@ func (s *Server) ListPipelineBuilds(pipeline db.Pipeline) http.Handler {
 			atc[i] = present.Build(build, nil, nil)
 		}
 
-		err = json.NewEncoder(w).Encode(atc)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(atc)
 		if err != nil {
 			logger.Error("failed-to-encode-builds", err)
 			w.WriteHeader(http.StatusInternalServerError)

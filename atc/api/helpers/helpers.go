@@ -1,10 +1,10 @@
 package helpers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 )
 
@@ -17,7 +17,7 @@ func HandleBadRequest(w http.ResponseWriter, errorMessages ...string) {
 }
 
 func WriteSaveConfigResponse(w http.ResponseWriter, saveConfigResponse atc.SaveConfigResponse) {
-	responseJSON, err := json.Marshal(saveConfigResponse)
+	responseJSON, err := sonic.Marshal(saveConfigResponse)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "failed to generate error response: %s", err)

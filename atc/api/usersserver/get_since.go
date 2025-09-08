@@ -1,10 +1,10 @@
 package usersserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -34,7 +34,7 @@ func (s *Server) GetUsersSince(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			hLog.Error("failed-to-parse-time", err)
 			w.WriteHeader(http.StatusBadRequest)
-			if err = json.NewEncoder(w).Encode(map[string]string{"error": "wrong date format (yyyy-mm-dd)"}); err != nil {
+			if err = sonic.ConfigDefault.NewEncoder(w).Encode(map[string]string{"error": "wrong date format (yyyy-mm-dd)"}); err != nil {
 				hLog.Error("failed-to-encode-date-parsing-error", err)
 				w.WriteHeader(http.StatusInternalServerError)
 			}
@@ -60,7 +60,7 @@ func (s *Server) GetUsersSince(w http.ResponseWriter, r *http.Request) {
 		presentedUsers[idx] = present.User(user)
 	}
 
-	err = json.NewEncoder(w).Encode(presentedUsers)
+	err = sonic.ConfigDefault.NewEncoder(w).Encode(presentedUsers)
 	if err != nil {
 		hLog.Error("failed-to-encode-users", err)
 		w.WriteHeader(http.StatusInternalServerError)

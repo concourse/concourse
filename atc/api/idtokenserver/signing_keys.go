@@ -1,9 +1,9 @@
 package idtokenserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/go-jose/go-jose/v4"
 )
 
@@ -29,7 +29,7 @@ func (s *Server) SigningKeys(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	err = json.NewEncoder(w).Encode(publicKeys)
+	err = sonic.ConfigDefault.NewEncoder(w).Encode(publicKeys)
 	if err != nil {
 		logger.Error("failed-to-encode-jwks", err)
 		w.WriteHeader(http.StatusInternalServerError)

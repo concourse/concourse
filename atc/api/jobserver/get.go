@@ -1,9 +1,9 @@
 package jobserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -52,7 +52,7 @@ func (s *Server) GetJob(pipeline db.Pipeline) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		err = json.NewEncoder(w).Encode(present.Job(
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(present.Job(
 			teamName,
 			job,
 			accessor.GetAccessor(r),

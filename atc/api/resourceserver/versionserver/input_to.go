@@ -1,11 +1,11 @@
 package versionserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -47,7 +47,7 @@ func (s *Server) ListBuildsWithVersionAsInput(pipeline db.Pipeline) http.Handler
 
 		w.WriteHeader(http.StatusOK)
 
-		err = json.NewEncoder(w).Encode(presentedBuilds)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(presentedBuilds)
 		if err != nil {
 			logger.Error("failed-to-encode-builds", err)
 			w.WriteHeader(http.StatusInternalServerError)

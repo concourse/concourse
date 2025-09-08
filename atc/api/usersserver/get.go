@@ -1,9 +1,9 @@
 package usersserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/accessor"
 )
 
@@ -13,7 +13,7 @@ func (s *Server) GetUser(w http.ResponseWriter, r *http.Request) {
 
 	acc := accessor.GetAccessor(r)
 
-	err := json.NewEncoder(w).Encode(acc.UserInfo())
+	err := sonic.ConfigDefault.NewEncoder(w).Encode(acc.UserInfo())
 	if err != nil {
 		hLog.Error("failed-to-encode-users", err)
 		w.WriteHeader(http.StatusInternalServerError)

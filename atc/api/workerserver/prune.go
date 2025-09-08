@@ -1,9 +1,9 @@
 package workerserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -40,7 +40,7 @@ func (s *Server) PruneWorker(w http.ResponseWriter, r *http.Request) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		err = json.NewEncoder(w).Encode(responseBody)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(responseBody)
 		if err != nil {
 			logger.Error("failed-to-encode-prune-worker-response-body", err)
 			w.WriteHeader(http.StatusInternalServerError)

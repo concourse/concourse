@@ -2,11 +2,11 @@ package resourceserver
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -22,7 +22,7 @@ func (s *Server) CheckPrototype(dbPipeline db.Pipeline) http.Handler {
 		})
 
 		var reqBody atc.CheckRequestBody
-		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&reqBody)
 		if err != nil {
 			logger.Info("malformed-request", lager.Data{"error": err.Error()})
 			w.WriteHeader(http.StatusBadRequest)
@@ -73,7 +73,7 @@ func (s *Server) CheckPrototype(dbPipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusCreated)
 
-		err = json.NewEncoder(w).Encode(present.Build(build, nil, nil))
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(present.Build(build, nil, nil))
 		if err != nil {
 			logger.Error("failed-to-encode-check", err)
 			w.WriteHeader(http.StatusInternalServerError)

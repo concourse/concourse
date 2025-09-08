@@ -1,9 +1,9 @@
 package teamserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -13,7 +13,7 @@ func (s *Server) GetTeam(team db.Team) http.Handler {
 		logger := s.logger.Session("get-team")
 
 		w.Header().Set("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(present.Team(team)); err != nil {
+		if err := sonic.ConfigDefault.NewEncoder(w).Encode(present.Team(team)); err != nil {
 			logger.Error("failed-to-encode-team", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

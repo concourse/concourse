@@ -1,10 +1,10 @@
 package jobserver
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -56,7 +56,7 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		err = json.NewEncoder(w).Encode(present.Build(build, nil, nil))
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(present.Build(build, nil, nil))
 		if err != nil {
 			logger.Error("failed-to-encode-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

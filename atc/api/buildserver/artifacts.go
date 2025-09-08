@@ -1,9 +1,9 @@
 package buildserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -21,7 +21,7 @@ func (s *Server) GetBuildArtifacts(build db.BuildForAPI) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 
-		err = json.NewEncoder(w).Encode(present.WorkerArtifacts(artifacts))
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(present.WorkerArtifacts(artifacts))
 		if err != nil {
 			logger.Error("failed-to-encode-build-artifacts", err)
 			w.WriteHeader(http.StatusInternalServerError)

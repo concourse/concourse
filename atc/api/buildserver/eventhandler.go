@@ -1,12 +1,12 @@
 package buildserver
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/vito/go-sse/sse"
 )
@@ -92,7 +92,7 @@ type eventWriter struct {
 }
 
 func (writer eventWriter) WriteEvent(id uint, envelope any) error {
-	payload, err := json.Marshal(envelope)
+	payload, err := sonic.Marshal(envelope)
 	if err != nil {
 		return err
 	}

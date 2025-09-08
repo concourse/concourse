@@ -1,11 +1,11 @@
 package containerserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -56,7 +56,7 @@ func (s *Server) GetContainer(team db.Team) http.Handler {
 		presentedContainer := present.Container(container, time.Time{})
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(presentedContainer)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(presentedContainer)
 		if err != nil {
 			hLog.Error("failed-to-encode-container", err)
 			w.WriteHeader(http.StatusInternalServerError)
