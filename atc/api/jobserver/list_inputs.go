@@ -2,8 +2,10 @@ package jobserver
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -68,7 +70,7 @@ func (s *Server) ListJobInputs(pipeline db.Pipeline) http.Handler {
 
 			resource, found := resources.Lookup(config.Resource)
 			if !found {
-				logger.Debug("resource-is-not-found")
+				logger.Error("resource-not-found", errors.New("resource-not-found"), lager.Data{"resource": config.Resource})
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
