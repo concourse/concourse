@@ -188,6 +188,17 @@ var _ = Describe("Resource Config Scope", func() {
 				})
 			})
 		})
+		Context("when a version is empty", func() {
+			It("returns an error", func() {
+				emptyVersions := []atc.Version{
+					{},
+				}
+
+				err := resourceScope.SaveVersions(nil, emptyVersions)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("resource output version is missing"))
+			})
+		})
 	})
 
 	Describe("LatestVersion", func() {
