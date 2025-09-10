@@ -439,6 +439,7 @@ func DefaultTLSConfig() *tls.Config {
 
 		// https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
 		CurvePreferences: []tls.CurveID{
+			tls.X25519,
 			tls.CurveP256,
 			tls.CurveP384,
 			tls.CurveP521,
@@ -473,10 +474,11 @@ func DefaultSSHConfig() ssh.Config {
 		//[KEX Recommendations for SSH IETF](https://tools.ietf.org/html/draft-ietf-curdle-ssh-kex-sha2-10#section-4)
 		//[Mozilla Openssh Reference](https://infosec.mozilla.org/guidelines/openssh.html)
 		KeyExchanges: []string{
+			"curve25519-sha256@libssh.org",
+			"curve25519-sha256",
 			"ecdh-sha2-nistp256",
 			"ecdh-sha2-nistp384",
 			"ecdh-sha2-nistp521",
-			"curve25519-sha256@libssh.org",
 		},
 	}
 }
