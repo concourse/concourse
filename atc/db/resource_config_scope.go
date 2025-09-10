@@ -261,7 +261,7 @@ func (r *resourceConfigScope) UpdateLastCheckEndTime(succeeded bool) (bool, erro
 
 func saveResourceVersion(tx Tx, rcsID int, version atc.Version, metadata ResourceConfigMetadataFields, spanContext SpanContext) (bool, error) {
 	if len(version) == 0 {
-		return false, errors.New("resource output version is missing")
+		return false, errors.New("resource output version is empty. Version must contain at least one key-value pair")
 	}
 
 	versionJSON, err := json.Marshal(version)

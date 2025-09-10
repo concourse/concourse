@@ -196,7 +196,7 @@ var _ = Describe("Resource Config Scope", func() {
 
 				err := resourceScope.SaveVersions(nil, emptyVersions)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("resource output version is missing"))
+				Expect(err.Error()).To(ContainSubstring("resource output version is empty. Version must contain at least one key-value pair"))
 			})
 		})
 	})
