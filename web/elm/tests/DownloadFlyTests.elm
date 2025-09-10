@@ -21,7 +21,7 @@ all =
                 Common.initRoute Routes.DownloadFly
                     |> Application.view
                     |> .title
-                    |> Expect.equal "Download fly cli - Concourse"
+                    |> Expect.equal "Download fly CLI - Concourse"
         , test "does not show install steps on init" <|
             \_ ->
                 Common.initRoute Routes.DownloadFly
