@@ -2,10 +2,10 @@ package policychecker
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -62,7 +62,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 			return nil, err
 		} else if len(body) > 0 {
 			if ct == "application/json" {
-				err = json.Unmarshal(body, &input.Data)
+				err = sonic.Unmarshal(body, &input.Data)
 			} else {
 				err = yaml.Unmarshal(body, &input.Data)
 			}

@@ -1,10 +1,10 @@
 package volumeserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -36,7 +36,7 @@ func (s *Server) ListVolumes(team db.Team) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(presentedVolumes)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(presentedVolumes)
 		if err != nil {
 			hLog.Error("failed-to-encode-volumes", err)
 			w.WriteHeader(http.StatusInternalServerError)

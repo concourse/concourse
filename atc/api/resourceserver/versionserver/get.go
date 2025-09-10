@@ -1,10 +1,10 @@
 package versionserver
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -35,7 +35,7 @@ func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 
 		w.WriteHeader(http.StatusOK)
 
-		err = json.NewEncoder(w).Encode(version)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(version)
 		if err != nil {
 			logger.Error("failed-to-encode-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)

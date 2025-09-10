@@ -1,10 +1,10 @@
 package resourceserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/tedsuo/rata"
 )
@@ -37,7 +37,7 @@ func (s *Server) ListSharedForResource(pipeline db.Pipeline) http.Handler {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		err = json.NewEncoder(w).Encode(shared)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(shared)
 		if err != nil {
 			logger.Error("failed-to-encode-shared-resources-and-types", err)
 			w.WriteHeader(http.StatusInternalServerError)

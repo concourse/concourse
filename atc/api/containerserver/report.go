@@ -1,10 +1,10 @@
 package containerserver
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/metric"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -32,7 +32,7 @@ func (s *Server) ReportWorkerContainers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var handles []string
-	err = json.Unmarshal(data, &handles)
+	err = sonic.Unmarshal(data, &handles)
 	if err != nil {
 		logger.Error("failed-to-unmarshal-body", err)
 		w.WriteHeader(http.StatusBadRequest)

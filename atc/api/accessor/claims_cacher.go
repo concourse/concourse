@@ -1,9 +1,9 @@
 package accessor
 
 import (
-	"encoding/json"
 	"sync"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/golang/groupcache/lru"
 )
@@ -56,7 +56,7 @@ func (c *claimsCacher) GetAccessToken(rawToken string) (db.AccessToken, bool, er
 	if !found {
 		return db.AccessToken{}, false, nil
 	}
-	payload, err := json.Marshal(token.Claims)
+	payload, err := sonic.Marshal(token.Claims)
 	if err != nil {
 		return db.AccessToken{}, false, err
 	}

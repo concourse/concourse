@@ -1,10 +1,10 @@
 package containerserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 )
 
 func (s *Server) ListDestroyingContainers(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func (s *Server) ListDestroyingContainers(w http.ResponseWriter, r *http.Request
 	logger.Debug("containers-to-destroy", lager.Data{"count": len(containerHandles)})
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(containerHandles)
+	err = sonic.ConfigDefault.NewEncoder(w).Encode(containerHandles)
 	if err != nil {
 		logger.Error("failed-to-marshall-container-handles-for-worker", err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -1,9 +1,9 @@
 package pipelineserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -20,7 +20,7 @@ func (s *Server) GetVersionsDB(pipelineDB db.Pipeline) http.Handler {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		err = json.NewEncoder(w).Encode(versionsDB)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(versionsDB)
 		if err != nil {
 			logger.Error("failed-to-encode-version-db", err)
 			w.WriteHeader(http.StatusInternalServerError)

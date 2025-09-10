@@ -1,11 +1,11 @@
 package workerserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -33,7 +33,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&registration)
+	err = sonic.ConfigDefault.NewDecoder(r.Body).Decode(&registration)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -84,7 +84,7 @@ func (s *Server) HeartbeatWorker(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(present.Worker(savedWorker))
+	err = sonic.ConfigDefault.NewEncoder(w).Encode(present.Worker(savedWorker))
 	if err != nil {
 		logger.Error("failed-to-encode-worker", err)
 		w.WriteHeader(http.StatusInternalServerError)

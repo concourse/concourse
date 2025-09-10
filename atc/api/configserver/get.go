@@ -1,11 +1,11 @@
 package configserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 
 	"github.com/concourse/concourse/atc"
 	. "github.com/concourse/concourse/atc/api/helpers"
@@ -67,7 +67,7 @@ func (s *Server) GetConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(atc.ConfigVersionHeader, fmt.Sprintf("%d", pipeline.ConfigVersion()))
 	w.Header().Set("Content-Type", "application/json")
 
-	err = json.NewEncoder(w).Encode(atc.ConfigResponse{
+	err = sonic.ConfigDefault.NewEncoder(w).Encode(atc.ConfigResponse{
 		Config: config,
 	})
 	if err != nil {

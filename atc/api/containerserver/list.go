@@ -1,13 +1,13 @@
 package containerserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -46,7 +46,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 			presentedContainers[i] = present.Container(container, checkContainersExpiresAt[container.ID()])
 		}
 
-		err = json.NewEncoder(w).Encode(presentedContainers)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(presentedContainers)
 		if err != nil {
 			hLog.Error("failed-to-encode-containers", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -76,7 +76,7 @@ func createContainerLocatorFromRequest(team db.Team, r *http.Request) (container
 	}
 	var instanceVarsPayload []byte
 	if pipelineRef.InstanceVars != nil {
-		instanceVarsPayload, err = json.Marshal(pipelineRef.InstanceVars)
+		instanceVarsPayload, err = sonic.Marshal(pipelineRef.InstanceVars)
 		if err != nil {
 			return nil, err
 		}

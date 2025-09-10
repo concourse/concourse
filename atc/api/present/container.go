@@ -1,9 +1,9 @@
 package present
 
 import (
-	"encoding/json"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -12,7 +12,7 @@ func Container(container db.Container, expiresAt time.Time) atc.Container {
 	meta := container.Metadata()
 
 	var pipelineInstanceVars atc.InstanceVars
-	_ = json.Unmarshal([]byte(meta.PipelineInstanceVars), &pipelineInstanceVars)
+	_ = sonic.Unmarshal([]byte(meta.PipelineInstanceVars), &pipelineInstanceVars)
 
 	atcContainer := atc.Container{
 		ID:         container.Handle(),

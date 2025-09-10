@@ -1,9 +1,9 @@
 package idtokenserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/go-jose/go-jose/v4"
 )
 
@@ -29,7 +29,7 @@ func (s *Server) OpenIDConfiguration(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
-	err := json.NewEncoder(w).Encode(resp)
+	err := sonic.ConfigDefault.NewEncoder(w).Encode(resp)
 	if err != nil {
 		logger.Error("failed-to-encode-openid-discovery", err)
 		w.WriteHeader(http.StatusInternalServerError)

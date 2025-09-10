@@ -1,10 +1,10 @@
 package teamserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -27,7 +27,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	teamName := r.URL.Query().Get(":team_name")
 
 	var atcTeam atc.Team
-	err := json.NewDecoder(r.Body).Decode(&atcTeam)
+	err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&atcTeam)
 	if err != nil {
 		hLog.Error("malformed-request", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -94,7 +94,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 
 	response.Team = present.Team(team)
 
-	err = json.NewEncoder(w).Encode(response)
+	err = sonic.ConfigDefault.NewEncoder(w).Encode(response)
 	if err != nil {
 		hLog.Error("failed-to-encode-team", err)
 		w.WriteHeader(http.StatusInternalServerError)

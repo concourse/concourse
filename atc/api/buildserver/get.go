@@ -1,9 +1,9 @@
 package buildserver
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -19,7 +19,7 @@ func (s *Server) GetBuild(build db.BuildForAPI) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		err := json.NewEncoder(w).Encode(present.Build(build, job, access))
+		err := sonic.ConfigDefault.NewEncoder(w).Encode(present.Build(build, job, access))
 		if err != nil {
 			logger.Error("failed-to-encode-build", err)
 			w.WriteHeader(http.StatusInternalServerError)

@@ -1,13 +1,13 @@
 package versionserver
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
@@ -110,7 +110,7 @@ func (s *Server) ListResourceVersions(pipeline db.Pipeline) http.Handler {
 
 		versions = present.ResourceVersions(hideMetadata, versions)
 
-		err = json.NewEncoder(w).Encode(versions)
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(versions)
 		if err != nil {
 			logger.Error("failed-to-encode-resource-versions", err)
 			w.WriteHeader(http.StatusInternalServerError)

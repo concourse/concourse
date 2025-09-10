@@ -1,10 +1,10 @@
 package buildserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -26,7 +26,7 @@ func (s *Server) GetBuildPreparation(build db.BuildForAPI) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(w).Encode(present.BuildPreparation(prep))
+		err = sonic.ConfigDefault.NewEncoder(w).Encode(present.BuildPreparation(prep))
 		if err != nil {
 			logger.Error("failed-to-encode-build-preparation", err)
 			w.WriteHeader(http.StatusInternalServerError)
