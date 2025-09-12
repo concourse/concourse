@@ -28,6 +28,7 @@ type Endpoint
     | TeamsList
     | Team Concourse.TeamName TeamEndpoint
     | ClusterInfo
+    | Wall
     | Cli
     | UserInfo
     | Logout
@@ -175,6 +176,9 @@ builder endpoint =
 
         ClusterInfo ->
             base |> appendPath [ "info" ]
+
+        Wall ->
+            base |> appendPath [ "wall" ]
 
         Cli ->
             base |> appendPath [ "cli" ]
