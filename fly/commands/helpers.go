@@ -85,7 +85,7 @@ func GetLatestResourceVersion(team concourse.Team, resource flaghelpers.Resource
 			return atc.ResourceVersion{}, err
 		}
 
-		return atc.ResourceVersion{}, errors.New(fmt.Sprintf("could not find version matching %s", string(versionBytes)))
+		return atc.ResourceVersion{}, fmt.Errorf("could not find version matching %s", string(versionBytes))
 	}
 
 	return versions[0], nil

@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/concourse/concourse/atc"
@@ -48,7 +47,7 @@ func (command *ClearVersionsCommand) Execute(args []string) error {
 		}
 
 		if !found {
-			return errors.New(fmt.Sprintf("resource '%s' is not found", command.Resource.ResourceName))
+			return fmt.Errorf("resource '%s' is not found", command.Resource.ResourceName)
 		}
 
 		confirmed, err := command.warningMessage(shared)
@@ -75,7 +74,7 @@ func (command *ClearVersionsCommand) Execute(args []string) error {
 		}
 
 		if !found {
-			return errors.New(fmt.Sprintf("resource type '%s' is not found", command.ResourceType.ResourceName))
+			return fmt.Errorf("resource type '%s' is not found", command.ResourceType.ResourceName)
 		}
 
 		confirmed, err := command.warningMessage(shared)

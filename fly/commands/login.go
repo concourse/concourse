@@ -27,7 +27,7 @@ type LoginCommand struct {
 	Insecure       bool         `short:"k" long:"insecure" description:"Skip verification of the endpoint's SSL certificate"`
 	Username       string       `short:"u" long:"username" description:"Username for basic auth"`
 	Password       string       `short:"p" long:"password" description:"Password for basic auth"`
-	TeamName       string       `short:"n" long:"team-name" description:"Team to authenticate with"`
+	TeamName       string       `short:"n" long:"team-name" description:"Team to authenticate with. Defaults to the 'main' team or the team previously used for the specified Target."`
 	CACert         atc.PathFlag `long:"ca-cert" description:"Path to Concourse PEM-encoded CA certificate file."`
 	ClientCertPath atc.PathFlag `long:"client-cert" description:"Path to a PEM-encoded client certificate file."`
 	ClientKeyPath  atc.PathFlag `long:"client-key" description:"Path to a PEM-encoded client key file."`
