@@ -11,6 +11,7 @@ import (
 type clientVolume struct {
 	handle string
 	path   string
+	size   int
 
 	bcClient *client
 }
@@ -23,8 +24,12 @@ func (cv *clientVolume) Path() string {
 	return cv.path
 }
 
+func (cv *clientVolume) Size() int {
+	return cv.size
+}
+
 func (cv *clientVolume) Properties(ctx context.Context) (baggageclaim.VolumeProperties, error) {
-	vr, found, err := cv.bcClient.getVolumeResponse(ctx, cv.handle)
+	vr, found, err := cv.bcClient.getVolumeResponse(ctx, cv.handle, false)
 	if err != nil {
 		return nil, err
 	}
