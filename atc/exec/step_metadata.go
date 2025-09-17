@@ -61,6 +61,24 @@ func (metadata StepMetadata) Env() []string {
 
 	if metadata.ExternalURL != "" {
 		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
+
+		if metadata.TeamName != "" && metadata.BuildID != 0 {
+			buildURLShort := fmt.Sprintf("%s/builds/%d", metadata.ExternalURL, metadata.BuildID)
+			buildURL := buildURLShort
+
+			if metadata.PipelineName != "" && metadata.JobName != "" && metadata.BuildName != "" {
+				buildURL = fmt.Sprintf("%s/teams/%s/pipelines/%s/jobs/%s/builds/%s",
+					metadata.ExternalURL,
+					metadata.TeamName,
+					metadata.PipelineName,
+					metadata.JobName,
+					metadata.BuildName)
+			}
+
+			env = append(env,
+				"BUILD_URL="+buildURL,
+				"BUILD_URL_SHORT="+buildURLShort)
+		}
 	}
 
 	if metadata.CreatedBy != "" {
