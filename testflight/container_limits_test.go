@@ -29,6 +29,10 @@ var _ = Describe("A job with a task that has container limits", func() {
 	})
 
 	It("sets the correct CPU and memory limits on the container", func() {
+		if config.Runtime == "guardian" && cgroupsV2Only() {
+			Skip("guardian runtime doesn't mount /sys/fs/cgroup on systems only using cgroup V2. See https://github.com/cloudfoundry/garden-runc-release/issues/384")
+		}
+
 		setAndUnpausePipeline("fixtures/container_limits_failing.yml")
 
 		watch := spawnFly("trigger-job", "-j", inPipeline("container-limits-failing-job"), "-w")
