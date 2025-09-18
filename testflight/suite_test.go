@@ -380,3 +380,9 @@ func withFlyTarget(target string, f func()) {
 	f()
 	flyTarget = before
 }
+
+// Returns true if only cgroups V2 is enabled and cgroups V1 is disabled
+func cgroupsV2Only() bool {
+	_, err := os.Stat("/sys/fs/cgroup/cgroup.controllers")
+	return err == nil
+}
