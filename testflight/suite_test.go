@@ -383,6 +383,11 @@ func withFlyTarget(target string, f func()) {
 
 // Returns true if only cgroups V2 is enabled and cgroups V1 is disabled
 func cgroupsV2Only() bool {
+	if runtime.GOOS != "linux" {
+		// likely running testflight on a Docker VM on Windows/macOS where only
+		// cgroups V2 is enabled
+		return true
+	}
 	_, err := os.Stat("/sys/fs/cgroup/cgroup.controllers")
 	return err == nil
 }
