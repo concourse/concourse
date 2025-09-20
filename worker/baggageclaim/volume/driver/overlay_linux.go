@@ -25,11 +25,8 @@ func init() {
 // file then it will not create a copy of the file. Files will only be copied
 // when they are written to.
 func metacopySupported() bool {
-	_, err := os.Stat("/sys/module/overlay/parameters/metacopy")
-	if err != nil {
-		return !errors.Is(err, os.ErrNotExist)
-	}
-	return true
+	data, err := os.ReadFile("/sys/module/overlay/parameters/metacopy")
+	return err == nil && len(data) > 0 && data[0] == 'Y'
 }
 
 type OverlayDriver struct {
