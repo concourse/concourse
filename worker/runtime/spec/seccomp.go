@@ -232,6 +232,7 @@ var seccomp = &specs.LinuxSeccomp{
 				"process_mrelease",
 				"pselect6",
 				"pselect6_time64",
+				"ptrace",
 				"pwrite64",
 				"pwritev",
 				"pwritev2",
