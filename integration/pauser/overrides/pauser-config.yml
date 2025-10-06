@@ -2,9 +2,9 @@ services:
   db:
     # we need to persist the db between restarts
     environment:
-      PGDATA: /var/lib/postgresql/data
+      PGDATA: /var/lib/postgresql/concourse/data
     volumes:
-    - postgresData:/var/lib/postgresql/data
+      - postgresData:/var/lib/postgresql/concourse/data
 
   web:
     environment:
