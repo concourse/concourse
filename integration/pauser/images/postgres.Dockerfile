@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates
 
-RUN curl -L https://github.com/wolfcw/libfaketime/archive/refs/tags/v0.9.10.tar.gz --output faketime.tar.gz && \
+RUN curl -L https://github.com/wolfcw/libfaketime/archive/refs/tags/v0.9.12.tar.gz --output faketime.tar.gz && \
     tar xzf faketime.tar.gz && cd libfaketime* && \
     make && make install && \
     cd .. && rm faketime.tar.gz && rm -rf libfaketime*
