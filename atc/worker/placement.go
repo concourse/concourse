@@ -339,7 +339,7 @@ func (strategy limitActiveTasksStrategy) Approve(logger lager.Logger, worker db.
 }
 
 func (strategy limitActiveTasksStrategy) Release(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) {
-	if spec.Type != db.ContainerTypeTask {
+	if spec.Type != db.ContainerTypeTask || strategy.MaxTasks == 0 {
 		return
 	}
 
