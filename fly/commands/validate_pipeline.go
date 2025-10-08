@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/db/dbfakes"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/commands/internal/validatepipelinehelpers"
@@ -10,6 +11,7 @@ import (
 	_ "github.com/concourse/concourse/atc/creds/conjur"
 	_ "github.com/concourse/concourse/atc/creds/credhub"
 	_ "github.com/concourse/concourse/atc/creds/dummy"
+	"github.com/concourse/concourse/atc/creds/idtoken"
 	_ "github.com/concourse/concourse/atc/creds/kubernetes"
 	_ "github.com/concourse/concourse/atc/creds/secretsmanager"
 	_ "github.com/concourse/concourse/atc/creds/ssm"
@@ -29,6 +31,15 @@ type ValidatePipelineCommand struct {
 }
 
 func (command *ValidatePipelineCommand) Execute(args []string) error {
+
+	// the idtoken credential manager needs to have an issuer and a signingKeyFactory configured to work (and without it validation of pipelines using it would fail)
+	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
+		f.SetIssuer("http://localhost")
+	})
+	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
+		f.SetSigningKeyFactory(&dbfakes.FakeSigningKeyFactory{})
+	})
+
 	yamlTemplate := templatehelpers.NewYamlTemplateWithParams(command.Config, command.VarsFrom, command.Var, command.YAMLVar, nil)
 	return validatepipelinehelpers.Validate(yamlTemplate, command.Strict, command.Output, command.EnableAcrossStep)
 }
