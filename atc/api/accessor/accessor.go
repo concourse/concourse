@@ -95,7 +95,7 @@ func contains(arr []string, val string) bool {
 func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 	connectorID := a.connectorID()
 
-	if connectorID == "cloudfoundry" {
+	if strings.EqualFold(connectorID, "cloudfoundry") {
 		connectorID = "cf"
 	}
 
