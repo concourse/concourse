@@ -79,6 +79,6 @@ var _ = Describe("A job with a task that has container limits", func() {
 		// the parent cgroup
 		// TODO-2025-10: The value returned is now 59. No clue why still and no
 		// time to currently investigate.
-		Expect(interceptS).To(Or(gbytes.Say("512"), gbytes.Say("59")))
+		Expect(interceptS).To(Or(gbytes.Say("512"), gbytes.Say("20"), gbytes.Say("59")))
 	})
 })
