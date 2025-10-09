@@ -632,9 +632,9 @@ viewMainJobsSection session model =
                 if List.isEmpty content then
                     Html.div Styles.noBuildsMessage
                         [ Html.text <|
-                            "no builds for job “"
+                            "no builds for job \""
                                 ++ model.jobIdentifier.jobName
-                                ++ "”"
+                                ++ "\""
                         ]
 
                 else
