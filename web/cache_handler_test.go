@@ -28,7 +28,7 @@ var _ = Describe("CacheNearlyForever", func() {
 		wrappedHandler.ServeHTTP(recorder, request) // request is never used
 
 		Expect(recorder.Body.String()).To(Equal("The wrapped handler was called!"))
-		Expect(recorder.Header().Get("Cache-Control")).To(Equal("max-age=31536000, private"))
+		Expect(recorder.Header().Get("Cache-Control")).To(Equal("max-age=31536000, public, immutable"))
 		Expect(recorder.Header().Get("Content-Encoding")).ToNot(Equal("gzip"))
 	})
 
