@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -275,88 +274,34 @@ func getBuilds(buildsQuery sq.SelectBuilder, conn DbConn, lockFactory lock.LockF
 }
 
 func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
-	var newPage = Page{Limit: page.Limit}
+	if page.From != nil {
+		buildsQuery = buildsQuery.Where(sq.Expr("b.start_time >= to_timestamp(?)", *page.From))
+	}
+	if page.To != nil {
+		buildsQuery = buildsQuery.Where(sq.Expr("b.start_time <= to_timestamp(?)", *page.To))
+	}
 
-	tx, err := conn.Begin()
+	buildsQuery = buildsQuery.
+		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
+		Limit(uint64(page.Limit))
+
+	rows, err := buildsQuery.RunWith(conn).Query()
 	if err != nil {
 		return nil, Pagination{}, err
 	}
+	defer Close(rows)
 
-	defer Rollback(tx)
-
-	if page.From != nil {
-		fromRow, err := buildsQuery.
-			Where(sq.Expr("b.start_time >= to_timestamp(" + strconv.Itoa(*page.From) + ")")).
-			OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
-			Limit(1).
-			RunWith(tx).
-			Query()
-
+	builds := make([]BuildForAPI, 0)
+	for rows.Next() {
+		build := newEmptyBuild(conn, lockFactory)
+		err = scanBuild(build, rows, conn.EncryptionStrategy())
 		if err != nil {
-			// The user has no builds since that given time
-			if err == sql.ErrNoRows {
-				return []BuildForAPI{}, Pagination{}, nil
-			}
-
 			return nil, Pagination{}, err
 		}
-
-		defer fromRow.Close()
-
-		found := false
-		for fromRow.Next() {
-			found = true
-			build := newEmptyBuild(conn, lockFactory)
-			err = scanBuild(build, fromRow, conn.EncryptionStrategy())
-			if err != nil {
-				return nil, Pagination{}, err
-			}
-
-			newPage.From = NewIntPtr(build.ID())
-		}
-		if !found {
-			return []BuildForAPI{}, Pagination{}, nil
-		}
+		builds = append(builds, build)
 	}
 
-	if page.To != nil {
-		untilRow, err := buildsQuery.
-			Where(sq.Expr("b.start_time <= to_timestamp(" + strconv.Itoa(*page.To) + ")")).
-			OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
-			Limit(1).
-			RunWith(tx).
-			Query()
-		if err != nil {
-			// The user has no builds since that given time
-			if err == sql.ErrNoRows {
-				return []BuildForAPI{}, Pagination{}, nil
-			}
-		}
-
-		defer untilRow.Close()
-
-		found := false
-		for untilRow.Next() {
-			found = true
-			build := newEmptyBuild(conn, lockFactory)
-			err = scanBuild(build, untilRow, conn.EncryptionStrategy())
-			if err != nil {
-				return nil, Pagination{}, err
-			}
-
-			newPage.To = NewIntPtr(build.ID())
-		}
-		if !found {
-			return []BuildForAPI{}, Pagination{}, nil
-		}
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return nil, Pagination{}, err
-	}
-
-	return getBuildsWithPagination(buildsQuery, minMaxIdQuery, newPage, conn, lockFactory, false)
+	return builds, Pagination{}, nil
 }
 
 func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory, chronological bool) ([]BuildForAPI, Pagination, error) {
