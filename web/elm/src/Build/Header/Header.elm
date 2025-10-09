@@ -525,7 +525,10 @@ handleDelivery delivery ( model, effects ) =
                 shouldScroll =
                     currentBuildInvisible && not model.scrolledToCurrentBuild
             in
-            ( { model | scrolledToCurrentBuild = True }
+            ( if shouldScroll then
+                  { model | scrolledToCurrentBuild = True }
+              else
+                  model
             , effects
                 ++ (if shouldScroll then
                         [ Scroll (ToId id) historyId ]
