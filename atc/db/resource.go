@@ -18,7 +18,7 @@ import (
 
 var (
 	ErrTooManyBuilds           = errors.New("too many builds")
-	ErrTooManyResourceVersions = errors.New("too many resoruce versions")
+	ErrTooManyResourceVersions = errors.New("too many resource versions")
 	ErrPinnedThroughConfig     = errors.New("resource is pinned through config")
 )
 
@@ -738,7 +738,7 @@ func (r *resource) UnpinVersion() error {
 		return err
 	}
 
-	defer tx.Rollback()
+	defer Rollback(tx)
 
 	results, err := psql.Delete("resource_pins").
 		Where(sq.Eq{"resource_pins.resource_id": r.id}).
