@@ -1328,6 +1328,7 @@ func (cmd *RunCommand) gcComponents(
 
 	collectors := map[string]component.Runnable{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
+		atc.ComponentCollectorOldBuilds:         gc.NewOldBuildCollector(dbBuildFactory, 90*24*time.Hour), // 90 days
 		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle),
 		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory, unreferencedConfigGracePeriod),
 		atc.ComponentCollectorResourceCaches:    gc.NewResourceCacheCollector(dbResourceCacheLifecycle),

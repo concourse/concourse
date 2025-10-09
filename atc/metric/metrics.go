@@ -61,6 +61,20 @@ func (event BuildCollectorDuration) Emit(logger lager.Logger) {
 	)
 }
 
+type OldBuildCollectorDuration struct {
+	Duration time.Duration
+}
+
+func (event OldBuildCollectorDuration) Emit(logger lager.Logger) {
+	Metrics.emit(
+		logger.Session("gc-old-build-collector-duration"),
+		Event{
+			Name:  "gc: old build collector duration (ms)",
+			Value: ms(event.Duration),
+		},
+	)
+}
+
 type WorkerCollectorDuration struct {
 	Duration time.Duration
 }
