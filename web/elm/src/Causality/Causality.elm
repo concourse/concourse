@@ -510,7 +510,7 @@ graphvizDotNotation model =
                                     Routes.Build { id = build, highlight = Routes.HighlightNothing, groups = [] }
                                         |> Routes.toString
                             in
-                            row (attributes [ ( "HREF", link ), ( "BGCOLOR", buildStatusColor True b.status ) ]) ("#" ++ b.name)
+                            row (attributes [ ( "HREF", link ), ( "BGCOLOR", buildStatusColor True b.status ) ]) ("#" ++ escape b.name)
                         )
                         builds
 
