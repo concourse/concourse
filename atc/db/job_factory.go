@@ -102,6 +102,8 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 		return nil, err
 	}
 
+	es := j.conn.EncryptionStrategy()
+
 	var schedulerJobs SchedulerJobs
 	pipelineResourceTypes := make(map[int]ResourceTypes)
 	pipelinePrototypes := make(map[int]Prototypes)
@@ -117,7 +119,6 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer Close(resourceRows)
 
 		var schedulerResources SchedulerResources
 		for resourceRows.Next() {
@@ -129,8 +130,6 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			if err != nil {
 				return nil, err
 			}
-
-			es := j.conn.EncryptionStrategy()
 
 			var noncense *string
 			if nonce.Valid {
@@ -155,6 +154,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 				ExposeBuildCreatedBy: config.ExposeBuildCreatedBy,
 			})
 		}
+		if err = resourceRows.Err(); err != nil {
+			resourceRows.Close()
+			return nil, err
+		}
+		resourceRows.Close()
 
 		resourceTypes, found := pipelineResourceTypes[job.PipelineID()]
 		if !found {
@@ -166,7 +170,6 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			if err != nil {
 				return nil, err
 			}
-			defer Close(resourceTypeRows)
 
 			for resourceTypeRows.Next() {
 				resourceType := newEmptyResourceType(j.conn, j.lockFactory)
@@ -177,6 +180,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 				resourceTypes = append(resourceTypes, resourceType)
 			}
+			if err = resourceTypeRows.Err(); err != nil {
+				resourceTypeRows.Close()
+				return nil, err
+			}
+			resourceTypeRows.Close()
 
 			pipelineResourceTypes[job.PipelineID()] = resourceTypes
 		}
@@ -191,7 +199,6 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			if err != nil {
 				return nil, err
 			}
-			defer Close(prototypeRows)
 
 			for prototypeRows.Next() {
 				prototype := newEmptyPrototype(j.conn, j.lockFactory)
@@ -202,6 +209,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 				prototypes = append(prototypes, prototype)
 			}
+			if err = prototypeRows.Err(); err != nil {
+				prototypeRows.Close()
+				return nil, err
+			}
+			prototypeRows.Close()
 
 			pipelinePrototypes[job.PipelineID()] = prototypes
 		}
