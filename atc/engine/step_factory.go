@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -25,7 +25,7 @@ type coreStepFactory struct {
 	defaultLimits         atc.ContainerLimits
 	strategy              worker.PlacementStrategy
 	noInputStrategy       worker.PlacementStrategy
-	checkStrategy worker.PlacementStrategy
+	checkStrategy         worker.PlacementStrategy
 	defaultCheckTimeout   time.Duration
 	defaultGetTimeout     time.Duration
 	defaultPutTimeout     time.Duration
@@ -60,7 +60,7 @@ func NewCoreStepFactory(
 		defaultLimits:         defaultLimits,
 		strategy:              strategy,
 		noInputStrategy:       noInputStrategy,
-		checkStrategy: checkStrategy,
+		checkStrategy:         checkStrategy,
 		defaultCheckTimeout:   defaultCheckTimeout,
 		defaultGetTimeout:     defaultGetTimeout,
 		defaultPutTimeout:     defaultPutTimeout,
@@ -177,7 +177,7 @@ func (factory *coreStepFactory) TaskStep(
 	containerMetadata db.ContainerMetadata,
 	delegateFactory DelegateFactory,
 ) exec.Step {
-	sum := sha1.Sum([]byte(plan.Task.Name))
+	sum := sha256.Sum256(fmt.Appendf([]byte{}, "%d", time.Now().Unix()))
 	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 
 	taskStep := exec.NewTaskStep(
