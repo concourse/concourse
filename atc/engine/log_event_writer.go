@@ -90,7 +90,7 @@ func (writer *dbEventWriterWithSecretRedaction) Write(data []byte) (int, error) 
 			return len(data), nil
 		}
 	} else {
-		if writer.dangling == nil || len(writer.dangling) == 0 {
+		if len(writer.dangling) == 0 {
 			return 0, nil
 		}
 		text = writer.dangling
