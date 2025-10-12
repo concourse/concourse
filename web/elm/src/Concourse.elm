@@ -997,7 +997,7 @@ encodeJob job =
         , ( "team_name", job.teamName |> Json.Encode.string )
         , ( "next_build", job.nextBuild |> encodeMaybeBuild )
         , ( "finished_build", job.finishedBuild |> encodeMaybeBuild )
-        , ( "transition_build", job.finishedBuild |> encodeMaybeBuild )
+        , ( "transition_build", job.transitionBuild |> encodeMaybeBuild )
         , ( "paused", job.paused |> Json.Encode.bool )
         , ( "disable_manual_trigger", job.disableManualTrigger |> Json.Encode.bool )
         , ( "inputs", job.inputs |> Json.Encode.list encodeJobInput )
@@ -1139,8 +1139,11 @@ encodePipeline pipeline =
         , ( "public", pipeline.public |> Json.Encode.bool )
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
-        , ( "display", Json.Encode.object [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string ) ] )
-        , ( "display", Json.Encode.object [ ( "background_filter", pipeline.backgroundFilter |> Json.Encode.Extra.maybe Json.Encode.string ) ] )
+        , ( "display", Json.Encode.object
+            [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string )
+            , ( "background_filter", pipeline.backgroundFilter |> Json.Encode.Extra.maybe Json.Encode.string )
+            ]
+          )
         ]
 
 
