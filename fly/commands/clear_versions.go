@@ -6,6 +6,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/jessevdk/go-flags"
 	"github.com/vito/go-interact/interact"
 )
@@ -13,6 +14,7 @@ import (
 type ClearVersionsCommand struct {
 	Resource     flaghelpers.ResourceFlag `long:"resource" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to clear versions"`
 	ResourceType flaghelpers.ResourceFlag `long:"resource-type" value-name:"PIPELINE/RESOURCE-TYPE" description:"Name of a resource type to clear versions"`
+	Team         flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *ClearVersionsCommand) Execute(args []string) error {
@@ -38,7 +40,11 @@ func (command *ClearVersionsCommand) Execute(args []string) error {
 		}
 	}
 
-	team := target.Team()
+	var team concourse.Team
+	team, err = command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
 
 	if command.Resource.ResourceName != "" {
 		shared, found, err := team.ListSharedForResource(command.Resource.PipelineRef, command.Resource.ResourceName)
