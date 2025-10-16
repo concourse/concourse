@@ -299,5 +299,101 @@ and the following resource types:
 				Expect(sess.ExitCode()).ToNot(Equal(0))
 			})
 		})
+
+		Context("when a team is specified", func() {
+			Context("when clearing resource versions", func() {
+				team := "other-team"
+				var (
+					expectedDeleteURL = "/api/v1/teams/other-team/pipelines/some-pipeline/resources/some-resource/versions"
+					expectedSharedURL = "/api/v1/teams/other-team/pipelines/some-pipeline/resources/some-resource/shared"
+				)
+
+				JustBeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", team)),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: team,
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", expectedSharedURL),
+							ghttp.RespondWithJSONEncoded(sharedResourcesStatus, atc.ResourcesAndTypes{
+								Resources: atc.ResourceIdentifiers{
+									{
+										Name:         "some-resource",
+										PipelineName: "some-pipeline",
+										TeamName:     "other-team",
+									},
+								},
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", expectedDeleteURL),
+							ghttp.RespondWithJSONEncoded(deleteVersionsStatus, atc.ClearVersionsResponse{VersionsRemoved: 1}),
+						),
+					)
+				})
+
+				BeforeEach(func() {
+					args = append(args, "--resource", "some-pipeline/some-resource", "--team", "other-team")
+					sharedResourcesStatus = http.StatusOK
+					deleteVersionsStatus = http.StatusOK
+				})
+
+				It("uses the specified team in the API calls", func() {
+					yes()
+					Eventually(sess).Should(gexec.Exit(0))
+					Eventually(sess).Should(gbytes.Say("1 versions removed"))
+				})
+			})
+
+			Context("when clearing resource type versions", func() {
+				team := "other-team"
+				var (
+					expectedDeleteURL = "/api/v1/teams/other-team/pipelines/some-pipeline/resource-types/some-resource-type/versions"
+					expectedSharedURL = "/api/v1/teams/other-team/pipelines/some-pipeline/resource-types/some-resource-type/shared"
+				)
+
+				JustBeforeEach(func() {
+					atcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", fmt.Sprintf("/api/v1/teams/%s", team)),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+								Name: team,
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", expectedSharedURL),
+							ghttp.RespondWithJSONEncoded(sharedResourcesStatus, atc.ResourcesAndTypes{
+								ResourceTypes: atc.ResourceIdentifiers{
+									{
+										Name:         "some-resource-type",
+										PipelineName: "some-pipeline",
+										TeamName:     "other-team",
+									},
+								},
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", expectedDeleteURL),
+							ghttp.RespondWithJSONEncoded(deleteVersionsStatus, atc.ClearVersionsResponse{VersionsRemoved: 2}),
+						),
+					)
+				})
+
+				BeforeEach(func() {
+					args = append(args, "--resource-type", "some-pipeline/some-resource-type", "--team", "other-team")
+					sharedResourcesStatus = http.StatusOK
+					deleteVersionsStatus = http.StatusOK
+				})
+
+				It("uses the specified team in the API calls", func() {
+					yes()
+					Eventually(sess).Should(gexec.Exit(0))
+					Eventually(sess).Should(gbytes.Say("2 versions removed"))
+				})
+			})
+		})
 	})
 })
