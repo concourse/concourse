@@ -171,6 +171,20 @@ and the following resource types:
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
+
+			Context("when running in non-interactive mode", func() {
+				BeforeEach(func() {
+					args = append(args, "--non-interactive")
+					sharedResourcesStatus = http.StatusOK
+					deleteVersionsStatus = http.StatusOK
+				})
+
+				It("does not prompt the user", func() {
+					Consistently(sess).ShouldNot(gbytes.Say(`are you sure\?`))
+					Eventually(sess).Should(gbytes.Say("1 versions removed"))
+					Eventually(sess).Should(gexec.Exit(0))
+				})
+			})
 		})
 
 		Context("when a resource type is specified", func() {
@@ -285,6 +299,20 @@ and the following resource types:
 				It("fails to delete versions", func() {
 					Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
 					Eventually(sess).Should(gexec.Exit(1))
+				})
+			})
+
+			Context("when running in non-interactive mode", func() {
+				BeforeEach(func() {
+					args = append(args, "--non-interactive")
+					sharedResourcesStatus = http.StatusOK
+					deleteVersionsStatus = http.StatusOK
+				})
+
+				It("does not prompt the user", func() {
+					Consistently(sess).ShouldNot(gbytes.Say(`are you sure\?`))
+					Eventually(sess).Should(gbytes.Say("2 versions removed"))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
 		})
