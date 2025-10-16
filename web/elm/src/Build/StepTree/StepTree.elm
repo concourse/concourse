@@ -102,7 +102,7 @@ init buildId hl resources plan =
         Concourse.BuildStepArtifactOutput _ ->
             step |> initBottom buildId hl resources plan ArtifactOutput
 
-        Concourse.BuildStepSetPipeline _ _ ->
+        Concourse.BuildStepSetPipeline _ _ _ ->
             step |> initBottom buildId hl resources plan SetPipeline
 
         Concourse.BuildStepLoadVar _ ->
@@ -1247,12 +1247,18 @@ viewStepHeader step =
         Concourse.BuildStepTask name ->
             simpleHeader "task:" Nothing name
 
-        Concourse.BuildStepSetPipeline name instanceVars ->
+        Concourse.BuildStepSetPipeline name team instanceVars ->
             headerWithContent "set_pipeline:" (Just "pipeline config changed") <|
                 Html.span [] [ Html.text name ]
-                    :: (if Dict.isEmpty instanceVars then
+                    :: (case team of
+                            Just teamName ->
+                                [ Html.span [ style "margin-left" "10px" ] [ Html.text ("[" ++ teamName ++ "]") ]
+                                ]
+                            Nothing ->
+                                []
+                       )
+                    ++ (if Dict.isEmpty instanceVars then
                             []
-
                         else
                             [ Html.span [ style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "/" ]
                             , viewKeyValuePairHeaderLabels (Dict.toList instanceVars)
@@ -1323,7 +1329,7 @@ stepName header =
         Concourse.BuildStepTask name ->
             Just name
 
-        Concourse.BuildStepSetPipeline name _ ->
+        Concourse.BuildStepSetPipeline name _ _ ->
             Just name
 
         Concourse.BuildStepLoadVar name ->
