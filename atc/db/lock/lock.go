@@ -49,8 +49,8 @@ func mapLockTypeToFactory(lockType int) int {
 		return factoryResourceConfigChecking
 	case LockTypeInMemoryCheckBuildTracking:
 		return factoryInMemoryCheckBuildTracking
-	case factoryBuildTracking:
-		return LockTypeBuildTracking
+	case LockTypeBuildTracking:
+		return factoryBuildTracking
 	case LockTypeJobScheduling:
 		return factoryJobScheduling
 	default:
