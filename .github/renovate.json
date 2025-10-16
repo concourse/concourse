@@ -5,7 +5,7 @@
       "matchLanguages": ["js"],
       "addLabels": ["javascript"],
       "extends": ["schedule:monthly"],
-      "groupName": "javasript",
+      "groupName": "javascript",
       "groupSlug": "js"
     },
     {
@@ -22,10 +22,6 @@
     {
       "matchPackageNames": ["gopkg.in/yaml.v2"],
       "allowedVersions": "<3.0.0"
-    },
-    {
-      "matchPackageNames": ["github.com/containerd/containerd"],
-      "allowedVersions": "<2.0.0"
     },
     {
       "matchPackageNames": ["/garden/"],
