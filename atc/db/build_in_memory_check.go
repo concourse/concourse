@@ -414,8 +414,10 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 		return nil
 	}
 
+	timeNow := time.Now()
+
 	b.status = status
-	b.endTime = time.Now()
+	b.endTime = timeNow
 
 	tx, err := b.conn.Begin()
 	if err != nil {
@@ -432,7 +434,7 @@ func (b *inMemoryCheckBuild) Finish(status BuildStatus) error {
 
 	err = b.saveEvent(tx, event.Status{
 		Status: atc.BuildStatus(status),
-		Time:   time.Now().Unix(),
+		Time:   timeNow.Unix(),
 	})
 	if err != nil {
 		return err
