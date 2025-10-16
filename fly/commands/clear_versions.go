@@ -13,7 +13,7 @@ import (
 type ClearVersionsCommand struct {
 	Resource        flaghelpers.ResourceFlag `long:"resource" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to clear versions"`
 	ResourceType    flaghelpers.ResourceFlag `long:"resource-type" value-name:"PIPELINE/RESOURCE-TYPE" description:"Name of a resource type to clear versions"`
-	SkipInteractive bool                     `short:"n"  long:"non-interactive"          description:"Clear resource versions or resource type versions without confirmation"`
+	SkipInteractive bool                     `short:"n"  long:"non-interactive"          description:"Clear versions versions without confirmation"`
 }
 
 func (command *ClearVersionsCommand) Execute(args []string) error {
