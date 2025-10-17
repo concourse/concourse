@@ -259,9 +259,6 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       el.classList.remove('job');
       el.classList.add('job-animation-node');
       el.querySelectorAll('a').forEach(removeElement);
-      if (foreignObject != null) {
-        removeElement(foreignObject);
-      }
       el.appendChild(foreignObject);
 
       el.querySelectorAll('text').forEach(removeElement);
