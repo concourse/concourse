@@ -12,9 +12,10 @@ import (
 )
 
 type ClearVersionsCommand struct {
-	Resource     flaghelpers.ResourceFlag `long:"resource" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to clear versions"`
-	ResourceType flaghelpers.ResourceFlag `long:"resource-type" value-name:"PIPELINE/RESOURCE-TYPE" description:"Name of a resource type to clear versions"`
-	Team         flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Resource        flaghelpers.ResourceFlag `long:"resource" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to clear versions"`
+	ResourceType    flaghelpers.ResourceFlag `long:"resource-type" value-name:"PIPELINE/RESOURCE-TYPE" description:"Name of a resource type to clear versions"`
+	SkipInteractive bool                     `short:"n" long:"non-interactive" description:"Clear versions without confirmation"`
+	Team            flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *ClearVersionsCommand) Execute(args []string) error {
@@ -56,13 +57,15 @@ func (command *ClearVersionsCommand) Execute(args []string) error {
 			return fmt.Errorf("resource '%s' is not found", command.Resource.ResourceName)
 		}
 
-		confirmed, err := command.warningMessage(shared)
-		if err != nil {
-			return err
-		}
+		if !command.SkipInteractive {
+			confirmed, err := command.warningMessage(shared)
+			if err != nil {
+				return err
+			}
 
-		if !confirmed {
-			return nil
+			if !confirmed {
+				return nil
+			}
 		}
 
 		numDeleted, err := team.ClearResourceVersions(command.Resource.PipelineRef, command.Resource.ResourceName)
@@ -83,13 +86,15 @@ func (command *ClearVersionsCommand) Execute(args []string) error {
 			return fmt.Errorf("resource type '%s' is not found", command.ResourceType.ResourceName)
 		}
 
-		confirmed, err := command.warningMessage(shared)
-		if err != nil {
-			return err
-		}
+		if !command.SkipInteractive {
+			confirmed, err := command.warningMessage(shared)
+			if err != nil {
+				return err
+			}
 
-		if !confirmed {
-			return nil
+			if !confirmed {
+				return nil
+			}
 		}
 
 		numDeleted, err := team.ClearResourceTypeVersions(command.ResourceType.PipelineRef, command.ResourceType.ResourceName)
