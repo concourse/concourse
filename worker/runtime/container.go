@@ -8,6 +8,7 @@ import (
 	"io"
 	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -191,11 +192,30 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 	}
 
 	cioOpts := containerdCIO(processIO, false)
-	ioAttach := c.ioManager.Attach(c.Handle(), pid, cio.NewAttach(cioOpts...))
 
-	proc, err := task.LoadProcess(ctx, pid, ioAttach)
-	if err != nil {
-		return nil, fmt.Errorf("load proc: %w", err)
+	// Retry LoadProcess - exec may not be initialized yet under load.
+	const maxRetries = 5
+	var proc containerd.Process
+	var lastErr error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		ioAttach := c.ioManager.Attach(c.Handle(), pid, cio.NewAttach(cioOpts...))
+		proc, lastErr = task.LoadProcess(ctx, pid, ioAttach)
+
+		if lastErr == nil {
+			break
+		}
+
+		// Retry on registration races, not other errors
+		if attempt < maxRetries-1 && strings.Contains(lastErr.Error(), "no running process found") {
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+		break
+	}
+
+	if lastErr != nil {
+		return nil, fmt.Errorf("load proc: %w", lastErr)
 	}
 
 	status, err := proc.Status(ctx)
