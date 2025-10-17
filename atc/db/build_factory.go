@@ -79,6 +79,11 @@ type BuildFactory interface {
 
 	// TODO: move to BuildLifecycle, new interface (see WorkerLifecycle)
 	MarkNonInterceptibleBuilds() error
+
+	// CleanupOldBuilds hard-deletes builds that were marked as reaped over 90 days ago,
+	// along with all associated data (including inputs/outputs) that would normally be
+	// cleaned via cascading delete.
+	CleanupOldBuilds() error
 }
 
 type buildFactory struct {
@@ -229,6 +234,36 @@ func (f *buildFactory) GetAllStartedBuilds() ([]Build, error) {
 	})
 
 	return getBuilds(query, f.conn, f.lockFactory)
+}
+
+func (f *buildFactory) CleanupOldBuilds() error {
+	tx, err := f.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+
+	// Delete builds that were reaped over 90 days ago
+	// This will cascade delete related records in build_resource_config_version_inputs, 
+	// build_outputs, and other related tables via foreign key constraints
+	_, err = psql.Delete("builds").
+		Where(sq.And{
+			sq.NotEq{"reap_time": nil},
+			sq.Expr("reap_time < NOW() - INTERVAL '90 days'"),
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (f *buildFactory) findResourceOfInMemoryCheckBuild(buildId int) (Resource, bool, error) {
