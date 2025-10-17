@@ -1050,9 +1050,9 @@ all =
                     |> Application.update
                         (Msgs.Update <|
                             Message.Message.Scrolled
-                                { scrollHeight = 2
+                                { scrollHeight = 10
                                 , scrollTop = 0
-                                , clientHeight = 1
+                                , clientHeight = 5
                                 }
                         )
                     |> Tuple.first
