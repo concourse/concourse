@@ -14,8 +14,8 @@ import (
 
 var _ = Describe("FLY CLI", func() {
 	Describe("get-wall", func() {
-		Context("when a wall message is set", func() {
-			It("shows the message and ttl", func() {
+		Context("when a wall message is set with ttl", func() {
+			It("shows the message", func() {
 				wall := atc.Wall{Message: "test message", TTL: time.Hour}
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -31,6 +31,26 @@ var _ = Describe("FLY CLI", func() {
 				Expect(sess.ExitCode()).To(Equal(0))
 				Expect(sess.Out).To(gbytes.Say("Wall Message: test message"))
 				Expect(sess.Out).To(gbytes.Say("Expires in:"))
+			})
+		})
+
+		Context("when a wall message is set without ttl", func() {
+			It("shows the message", func() {
+				wall := atc.Wall{Message: "test message"}
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/wall"),
+						ghttp.RespondWithJSONEncoded(200, wall),
+					),
+				)
+
+				flyCmd := exec.Command(flyPath, "-t", targetName, "get-wall")
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+				Expect(sess.Out).To(gbytes.Say("Wall Message: test message"))
+				Expect(sess.Out).To(gbytes.Say("No expiration set"))
 			})
 		})
 

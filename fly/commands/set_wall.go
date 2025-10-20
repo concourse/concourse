@@ -9,8 +9,8 @@ import (
 )
 
 type SetWallCommand struct {
-	Message string        `short:"m" long:"message" required:"true" description:"Message to broadcast"`
-	TTL     time.Duration `long:"ttl" required:"true" description:"Time-to-live for the message (e.g. 1h30m)"`
+	Message string        `short:"m" long:"message" required:"true" description:"Message to broadcast. Supports emojis and links."`
+	TTL     time.Duration `long:"ttl" required:"false" description:"Time-to-live for the message (e.g. 1h30m). Zero values will result in a message with no expiration."`
 }
 
 func (command *SetWallCommand) Execute([]string) error {
@@ -35,7 +35,11 @@ func (command *SetWallCommand) Execute([]string) error {
 	}
 
 	fmt.Println("Wall message set successfully")
-	fmt.Printf("Message will expire in %v\n", command.TTL)
+	if command.TTL == 0 {
+		fmt.Println("No expiration set")
+	} else {
+		fmt.Printf("Message will expire in %v\n", command.TTL)
+	}
 
 	return nil
 }

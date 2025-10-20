@@ -247,7 +247,7 @@ handleCallback callback model =
                     let
                         trimmed = String.trim wall.message
                     in
-                    if trimmed == "" || wall.ttl == 0 then
+                    if trimmed == "" then
                         Nothing
                     else
                         Just trimmed
@@ -477,8 +477,7 @@ view model =
             , case model.wallMessage of
                 Just msg ->
                     Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
-                        Html.span [ Html.Attributes.class "wall-icon" ] [ Html.text "⚠️" ]
-                            :: wallLinks msg
+                        wallLinks msg
                 Nothing ->
                     Html.text ""
             , Html.div

@@ -30,7 +30,11 @@ func (command *GetWallCommand) Execute([]string) error {
 	}
 
 	fmt.Printf("Wall Message: %s\n", wall.Message)
-	fmt.Printf("Expires in: %v\n", wall.TTL)
+	if wall.TTL == 0 {
+		fmt.Println("No expiration set")
+	} else {
+		fmt.Printf("Expires in: %v\n", wall.TTL)
+	}
 
 	return nil
 }
