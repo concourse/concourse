@@ -198,7 +198,7 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 	var proc containerd.Process
 	var lastErr error
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		ioAttach := c.ioManager.Attach(c.Handle(), pid, cio.NewAttach(cioOpts...))
 		proc, lastErr = task.LoadProcess(ctx, pid, ioAttach)
 
