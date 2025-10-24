@@ -6,36 +6,49 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
 type BtrFSDriver struct {
-	logger   lager.Logger
-	btrfsBin string
+	logger                lager.Logger
+	btrfsBin              string
+	supportsRecursiveFlag bool
 }
 
 func NewBtrFSDriver(
 	logger lager.Logger,
 	btrfsBin string,
 ) *BtrFSDriver {
-	return &BtrFSDriver{
+	driver := &BtrFSDriver{
 		logger:   logger,
 		btrfsBin: btrfsBin,
 	}
+
+	// Check if btrfs supports -R flag for recursive deletion
+	driver.supportsRecursiveFlag = driver.checkRecursiveFlagSupport()
+
+	return driver
 }
 
 func (driver *BtrFSDriver) CreateVolume(vol volume.FilesystemInitVolume) error {
 	_, _, err := driver.run(driver.btrfsBin, "subvolume", "create", vol.DataPath())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (driver *BtrFSDriver) DestroyVolume(vol volume.FilesystemVolume) error {
+	// If btrfs supports -R flag, use it for recursive deletion
+	if driver.supportsRecursiveFlag {
+		driver.logger.Debug("using-recursive-flag", lager.Data{"path": vol.DataPath()})
+		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", "-R", vol.DataPath())
+		return err
+	}
+
+	// Fall back to manual recursive deletion
+	driver.logger.Debug("using-manual-recursion", lager.Data{"path": vol.DataPath()})
+
 	volumePathsToDelete := []string{}
 
 	findSubvolumes := func(p string, f os.FileInfo, err error) error {
@@ -79,6 +92,22 @@ func (driver *BtrFSDriver) CreateCopyOnWriteLayer(
 ) error {
 	_, _, err := driver.run(driver.btrfsBin, "subvolume", "snapshot", parentVol.DataPath(), childVol.DataPath())
 	return err
+}
+
+func (driver *BtrFSDriver) checkRecursiveFlagSupport() bool {
+	cmd := exec.Command(driver.btrfsBin, "subvolume", "delete", "--help")
+	stdout := &bytes.Buffer{}
+	cmd.Stdout = stdout
+
+	_ = cmd.Run()
+
+	supportsFlag := strings.Contains(stdout.String(), "--recursive")
+
+	driver.logger.Info("btrfs-recursive-flag-check", lager.Data{
+		"supports-recursive-flag": supportsFlag,
+	})
+
+	return supportsFlag
 }
 
 func (driver *BtrFSDriver) run(command string, args ...string) (string, string, error) {
