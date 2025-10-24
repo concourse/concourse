@@ -1,9 +1,9 @@
 package db
 
 import (
-	"errors"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -478,12 +478,12 @@ func (p *pipeline) resource(where map[string]any) (Resource, bool, error) {
 
 func (p *pipeline) Builds(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithPagination(
-		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory, false)
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), page, p.conn, p.lockFactory, false)
 }
 
 func (p *pipeline) BuildsWithTime(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithDates(
-		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), minMaxIdQuery, page, p.conn, p.lockFactory)
+		buildsQuery.Where(sq.Eq{"b.pipeline_id": p.id}), page, p.conn, p.lockFactory)
 }
 
 func (p *pipeline) Resources() (Resources, error) {
