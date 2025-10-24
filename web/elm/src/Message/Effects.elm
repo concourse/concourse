@@ -136,6 +136,7 @@ type Effect
     | FetchPipeline Concourse.PipelineIdentifier
     | FetchPipelines String
     | FetchClusterInfo
+    | FetchWall
     | FetchInputTo Concourse.VersionedResourceIdentifier
     | FetchDownstreamCausality Concourse.VersionedResourceIdentifier
     | FetchOutputOf Concourse.VersionedResourceIdentifier
@@ -333,6 +334,12 @@ runEffect effect key csrfToken =
                 |> Api.expectJson Concourse.decodeInfo
                 |> Api.request
                 |> Task.attempt ClusterInfoFetched
+
+        FetchWall ->
+            Api.get Endpoints.Wall
+                |> Api.expectJson Concourse.decodeWall
+                |> Api.request
+                |> Task.attempt WallFetched
 
         FetchInputTo id ->
             Api.get

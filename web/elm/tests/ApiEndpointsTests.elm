@@ -276,6 +276,11 @@ testEndpoints =
                 ClusterInfo
                     |> toPath
                     |> Expect.equal "/api/v1/info"
+        , test "Wall" <|
+            \_ ->
+                Wall
+                    |> toPath
+                    |> Expect.equal "/api/v1/wall"
         , test "Cli" <|
             \_ ->
                 Cli
