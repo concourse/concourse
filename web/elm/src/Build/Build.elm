@@ -478,7 +478,7 @@ update msg ( model, effects ) =
         Scrolled { scrollHeight, scrollTop, clientHeight } ->
             ( { model
                 | autoScroll =
-                    (scrollHeight == scrollTop + clientHeight)
+                    (scrollHeight - (scrollTop + clientHeight) <= 1)
                         && not model.isScrollToIdInProgress
               }
             , effects
