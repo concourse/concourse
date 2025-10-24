@@ -109,9 +109,6 @@ var buildsQuery = psql.Select(`
 	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of").
 	JoinClause("LEFT OUTER JOIN build_comments bc ON b.id = bc.build_id")
 
-var minMaxIdQuery = psql.Select("COALESCE(MAX(b.id), 0)", "COALESCE(MIN(b.id), 0)").
-	From("builds as b")
-
 var latestCompletedBuildQuery = psql.Select("max(id)").
 	From("builds").
 	Where(sq.Expr(`status NOT IN ('pending', 'started')`))
