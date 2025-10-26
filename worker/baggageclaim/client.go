@@ -10,6 +10,7 @@ type Encoding string
 
 const GzipEncoding Encoding = "gzip"
 const ZstdEncoding Encoding = "zstd"
+const S2Encoding Encoding = "s2"
 const RawEncoding Encoding = "raw"
 
 const (
