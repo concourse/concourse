@@ -159,26 +159,22 @@ func (f *buildFactory) VisibleBuilds(teamNames []string, page Page) ([]BuildForA
 		})
 
 	if page.UseDate {
-		return getBuildsWithDates(newBuildsQuery, minMaxIdQuery, page, f.conn,
+		return getBuildsWithDates(newBuildsQuery, page, f.conn,
 			f.lockFactory)
 	}
-	return getBuildsWithPagination(newBuildsQuery, minMaxIdQuery, page, f.conn,
-		f.lockFactory, false)
+	return getBuildsWithPagination(newBuildsQuery, page, f.conn, f.lockFactory, false)
 }
 
 func (f *buildFactory) AllBuilds(page Page) ([]BuildForAPI, Pagination, error) {
 	if page.UseDate {
-		return getBuildsWithDates(buildsQuery, minMaxIdQuery, page, f.conn,
-			f.lockFactory)
+		return getBuildsWithDates(buildsQuery, page, f.conn, f.lockFactory)
 	}
-	return getBuildsWithPagination(buildsQuery, minMaxIdQuery,
-		page, f.conn, f.lockFactory, false)
+	return getBuildsWithPagination(buildsQuery, page, f.conn, f.lockFactory, false)
 }
 
 func (f *buildFactory) PublicBuilds(page Page) ([]BuildForAPI, Pagination, error) {
 	return getBuildsWithPagination(
-		buildsQuery.Where(sq.Eq{"p.public": true}), minMaxIdQuery,
-		page, f.conn, f.lockFactory, false)
+		buildsQuery.Where(sq.Eq{"p.public": true}), page, f.conn, f.lockFactory, false)
 }
 
 func (f *buildFactory) MarkNonInterceptibleBuilds() error {
@@ -273,7 +269,7 @@ func getBuilds(buildsQuery sq.SelectBuilder, conn DbConn, lockFactory lock.LockF
 	return bs, nil
 }
 
-func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
+func getBuildsWithDates(buildsQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory) ([]BuildForAPI, Pagination, error) {
 	if page.From != nil {
 		buildsQuery = buildsQuery.Where(sq.Expr("b.start_time >= to_timestamp(?)", *page.From))
 	}
@@ -304,7 +300,7 @@ func getBuildsWithDates(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, 
 	return builds, Pagination{}, nil
 }
 
-func getBuildsWithPagination(buildsQuery, minMaxIdQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory, chronological bool) ([]BuildForAPI, Pagination, error) {
+func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn DbConn, lockFactory lock.LockFactory, chronological bool) ([]BuildForAPI, Pagination, error) {
 	var (
 		rows    *sql.Rows
 		err     error
