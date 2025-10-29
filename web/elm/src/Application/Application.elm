@@ -123,7 +123,7 @@ init flags url =
       , LoadFavoritedPipelines
       , LoadFavoritedInstanceGroups
       , FetchClusterInfo
-    , FetchWall
+      , FetchWall
       ]
         ++ handleTokenEffect
         ++ subEffects
@@ -482,12 +482,6 @@ view model =
                     Html.text ""
             , Html.div
                 ([ id "page-wrapper", style "height" "100%" ]
-                    ++ (case model.wallMessage of
-                            Just _ ->
-                                [ style "padding-top" "36px" ]
-                            Nothing ->
-                                []
-                       )
                     ++ (if model.session.draggingSideBar then
                             Styles.disableInteraction
                         else

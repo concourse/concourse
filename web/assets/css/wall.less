@@ -1,7 +1,8 @@
 @import (reference) "_vars.less";
 
 #wall-banner {
-  position: fixed;
+  position: sticky;
+  padding-block: clamp(0.4rem, 1.2vw, 0.75rem);
   top: 55px;
   left: 0;
   right: 0;
@@ -9,10 +10,8 @@
   background-color: @grey70;
   color: #ffff;
   padding: 6px 16px;
-  font-size: 14px;
-  font-family: sans-serif;
+  font-size: 1.25em;
+  font-family: 'Inconsolata', monospace;
   text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
+
