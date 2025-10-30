@@ -113,6 +113,23 @@ var _ = Describe("Wall API", func() {
 					Expect(dbWall.SetWallCallCount()).To(Equal(1))
 					Expect(dbWall.SetWallArgsForCall(0)).To(Equal(expectedWall))
 				})
+
+				Context("when message is empty", func() {
+					BeforeEach(func() {
+						expectedWall = atc.Wall{
+							Message: "",
+							TTL:     time.Minute,
+						}
+					})
+
+					It("returns 400 Bad Request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+
+					It("does not call SetWall", func() {
+						Expect(dbWall.SetWallCallCount()).To(Equal(0))
+					})
+				})
 			})
 
 			Context("and is not admin", func() {
