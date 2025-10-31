@@ -124,6 +124,8 @@ var _ = Describe("Wall API", func() {
 
 					It("returns 400 Bad Request", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+						body, _ := io.ReadAll(response.Body)
+						Expect(string(body)).To(Equal("Wall message cannot be empty"))
 					})
 
 					It("does not call SetWall", func() {

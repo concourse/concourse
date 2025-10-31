@@ -2,6 +2,7 @@ package wallserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/concourse/concourse/atc"
@@ -41,6 +42,7 @@ func (s *Server) SetWall(w http.ResponseWriter, r *http.Request) {
 	if wall.Message == "" {
 		logger.Error("empty-message-string", nil)
 		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "Wall message cannot be empty")
 		return
 	}
 
