@@ -38,6 +38,12 @@ func (s *Server) SetWall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if wall.Message == "" {
+		logger.Error("empty-message-string", nil)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	err = s.wall.SetWall(wall)
 	if err != nil {
 		logger.Error("failed-to-set-wall-message", err)

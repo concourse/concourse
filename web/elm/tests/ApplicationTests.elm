@@ -258,4 +258,33 @@ all =
                         |> Routes.getGroups
                         |> Expect.equal []
             ]
+        , describe "wall banner"
+            [ test "wall banner is not displayed when there's no message" <|
+                \_ ->
+                    Common.init "/teams/t/pipelines/p/"
+                        |> Common.queryView
+                        |> Query.findAll [ id "wall-banner" ]
+                        |> Query.count (Expect.equal 0)
+            , test "wall banner is displayed when there is a message" <|
+                \_ ->
+                    Common.init "/teams/t/pipelines/p/"
+                        |> Application.handleCallback
+                            (Callback.WallFetched <|
+                                Ok { message = "Some test message", ttl = 0 }
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.has [ id "wall-banner" ]
+            , test "wall banner is not displayed on WallFetched error" <|
+                \_ ->
+                    Common.init "/teams/t/pipelines/p/"
+                        |> Application.handleCallback
+                            (Callback.WallFetched
+                                Data.httpInternalServerError
+                            )
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.findAll [ id "wall-banner" ]
+                        |> Query.count (Expect.equal 0)
+            ]
         ]
