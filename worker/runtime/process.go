@@ -61,7 +61,7 @@ func (p *Process) Wait() (int, error) {
 		return 0, fmt.Errorf("delete process: %w", err)
 	}
 
-	p.c.SetProperty(ContainerProcessExitKey, fmt.Sprintf("%d", status.ExitCode()))
+	p.c.SetProperty(ProcessExitStatusKey, fmt.Sprintf("%d", status.ExitCode()))
 	return int(status.ExitCode()), nil
 }
 

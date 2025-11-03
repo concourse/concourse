@@ -7,15 +7,15 @@ import (
 )
 
 type finishedProcess struct {
-	id       string
-	exitCode int
+	id         string
+	exitStatus int
 }
 
-func NewFinishedProcess(id string, exitCode int) garden.Process {
-	return &finishedProcess{id: id, exitCode: exitCode}
+func NewFinishedProcess(id string, exitStatus int) garden.Process {
+	return &finishedProcess{id: id, exitStatus: exitStatus}
 }
 
 func (p *finishedProcess) ID() string                        { return p.id }
-func (p *finishedProcess) Wait() (int, error)                { return p.exitCode, nil }
+func (p *finishedProcess) Wait() (int, error)                { return p.exitStatus, nil }
 func (p *finishedProcess) SetTTY(garden.TTYSpec) error       { return nil }
 func (p *finishedProcess) Signal(signal garden.Signal) error { return ErrNotImplemented }

@@ -24,8 +24,8 @@ const (
 	SuperuserPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
 
-	GraceTimeKey            = "garden.grace-time"
-	ContainerProcessExitKey = "garden.process-exit-code"
+	GraceTimeKey         = "garden.grace-time"
+	ProcessExitStatusKey = "garden.process-exit-status"
 )
 
 var (
@@ -492,7 +492,7 @@ func isNoSuchExecutable(err error) bool {
 }
 
 func (c *Container) lookupStoredExit() (int, bool) {
-	val, err := c.Property(ContainerProcessExitKey)
+	val, err := c.Property(ProcessExitStatusKey)
 	if err != nil || val == "" {
 		return 0, false
 	}
