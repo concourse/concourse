@@ -6,16 +6,16 @@ import (
 	"code.cloudfoundry.org/garden"
 )
 
-type finishedProcess struct {
+type FinishedProcess struct {
 	id         string
 	exitStatus int
 }
 
 func NewFinishedProcess(id string, exitStatus int) garden.Process {
-	return &finishedProcess{id: id, exitStatus: exitStatus}
+	return &FinishedProcess{id: id, exitStatus: exitStatus}
 }
 
-func (p *finishedProcess) ID() string                        { return p.id }
-func (p *finishedProcess) Wait() (int, error)                { return p.exitStatus, nil }
-func (p *finishedProcess) SetTTY(garden.TTYSpec) error       { return nil }
-func (p *finishedProcess) Signal(signal garden.Signal) error { return ErrNotImplemented }
+func (p *FinishedProcess) ID() string                        { return p.id }
+func (p *FinishedProcess) Wait() (int, error)                { return p.exitStatus, nil }
+func (p *FinishedProcess) SetTTY(garden.TTYSpec) error       { return nil }
+func (p *FinishedProcess) Signal(signal garden.Signal) error { return ErrNotImplemented }
