@@ -763,6 +763,58 @@ func (s *IntegrationSuite) TestAttachToUnknownProc() {
 	s.Error(err)
 }
 
+// TestAttachToFinishedProcess verifies that attaching to a finished process returns the correct exit status.
+func (s *IntegrationSuite) TestAttachToFinishedProcess() {
+	handle := uuid()
+
+	container, err := s.gardenBackend.Create(garden.ContainerSpec{
+		Handle:     handle,
+		RootFSPath: "raw://" + s.rootfs,
+		Privileged: true,
+		NetOut:     []garden.NetOutRule{{Log: true}},
+	})
+	s.NoError(err)
+
+	defer func() {
+		s.NoError(s.gardenBackend.Destroy(handle))
+	}()
+
+	buf := new(buffer)
+	proc, err := container.Run(
+		garden.ProcessSpec{
+			Path: "/executable",
+			Args: []string{"-write-many-times=aa"},
+		},
+		garden.ProcessIO{
+			Stdout: buf,
+			Stderr: buf,
+		},
+	)
+	s.NoError(err)
+
+	processID := proc.ID()
+
+	exitCode, err := proc.Wait()
+	s.NoError(err)
+	s.Equal(0, exitCode)
+
+	s.gardenBackend.Stop()
+	s.NoError(s.gardenBackend.Start())
+
+	container, err = s.gardenBackend.Lookup(handle)
+	s.NoError(err)
+
+	attachedProc, err := container.Attach(processID, garden.ProcessIO{
+		Stdout: buf,
+		Stderr: buf,
+	})
+	s.NoError(err)
+
+	attachedExitCode, err := attachedProc.Wait()
+	s.NoError(err)
+	s.Equal(exitCode, attachedExitCode)
+}
+
 // TestAttach tries to validate that we're able to start a process in a
 // container, get rid of the original client that originated the process, and
 // then attach back to that process from a new client.
