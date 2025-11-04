@@ -775,10 +775,6 @@ func (s *IntegrationSuite) TestAttachToFinishedProcess() {
 	})
 	s.NoError(err)
 
-	defer func() {
-		s.NoError(s.gardenBackend.Destroy(handle))
-	}()
-
 	buf := new(buffer)
 	proc, err := container.Run(
 		garden.ProcessSpec{
@@ -813,6 +809,9 @@ func (s *IntegrationSuite) TestAttachToFinishedProcess() {
 	attachedExitCode, err := attachedProc.Wait()
 	s.NoError(err)
 	s.Equal(exitCode, attachedExitCode)
+	s.Contains(buf.String(), "")
+	err = s.gardenBackend.Destroy(container.Handle())
+	s.NoError(err)
 }
 
 // TestAttach tries to validate that we're able to start a process in a
