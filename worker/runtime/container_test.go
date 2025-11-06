@@ -4,6 +4,7 @@ package runtime_test
 
 import (
 	"errors"
+	"fmt"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
@@ -400,6 +401,50 @@ func (s *ContainerSuite) TestAttachCallsIOManager() {
 	expected, _ := fakeAttach(nil)
 	given, _ := ioAttach(nil)
 	s.Equal(expected, given, "task.Load() should have been called with IOManager.Attach()")
+}
+
+func (s *ContainerSuite) TestAttachReturnsFinishedProcessWhenProcessNotFoundAndStoredExitExists() {
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	fakeIO := &runtimefakes.FakeIO{}
+	fakeAttach := func(f *cio.FIFOSet) (cio.IO, error) {
+		return fakeIO, nil
+	}
+	s.ioManager.AttachReturns(fakeAttach)
+
+	notFoundErr := errdefs.ErrNotFound
+	s.containerdTask.LoadProcessReturns(nil, notFoundErr)
+
+	exitCode := 0
+	s.containerdContainer.LabelsReturns(garden.Properties{
+		runtime.ProcessExitStatusKey + ".0": fmt.Sprintf("%d", exitCode),
+	}, nil)
+
+	id := "some-id"
+	proc, err := s.container.Attach(id, garden.ProcessIO{})
+	s.NoError(err)
+	s.NotNil(proc)
+	s.IsType(&runtime.FinishedProcess{}, proc)
+	s.Equal(0, s.containerdProcess.StatusCallCount())
+}
+
+func (s *ContainerSuite) TestAttachReturnsErrorWhenProcessNotFoundAndNoStoredExit() {
+	s.containerdContainer.TaskReturns(s.containerdTask, nil)
+	fakeIO := &runtimefakes.FakeIO{}
+	fakeAttach := func(f *cio.FIFOSet) (cio.IO, error) {
+		return fakeIO, nil
+	}
+	s.ioManager.AttachReturns(fakeAttach)
+
+	notFoundErr := errdefs.ErrNotFound
+	s.containerdTask.LoadProcessReturns(nil, notFoundErr)
+	s.containerdContainer.LabelsReturns(garden.Properties{}, nil)
+
+	id := "some-id"
+	proc, err := s.container.Attach(id, garden.ProcessIO{})
+	s.Nil(proc)
+	s.Error(err)
+	s.Contains(err.Error(), "load proc")
+	s.Equal(0, s.containerdProcess.StatusCallCount())
 }
 
 func (s *ContainerSuite) TestSetGraceTimeSetLabelsFails() {
