@@ -194,6 +194,7 @@ func (cmd *WorkerCommand) containerdRunner(logger lager.Logger) (ifrit.Runner, e
 		"--address="+sock,
 		"--root="+root,
 		"--config="+config,
+		"--log-level="+cmd.Containerd.LogLevel,
 	)
 
 	command.Stdout = os.Stdout

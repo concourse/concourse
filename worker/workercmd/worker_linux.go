@@ -40,6 +40,7 @@ type ContainerdRuntime struct {
 	SeccompProfilePath string                `long:"seccomp-profile" description:"Path to a seccomp filter override. By default will use a restrictive default set."`
 	OCIHooksDir        string                `long:"oci-hooks-dir" description:"Path to the oci hooks dir. By default none is provided."`
 	CNIPluginsDir      string                `long:"cni-plugins-dir" description:"Path to CNI network plugins. By default will set to the concourse/bin directory the concourse binary is in."`
+	LogLevel           string                `long:"log-level" default:"info" description:"Minimum level of logs to see." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" choice:"panic"`
 	RequestTimeout     time.Duration         `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 	MaxContainers      int                   `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
 	PrivilegedMode     bespec.PrivilegedMode `long:"privileged-mode" default:"full" choice:"full" choice:"fuse-only" choice:"ignore" description:"How many privileges privileged containers get. full is equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
