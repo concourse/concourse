@@ -197,6 +197,11 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 
 	proc, err := task.LoadProcess(ctx, pid, ioAttach)
 	if err != nil {
+		if errdefs.IsNotFound(err) {
+			if code, ok := c.lookupStoredExit(); ok {
+				return NewFinishedProcess(pid, code), nil
+			}
+		}
 		return nil, fmt.Errorf("load proc: %w", err)
 	}
 
