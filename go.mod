@@ -26,7 +26,7 @@ require (
 	github.com/concourse/flag/v2 v2.3.0
 	github.com/concourse/houdini v1.3.0
 	github.com/concourse/retryhttp v1.2.4
-	github.com/containerd/containerd v1.7.28
+	github.com/containerd/containerd v1.7.29
 	github.com/containerd/containerd/api v1.9.0
 	github.com/containerd/containerd/v2 v2.1.5
 	github.com/containerd/errdefs v1.0.0
