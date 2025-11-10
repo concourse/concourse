@@ -28,7 +28,7 @@ require (
 	github.com/concourse/retryhttp v1.2.4
 	github.com/containerd/containerd v1.7.28
 	github.com/containerd/containerd/api v1.9.0
-	github.com/containerd/containerd/v2 v2.1.4
+	github.com/containerd/containerd/v2 v2.1.5
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/go-cni v1.1.13
 	github.com/containerd/typeurl/v2 v2.2.3
