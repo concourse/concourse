@@ -1,9 +1,7 @@
 package ops_test
 
 import (
-	"slices"
 	"testing"
-	"time"
 
 	"github.com/concourse/concourse/integration/internal/flytest"
 	"github.com/stretchr/testify/require"
@@ -38,29 +36,4 @@ func verifyUpgradeDowngrade(t *testing.T, fly flytest.Cmd) {
 		out := fly.Output(t, "execute", "-c", "../tasks/hello.yml")
 		require.Contains(t, out, "hello")
 	})
-}
-
-func waitForVolumesGC(t *testing.T, fly flytest.Cmd, beforeVolumes []string) {
-	require.Eventually(t, func() bool {
-		volumes := fly.Table(t, "volumes")
-		currentVolumes := getColumnValues(volumes, "handle")
-
-		for _, cv := range currentVolumes {
-			if slices.Contains(beforeVolumes, cv) {
-				return false
-			}
-		}
-
-		return true
-	}, 2*time.Minute, 5*time.Second)
-}
-
-func getColumnValues(table flytest.Table, columnName string) []string {
-	var values []string
-
-	for _, row := range table {
-		values = append(values, row[columnName])
-	}
-
-	return values
 }
