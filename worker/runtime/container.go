@@ -8,6 +8,7 @@ import (
 	"io"
 	"regexp"
 	"slices"
+	"strconv"
 	"time"
 
 	"code.cloudfoundry.org/garden"
@@ -22,7 +23,8 @@ const (
 	SuperuserPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
 
-	GraceTimeKey = "garden.grace-time"
+	GraceTimeKey         = "garden.grace-time"
+	ProcessExitStatusKey = "garden.process-exit-status"
 )
 
 var (
@@ -174,7 +176,7 @@ func (c *Container) Run(
 		}
 	}
 
-	return NewProcess(proc, exitStatusC), nil
+	return NewProcess(proc, exitStatusC, *c), nil
 }
 
 // Attach starts streaming the output back to the client from a specified process.
@@ -195,6 +197,11 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 
 	proc, err := task.LoadProcess(ctx, pid, ioAttach)
 	if err != nil {
+		if errdefs.IsNotFound(err) {
+			if code, ok := c.lookupStoredExit(); ok {
+				return NewFinishedProcess(pid, code), nil
+			}
+		}
 		return nil, fmt.Errorf("load proc: %w", err)
 	}
 
@@ -212,7 +219,7 @@ func (c *Container) Attach(pid string, processIO garden.ProcessIO) (process gard
 		return nil, fmt.Errorf("proc wait: %w", err)
 	}
 
-	return NewProcess(proc, exitStatusC), nil
+	return NewProcess(proc, exitStatusC, *c), nil
 }
 
 // Properties returns the current set of properties
@@ -462,4 +469,16 @@ func containerdCIO(gdnProcIO garden.ProcessIO, tty bool) []cio.Opt {
 
 func isNoSuchExecutable(err error) bool {
 	return noSuchFile.MatchString(err.Error()) || executableNotFound.MatchString(err.Error())
+}
+
+func (c *Container) lookupStoredExit() (int, bool) {
+	val, err := c.Property(ProcessExitStatusKey)
+	if err != nil || val == "" {
+		return 0, false
+	}
+	code, convErr := strconv.Atoi(val)
+	if convErr != nil {
+		return 0, false
+	}
+	return code, true
 }

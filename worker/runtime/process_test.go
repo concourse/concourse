@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/worker/runtime/runtimefakes"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/errdefs"
 	"github.com/stretchr/testify/require"
@@ -20,18 +21,29 @@ type ProcessSuite struct {
 	suite.Suite
 	*require.Assertions
 
-	io                *libcontainerdfakes.FakeIO
-	containerdProcess *libcontainerdfakes.FakeProcess
-	ch                chan containerd.ExitStatus
-	process           *runtime.Process
+	io                  *libcontainerdfakes.FakeIO
+	containerdProcess   *libcontainerdfakes.FakeProcess
+	ch                  chan containerd.ExitStatus
+	process             *runtime.Process
+	container           *runtime.Container
+	rootfsManager       *runtimefakes.FakeRootfsManager
+	killer              *runtimefakes.FakeKiller
+	ioManager           *runtimefakes.FakeIOManager
+	containerdContainer *libcontainerdfakes.FakeContainer
 }
 
 func (s *ProcessSuite) SetupTest() {
 	s.io = new(libcontainerdfakes.FakeIO)
 	s.containerdProcess = new(libcontainerdfakes.FakeProcess)
 	s.ch = make(chan containerd.ExitStatus, 1)
-
-	s.process = runtime.NewProcess(s.containerdProcess, s.ch)
+	s.containerdContainer = new(libcontainerdfakes.FakeContainer)
+	s.container = runtime.NewContainer(
+		s.containerdContainer,
+		s.killer,
+		s.rootfsManager,
+		s.ioManager,
+	)
+	s.process = runtime.NewProcess(s.containerdProcess, s.ch, *s.container)
 }
 
 func (s *ProcessSuite) TestID() {
@@ -48,6 +60,7 @@ func (s *ProcessSuite) TestWaitStatusErr() {
 
 	_, err := s.process.Wait()
 	s.True(errors.Is(err, expectedErr))
+	s.Equal(0, s.containerdContainer.SetLabelsCallCount())
 }
 
 func (s *ProcessSuite) TestProcessWaitDeleteError() {
@@ -69,6 +82,8 @@ func (s *ProcessSuite) TestProcessWaitProcessAlreadyDeleted() {
 
 	_, err := s.process.Wait()
 	s.NoError(err)
+
+	s.Equal(1, s.containerdContainer.SetLabelsCallCount())
 }
 
 func (s *ProcessSuite) TestProcessWaitBlocksUntilIOFinishes() {

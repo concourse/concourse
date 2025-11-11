@@ -15,15 +15,18 @@ import (
 type Process struct {
 	process     containerd.Process
 	exitStatusC <-chan containerd.ExitStatus
+	container   Container
 }
 
 func NewProcess(
 	p containerd.Process,
 	ch <-chan containerd.ExitStatus,
+	container Container,
 ) *Process {
 	return &Process{
 		process:     p,
 		exitStatusC: ch,
+		container:   container,
 	}
 }
 
@@ -58,6 +61,7 @@ func (p *Process) Wait() (int, error) {
 		return 0, fmt.Errorf("delete process: %w", err)
 	}
 
+	p.container.SetProperty(ProcessExitStatusKey, fmt.Sprintf("%d", status.ExitCode()))
 	return int(status.ExitCode()), nil
 }
 
