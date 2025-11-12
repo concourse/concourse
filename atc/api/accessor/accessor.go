@@ -2,6 +2,7 @@ package accessor
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -77,19 +78,10 @@ func (a *access) computeTeamRoles() {
 		if len(roles) > 0 {
 			a.teamRoles[team.Name()] = roles
 		}
-		if team.Admin() && contains(roles, "owner") {
+		if team.Admin() && slices.Contains(roles, "owner") {
 			a.isAdmin = true
 		}
 	}
-}
-
-func contains(arr []string, val string) bool {
-	for _, v := range arr {
-		if v == val {
-			return true
-		}
-	}
-	return false
 }
 
 func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
