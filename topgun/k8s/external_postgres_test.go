@@ -16,6 +16,7 @@ var _ = Describe("External PostgreSQL", func() {
 		helmDeploy(pgReleaseName,
 			namespace,
 			path.Join(Environment.HelmChartsDir, "stable/postgresql"),
+			"--set=image.tag=latest",
 			"--set=livenessProbe.initialDelaySeconds=3",
 			"--set=livenessProbe.periodSeconds=3",
 			"--set=persistence.enabled=false",
