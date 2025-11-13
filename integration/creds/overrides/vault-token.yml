@@ -1,8 +1,8 @@
 services:
   web:
     volumes:
-    - ../hack/vault/certs:/vault-certs
-    - ../hack/vault/token:/vault/token
+      - ../hack/vault/certs:/vault-certs
+      - ../hack/vault/token:/vault/token
     environment:
       CONCOURSE_VAULT_URL: https://vault:8200
       CONCOURSE_VAULT_SHARED_PATH: shared
@@ -14,8 +14,8 @@ services:
     cap_add: [IPC_LOCK]
     ports: [8200]
     volumes:
-    - ../hack/vault/certs:/vault/certs
-    - ../hack/vault/config:/vault/config
+      - ../hack/vault/certs:/vault/certs
+      - ../hack/vault/config:/vault/config
     command: server
     environment:
       # for running the 'vault' CLI

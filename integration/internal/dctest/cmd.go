@@ -33,7 +33,7 @@ func Init(t *testing.T, composeFile string, overrides ...string) Cmd {
 	}
 
 	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, "TEST_") {
+		if strings.HasPrefix(env, "TEST_") || strings.HasPrefix(env, "DOCKER_") {
 			dc = dc.WithEnv(env)
 		}
 	}

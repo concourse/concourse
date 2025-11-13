@@ -23,7 +23,7 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 	}
 
 	var err error
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		err = vault.TryOutputJSON(&initOut, "operator", "init")
 		if err == nil {
 			break
@@ -32,8 +32,8 @@ func Init(t *testing.T, dc dctest.Cmd) Cmd {
 	}
 	require.NoError(t, err)
 
-	for i := 0; i < 3; i++ {
-		vault.Run(t, "operator", "unseal", initOut.UnsealKeys[i])
+	for _, key := range initOut.UnsealKeys {
+		vault.Run(t, "operator", "unseal", key)
 	}
 
 	// log in with root token
