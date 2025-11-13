@@ -1,6 +1,7 @@
 package worker_test
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/concourse/concourse/integration/internal/dctest"
@@ -10,6 +11,11 @@ import (
 
 func TestGuardianConfig_ConfigFile(t *testing.T) {
 	t.Parallel()
+
+	if runtime.GOARCH == "arm" {
+		// https://github.com/cloudfoundry/garden-runc-release/issues/378
+		t.Skip("guardian doesn't work on arm64")
+	}
 
 	dc := dctest.Init(t, "../docker-compose.yml", "overrides/guardian.yml", "overrides/garden_config.yml")
 
@@ -24,6 +30,11 @@ func TestGuardianConfig_ConfigFile(t *testing.T) {
 
 func TestGuardianConfig_EnvVars(t *testing.T) {
 	t.Parallel()
+
+	if runtime.GOARCH == "arm" {
+		// https://github.com/cloudfoundry/garden-runc-release/issues/378
+		t.Skip("guardian doesn't work on arm64")
+	}
 
 	dc := dctest.Init(t, "../docker-compose.yml", "overrides/guardian.yml", "overrides/garden_max_containers.yml")
 
