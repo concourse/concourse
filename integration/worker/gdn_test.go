@@ -12,7 +12,7 @@ import (
 func TestGuardianConfig_ConfigFile(t *testing.T) {
 	t.Parallel()
 
-	if runtime.GOARCH == "arm" {
+	if runtime.GOARCH == "arm64" {
 		// https://github.com/cloudfoundry/garden-runc-release/issues/378
 		t.Skip("guardian doesn't work on arm64")
 	}
@@ -31,7 +31,7 @@ func TestGuardianConfig_ConfigFile(t *testing.T) {
 func TestGuardianConfig_EnvVars(t *testing.T) {
 	t.Parallel()
 
-	if runtime.GOARCH == "arm" {
+	if runtime.GOARCH == "arm64" {
 		// https://github.com/cloudfoundry/garden-runc-release/issues/378
 		t.Skip("guardian doesn't work on arm64")
 	}
