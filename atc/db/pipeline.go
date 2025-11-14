@@ -660,7 +660,7 @@ func (p *pipeline) Dashboard() ([]atc.JobSummary, error) {
 func (p *pipeline) Pause(pausedBy string) error {
 	_, err := psql.Update("pipelines").
 		Set("paused", true).
-		Set("paused_at", time.Now()).
+		Set("paused_at", sq.Expr("now()")).
 		Set("paused_by", pausedBy).
 		Where(sq.Eq{"id": p.id, "paused": false}).
 		RunWith(p.conn).
@@ -722,7 +722,7 @@ func (p *pipeline) archive(tx Tx) error {
 		Set("last_updated", sq.Expr("now()")).
 		Set("paused", true).
 		Set("paused_by", "automatic-pipeline-archiver").
-		Set("paused_at", time.Now()).
+		Set("paused_at", sq.Expr("now()")).
 		Set("version", 0).
 		Where(sq.Eq{"id": p.id}).
 		RunWith(tx).

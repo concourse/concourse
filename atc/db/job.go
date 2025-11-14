@@ -444,7 +444,7 @@ func (j *job) Pause(pausedBy string) error {
 
 	_, err := psql.Update("jobs").
 		Set("paused", true).
-		Set("paused_at", time.Now()).
+		Set("paused_at", sq.Expr("now()")).
 		Set("paused_by", pausedBy).
 		Where(sq.Eq{"id": j.id, "paused": false}).
 		RunWith(j.conn).
