@@ -98,6 +98,7 @@ const algorithmLimitRows = 100
 var schedulerCache = gocache.New(10*time.Second, 10*time.Second)
 
 var defaultDriverName = "pgx"
+var retryingDriverName = "retrying"
 
 var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
@@ -293,7 +294,7 @@ type Migration struct {
 }
 
 func (m *Migration) Execute(args []string) error {
-	lockConns, err := constructLockConns(defaultDriverName, m.Postgres.ConnectionString())
+	lockConns, err := constructLockConns(retryingDriverName, m.Postgres.ConnectionString())
 	if err != nil {
 		return err
 	}
@@ -574,6 +575,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	db.SetupConnectionRetryingDriver(
+		defaultDriverName,
+		cmd.Postgres.ConnectionString(),
+		retryingDriverName,
+	)
+
 	// Register the sink that collects error metrics
 	if cmd.Metrics.CaptureErrorMetrics {
 		errorSinkCollector := metric.NewErrorSinkCollector(
@@ -605,29 +612,29 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
-	lockConns, err := constructLockConns(defaultDriverName, cmd.Postgres.ConnectionString())
+	lockConns, err := constructLockConns(retryingDriverName, cmd.Postgres.ConnectionString())
 	if err != nil {
 		return nil, err
 	}
 
 	lockFactory := lock.NewLockFactory(lockConns, metric.LogLockAcquired, metric.LogLockReleased)
 
-	apiConn, err := cmd.constructDBConn(defaultDriverName, logger, cmd.APIMaxOpenConnections, cmd.APIMaxOpenConnections/2, "api", lockFactory)
+	apiConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.APIMaxOpenConnections, cmd.APIMaxOpenConnections/2, "api", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	backendConn, err := cmd.constructDBConn(defaultDriverName, logger, cmd.BackendMaxOpenConnections, cmd.BackendMaxOpenConnections/2, "backend", lockFactory)
+	backendConn, err := cmd.constructDBConn(retryingDriverName, logger, cmd.BackendMaxOpenConnections, cmd.BackendMaxOpenConnections/2, "backend", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	gcConn, err := cmd.constructDBConn(defaultDriverName, logger, 5, 2, "gc", lockFactory)
+	gcConn, err := cmd.constructDBConn(retryingDriverName, logger, 5, 2, "gc", lockFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	workerConn, err := cmd.constructDBConn(defaultDriverName, logger, 1, 1, "worker", lockFactory)
+	workerConn, err := cmd.constructDBConn(retryingDriverName, logger, 1, 1, "worker", lockFactory)
 	if err != nil {
 		return nil, err
 	}
