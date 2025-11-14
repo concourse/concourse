@@ -294,6 +294,12 @@ type Migration struct {
 }
 
 func (m *Migration) Execute(args []string) error {
+	db.SetupConnectionRetryingDriver(
+		defaultDriverName,
+		m.Postgres.ConnectionString(),
+		retryingDriverName,
+	)
+
 	lockConns, err := constructLockConns(retryingDriverName, m.Postgres.ConnectionString())
 	if err != nil {
 		return err
