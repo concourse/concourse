@@ -18,4 +18,4 @@ RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
 
 # Have to preload faketime to work with postgres.
 # https://github.com/wolfcw/libfaketime/issues/267
-RUN sed -i -e '315i\export LD_PRELOAD=/usr/local/lib/faketime/libfaketime.so.1'   /usr/local/bin/docker-entrypoint.sh
+RUN sed -i -e '2 a\export LD_PRELOAD=/usr/local/lib/faketime/libfaketime.so.1'   /usr/local/bin/docker-entrypoint.sh
