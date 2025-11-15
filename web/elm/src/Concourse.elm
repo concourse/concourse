@@ -393,7 +393,7 @@ mapBuildPlan fn plan =
                 BuildStepTask _ ->
                     []
 
-                BuildStepSetPipeline _ _ ->
+                BuildStepSetPipeline _ _ _ ->
                     []
 
                 BuildStepLoadVar _ ->
@@ -487,7 +487,7 @@ type alias ImageBuildPlans =
 
 type BuildStep
     = BuildStepTask StepName
-    | BuildStepSetPipeline StepName InstanceVars
+    | BuildStepSetPipeline StepName (Maybe TeamName) InstanceVars
     | BuildStepLoadVar StepName
     | BuildStepArtifactInput StepName
     | BuildStepCheck StepName (Maybe ImageBuildPlans)
@@ -852,6 +852,12 @@ decodeBuildSetPipeline : Json.Decode.Decoder BuildStep
 decodeBuildSetPipeline =
     Json.Decode.succeed BuildStepSetPipeline
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.maybe (Json.Decode.field "team" Json.Decode.string)
+                    |> Json.Decode.map (\maybeTeam ->
+                        case maybeTeam of
+                            Just "" -> Nothing
+                            other -> other
+                       ))
         |> andMap (defaultTo Dict.empty <| Json.Decode.field "instance_vars" decodeInstanceVars)
 
 
