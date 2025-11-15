@@ -120,7 +120,7 @@ initSetPipeline : Test
 initSetPipeline =
     let
         step =
-            BuildStepSetPipeline "some-name" Dict.empty
+            BuildStepSetPipeline "some-name" Nothing Dict.empty
 
         { tree, steps } =
             StepTree.init Nothing
