@@ -86,4 +86,27 @@ var _ = Describe("IDToken Secret", func() {
 		Expect(claims.Job).To(Equal(params.Job))
 	})
 
+	Context("when using a custom OIDC issuer", func() {
+		var customIssuer string
+
+		BeforeEach(func() {
+			customIssuer = "https://oidc.example.com"
+			tokenGenerator.Issuer = customIssuer
+		})
+
+		It("generates token with custom issuer in iss claim", func() {
+			token, _, _, err := secrets.GetWithParams("token", params)
+			Expect(err).ToNot(HaveOccurred())
+
+			parsed, err := jwt.ParseSigned(token.(string), []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+			Expect(err).ToNot(HaveOccurred())
+
+			claims := jwt.Claims{}
+			err = parsed.Claims(verificationKey, &claims)
+			Expect(err).To(Succeed())
+
+			Expect(claims.Issuer).To(Equal(customIssuer))
+		})
+	})
+
 })

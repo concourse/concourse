@@ -10,17 +10,26 @@ import (
 type Server struct {
 	logger              lager.Logger
 	externalURL         string
+	oidcIssuer          string
 	dbSigningKeyFactory db.SigningKeyFactory
 }
 
 func NewServer(
 	logger lager.Logger,
 	externalURL string,
+	oidcIssuer string,
 	dbSigningKeyFactory db.SigningKeyFactory,
 ) *Server {
+	// Use oidcIssuer if provided, otherwise fall back to externalURL
+	issuer := oidcIssuer
+	if issuer == "" {
+		issuer = externalURL
+	}
+
 	return &Server{
 		logger:              logger,
 		externalURL:         externalURL,
+		oidcIssuer:          issuer,
 		dbSigningKeyFactory: dbSigningKeyFactory,
 	}
 }

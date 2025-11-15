@@ -70,6 +70,19 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 		Expect(parsed.Headers[0].Algorithm).To(Equal("ES256"))
 		Expect(claims.Subject).To(Equal(teamName))
 	})
+
+	It("publishes correct issuer in OpenID configuration", func() {
+		config, err := getOpenIDConfiguration(config.ATCURL)
+		Expect(err).ToNot(HaveOccurred())
+
+		issuer, ok := config["issuer"].(string)
+		Expect(ok).To(BeTrue())
+		Expect(issuer).ToNot(BeEmpty())
+
+		jwksURI, ok := config["jwks_uri"].(string)
+		Expect(ok).To(BeTrue())
+		Expect(jwksURI).To(Equal(issuer + "/.well-known/jwks.json"))
+	})
 })
 
 func extractIDtokenFromBuffer(buffer []byte, whichToken string) string {
@@ -79,6 +92,18 @@ func extractIDtokenFromBuffer(buffer []byte, whichToken string) string {
 		return ""
 	}
 	return string(tokenMatches[1])
+}
+
+func getOpenIDConfiguration(atcURL string) (map[string]interface{}, error) {
+	resp, err := http.Get(atcURL + "/.well-known/openid-configuration")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var config map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&config)
+	return config, err
 }
 
 func getJWKS(atcurl string) (*jose.JSONWebKeySet, error) {

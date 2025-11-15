@@ -193,6 +193,7 @@ var _ = BeforeEach(func() {
 		logger,
 
 		externalURL,
+		"",
 		clusterName,
 
 		apiWrapper,

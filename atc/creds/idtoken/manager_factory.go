@@ -10,6 +10,7 @@ import (
 
 type ManagerFactory struct {
 	issuer            string
+	oidcIssuer        string
 	signingKeyFactory db.SigningKeyFactory
 }
 
@@ -30,6 +31,10 @@ func (factory *ManagerFactory) SetIssuer(issuer string) {
 	factory.issuer = issuer
 }
 
+func (factory *ManagerFactory) SetOIDCIssuer(oidcIssuer string) {
+	factory.oidcIssuer = oidcIssuer
+}
+
 func (factory *ManagerFactory) SetSigningKeyFactory(signingKeyFactory db.SigningKeyFactory) {
 	factory.signingKeyFactory = signingKeyFactory
 }
@@ -39,14 +44,21 @@ func (factory *ManagerFactory) NewInstance(config interface{}) (creds.Manager, e
 	if !ok {
 		return nil, fmt.Errorf("invalid idtoken provider config: %T", config)
 	}
-	if factory.issuer == "" {
+
+	// Use oidcIssuer if set, otherwise fall back to issuer (external URL)
+	issuer := factory.oidcIssuer
+	if issuer == "" {
+		issuer = factory.issuer
+	}
+
+	if issuer == "" {
 		return nil, fmt.Errorf("issuer not set for idtoken provider")
 	}
 	if factory.signingKeyFactory == nil {
 		return nil, fmt.Errorf("signingKeyFactory not set for idtoken provider")
 	}
 
-	return NewManager(factory.issuer, factory.signingKeyFactory, configMap)
+	return NewManager(issuer, factory.signingKeyFactory, configMap)
 }
 
 // UpdateGlobalManagerFactory provides a way to modify the global idtoken.ManagerFactory and set additional settings

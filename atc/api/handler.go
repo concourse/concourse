@@ -46,6 +46,7 @@ func NewHandler(
 	logger lager.Logger,
 
 	externalURL string,
+	oidcIssuer string,
 	clusterName string,
 
 	wrapper wrappa.Wrappa,
@@ -112,7 +113,7 @@ func NewHandler(
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
-	idTokenServer := idtokenserver.NewServer(logger, externalURL, dbSigningKeyFactory)
+	idTokenServer := idtokenserver.NewServer(logger, externalURL, oidcIssuer, dbSigningKeyFactory)
 
 	handlers := map[string]http.Handler{
 		atc.GetConfig:  http.HandlerFunc(configServer.GetConfig),
