@@ -341,13 +341,10 @@ app.ports.rawHttpRequest.subscribe(function(url) {
     app.ports.rawHttpResponse.send('success');
   });
 
-  xhr.open('GET', url, false);
+  xhr.open('GET', url, true);
 
   try {
     xhr.send();
-    if (xhr.readyState === 1) {
-      app.ports.rawHttpResponse.send('browserError');
-    }
   } catch (error) {
     app.ports.rawHttpResponse.send('networkError');
   }
