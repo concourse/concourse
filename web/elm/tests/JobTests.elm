@@ -648,7 +648,7 @@ all =
                                 )
                             |> Tuple.first
                             |> queryView
-                            |> Query.has [ text "no builds for job “job”" ]
+                            |> Query.has [ text "no builds for job \"job\"" ]
                 ]
             , test "JobBuildsFetched" <|
                 \_ ->
