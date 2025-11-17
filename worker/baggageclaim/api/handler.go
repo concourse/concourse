@@ -40,6 +40,7 @@ func NewHandler(
 		baggageclaim.CreateVolumeAsyncCheck:  http.HandlerFunc(volumeServer.CreateVolumeAsyncCheck),
 		baggageclaim.ListVolumes:             http.HandlerFunc(volumeServer.ListVolumes),
 		baggageclaim.GetVolume:               http.HandlerFunc(volumeServer.GetVolume),
+		baggageclaim.GetVolumeWithSize:       http.HandlerFunc(volumeServer.GetVolumeWithSize),
 		baggageclaim.SetProperty:             http.HandlerFunc(volumeServer.SetProperty),
 		baggageclaim.GetPrivileged:           http.HandlerFunc(volumeServer.GetPrivileged),
 		baggageclaim.SetPrivileged:           http.HandlerFunc(volumeServer.SetPrivileged),
