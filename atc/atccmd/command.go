@@ -656,11 +656,13 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	issuer := cmd.ExternalURL.String()
+	if cmd.OIDCIssuerURL.String() != "" {
+		issuer = cmd.OIDCIssuerURL.String()
+	}
+
 	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
-		f.SetIssuer(cmd.ExternalURL.String())
-		if cmd.OIDCIssuerURL.String() != "" {
-			f.SetOIDCIssuer(cmd.OIDCIssuerURL.String())
-		}
+		f.SetIssuer(issuer)
 	})
 
 	secretManager, err := cmd.secretManager(logger)

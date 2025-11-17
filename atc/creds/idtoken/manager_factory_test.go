@@ -22,7 +22,7 @@ var _ = Describe("ManagerFactory", func() {
 		}
 	})
 
-	Context("when only issuer is set", func() {
+	Context("when issuer is set", func() {
 		BeforeEach(func() {
 			factory.SetIssuer("https://concourse.example.com")
 		})
@@ -37,23 +37,7 @@ var _ = Describe("ManagerFactory", func() {
 		})
 	})
 
-	Context("when both issuer and oidcIssuer are set", func() {
-		BeforeEach(func() {
-			factory.SetIssuer("https://concourse.example.com")
-			factory.SetOIDCIssuer("https://oidc.example.com")
-		})
-
-		It("prefers oidcIssuer over issuer", func() {
-			manager, err := factory.NewInstance(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(manager).ToNot(BeNil())
-
-			gen := manager.(*idtoken.Manager).GetTokenGenerator()
-			Expect(gen.Issuer).To(Equal("https://oidc.example.com"))
-		})
-	})
-
-	Context("when neither issuer is set", func() {
+	Context("when issuer is not set", func() {
 		It("returns an error", func() {
 			_, err := factory.NewInstance(config)
 			Expect(err).To(MatchError(ContainSubstring("issuer not set")))

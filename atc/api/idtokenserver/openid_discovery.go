@@ -18,7 +18,6 @@ func (s *Server) OpenIDConfiguration(w http.ResponseWriter, r *http.Request) {
 		IDTokenSigningAlgValuesSupported []string `json:"id_token_signing_alg_values_supported"`
 		SubjectTypesSupported            []string `json:"subject_types_supported"`
 	}{
-		// Use oidcIssuer (which falls back to externalURL if not set)
 		Issuer:                           s.oidcIssuer,
 		JWKSUri:                          s.oidcIssuer + "/.well-known/jwks.json",
 		ClaimsSupported:                  []string{"aud", "iat", "iss", "sub"},
