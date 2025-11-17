@@ -60,6 +60,7 @@ func (c *teamsCacher) waitForNotifications() {
 	notifier, err := c.notifications.Listen(atc.TeamCacheChannel, 1)
 	if err != nil {
 		c.logger.Error("failed-to-listen-for-team-cache", err)
+		return
 	}
 
 	defer c.notifications.Unlisten(atc.TeamCacheChannel, notifier)
