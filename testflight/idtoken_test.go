@@ -72,14 +72,14 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 	})
 
 	It("publishes correct issuer in OpenID configuration", func() {
-		config, err := getOpenIDConfiguration(config.ATCURL)
+		cfg, err := getOpenIDConfiguration(config.ATCURL)
 		Expect(err).ToNot(HaveOccurred())
 
-		issuer, ok := config["issuer"].(string)
+		issuer, ok := cfg["issuer"].(string)
 		Expect(ok).To(BeTrue())
-		Expect(issuer).ToNot(BeEmpty())
+		Expect(issuer).To(Equal(config.ATCURL))
 
-		jwksURI, ok := config["jwks_uri"].(string)
+		jwksURI, ok := cfg["jwks_uri"].(string)
 		Expect(ok).To(BeTrue())
 		Expect(jwksURI).To(Equal(issuer + "/.well-known/jwks.json"))
 	})
