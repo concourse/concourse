@@ -39,6 +39,7 @@ func (factory *ManagerFactory) NewInstance(config interface{}) (creds.Manager, e
 	if !ok {
 		return nil, fmt.Errorf("invalid idtoken provider config: %T", config)
 	}
+
 	if factory.issuer == "" {
 		return nil, fmt.Errorf("issuer not set for idtoken provider")
 	}

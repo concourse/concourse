@@ -126,7 +126,8 @@ type RunCommand struct {
 		ACMEURL flag.URL `long:"lets-encrypt-acme-url" description:"URL of the ACME CA directory endpoint." default:"https://acme-v02.api.letsencrypt.org/directory"`
 	} `group:"Let's Encrypt Configuration"`
 
-	ExternalURL flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
+	ExternalURL    flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
+	OIDCIssuerURL  flag.URL `long:"oidc-issuer-url" description:"URL to use as the OIDC issuer for IDToken generation. If not set, defaults to external-url. Must be publicly accessible for cloud provider OIDC verification."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -655,8 +656,13 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 		return nil, err
 	}
 
+	issuer := cmd.ExternalURL.String()
+	if cmd.OIDCIssuerURL.String() != "" {
+		issuer = cmd.OIDCIssuerURL.String()
+	}
+
 	idtoken.UpdateGlobalManagerFactory(func(f *idtoken.ManagerFactory) {
-		f.SetIssuer(cmd.ExternalURL.String())
+		f.SetIssuer(issuer)
 	})
 
 	secretManager, err := cmd.secretManager(logger)
@@ -2067,6 +2073,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	return api.NewHandler(
 		logger,
 		cmd.ExternalURL.String(),
+		cmd.OIDCIssuerURL.String(),
 		cmd.Server.ClusterName,
 		apiWrapper,
 
