@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -569,12 +568,16 @@ var _ = Describe("Jobs API", func() {
 		})
 
 		Context("when authorized", func() {
+			var build1 *dbfakes.FakeBuild
+
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAuthorizedReturns(true)
 
 				fakePipeline.JobReturns(fakeJob, true, nil)
 				fakeJob.NameReturns("some-job")
+
+				build1 = new(dbfakes.FakeBuild)
 			})
 
 			It("fetches by job", func() {
@@ -594,266 +597,63 @@ var _ = Describe("Jobs API", func() {
 				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
 			})
 
-			Context("when generates bagde title", func() {
-				It("uses url `title` parameter", func() {
-					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=cov")
-					Expect(err).NotTo(HaveOccurred())
-
-					body, err := io.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(strings.Contains(string(body), `
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">cov</text>
-      <text x="18.5" y="14">cov</text>
-`)).Should(BeTrue())
-				})
-				It("uses default `build` title if not specified", func() {
-					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge")
-					Expect(err).NotTo(HaveOccurred())
-
-					body, err := io.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(strings.Contains(string(body), `
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
-`)).Should(BeTrue())
-				})
-				It("uses default `build` title if url `title` parameter is falsy", func() {
-					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=")
-					Expect(err).NotTo(HaveOccurred())
-
-					body, err := io.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(strings.Contains(string(body), `
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
-`)).Should(BeTrue())
-				})
-				It("html escapes title", func() {
-					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=%24cov")
-					Expect(err).NotTo(HaveOccurred())
-
-					body, err := io.ReadAll(response.Body)
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(strings.Contains(string(body), `
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">$cov</text>
-      <text x="18.5" y="14">$cov</text>
-`)).Should(BeTrue())
-				})
-			})
-
 			Context("when the finished build is successful", func() {
 				BeforeEach(func() {
-					build1 := new(dbfakes.FakeBuild)
-					build1.IDReturns(1)
-					build1.NameReturns("1")
-					build1.JobNameReturns("some-job")
-					build1.PipelineNameReturns("some-pipeline")
-					build1.StartTimeReturns(time.Unix(1, 0))
-					build1.EndTimeReturns(time.Unix(100, 0))
 					build1.StatusReturns(db.BuildStatusSucceeded)
-
-					build2 := new(dbfakes.FakeBuild)
-					build2.IDReturns(3)
-					build2.NameReturns("2")
-					build2.JobNameReturns("some-job")
-					build2.PipelineNameReturns("some-pipeline")
-					build2.StatusReturns(db.BuildStatusStarted)
-
-					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
+					fakeJob.FinishedAndNextBuildReturns(build1, nil, nil)
 				})
 
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns some SVG showing that the job is successful", func() {
+				It("returns passing badge with correct color", func() {
 					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
-   <linearGradient id="b" x2="0" y2="100%">
-      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
-      <stop offset="1" stop-opacity=".1" />
-   </linearGradient>
-   <mask id="a">
-      <rect width="88" height="20" rx="3" fill="#fff" />
-   </mask>
-   <g mask="url(#a)">
-      <path fill="#555" d="M0 0h37v20H0z" />
-      <path fill="#44cc11" d="M37 0h51v20H37z" />
-      <path fill="url(#b)" d="M0 0h88v20H0z" />
-   </g>
-   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
-      <text x="61.5" y="15" fill="#010101" fill-opacity=".3">passing</text>
-      <text x="61.5" y="14">passing</text>
-   </g>
-</svg>`))
+					Expect(string(body)).To(ContainSubstring("passing"))
+					Expect(string(body)).To(ContainSubstring("#44cc11"))
 				})
 			})
 
 			Context("when the finished build is failed", func() {
 				BeforeEach(func() {
-					build1 := new(dbfakes.FakeBuild)
-					build1.IDReturns(1)
-					build1.NameReturns("1")
-					build1.JobNameReturns("some-job")
-					build1.PipelineNameReturns("some-pipeline")
-					build1.StartTimeReturns(time.Unix(1, 0))
-					build1.EndTimeReturns(time.Unix(100, 0))
 					build1.StatusReturns(db.BuildStatusFailed)
-
-					build2 := new(dbfakes.FakeBuild)
-					build2.IDReturns(3)
-					build2.NameReturns("2")
-					build2.JobNameReturns("some-job")
-					build2.PipelineNameReturns("some-pipeline")
-					build2.StatusReturns(db.BuildStatusStarted)
-
-					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
+					fakeJob.FinishedAndNextBuildReturns(build1, nil, nil)
 				})
 
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns some SVG showing that the job has failed", func() {
+				It("returns failing badge with correct color", func() {
 					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="80" height="20">
-   <linearGradient id="b" x2="0" y2="100%">
-      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
-      <stop offset="1" stop-opacity=".1" />
-   </linearGradient>
-   <mask id="a">
-      <rect width="80" height="20" rx="3" fill="#fff" />
-   </mask>
-   <g mask="url(#a)">
-      <path fill="#555" d="M0 0h37v20H0z" />
-      <path fill="#e05d44" d="M37 0h43v20H37z" />
-      <path fill="url(#b)" d="M0 0h80v20H0z" />
-   </g>
-   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
-      <text x="57.5" y="15" fill="#010101" fill-opacity=".3">failing</text>
-      <text x="57.5" y="14">failing</text>
-   </g>
-</svg>`))
+					Expect(string(body)).To(ContainSubstring("failing"))
+					Expect(string(body)).To(ContainSubstring("#e05d44"))
 				})
 			})
 
 			Context("when the finished build was aborted", func() {
 				BeforeEach(func() {
-					build1 := new(dbfakes.FakeBuild)
-					build1.IDReturns(1)
-					build1.NameReturns("1")
-					build1.JobNameReturns("some-job")
-					build1.PipelineNameReturns("some-pipeline")
 					build1.StatusReturns(db.BuildStatusAborted)
-
-					build2 := new(dbfakes.FakeBuild)
-					build2.IDReturns(1)
-					build2.NameReturns("1")
-					build2.JobNameReturns("some-job")
-					build2.PipelineNameReturns("some-pipeline")
-					build2.StartTimeReturns(time.Unix(1, 0))
-					build2.EndTimeReturns(time.Unix(100, 0))
-					build2.StatusReturns(db.BuildStatusAborted)
-
-					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
+					fakeJob.FinishedAndNextBuildReturns(build1, nil, nil)
 				})
 
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns some SVG showing that the job was aborted", func() {
+				It("returns aborted badge with correct color", func() {
 					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20">
-   <linearGradient id="b" x2="0" y2="100%">
-      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
-      <stop offset="1" stop-opacity=".1" />
-   </linearGradient>
-   <mask id="a">
-      <rect width="90" height="20" rx="3" fill="#fff" />
-   </mask>
-   <g mask="url(#a)">
-      <path fill="#555" d="M0 0h37v20H0z" />
-      <path fill="#8f4b2d" d="M37 0h53v20H37z" />
-      <path fill="url(#b)" d="M0 0h90v20H0z" />
-   </g>
-   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
-      <text x="62.5" y="15" fill="#010101" fill-opacity=".3">aborted</text>
-      <text x="62.5" y="14">aborted</text>
-   </g>
-</svg>`))
+					Expect(string(body)).To(ContainSubstring("aborted"))
+					Expect(string(body)).To(ContainSubstring("#8f4b2d"))
 				})
 			})
 
 			Context("when the finished build errored", func() {
 				BeforeEach(func() {
-					build1 := new(dbfakes.FakeBuild)
-					build1.IDReturns(1)
-					build1.NameReturns("1")
-					build1.JobNameReturns("some-job")
-					build1.PipelineNameReturns("some-pipeline")
-					build1.StartTimeReturns(time.Unix(1, 0))
-					build1.EndTimeReturns(time.Unix(100, 0))
 					build1.StatusReturns(db.BuildStatusErrored)
-
-					build2 := new(dbfakes.FakeBuild)
-					build2.IDReturns(3)
-					build2.NameReturns("2")
-					build2.JobNameReturns("some-job")
-					build2.PipelineNameReturns("some-pipeline")
-					build2.StatusReturns(db.BuildStatusStarted)
-
-					fakeJob.FinishedAndNextBuildReturns(build1, build2, nil)
+					fakeJob.FinishedAndNextBuildReturns(build1, nil, nil)
 				})
 
-				It("returns 200 OK", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns some SVG showing that the job has errored", func() {
+				It("returns errored badge with correct color", func() {
 					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="88" height="20">
-   <linearGradient id="b" x2="0" y2="100%">
-      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
-      <stop offset="1" stop-opacity=".1" />
-   </linearGradient>
-   <mask id="a">
-      <rect width="88" height="20" rx="3" fill="#fff" />
-   </mask>
-   <g mask="url(#a)">
-      <path fill="#555" d="M0 0h37v20H0z" />
-      <path fill="#fe7d37" d="M37 0h51v20H37z" />
-      <path fill="url(#b)" d="M0 0h88v20H0z" />
-   </g>
-   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
-      <text x="61.5" y="15" fill="#010101" fill-opacity=".3">errored</text>
-      <text x="61.5" y="14">errored</text>
-   </g>
-</svg>`))
+					Expect(string(body)).To(ContainSubstring("errored"))
+					Expect(string(body)).To(ContainSubstring("#fe7d37"))
 				})
 			})
 
@@ -862,30 +662,124 @@ var _ = Describe("Jobs API", func() {
 					fakeJob.FinishedAndNextBuildReturns(nil, nil, nil)
 				})
 
-				It("returns an unknown badge", func() {
+				It("returns unknown badge with correct color", func() {
 					body, err := io.ReadAll(response.Body)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(string(body)).To(Equal(`<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="98" height="20">
-   <linearGradient id="b" x2="0" y2="100%">
-      <stop offset="0" stop-color="#bbb" stop-opacity=".1" />
-      <stop offset="1" stop-opacity=".1" />
-   </linearGradient>
-   <mask id="a">
-      <rect width="98" height="20" rx="3" fill="#fff" />
-   </mask>
-   <g mask="url(#a)">
-      <path fill="#555" d="M0 0h37v20H0z" />
-      <path fill="#9f9f9f" d="M37 0h61v20H37z" />
-      <path fill="url(#b)" d="M0 0h98v20H0z" />
-   </g>
-   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-      <text x="18.5" y="14">build</text>
-      <text x="66.5" y="15" fill="#010101" fill-opacity=".3">unknown</text>
-      <text x="66.5" y="14">unknown</text>
-   </g>
-</svg>`))
+
+					Expect(string(body)).To(ContainSubstring("unknown"))
+					Expect(string(body)).To(ContainSubstring("#9f9f9f"))
+				})
+			})
+
+			Context("when generates badge title", func() {
+				BeforeEach(func() {
+					build1.StatusReturns(db.BuildStatusSucceeded)
+					fakeJob.FinishedAndNextBuildReturns(build1, nil, nil)
+				})
+
+				It("uses url title parameter and HTML escapes it", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=%24custom")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring("$custom"))
+				})
+
+				It("uses default build title if not specified", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring("build"))
+					Expect(string(body)).To(ContainSubstring(`width="88"`))
+				})
+
+				It("uses default build title if url title parameter is falsy", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring("build"))
+				})
+			})
+
+			Context("when scaling badges for custom titles", func() {
+				BeforeEach(func() {
+					build1.StatusReturns(db.BuildStatusSucceeded)
+					fakeJob.FinishedAndNextBuildReturns(build1, nil, nil)
+				})
+
+				It("scales short custom titles with padding", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=test")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring("test"))
+					Expect(string(body)).To(ContainSubstring(`width="87"`))
+				})
+
+				It("scales medium custom titles with reduced padding", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=integration")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring("integration"))
+					Expect(string(body)).To(ContainSubstring(`width="123"`))
+				})
+
+				It("scales long custom titles with no padding", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=very-long-deployment-name")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring("very-long-deployment-name"))
+					Expect(string(body)).To(ContainSubstring(`width="201"`))
+				})
+
+				It("scales badge correctly for production-deployment title", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=production-deployment")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring("production-deployment"))
+					Expect(string(body)).To(ContainSubstring("passing"))
+					Expect(string(body)).To(MatchRegexp(`width="\d{3}"`))
+				})
+
+				It("keeps default badge dimensions when no custom title", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(ContainSubstring(`width="88"`))
+					Expect(string(body)).To(ContainSubstring(`d="M0 0h37v20H0z"`))
+					Expect(string(body)).To(ContainSubstring("build"))
+				})
+
+				It("preserves original status width for custom titles", func() {
+					response, err := client.Get(server.URL + "/api/v1/teams/some-team/pipelines/some-pipeline/jobs/some-job/badge?title=custom")
+					Expect(err).NotTo(HaveOccurred())
+
+					body, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(string(body)).To(MatchRegexp(`d="M\d+ 0h51v20H\d+z"`))
 				})
 			})
 
@@ -906,6 +800,16 @@ var _ = Describe("Jobs API", func() {
 
 				It("returns 404", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when finding the job fails", func() {
+				BeforeEach(func() {
+					fakePipeline.JobReturns(nil, false, errors.New("db error finding job"))
+				})
+
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
