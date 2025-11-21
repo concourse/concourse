@@ -102,6 +102,8 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 		return nil, err
 	}
 
+	es := j.conn.EncryptionStrategy()
+
 	var schedulerJobs SchedulerJobs
 	pipelineResourceTypes := make(map[int]ResourceTypes)
 	pipelinePrototypes := make(map[int]Prototypes)
@@ -130,8 +132,6 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 				return nil, err
 			}
 
-			es := j.conn.EncryptionStrategy()
-
 			var noncense *string
 			if nonce.Valid {
 				noncense = &nonce.String
@@ -155,6 +155,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 				ExposeBuildCreatedBy: config.ExposeBuildCreatedBy,
 			})
 		}
+		if err = resourceRows.Err(); err != nil {
+			resourceRows.Close()
+			return nil, err
+		}
+		resourceRows.Close()
 
 		resourceTypes, found := pipelineResourceTypes[job.PipelineID()]
 		if !found {
@@ -177,6 +182,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 				resourceTypes = append(resourceTypes, resourceType)
 			}
+			if err = resourceTypeRows.Err(); err != nil {
+				resourceTypeRows.Close()
+				return nil, err
+			}
+			resourceTypeRows.Close()
 
 			pipelineResourceTypes[job.PipelineID()] = resourceTypes
 		}
@@ -202,6 +212,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 				prototypes = append(prototypes, prototype)
 			}
+			if err = prototypeRows.Err(); err != nil {
+				prototypeRows.Close()
+				return nil, err
+			}
+			prototypeRows.Close()
 
 			pipelinePrototypes[job.PipelineID()] = prototypes
 		}
