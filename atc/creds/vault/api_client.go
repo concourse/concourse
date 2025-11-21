@@ -139,7 +139,7 @@ func (ac *APIClient) Login() (time.Duration, error) {
 	client := ac.client()
 	loginPath := path.Join("auth", ac.authConfig.Backend, "login")
 
-	if ac.authConfig.Backend == "ldap" || ac.authConfig.Backend == "okta" {
+	if ac.authConfig.Backend == "ldap" || ac.authConfig.Backend == "okta" || ac.authConfig.Backend == "userpass" {
 		username, ok := ac.loginParams()["username"].(string)
 		if !ok {
 			err := fmt.Errorf("failed to assert username as string")
