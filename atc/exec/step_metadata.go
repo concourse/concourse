@@ -3,6 +3,9 @@ package exec
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"sort"
+	"strings"
 )
 
 type StepMetadata struct {
@@ -61,6 +64,36 @@ func (metadata StepMetadata) Env() []string {
 
 	if metadata.ExternalURL != "" {
 		env = append(env, "ATC_EXTERNAL_URL="+metadata.ExternalURL)
+
+		if metadata.BuildID != 0 {
+			buildURLShort := fmt.Sprintf("%s/builds/%d", metadata.ExternalURL, metadata.BuildID)
+			buildURL := buildURLShort
+
+			if metadata.TeamName != "" && metadata.PipelineName != "" && metadata.JobName != "" && metadata.BuildName != "" {
+				buildURL = fmt.Sprintf("%s/teams/%s/pipelines/%s/jobs/%s/builds/%s",
+					metadata.ExternalURL,
+					metadata.TeamName,
+					metadata.PipelineName,
+					metadata.JobName,
+					metadata.BuildName)
+
+				if len(metadata.PipelineInstanceVars) > 0 {
+					var queryParams []string
+					for key, value := range metadata.PipelineInstanceVars {
+						queryParams = append(queryParams,
+							fmt.Sprintf("vars.%s=%s",
+								url.QueryEscape(key),
+								url.QueryEscape(fmt.Sprintf("%v", value))))
+					}
+					sort.Strings(queryParams)
+					buildURL += "?" + strings.Join(queryParams, "&")
+				}
+			}
+
+			env = append(env,
+				"BUILD_URL="+buildURL,
+				"BUILD_URL_SHORT="+buildURLShort)
+		}
 	}
 
 	if metadata.CreatedBy != "" {

@@ -22,7 +22,7 @@ var _ = Describe("StepMetadata", func() {
 					JobName:      "some-job-name",
 					PipelineID:   4444,
 					PipelineName: "some-pipeline-name",
-					ExternalURL:  "http://www.example.com",
+					ExternalURL:  "https://www.example.com",
 					CreatedBy:    "someone",
 				}
 			})
@@ -37,9 +37,44 @@ var _ = Describe("StepMetadata", func() {
 					"BUILD_JOB_NAME=some-job-name",
 					"BUILD_PIPELINE_ID=4444",
 					"BUILD_PIPELINE_NAME=some-pipeline-name",
-					"ATC_EXTERNAL_URL=http://www.example.com",
+					"ATC_EXTERNAL_URL=https://www.example.com",
+					"BUILD_URL=https://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42",
+					"BUILD_URL_SHORT=https://www.example.com/builds/1",
 					"BUILD_CREATED_BY=someone",
 				))
+			})
+		})
+
+		Context("when pipeline instance vars are set", func() {
+			BeforeEach(func() {
+				stepMetadata = exec.StepMetadata{
+					BuildID:      1,
+					BuildName:    "42",
+					TeamID:       2222,
+					TeamName:     "some-team",
+					JobID:        3333,
+					JobName:      "some-job-name",
+					PipelineID:   4444,
+					PipelineName: "some-pipeline-name",
+					ExternalURL:  "https://www.example.com",
+					CreatedBy:    "someone",
+					PipelineInstanceVars: map[string]any{
+						"branch": "main",
+						"env":    "prod",
+					},
+				}
+			})
+
+			It("includes instance vars in URLs as query parameters", func() {
+				env := stepMetadata.Env()
+
+				Expect(env).To(ContainElement("BUILD_ID=1"))
+				Expect(env).To(ContainElement("BUILD_NAME=42"))
+				Expect(env).To(ContainElement(MatchRegexp(`BUILD_PIPELINE_INSTANCE_VARS=.*branch.*main.*`)))
+
+				// Query parameters are sorted alphabetically
+				Expect(env).To(ContainElement("BUILD_URL=https://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42?vars.branch=main&vars.env=prod"))
+				Expect(env).To(ContainElement("BUILD_URL_SHORT=https://www.example.com/builds/1"))
 			})
 		})
 
