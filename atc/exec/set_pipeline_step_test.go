@@ -50,7 +50,7 @@ jobs:
       run:
         path: echo
         args:
-         - hello
+         - ((branch))
 `
 
 	var pipelineObject = atc.Config{
@@ -69,7 +69,7 @@ jobs:
 								},
 								Run: atc.TaskRunConfig{
 									Path: "echo",
-									Args: []string{"hello"},
+									Args: []string{"feature/foo"},
 								},
 							},
 						},
@@ -182,6 +182,7 @@ jobs:
 		spPlan = &atc.SetPipelinePlan{
 			Name:         "some-pipeline",
 			File:         "some-resource/pipeline.yml",
+			Vars:         map[string]any{"branch": "feature/this-should-be-overridden-by-instance-var-with-same-name"},
 			InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 		}
 	})

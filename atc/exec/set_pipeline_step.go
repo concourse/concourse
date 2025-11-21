@@ -266,6 +266,12 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 	}
 
 	staticVars := []vars.Variables{}
+
+	// add instance vars first so that they take precedence during evaluation later
+	if len(s.step.plan.InstanceVars) > 0 {
+		staticVars = append(staticVars, vars.StaticVariables(maps.Clone(s.step.plan.InstanceVars)))
+	}
+
 	if len(s.step.plan.Vars) > 0 {
 		staticVars = append(staticVars, vars.StaticVariables(s.step.plan.Vars))
 	}
@@ -281,10 +287,6 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 		}
 
 		staticVars = append(staticVars, sv)
-	}
-
-	if len(s.step.plan.InstanceVars) > 0 {
-		staticVars = append(staticVars, vars.StaticVariables(maps.Clone(s.step.plan.InstanceVars)))
 	}
 
 	if len(staticVars) > 0 {
