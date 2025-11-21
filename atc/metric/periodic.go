@@ -237,7 +237,6 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
-
 		logger.Session("checks-started"),
 		Event{
 			Name:  "checks started",
@@ -246,7 +245,6 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
-
 		logger.Session("checks-enqueued"),
 		Event{
 			Name:  "checks enqueued",
@@ -278,6 +276,78 @@ func tick(logger lager.Logger, m *Monitor) {
 		Event{
 			Name:  "frees",
 			Value: float64(memStats.Frees),
+		},
+	)
+
+	m.emit(
+		logger.Session("heap-alloc"),
+		Event{
+			Name:  "heap alloc",
+			Value: float64(memStats.HeapAlloc),
+		},
+	)
+
+	m.emit(
+		logger.Session("heap-inuse"),
+		Event{
+			Name:  "heap inuse",
+			Value: float64(memStats.HeapInuse),
+		},
+	)
+
+	m.emit(
+		logger.Session("heap-objects"),
+		Event{
+			Name:  "heap objects",
+			Value: float64(memStats.HeapObjects),
+		},
+	)
+
+	m.emit(
+		logger.Session("stack-inuse"),
+		Event{
+			Name:  "stack inuse",
+			Value: float64(memStats.StackInuse),
+		},
+	)
+
+	m.emit(
+		logger.Session("sys"),
+		Event{
+			Name:  "sys",
+			Value: float64(memStats.Sys),
+		},
+	)
+
+	m.emit(
+		logger.Session("num-gc"),
+		Event{
+			Name:  "num gc",
+			Value: float64(memStats.NumGC),
+		},
+	)
+
+	m.emit(
+		logger.Session("gc-cpu-fraction"),
+		Event{
+			Name:  "gc cpu fraction",
+			Value: memStats.GCCPUFraction * 100,
+		},
+	)
+
+	m.emit(
+		logger.Session("next-gc"),
+		Event{
+			Name:  "next gc",
+			Value: float64(memStats.NextGC),
+		},
+	)
+
+	m.emit(
+		logger.Session("num-cpu"),
+		Event{
+			Name:  "num cpu",
+			Value: float64(runtime.NumCPU()),
 		},
 	)
 
