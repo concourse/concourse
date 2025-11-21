@@ -3,6 +3,7 @@ package jobserver
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"text/template"
@@ -19,18 +20,52 @@ var (
 )
 
 type Badge struct {
-	Width     int
-	FillColor string
-	Status    string
-	Title     string
+	Width       int
+	FillColor   string
+	Status      string
+	Title       string
+	customTitle bool
+}
+
+func (b *Badge) TitleWidth() int {
+	if !b.customTitle {
+		return 37
+	}
+
+	titleLen := len(b.Title)
+	charWidth := titleLen * 6
+
+	var padding int
+	if titleLen <= 8 {
+		padding = 12
+	} else if titleLen <= 15 {
+		padding = 6
+	} else {
+		padding = 0
+	}
+
+	return charWidth + padding
 }
 
 func (b *Badge) StatusWidth() int {
-	return b.Width - 37
+	return b.Width - b.TitleWidth()
 }
 
-func (b *Badge) StatusTextWidth() string {
-	return fmt.Sprintf("%.1f", float64(b.Width)/2+17.5)
+// TitleTextX returns X coordinate for centering title text
+func (b *Badge) TitleTextX() string {
+	if !b.customTitle {
+		return "18.5"
+	}
+	return fmt.Sprintf("%.1f", float64(b.TitleWidth())/2)
+}
+
+// StatusTextX returns X coordinate for centering status text
+func (b *Badge) StatusTextX() string {
+	if !b.customTitle {
+		// Preserve original formula for default badges
+		return fmt.Sprintf("%.1f", float64(b.Width)/2+17.5)
+	}
+	return fmt.Sprintf("%.1f", float64(b.TitleWidth())+float64(b.StatusWidth())/2)
 }
 
 func (b *Badge) String() string {
@@ -48,7 +83,13 @@ func (b *Badge) String() string {
 
 func (b *Badge) EnrichFromQuery(params url.Values) {
 	if title := params.Get("title"); title != "" {
-		b.Title = title
+		originalStatusWidth := b.Width - 37
+
+		b.Title = html.EscapeString(title)
+		b.customTitle = true
+
+		// New total width: custom title width + original status width
+		b.Width = b.TitleWidth() + originalStatusWidth
 	}
 }
 
@@ -79,15 +120,15 @@ const badgeTemplate = `<?xml version="1.0" encoding="UTF-8"?>
       <rect width="{{ .Width }}" height="20" rx="3" fill="#fff" />
    </mask>
    <g mask="url(#a)">
-      <path fill="#555" d="M0 0h37v20H0z" />
-      <path fill="{{ .FillColor }}" d="M37 0h{{ .StatusWidth }}v20H37z" />
+      <path fill="#555" d="M0 0h{{ .TitleWidth }}v20H0z" />
+      <path fill="{{ .FillColor }}" d="M{{ .TitleWidth }} 0h{{ .StatusWidth }}v20H{{ .TitleWidth }}z" />
       <path fill="url(#b)" d="M0 0h{{ .Width }}v20H0z" />
    </g>
    <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-      <text x="18.5" y="15" fill="#010101" fill-opacity=".3">{{ .Title }}</text>
-      <text x="18.5" y="14">{{ .Title }}</text>
-      <text x="{{ .StatusTextWidth }}" y="15" fill="#010101" fill-opacity=".3">{{ .Status }}</text>
-      <text x="{{ .StatusTextWidth }}" y="14">{{ .Status }}</text>
+      <text x="{{ .TitleTextX }}" y="15" fill="#010101" fill-opacity=".3">{{ .Title }}</text>
+      <text x="{{ .TitleTextX }}" y="14">{{ .Title }}</text>
+      <text x="{{ .StatusTextX }}" y="15" fill="#010101" fill-opacity=".3">{{ .Status }}</text>
+      <text x="{{ .StatusTextX }}" y="14">{{ .Status }}</text>
    </g>
 </svg>`
 
