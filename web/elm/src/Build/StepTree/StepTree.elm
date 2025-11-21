@@ -1249,8 +1249,8 @@ viewStepHeader step =
 
         Concourse.BuildStepSetPipeline name team instanceVars ->
             headerWithContent "set_pipeline:" (Just "pipeline config changed")
-                ([Html.span [] [ Html.text name ]]
-                 ++ (case team of
+                (Html.span [] [ Html.text name ]
+                 :: (case team of
                         Just teamName ->
                             [ Html.span [ style "color" Colors.pending, style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "team:" ]
                             , Html.text teamName
