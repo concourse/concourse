@@ -438,6 +438,11 @@ all =
                     >> given theSetPipelineStepIsExpanded
                     >> when iAmLookingAtTheStepBody
                     >> then_ iSeeThePipelineName
+            , test "should show team name when specified" <|
+                given iVisitABuildWithASetPipelineStepWithTeamName
+                    >> given theSetPipelineStepIsExpanded
+                    >> when iAmLookingAtTheStepBody
+                    >> then_ iSeeTheTeamName
             , test "should show instance vars when they exist" <|
                 given iVisitABuildWithASetPipelineStepWithInstanceVars
                     >> given theSetPipelineStepIsExpanded
@@ -621,6 +626,12 @@ iVisitABuildWithASetPipelineStep =
     iOpenTheBuildPage
         >> myBrowserFetchedTheBuild
         >> thePlanContainsASetPipelineStep
+
+
+iVisitABuildWithASetPipelineStepWithTeamName =
+    iOpenTheBuildPage
+        >> myBrowserFetchedTheBuild
+        >> thePlanContainsASetPipelineStepWithTeamName
 
 
 iVisitABuildWithASetPipelineStepWithInstanceVars =
@@ -938,7 +949,22 @@ thePlanContainsASetPipelineStep =
             (Callback.PlanAndResourcesFetched 1 <|
                 Ok
                     ( { id = setPipelineStepId
-                      , step = Concourse.BuildStepSetPipeline "pipeline-name" Dict.empty
+                      , step = Concourse.BuildStepSetPipeline "pipeline-name" Nothing Dict.empty
+                      }
+                    , { inputs = []
+                      , outputs = []
+                      }
+                    )
+            )
+
+
+thePlanContainsASetPipelineStepWithTeamName =
+    Tuple.first
+        >> Application.handleCallback
+            (Callback.PlanAndResourcesFetched 1 <|
+                Ok
+                    ( { id = setPipelineStepId
+                      , step = Concourse.BuildStepSetPipeline "pipeline-name" (Just "team-name") Dict.empty
                       }
                     , { inputs = []
                       , outputs = []
@@ -954,7 +980,7 @@ thePlanContainsASetPipelineStepWithInstanceVars =
                 Ok
                     ( { id = setPipelineStepId
                       , step =
-                            Concourse.BuildStepSetPipeline "pipeline-name" <|
+                            Concourse.BuildStepSetPipeline "pipeline-name" Nothing <|
                                 Dict.fromList
                                     [ ( "foo", JsonString "bar" ), ( "a", JsonObject [ ( "b", JsonNumber 1 ) ] ) ]
                       }
@@ -1362,6 +1388,10 @@ iSeeATimestamp =
 
 iSeeThePipelineName =
     Query.has [ text "pipeline-name" ]
+
+
+iSeeTheTeamName =
+    Query.has [ text "team-name" ]
 
 
 iSeeTheInstanceVars =
