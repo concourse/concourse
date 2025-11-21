@@ -1,13 +1,18 @@
-name: 📥 Add to the backlog
+name: 📥 Add Work Item
 description: Create an issue for concrete work that anyone in the community can work on.
 
 body:
   - type: markdown
     attributes:
       value: |
-        Issues are for backlog work that has been discussed in a discussion post or RFC.
+        This issue should be for any feature work that needs to be tracked.
+        It's the final place after having discussed the issue in a [Discussion
+        post](https://github.com/orgs/concourse/discussions),
+        [RFC](https://github.com/concourse/rfcs/), or Discord.
 
-        If you're intending to request a feature, please open a Discussion using the "Idea" link instead so we can understand your workflow first. Thanks!
+        Creating this issue does not mean it will be prioritized or worked on
+        by the Concourse maintainers. Anyone in the community is free to work
+        on this issue, including you, the person submitting this issue.
 
   - type: textarea
     id: summary
