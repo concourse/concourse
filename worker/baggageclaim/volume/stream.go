@@ -22,3 +22,7 @@ type tarGzipStreamer struct {
 	namespacer uidgid.Namespacer
 	skipGzip   bool
 }
+
+type tarS2Streamer struct {
+	namespacer uidgid.Namespacer
+}
