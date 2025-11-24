@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/clock v1.43.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20250818133441-006e3fb362ab
 	code.cloudfoundry.org/garden v0.0.0-20250723020637-e97ef1c64f2b
-	code.cloudfoundry.org/lager/v3 v3.44.0
+	code.cloudfoundry.org/lager/v3 v3.55.0
 	code.cloudfoundry.org/localip v0.46.0
 	dario.cat/mergo v1.0.2
 	github.com/DataDog/datadog-go/v5 v5.7.0
@@ -23,7 +23,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/concourse/dex v1.11.0
-	github.com/concourse/flag/v2 v2.3.0
+	github.com/concourse/flag/v2 v2.4.0
 	github.com/concourse/houdini v1.3.0
 	github.com/concourse/retryhttp v1.2.4
 	github.com/containerd/containerd v1.7.29
@@ -63,8 +63,8 @@ require (
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/miekg/dns v1.1.68
 	github.com/moby/sys/user v0.4.0
-	github.com/onsi/ginkgo/v2 v2.24.0
-	github.com/onsi/gomega v1.38.0
+	github.com/onsi/ginkgo/v2 v2.27.2
+	github.com/onsi/gomega v1.38.2
 	github.com/opencontainers/cgroups v0.0.4
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -164,11 +164,11 @@ require (
 	github.com/stretchr/objx v0.5.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
-	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/term v0.37.0
 	golang.org/x/text v0.31.0 // indirect
-	golang.org/x/tools v0.38.0 // indirect
+	golang.org/x/tools v0.39.0 // indirect
 	google.golang.org/api v0.243.0 // indirect
 	google.golang.org/genproto v0.0.0-20250728155136-f173205681a0 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
@@ -223,9 +223,9 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.3 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
-	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5 // indirect
+	github.com/google/pprof v0.0.0-20251114195745-4902fdda35c8 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
@@ -255,8 +255,8 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.62.0 // indirect
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
 	go.step.sm/crypto v0.67.0 // indirect
-	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250728155136-f173205681a0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250728155136-f173205681a0 // indirect
