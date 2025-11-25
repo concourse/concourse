@@ -74,6 +74,9 @@ jobs:
   - get: specified-input
   - get: all-input
   - put: some-resource
+    params:
+      specified: specified-input/something
+      not_there: does-not-exist
   - task: failing-task
     config:
       platform: linux
