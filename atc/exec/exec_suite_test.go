@@ -35,8 +35,6 @@ var _ = BeforeSuite(func() {
 	fakePolicyAgentFactory.DescriptionReturns("fakeAgent")
 
 	policy.RegisterAgent(fakePolicyAgentFactory)
-
-	atc.EnablePipelineInstances = true
 })
 
 var noopStepper exec.Stepper = func(atc.Plan) exec.Step {

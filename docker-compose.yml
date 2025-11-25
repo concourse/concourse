@@ -33,8 +33,8 @@ services:
     networks:
       - default
     volumes:
-    - .:/src
-    - "./hack/keys:/concourse-keys"
+      - .:/src
+      - "./hack/keys:/concourse-keys"
     environment:
       CONCOURSE_SESSION_SIGNING_KEY: /concourse-keys/session_signing_key
       CONCOURSE_TSA_AUTHORIZED_KEYS: /concourse-keys/authorized_worker_keys
@@ -49,7 +49,6 @@ services:
       CONCOURSE_ADD_LOCAL_USER: test:test,guest:guest
       CONCOURSE_MAIN_TEAM_LOCAL_USER: test
       CONCOURSE_CLUSTER_NAME: dev
-      CONCOURSE_ENABLE_PIPELINE_INSTANCES: "true"
       CONCOURSE_ENABLE_ACROSS_STEP: "true"
       CONCOURSE_ENABLE_CACHE_STREAMED_VOLUMES: "true"
       CONCOURSE_ENABLE_RESOURCE_CAUSALITY: "true"
@@ -66,8 +65,8 @@ services:
       - net.ipv6.conf.all.disable_ipv6=0
     depends_on: [web]
     ports:
-    - 7777:7777
-    - 7788:7788
+      - 7777:7777
+      - 7788:7788
     volumes: ["./hack/keys:/concourse-keys"]
     stop_signal: SIGUSR2
     environment:
