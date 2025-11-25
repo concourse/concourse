@@ -22,7 +22,6 @@ module Concourse exposing
     , CausalityResource
     , CausalityResourceVersion
     , ClusterInfo
-    , Wall
     , DatabaseID
     , FeatureFlags
     , HookedPlan
@@ -51,6 +50,7 @@ module Concourse exposing
     , Version
     , VersionedResource
     , VersionedResourceIdentifier
+    , Wall
     , csrfTokenHeaderName
     , customDecoder
     , decodeAcrossSubstep
@@ -62,7 +62,6 @@ module Concourse exposing
     , decodeBuildResources
     , decodeCausality
     , decodeInfo
-    , decodeWall
     , decodeInstanceGroupId
     , decodeInstanceVars
     , decodeJob
@@ -74,6 +73,7 @@ module Concourse exposing
     , decodeUser
     , decodeVersion
     , decodeVersionedResource
+    , decodeWall
     , defaultFeatureFlags
     , emptyBuildResources
     , encodeBuild
@@ -854,12 +854,18 @@ decodeBuildSetPipeline : Json.Decode.Decoder BuildStep
 decodeBuildSetPipeline =
     Json.Decode.succeed BuildStepSetPipeline
         |> andMap (Json.Decode.field "name" Json.Decode.string)
-        |> andMap (Json.Decode.maybe (Json.Decode.field "team" Json.Decode.string)
-                    |> Json.Decode.map (\maybeTeam ->
+        |> andMap
+            (Json.Decode.maybe (Json.Decode.field "team" Json.Decode.string)
+                |> Json.Decode.map
+                    (\maybeTeam ->
                         case maybeTeam of
-                            Just "" -> Nothing
-                            other -> other
-                       ))
+                            Just "" ->
+                                Nothing
+
+                            other ->
+                                other
+                    )
+            )
         |> andMap (defaultTo Dict.empty <| Json.Decode.field "instance_vars" decodeInstanceVars)
 
 
@@ -915,7 +921,6 @@ type alias FeatureFlags =
     , redact_secrets : Bool
     , build_rerun : Bool
     , across_step : Bool
-    , pipeline_instances : Bool
     , cache_streamed_volumes : Bool
     , resource_causality : Bool
     }
@@ -927,7 +932,6 @@ defaultFeatureFlags =
     , redact_secrets = False
     , build_rerun = False
     , across_step = False
-    , pipeline_instances = False
     , cache_streamed_volumes = False
     , resource_causality = False
     }
@@ -944,6 +948,7 @@ decodeInfo =
     Json.Decode.succeed ClusterInfo
         |> andMap (Json.Decode.field "version" Json.Decode.string)
         |> andMap (defaultTo "" <| Json.Decode.field "cluster_name" Json.Decode.string)
+
 
 
 -- Wall
@@ -1163,10 +1168,11 @@ encodePipeline pipeline =
         , ( "public", pipeline.public |> Json.Encode.bool )
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
-        , ( "display", Json.Encode.object
-            [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string )
-            , ( "background_filter", pipeline.backgroundFilter |> Json.Encode.Extra.maybe Json.Encode.string )
-            ]
+        , ( "display"
+          , Json.Encode.object
+                [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string )
+                , ( "background_filter", pipeline.backgroundFilter |> Json.Encode.Extra.maybe Json.Encode.string )
+                ]
           )
         ]
 

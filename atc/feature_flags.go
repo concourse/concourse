@@ -5,7 +5,6 @@ var (
 	EnableRedactSecrets                  bool
 	EnableBuildRerunWhenWorkerDisappears bool
 	EnableAcrossStep                     bool
-	EnablePipelineInstances              bool
 	EnableCacheStreamedVolumes           bool
 	EnableResourceCausality              bool
 )
@@ -18,7 +17,6 @@ func FeatureFlags() map[string]bool {
 		"redact_secrets":         EnableRedactSecrets,
 		"build_rerun":            EnableBuildRerunWhenWorkerDisappears,
 		"across_step":            EnableAcrossStep,
-		"pipeline_instances":     EnablePipelineInstances,
 		"cache_streamed_volumes": EnableCacheStreamedVolumes,
 		"resource_causality":     EnableResourceCausality,
 	}

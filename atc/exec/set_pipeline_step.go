@@ -249,11 +249,6 @@ func (s setPipelineSource) Validate() error {
 	if s.step.plan.File == "" {
 		return errors.New("file is not specified")
 	}
-
-	if !atc.EnablePipelineInstances && s.step.plan.InstanceVars != nil {
-		return errors.New("support for `instance_vars` is disabled")
-	}
-
 	return nil
 }
 

@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
@@ -44,7 +42,6 @@ var (
 	"build_rerun": false,
 	"cache_streamed_volumes": false,
 	"global_resources": false,
-	"pipeline_instances": true,
 	"redact_secrets": false,
 	"resource_causality": false
 }`
@@ -232,8 +229,6 @@ var _ = BeforeEach(func() {
 		fakeClock,
 		dbSigningKeyFactory,
 	)
-
-	atc.EnablePipelineInstances = true
 
 	Expect(err).NotTo(HaveOccurred())
 

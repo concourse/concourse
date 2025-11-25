@@ -126,8 +126,8 @@ type RunCommand struct {
 		ACMEURL flag.URL `long:"lets-encrypt-acme-url" description:"URL of the ACME CA directory endpoint." default:"https://acme-v02.api.letsencrypt.org/directory"`
 	} `group:"Let's Encrypt Configuration"`
 
-	ExternalURL    flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
-	OIDCIssuerURL  flag.URL `long:"oidc-issuer-url" description:"URL to use as the OIDC issuer for IDToken generation. If not set, defaults to external-url. Must be publicly accessible for cloud provider OIDC verification."`
+	ExternalURL   flag.URL `long:"external-url" description:"URL used to reach any ATC from the outside world."`
+	OIDCIssuerURL flag.URL `long:"oidc-issuer-url" description:"URL to use as the OIDC issuer for IDToken generation. If not set, defaults to external-url. Must be publicly accessible for cloud provider OIDC verification."`
 
 	Postgres flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
 
@@ -261,7 +261,7 @@ type RunCommand struct {
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
-		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"Enable pipeline instances"`
+		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"DEPRECATED: Pipeline instances are always enabled and this config has no effect."`
 		EnableP2PVolumeStreaming             bool `long:"enable-p2p-volume-streaming" description:"Enable P2P volume streaming. NOTE: All workers must be on the same LAN network"`
 		EnableCacheStreamedVolumes           bool `long:"enable-cache-streamed-volumes" description:"When enabled, streamed resource volumes will be cached on the destination worker."`
 		EnableResourceCausality              bool `long:"enable-resource-causality" description:"Enable the resource causality page. Computing causality can be expensive for the database. "`
@@ -555,12 +555,17 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
 	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
-	atc.EnablePipelineInstances = cmd.FeatureFlags.EnablePipelineInstances
 	atc.EnableCacheStreamedVolumes = cmd.FeatureFlags.EnableCacheStreamedVolumes
 	atc.EnableResourceCausality = cmd.FeatureFlags.EnableResourceCausality
 	atc.DefaultCheckInterval = cmd.ResourceCheckingInterval
 	atc.DefaultWebhookInterval = cmd.ResourceWithWebhookCheckingInterval
 	atc.DefaultResourceTypeInterval = cmd.ResourceTypeCheckingInterval
+
+	if cmd.FeatureFlags.EnablePipelineInstances {
+		commandSession.Info("deprecated", lager.Data{
+			"message": "--enable-pipeline-instances/CONCOURSE_ENABLE_PIPELINE_INSTANCES is deprecated and has no effect. This feature is always enabled.",
+		})
+	}
 
 	if cmd.BaseResourceTypeDefaults.Path() != "" {
 		content, err := os.ReadFile(cmd.BaseResourceTypeDefaults.Path())
