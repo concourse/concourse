@@ -920,7 +920,6 @@ type alias FeatureFlags =
     { global_resources : Bool
     , redact_secrets : Bool
     , build_rerun : Bool
-    , across_step : Bool
     , cache_streamed_volumes : Bool
     , resource_causality : Bool
     }
@@ -931,7 +930,6 @@ defaultFeatureFlags =
     { global_resources = False
     , redact_secrets = False
     , build_rerun = False
-    , across_step = False
     , cache_streamed_volumes = False
     , resource_causality = False
     }

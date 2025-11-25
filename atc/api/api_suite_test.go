@@ -38,7 +38,6 @@ var (
 	externalURL      = "https://example.com"
 	clusterName      = "Test Cluster"
 	featureFlagsJson = ` {
-	"across_step": false,
 	"build_rerun": false,
 	"cache_streamed_volumes": false,
 	"global_resources": false,

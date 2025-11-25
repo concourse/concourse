@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool, enableAcrossStep bool) error {
+func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool) error {
 	evaluatedTemplate, err := yamlTemplate.Evaluate(true)
 	if err != nil {
 		return err
@@ -28,10 +28,6 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 	}
 	if err != nil {
 		return err
-	}
-
-	if enableAcrossStep {
-		atc.EnableAcrossStep = true
 	}
 
 	warnings, errorMessages := configvalidate.Validate(unmarshalledTemplate)
