@@ -167,7 +167,7 @@ type RunCommand struct {
 	ContainerPlacementStrategyOptions worker.PlacementOptions `group:"Container Placement Strategy"`
 
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
-	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" choice:"raw" description:"Compression algorithm for internal streaming."`
+	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" choice:"s2" choice:"raw" description:"Compression algorithm for internal streaming."`
 	StreamingSizeLimitationInMB       float64       `long:"streaming-size-limitation" default:"0.0" description:"Internal volume streaming size limitation in MB. In case of small limitation needed, float can be used like 0.01."`
 
 	GardenRequestTimeout time.Duration `long:"garden-request-timeout" default:"5m" description:"How long to wait for requests to Garden to complete. 0 means no timeout."`
@@ -1261,6 +1261,8 @@ func (cmd *RunCommand) backendComponents(
 func (cmd *RunCommand) compression() compression.Compression {
 	if cmd.StreamingArtifactsCompression == "zstd" {
 		return compression.NewZstdCompression()
+	} else if cmd.StreamingArtifactsCompression == "s2" {
+		return compression.NewS2Compression()
 	} else if cmd.StreamingArtifactsCompression == "raw" {
 		return compression.NewNoCompression()
 	} else {
