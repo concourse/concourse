@@ -309,10 +309,6 @@ func (validator *StepValidator) VisitAcross(step *AcrossStep) error {
 	validator.pushLocalVarScope()
 	defer validator.popLocalVarScope()
 
-	if !EnableAcrossStep {
-		validator.recordError("the across step must be explicitly opted-in to using the `--enable-across-step` flag")
-	}
-
 	if len(step.Vars) == 0 {
 		validator.recordError("no vars specified")
 	}

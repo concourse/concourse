@@ -20,7 +20,6 @@ var _ = Describe("Validate Pipeline", func() {
 		var goodPipeline templatehelpers.YamlTemplateWithParams
 		var unknownKeyPipeline templatehelpers.YamlTemplateWithParams
 		var dupkeyPipeline templatehelpers.YamlTemplateWithParams
-		var goodAcrossPipeline templatehelpers.YamlTemplateWithParams
 
 		BeforeEach(func() {
 			var err error
@@ -147,7 +146,6 @@ jobs:
 			goodPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "good-pipeline.yml")), nil, nil, nil, nil)
 			unknownKeyPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "unknown-key-pipeline.yml")), nil, nil, nil, nil)
 			dupkeyPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "dupkey-pipeline.yml")), nil, nil, nil, nil)
-			goodAcrossPipeline = templatehelpers.NewYamlTemplateWithParams(atc.PathFlag(filepath.Join(tmpdir, "good-across-pipeline.yml")), nil, nil, nil, nil)
 		})
 
 		AfterEach(func() {
@@ -155,35 +153,27 @@ jobs:
 		})
 
 		It("validates a good pipeline", func() {
-			err := validatepipelinehelpers.Validate(goodPipeline, false, false, false)
+			err := validatepipelinehelpers.Validate(goodPipeline, false, false)
 			Expect(err).To(BeNil())
 		})
 		It("validates a good pipeline with strict", func() {
-			err := validatepipelinehelpers.Validate(goodPipeline, true, false, false)
+			err := validatepipelinehelpers.Validate(goodPipeline, true, false)
 			Expect(err).To(BeNil())
 		})
 		It("validates a good pipeline with output", func() {
-			err := validatepipelinehelpers.Validate(goodPipeline, true, true, false)
+			err := validatepipelinehelpers.Validate(goodPipeline, true, true)
 			Expect(err).To(BeNil())
 		})
 		It("fails to validate a pipeline with duplicate keys", func() {
-			err := validatepipelinehelpers.Validate(dupkeyPipeline, false, false, false)
+			err := validatepipelinehelpers.Validate(dupkeyPipeline, false, false)
 			Expect(err.Error()).To(ContainSubstring("key \"resource_types\" already set in map"))
 		})
 		It("fails to validate a pipeline with unknown keys with strict", func() {
-			err := validatepipelinehelpers.Validate(unknownKeyPipeline, true, false, false)
+			err := validatepipelinehelpers.Validate(unknownKeyPipeline, true, false)
 			Expect(err.Error()).To(ContainSubstring("json: unknown field \"anchors\""))
 		})
 		It("validates a pipeline with unknown keys", func() {
-			err := validatepipelinehelpers.Validate(unknownKeyPipeline, false, false, false)
-			Expect(err).To(BeNil())
-		})
-		It("fails to validate a pipeline using experimental `across` without the command flag enabling it", func() {
-			err := validatepipelinehelpers.Validate(goodAcrossPipeline, false, false, false)
-			Expect(err).ToNot(BeNil())
-		})
-		It("validates a pipeline using experimental `across` when the command flag enabling it is present", func() {
-			err := validatepipelinehelpers.Validate(goodAcrossPipeline, false, false, true)
+			err := validatepipelinehelpers.Validate(unknownKeyPipeline, false, false)
 			Expect(err).To(BeNil())
 		})
 	})

@@ -57,7 +57,6 @@ body:
       placeholder: |
         e.g. I have one web node with the following configuration:
         CONCOURSE_CLUSTER_NAME: dev
-        CONCOURSE_ENABLE_ACROSS_STEP: "true"
         CONCOURSE_ENABLE_CACHE_STREAMED_VOLUMES: "true"
         CONCOURSE_ENABLE_RESOURCE_CAUSALITY: "true"
         ...

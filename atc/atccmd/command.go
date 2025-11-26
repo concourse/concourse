@@ -260,7 +260,7 @@ type RunCommand struct {
 		EnableGlobalResources                bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
 		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"Enable redacting secrets in build logs."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
-		EnableAcrossStep                     bool `long:"enable-across-step" description:"Enable the experimental across step to be used in jobs. The API is subject to change."`
+		EnableAcrossStep                     bool `long:"enable-across-step" description:"DEPRECATED: The across step is always enabled and this config has no effect."`
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"DEPRECATED: Pipeline instances are always enabled and this config has no effect."`
 		EnableP2PVolumeStreaming             bool `long:"enable-p2p-volume-streaming" description:"Enable P2P volume streaming. NOTE: All workers must be on the same LAN network"`
 		EnableCacheStreamedVolumes           bool `long:"enable-cache-streamed-volumes" description:"When enabled, streamed resource volumes will be cached on the destination worker."`
@@ -554,7 +554,6 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.EnableGlobalResources = cmd.FeatureFlags.EnableGlobalResources
 	atc.EnableRedactSecrets = cmd.FeatureFlags.EnableRedactSecrets
 	atc.EnableBuildRerunWhenWorkerDisappears = cmd.FeatureFlags.EnableBuildRerunWhenWorkerDisappears
-	atc.EnableAcrossStep = cmd.FeatureFlags.EnableAcrossStep
 	atc.EnableCacheStreamedVolumes = cmd.FeatureFlags.EnableCacheStreamedVolumes
 	atc.EnableResourceCausality = cmd.FeatureFlags.EnableResourceCausality
 	atc.DefaultCheckInterval = cmd.ResourceCheckingInterval
@@ -564,6 +563,12 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	if cmd.FeatureFlags.EnablePipelineInstances {
 		commandSession.Info("deprecated", lager.Data{
 			"message": "--enable-pipeline-instances/CONCOURSE_ENABLE_PIPELINE_INSTANCES is deprecated and has no effect. This feature is always enabled.",
+		})
+	}
+
+	if cmd.FeatureFlags.EnableAcrossStep {
+		commandSession.Info("deprecated", lager.Data{
+			"message": "--enable-across-step/CONCOURSE_ENABLE_ACROSS_STEP is deprecated and has no effect. This feature is always enabled.",
 		})
 	}
 

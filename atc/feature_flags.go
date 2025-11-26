@@ -4,7 +4,6 @@ var (
 	EnableGlobalResources                bool
 	EnableRedactSecrets                  bool
 	EnableBuildRerunWhenWorkerDisappears bool
-	EnableAcrossStep                     bool
 	EnableCacheStreamedVolumes           bool
 	EnableResourceCausality              bool
 )
@@ -16,7 +15,6 @@ func FeatureFlags() map[string]bool {
 		"global_resources":       EnableGlobalResources,
 		"redact_secrets":         EnableRedactSecrets,
 		"build_rerun":            EnableBuildRerunWhenWorkerDisappears,
-		"across_step":            EnableAcrossStep,
 		"cache_streamed_volumes": EnableCacheStreamedVolumes,
 		"resource_causality":     EnableResourceCausality,
 	}
