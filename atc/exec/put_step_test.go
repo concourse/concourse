@@ -256,21 +256,17 @@ var _ = Describe("PutStep", func() {
 		})
 
 		Context("when inputs are left blank", func() {
-			It("runs with all inputs", func() {
+			BeforeEach(func() {
+				putPlan.Params = atc.Params{
+					"some-param": "input1/source",
+				}
+			})
+
+			It("runs with detected inputs", func() {
 				Expect(chosenContainer.Spec.Inputs).To(ConsistOf([]runtime.Input{
 					{
 						Artifact:        volume1,
 						DestinationPath: "/tmp/build/put/input1",
-						FromCache:       false,
-					},
-					{
-						Artifact:        volume2,
-						DestinationPath: "/tmp/build/put/input2",
-						FromCache:       true,
-					},
-					{
-						Artifact:        volume3,
-						DestinationPath: "/tmp/build/put/input3",
 						FromCache:       false,
 					},
 				}))

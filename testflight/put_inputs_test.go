@@ -45,13 +45,14 @@ var _ = Describe("A put step with inputs", func() {
 	})
 
 	Context("when no inputs are specified", func() {
-		It("attached all inputs to the put container", func() {
+		It("attaches only the detected inputs to the put container", func() {
 			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-no-inputs"), "-w")
 			<-watch.Exited
 
 			interceptS := fly("intercept", "-j", inPipeline("job-using-no-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
-			Expect(string(interceptS.Out.Contents())).To(ContainSubstring("all-input"))
-			Expect(string(interceptS.Out.Contents())).To(ContainSubstring("specified-input"))
+			logs := string(interceptS.Out.Contents())
+			Expect(logs).To(ContainSubstring("specified-input"))
+			Expect(logs).ToNot(ContainSubstring("all-input"))
 		})
 	})
 
