@@ -191,14 +191,6 @@ var _ = Describe("AcrossStep", func() {
 		)
 	})
 
-	It("logs a warning to stderr", func() {
-		_, err := step.Run(ctx, state)
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(stderr).To(gbytes.Say("WARNING: the across step is experimental"))
-		Expect(stderr).To(gbytes.Say("follow RFC #29 for updates"))
-	})
-
 	It("initializes the step", func() {
 		step.Run(ctx, state)
 
