@@ -11,11 +11,12 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 )
 
-func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock) io.WriteCloser {
+func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.WriteCloser {
 	return &dbEventWriter{
 		build:  build,
 		origin: origin,
 		clock:  clock,
+		filter: filter,
 	}
 }
 
@@ -24,64 +25,10 @@ type dbEventWriter struct {
 	origin   event.Origin
 	clock    clock.Clock
 	dangling []byte
+	filter   exec.BuildOutputFilter
 }
 
 func (writer *dbEventWriter) Write(data []byte) (int, error) {
-	text := writer.writeDangling(data)
-	if text == nil {
-		return len(data), nil
-	}
-
-	err := writer.saveLog(string(text))
-	if err != nil {
-		return 0, err
-	}
-
-	return len(data), nil
-}
-
-func (writer *dbEventWriter) writeDangling(data []byte) []byte {
-	text := append(writer.dangling, data...)
-
-	checkEncoding, _ := utf8.DecodeLastRune(text)
-	if checkEncoding == utf8.RuneError {
-		writer.dangling = text
-		return nil
-	}
-
-	writer.dangling = nil
-	return text
-}
-
-func (writer *dbEventWriter) saveLog(text string) error {
-	return writer.build.SaveEvent(event.Log{
-		Time:    writer.clock.Now().Unix(),
-		Payload: text,
-		Origin:  writer.origin,
-	})
-}
-
-func (writer *dbEventWriter) Close() error {
-	return nil
-}
-
-func newDBEventWriterWithSecretRedaction(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.Writer {
-	return &dbEventWriterWithSecretRedaction{
-		dbEventWriter: dbEventWriter{
-			build:  build,
-			origin: origin,
-			clock:  clock,
-		},
-		filter: filter,
-	}
-}
-
-type dbEventWriterWithSecretRedaction struct {
-	dbEventWriter
-	filter exec.BuildOutputFilter
-}
-
-func (writer *dbEventWriterWithSecretRedaction) Write(data []byte) (int, error) {
 	var text []byte
 
 	if data != nil {
@@ -120,7 +67,28 @@ func (writer *dbEventWriterWithSecretRedaction) Write(data []byte) (int, error) 
 	return len(data), nil
 }
 
-func (writer *dbEventWriterWithSecretRedaction) Close() error {
+func (writer *dbEventWriter) writeDangling(data []byte) []byte {
+	text := append(writer.dangling, data...)
+
+	checkEncoding, _ := utf8.DecodeLastRune(text)
+	if checkEncoding == utf8.RuneError {
+		writer.dangling = text
+		return nil
+	}
+
+	writer.dangling = nil
+	return text
+}
+
+func (writer *dbEventWriter) saveLog(text string) error {
+	return writer.build.SaveEvent(event.Log{
+		Time:    writer.clock.Now().Unix(),
+		Payload: text,
+		Origin:  writer.origin,
+	})
+}
+
+func (writer *dbEventWriter) Close() error {
 	writer.Write(nil)
 	return nil
 }

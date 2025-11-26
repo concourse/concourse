@@ -33,7 +33,7 @@ var _ = Describe("ArtifactInputStep", func() {
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
 
-		state = exec.NewRunState(noopStepper, vars.StaticVariables{}, false)
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{})
 
 		fakeBuild = new(dbfakes.FakeBuild)
 		fakeWorkerPool = new(execfakes.FakePool)

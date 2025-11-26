@@ -18,14 +18,14 @@ type buildVariables struct {
 	lock sync.RWMutex
 }
 
-func newBuildVariables(credVars vars.Variables, enableRedaction bool) *buildVariables {
+func newBuildVariables(credVars vars.Variables) *buildVariables {
 	return &buildVariables{
 		parentScope: &vars.CredVarsTracker{
 			CredVars: credVars,
-			Tracker:  vars.NewTracker(enableRedaction),
+			Tracker:  vars.NewTracker(),
 		},
 		localVars: vars.StaticVariables{},
-		tracker:   vars.NewTracker(enableRedaction),
+		tracker:   vars.NewTracker(),
 	}
 }
 
@@ -63,7 +63,7 @@ func (b *buildVariables) NewLocalScope() *buildVariables {
 	return &buildVariables{
 		parentScope: b,
 		localVars:   vars.StaticVariables{},
-		tracker:     vars.NewTracker(b.tracker.Enabled),
+		tracker:     vars.NewTracker(),
 	}
 }
 
@@ -75,8 +75,4 @@ func (b *buildVariables) AddLocalVar(name string, val any, redact bool) {
 	if redact {
 		b.tracker.Track(vars.Reference{Source: ".", Path: name}, val)
 	}
-}
-
-func (b *buildVariables) RedactionEnabled() bool {
-	return b.tracker.Enabled
 }

@@ -2,7 +2,6 @@ package atc
 
 var (
 	EnableGlobalResources                bool
-	EnableRedactSecrets                  bool
 	EnableBuildRerunWhenWorkerDisappears bool
 	EnableCacheStreamedVolumes           bool
 	EnableResourceCausality              bool
@@ -13,7 +12,6 @@ func FeatureFlags() map[string]bool {
 	// from the corresponding type in Elm (web/elm/src/Concourse.elm -> FeatureFlags)
 	return map[string]bool{
 		"global_resources":       EnableGlobalResources,
-		"redact_secrets":         EnableRedactSecrets,
 		"build_rerun":            EnableBuildRerunWhenWorkerDisappears,
 		"cache_streamed_volumes": EnableCacheStreamedVolumes,
 		"resource_causality":     EnableResourceCausality,

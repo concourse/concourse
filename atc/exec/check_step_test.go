@@ -68,7 +68,7 @@ var _ = Describe("CheckStep", func() {
 
 		planID = "some-plan-id"
 
-		runState = exec.NewRunState(noopStepper, vars.StaticVariables{"source-var": "super-secret-source"}, false)
+		runState = exec.NewRunState(noopStepper, vars.StaticVariables{"source-var": "super-secret-source"})
 		fakeDelegateFactory = new(execfakes.FakeCheckDelegateFactory)
 		fakeDelegate = new(execfakes.FakeCheckDelegate)
 
