@@ -1050,6 +1050,56 @@ var _ = Describe("BuildStepDelegate", func() {
 				})
 			})
 		})
+
+		Context("edge cases", func() {
+			Context("when a secret is a substring of another secret", func() {
+				BeforeEach(func() {
+					runState = exec.NewRunState(noopStepper, vars.StaticVariables{
+						"short-secret": "pass",
+						"long-secret":  "password",
+					}, true)
+					delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
+
+					runState.Get(vars.Reference{Path: "short-secret"})
+					runState.Get(vars.Reference{Path: "long-secret"})
+				})
+
+				It("should redact the longer secret completely", func() {
+					writer = delegate.Stdout()
+					writer.Write([]byte("my password is secret"))
+					writer.(io.Closer).Close()
+
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+					payload := fakeBuild.SaveEventArgsForCall(0).(event.Log).Payload
+					Expect(payload).To(Equal("my ((redacted)) is secret"))
+					Expect(payload).ToNot(ContainSubstring("word"))
+				})
+			})
+
+			Context("when a secret is a substring of the redaction marker", func() {
+				BeforeEach(func() {
+					runState = exec.NewRunState(noopStepper, vars.StaticVariables{
+						"first-secret":  "mysecret",
+						"marker-substr": "redact",
+					}, true)
+					delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
+
+					runState.Get(vars.Reference{Path: "first-secret"})
+					runState.Get(vars.Reference{Path: "marker-substr"})
+				})
+
+				It("should not corrupt redaction markers from previous replacements", func() {
+					writer = delegate.Stdout()
+					writer.Write([]byte("the mysecret value"))
+					writer.(io.Closer).Close()
+
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+					payload := fakeBuild.SaveEventArgsForCall(0).(event.Log).Payload
+					Expect(payload).To(Equal("the ((redacted)) value"))
+					Expect(payload).ToNot(ContainSubstring("(((("))
+				})
+			})
+		})
 	})
 
 	Describe("ContainerOwner", func() {

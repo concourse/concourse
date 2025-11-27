@@ -8,6 +8,7 @@ import (
 	"maps"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
@@ -424,7 +425,7 @@ func (delegate *buildStepDelegate) checkPolicy(input policy.PolicyCheckInput) er
 func (delegate *buildStepDelegate) buildOutputFilter(str string) string {
 	it := &credVarsIterator{line: str}
 	delegate.state.IterateInterpolatedCreds(it)
-	return it.line
+	return it.Line()
 }
 
 func (delegate *buildStepDelegate) redactImageSource(source atc.Source) (atc.Source, error) {
@@ -446,15 +447,55 @@ func (delegate *buildStepDelegate) ContainerOwner(planId atc.PlanID) db.Containe
 }
 
 type credVarsIterator struct {
-	line string
+	line    string
+	secrets []string
 }
 
 func (it *credVarsIterator) YieldCred(name, value string) {
 	for _, lineValue := range strings.Split(value, "\n") {
 		lineValue = strings.TrimSpace(lineValue)
-		// Don't consider a single char as a secret.
-		if len(lineValue) > 1 {
-			it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
+		if utf8.RuneCountInString(lineValue) > 1 {
+			it.secrets = append(it.secrets, lineValue)
 		}
 	}
+}
+
+func (it *credVarsIterator) Line() string {
+	if len(it.secrets) == 0 {
+		return it.line
+	}
+
+	mask := make([]bool, len(it.line))
+
+	for _, secret := range it.secrets {
+		slen := len(secret)
+		start := 0
+		for {
+			idx := strings.Index(it.line[start:], secret)
+			if idx == -1 {
+				break
+			}
+			idx += start
+			for i := idx; i < idx+slen; i++ {
+				mask[i] = true
+			}
+			start = idx + 1
+		}
+	}
+
+	var out strings.Builder
+	out.Grow(len(it.line))
+	i := 0
+	for i < len(it.line) {
+		if mask[i] {
+			out.WriteString("((redacted))")
+			for i < len(it.line) && mask[i] {
+				i++
+			}
+		} else {
+			out.WriteByte(it.line[i])
+			i++
+		}
+	}
+	return out.String()
 }
