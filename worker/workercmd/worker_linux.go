@@ -26,7 +26,7 @@ type Certs struct {
 
 type GuardianRuntime struct {
 	Bin            string        `long:"bin"        description:"Path to a garden server executable (non-absolute names get resolved from $PATH)."`
-	DNS            DNSConfig     `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+	DNS            DNSConfig     `group:"Guardian DNS Proxy Configuration" namespace:"dns-proxy"`
 	RequestTimeout time.Duration `long:"request-timeout" default:"5m" description:"How long to wait for requests to the Garden server to complete. 0 means no timeout."`
 
 	Config      flag.File `long:"config"     description:"Path to a config file to use for the Garden backend. e.g. 'foo-bar=a,b' for '--foo-bar a --foo-bar b'."`
@@ -48,7 +48,7 @@ type ContainerdRuntime struct {
 	Network struct {
 		ExternalIP flag.IP `long:"external-ip" description:"IP address to use to reach container's mapped ports. Autodetected if not specified."`
 		//TODO can DNSConfig be simplifed to just a bool rather than struct with a bool?
-		DNS                DNSConfig `group:"DNS Proxy Configuration" namespace:"dns-proxy"`
+		DNS                DNSConfig `group:"Containerd DNS Proxy Configuration" namespace:"dns-proxy"`
 		DNSServers         []string  `long:"dns-server" description:"DNS server IP address to use instead of automatically determined servers. Can be specified multiple times."`
 		AdditionalHosts    []string  `long:"additional-hosts" description:"Additional entries to add to /etc/hosts in containers. Can be specified multiple times or as a comma separated list. IP and Hostname should be separated by a space."`
 		RestrictedNetworks []string  `long:"restricted-network" description:"Network ranges to which traffic from containers will be restricted. Can be specified multiple times."`
@@ -59,7 +59,7 @@ type ContainerdRuntime struct {
 			Enable        bool   `long:"enable" description:"Enable IPv6 networking"`
 			Pool          string `long:"pool" default:"fd9c:31a6:c759::/64" description:"IPv6 network range to use for dynamically allocated container addresses."`
 			DisableIPMasq bool   `long:"disable-masquerade" description:"Masquerade container traffic with worker address."`
-		} `group:"IPv6 Configuration" namespace:"v6"`
+		} `group:"Containerd IPv6 Configuration" namespace:"v6"`
 	} `group:"Containerd Networking"`
 }
 
