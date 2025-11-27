@@ -47,8 +47,8 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	payload := string(text)
 	if data != nil {
 		idx := strings.LastIndex(payload, "\n")
-		idxR := strings.LastIndex(payload, "\r")
-		if idx < idxR {
+		if idx < 0 {
+			idxR := strings.LastIndex(payload, "\r")
 			idx = idxR
 		}
 		if idx >= 0 && idx < len(payload) {
