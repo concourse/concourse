@@ -41,6 +41,7 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 			return 0, nil
 		}
 		text = writer.dangling
+		writer.dangling = nil
 	}
 
 	payload := string(text)
