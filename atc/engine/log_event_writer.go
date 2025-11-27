@@ -47,6 +47,10 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	payload := string(text)
 	if data != nil {
 		idx := strings.LastIndex(payload, "\n")
+		idxR := strings.LastIndex(payload, "\r")
+		if idx < idxR {
+			idx = idxR
+		}
 		if idx >= 0 && idx < len(payload) {
 			// Cache content after the last new-line, and proceed contents
 			// before the last new-line.
