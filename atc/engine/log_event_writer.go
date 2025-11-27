@@ -62,6 +62,11 @@ func (writer *dbEventWriter) saveLog(text string) error {
 }
 
 func (writer *dbEventWriter) Close() error {
+	if len(writer.dangling) > 0 {
+		err := writer.saveLog(string(writer.dangling))
+		writer.dangling = nil
+		return err
+	}
 	return nil
 }
 
@@ -94,11 +99,16 @@ func (writer *dbEventWriterWithSecretRedaction) Write(data []byte) (int, error) 
 			return 0, nil
 		}
 		text = writer.dangling
+		writer.dangling = nil
 	}
 
 	payload := string(text)
 	if data != nil {
 		idx := strings.LastIndex(payload, "\n")
+		idxR := strings.LastIndex(payload, "\r")
+		if idx < idxR {
+			idx = idxR
+		}
 		if idx >= 0 && idx < len(payload) {
 			// Cache content after the last new-line, and proceed contents
 			// before the last new-line.
