@@ -87,8 +87,6 @@ func (fake *FakeCheckDelegateFactory) CheckDelegateReturnsOnCall(i int, result1 
 func (fake *FakeCheckDelegateFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkDelegateMutex.RLock()
-	defer fake.checkDelegateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

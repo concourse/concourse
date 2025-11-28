@@ -422,16 +422,6 @@ func (fake *FakePool) ReleaseWorkerArgsForCall(i int) (lager.Logger, runtime.Con
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.findOrSelectWorkerMutex.RLock()
-	defer fake.findOrSelectWorkerMutex.RUnlock()
-	fake.findResourceCacheVolumeMutex.RLock()
-	defer fake.findResourceCacheVolumeMutex.RUnlock()
-	fake.findResourceCacheVolumeOnWorkerMutex.RLock()
-	defer fake.findResourceCacheVolumeOnWorkerMutex.RUnlock()
-	fake.locateVolumeMutex.RLock()
-	defer fake.locateVolumeMutex.RUnlock()
-	fake.releaseWorkerMutex.RLock()
-	defer fake.releaseWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

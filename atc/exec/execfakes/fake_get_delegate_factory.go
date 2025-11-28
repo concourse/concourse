@@ -87,8 +87,6 @@ func (fake *FakeGetDelegateFactory) GetDelegateReturnsOnCall(i int, result1 exec
 func (fake *FakeGetDelegateFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getDelegateMutex.RLock()
-	defer fake.getDelegateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
