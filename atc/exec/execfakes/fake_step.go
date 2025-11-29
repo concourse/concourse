@@ -95,8 +95,6 @@ func (fake *FakeStep) RunReturnsOnCall(i int, result1 bool, result2 error) {
 func (fake *FakeStep) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.runMutex.RLock()
-	defer fake.runMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

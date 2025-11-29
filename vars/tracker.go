@@ -10,25 +10,18 @@ type TrackedVarsIterator interface {
 }
 
 type Tracker struct {
-	Enabled bool
-
 	// Considering in-parallel steps, a lock is need.
 	lock              sync.RWMutex
 	interpolatedCreds map[string]string
 }
 
-func NewTracker(on bool) *Tracker {
+func NewTracker() *Tracker {
 	return &Tracker{
-		Enabled:           on,
 		interpolatedCreds: map[string]string{},
 	}
 }
 
 func (t *Tracker) Track(varRef Reference, val any) {
-	if !t.Enabled {
-		return
-	}
-
 	t.lock.Lock()
 	defer t.lock.Unlock()
 

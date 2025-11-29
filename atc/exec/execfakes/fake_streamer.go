@@ -99,8 +99,6 @@ func (fake *FakeStreamer) StreamFileReturnsOnCall(i int, result1 io.ReadCloser, 
 func (fake *FakeStreamer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.streamFileMutex.RLock()
-	defer fake.streamFileMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

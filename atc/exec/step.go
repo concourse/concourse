@@ -47,7 +47,6 @@ type RunState interface {
 	AddLocalVar(name string, val any, redact bool)
 
 	IterateInterpolatedCreds(vars.TrackedVarsIterator)
-	RedactionEnabled() bool
 
 	ArtifactRepository() *build.Repository
 
