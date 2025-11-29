@@ -3,6 +3,7 @@ package engine
 import (
 	"io"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/clock"
@@ -13,19 +14,21 @@ import (
 
 func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.WriteCloser {
 	return &dbEventWriter{
-		build:  build,
-		origin: origin,
-		clock:  clock,
-		filter: filter,
+		build:     build,
+		origin:    origin,
+		clock:     clock,
+		filter:    filter,
+		lastFlush: clock.Now(),
 	}
 }
 
 type dbEventWriter struct {
-	build    db.Build
-	origin   event.Origin
-	clock    clock.Clock
-	dangling []byte
-	filter   exec.BuildOutputFilter
+	build     db.Build
+	origin    event.Origin
+	clock     clock.Clock
+	dangling  []byte
+	lastFlush time.Time
+	filter    exec.BuildOutputFilter
 }
 
 func (writer *dbEventWriter) Write(data []byte) (int, error) {
@@ -57,9 +60,13 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 			writer.dangling = ([]byte)(payload[idx+1:])
 			payload = payload[:idx+1]
 		} else {
-			// No new-line found, then cache the log.
-			writer.dangling = text
-			return len(data), nil
+			// Avoid holding onto the buffer indefinitely by flushing if the
+			// last flush was more than 1 second ago.
+			if writer.clock.Since(writer.lastFlush) < time.Second {
+				// No new-line found, then cache the log.
+				writer.dangling = text
+				return len(data), nil
+			}
 		}
 	}
 
@@ -69,6 +76,7 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 		return 0, err
 	}
 
+	writer.lastFlush = writer.clock.Now()
 	return len(data), nil
 }
 

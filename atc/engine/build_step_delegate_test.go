@@ -631,14 +631,11 @@ var _ = Describe("BuildStepDelegate", func() {
 			var writtenBytes int
 			var writeErr error
 
-			JustBeforeEach(func() {
-				writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
-				writer.(io.Closer).Close()
-			})
-
 			Context("when saving the event succeeds", func() {
 				BeforeEach(func() {
 					fakeBuild.SaveEventReturns(nil)
+					writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
+					writer.(io.Closer).Close()
 				})
 
 				It("returns the length of the string, and no error", func() {
@@ -672,11 +669,145 @@ var _ = Describe("BuildStepDelegate", func() {
 
 				BeforeEach(func() {
 					fakeBuild.SaveEventReturns(disaster)
+					writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
+					writer.(io.Closer).Close()
 				})
 
 				It("returns 0 length, and the error", func() {
 					Expect(writtenBytes).To(Equal(0))
 					Expect(writeErr).To(Equal(disaster))
+				})
+			})
+
+			Context("caches any text after \\n or \\r", func() {
+				Context("when the data only contains \\n", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
+					})
+
+					It("returns the length of the string, and no error", func() {
+						Expect(writtenBytes).To(Equal(len("hello\nworld")))
+						Expect(writeErr).ToNot(HaveOccurred())
+					})
+
+					It("saves two log events", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "hello\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+
+						writer.(io.Closer).Close()
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2), "second event is cached and only written after writer.Close() is called")
+						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "world",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("when the data only contains \\r", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello\rworld"))
+					})
+
+					It("returns the length of the string, and no error", func() {
+						Expect(writtenBytes).To(Equal(len("hello\rworld")))
+						Expect(writeErr).ToNot(HaveOccurred())
+					})
+
+					It("saves two log events, breaking on \\r", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "hello\r",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+
+						writer.(io.Closer).Close()
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2), "second event is cached and only written after writer.Close() is called")
+						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "world",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("when the data contains \\n and \\r", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello\nbeautiful\rworld\n"))
+						writer.(io.Closer).Close()
+					})
+
+					It("returns the length of the string, and no error", func() {
+						Expect(writtenBytes).To(Equal(len("hello\nbeautiful\rworld\n")))
+						Expect(writeErr).ToNot(HaveOccurred())
+					})
+
+					It("writer prefers breaking on the last \\n over \\r", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "hello\nbeautiful\rworld\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("when the data does not contain \\n or \\r", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello world"))
+					})
+
+					It("returns the length of the string, no error, and does not log the event", func() {
+						Expect(writtenBytes).To(Equal(len("hello world")))
+						Expect(writeErr).ToNot(HaveOccurred())
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(0), "first payload should be entirely cached")
+					})
+
+					It("flushes the payload after 1 second", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(0), "first payload should be entirely cached")
+
+						fakeClock.Increment(time.Second)
+						writtenBytes, writeErr = writer.Write([]byte("!!!"))
+						Expect(writtenBytes).To(Equal(len("!!!")))
+						Expect(writeErr).ToNot(HaveOccurred())
+
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1), "entire payload should be flushed")
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    fakeClock.Now().Unix(),
+							Payload: "hello world!!!",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+
+						writer.(io.Closer).Close()
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1), "no more events should be written")
+					})
 				})
 			})
 		})
