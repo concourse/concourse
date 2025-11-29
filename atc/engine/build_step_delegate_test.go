@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,7 +60,6 @@ var _ = Describe("BuildStepDelegate", func() {
 		planID = "some-plan-id"
 
 		runState = new(execfakes.FakeRunState)
-		runState.RedactionEnabledReturns(true)
 
 		repo := build.NewRepository()
 		runState.ArtifactRepositoryReturns(repo)
@@ -575,19 +575,10 @@ var _ = Describe("BuildStepDelegate", func() {
 			// handled and added to this list.
 			handledFields := []string{"ID", "Get.VersionFrom"}
 
-			isHandled := func(field string) bool {
-				for _, f := range handledFields {
-					if f == field {
-						return true
-					}
-				}
-				return false
-			}
-
 			var dereference func(reflect.Type) reflect.Type
 			dereference = func(rt reflect.Type) reflect.Type {
 				switch rt.Kind() {
-				case reflect.Ptr, reflect.Array, reflect.Slice:
+				case reflect.Pointer, reflect.Array, reflect.Slice:
 					return dereference(rt.Elem())
 				default:
 					return rt
@@ -602,7 +593,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				rt = dereference(rt)
 
 				fieldPath := strings.Join(paths, ".")
-				if rt == planIDType && !isHandled(fieldPath) {
+				if rt == planIDType && !slices.Contains(handledFields, fieldPath) {
 					Fail(fmt.Sprintf("ConstructAcrossSubsteps does not handle PlanID field %q", fieldPath))
 				}
 
