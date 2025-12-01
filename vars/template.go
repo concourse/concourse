@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v4"
 )
 
 type Template struct {
@@ -31,7 +31,7 @@ func (t Template) ExtraVarNames() []string {
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	var obj any
 
-	// Note: if we do end up changing from "gopkg.in/yaml.v2" to
+	// Note: if we do end up changing from "go.yaml.in/yaml/v4" to
 	// "sigs.k8s.io/yaml" here, we'll want to ensure we call
 	// `json.Decoder.UseNumber()` so that we don't lose precision unmarshaling
 	// numbers to float64.

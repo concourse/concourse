@@ -20,8 +20,8 @@
       "allowedVersions": "!/1\\.(4\\.0|5\\.0|5\\.1|5\\.2)$/"
     },
     {
-      "matchPackageNames": ["gopkg.in/yaml.v2"],
-      "allowedVersions": "<3.0.0"
+      "matchPackageNames": ["go.yaml.in/yaml/v4"],
+      "allowedVersions": "<4.0.0"
     },
     {
       "matchPackageNames": ["/garden/"],
