@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
-	"go.yaml.in/yaml/v4"
+	"go.yaml.in/yaml/v2"
 )
 
 type Template struct {
@@ -31,10 +31,19 @@ func (t Template) ExtraVarNames() []string {
 func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 	var obj any
 
-	// Note: if we do end up changing from "go.yaml.in/yaml/v4" to
+	// Note-1: if we do end up changing from "go.yaml.in/yaml/v2" to
 	// "sigs.k8s.io/yaml" here, we'll want to ensure we call
 	// `json.Decoder.UseNumber()` so that we don't lose precision unmarshaling
 	// numbers to float64.
+	//
+	// Note-2: Trying to upgrade to yaml/v4 results in a difference in behaviour
+	// with what we get passed back from Unmarshal(). If all the keys in a map
+	// are of the same type, we'll get a map with the keys set to that type.
+	// This breaks the switch statement in interpolater.Interpolate() as we
+	// won't catch maps of specific types like map[string] or map[int]. Tried a
+	// few different approaches but the problem scope blows up everytime. Feel
+	// free to try upgrading and then running the tests in this package to see
+	// all the things that break.
 	err := yaml.Unmarshal(t.bytes, &obj)
 	if err != nil {
 		return []byte{}, err
@@ -113,7 +122,7 @@ func (i interpolator) Interpolate(node any, tracker varsTracker) (any, error) {
 				switch foundVal.(type) {
 				case string, int, int16, int32, int64, uint, uint16, uint32, uint64, json.Number:
 					foundValStr := fmt.Sprintf("%v", foundVal)
-					typedNode = strings.Replace(typedNode, fmt.Sprintf("((%s))", name), foundValStr, -1)
+					typedNode = strings.ReplaceAll(typedNode, fmt.Sprintf("((%s))", name), foundValStr)
 				default:
 					return nil, InvalidInterpolationError{
 						Name:  name,
