@@ -19,7 +19,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"go.yaml.in/yaml/v4"
+	"go.yaml.in/yaml/v3"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
