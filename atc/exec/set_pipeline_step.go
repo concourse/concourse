@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
@@ -277,7 +277,7 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 		}
 
 		sv := vars.StaticVariables{}
-		if err = yaml.Unmarshal(bytes, &sv); err != nil {
+		if err = yaml.UnmarshalWithOptions(bytes, &sv, yaml.UseJSONUnmarshaler()); err != nil {
 			return atc.Config{}, err
 		}
 

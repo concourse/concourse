@@ -9,7 +9,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 var (

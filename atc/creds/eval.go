@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/concourse/concourse/vars"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 func evaluate(variablesResolver vars.Variables, in, out any) error {
@@ -22,10 +22,5 @@ func evaluate(variablesResolver vars.Variables, in, out any) error {
 		return err
 	}
 
-	return yaml.Unmarshal(bytes, out, useJSONNumber)
-}
-
-func useJSONNumber(decoder *json.Decoder) *json.Decoder {
-	decoder.UseNumber()
-	return decoder
+	return yaml.UnmarshalWithOptions(bytes, out, yaml.UseJSONUnmarshaler())
 }

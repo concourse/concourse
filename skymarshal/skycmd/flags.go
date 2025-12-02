@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-viper/mapstructure/v2"
+	"github.com/goccy/go-yaml"
 	flags "github.com/jessevdk/go-flags"
-	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/flag/v2"

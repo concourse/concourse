@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/vars"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 type Pipeline struct {
@@ -68,7 +68,7 @@ func instanceVarValueRequiresQuoting(v any) bool {
 		return false
 	}
 	var target any
-	if err := yaml.Unmarshal([]byte(str), &target); err != nil {
+	if err := yaml.UnmarshalWithOptions([]byte(str), &target, yaml.UseJSONUnmarshaler()); err != nil {
 		return true
 	}
 	_, isStringAfterUnmarshal := target.(string)

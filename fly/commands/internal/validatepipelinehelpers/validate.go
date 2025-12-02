@@ -10,7 +10,7 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, output bool) error {
@@ -22,7 +22,7 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 	var unmarshalledTemplate atc.Config
 	if strict {
 		// additionally catches unknown keys
-		err = yaml.UnmarshalStrict(evaluatedTemplate, &unmarshalledTemplate)
+		err = yaml.UnmarshalWithOptions(evaluatedTemplate, &unmarshalledTemplate, yaml.Strict())
 	} else {
 		err = yaml.Unmarshal(evaluatedTemplate, &unmarshalledTemplate)
 	}

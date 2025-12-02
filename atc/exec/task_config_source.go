@@ -12,7 +12,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/worker/baggageclaim"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 //counterfeiter:generate . TaskConfigSource
@@ -212,7 +212,7 @@ func (configSource InterpolateTemplateConfigSource) FetchConfig(ctx context.Cont
 		return atc.TaskConfig{}, err
 	}
 
-	byteConfig, err := yaml.Marshal(taskConfig)
+	byteConfig, err := yaml.MarshalWithOptions(taskConfig, yaml.UseJSONMarshaler())
 	if err != nil {
 		return atc.TaskConfig{}, fmt.Errorf("failed to marshal task config: %s", err)
 	}

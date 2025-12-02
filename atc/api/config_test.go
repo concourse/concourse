@@ -13,9 +13,9 @@ import (
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
 	. "github.com/concourse/concourse/atc/testhelpers"
+	"github.com/goccy/go-yaml"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/rata"
-	"sigs.k8s.io/yaml"
 
 	// load dummy credential manager
 	_ "github.com/concourse/concourse/atc/creds/dummy"
@@ -587,7 +587,7 @@ var _ = Describe("Config API", func() {
 						BeforeEach(func() {
 							request.Header.Set("Content-Type", "application/x-yaml")
 
-							payload, err := yaml.Marshal(pipelineConfig)
+							payload, err := yaml.MarshalWithOptions(pipelineConfig, yaml.UseJSONMarshaler())
 							Expect(err).NotTo(HaveOccurred())
 
 							request.Body = gbytes.BufferWithBytes(payload)
@@ -1164,7 +1164,7 @@ jobs:
 					BeforeEach(func() {
 						request.Header.Set("Content-Type", "application/x-toml")
 
-						payload, err := yaml.Marshal(pipelineConfig)
+						payload, err := yaml.MarshalWithOptions(pipelineConfig, yaml.UseJSONMarshaler())
 						Expect(err).NotTo(HaveOccurred())
 
 						request.Body = gbytes.BufferWithBytes(payload)

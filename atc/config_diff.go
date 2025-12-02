@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/aryann/difflib"
+	"github.com/goccy/go-yaml"
 	"github.com/mgutz/ansi"
 	"github.com/onsi/gomega/gexec"
-	"sigs.k8s.io/yaml"
 )
 
 type Index interface {
@@ -39,20 +39,20 @@ func (diff Diff) Render(to io.Writer, label string) {
 	if diff.Before != nil && diff.After != nil {
 		fmt.Fprintf(to, ansi.Color("%s %s has changed:", "yellow")+"\n", label, name(diff.Before))
 
-		payloadA, _ := yaml.Marshal(diff.Before)
-		payloadB, _ := yaml.Marshal(diff.After)
+		payloadA, _ := yaml.MarshalWithOptions(diff.Before, yaml.UseJSONMarshaler())
+		payloadB, _ := yaml.MarshalWithOptions(diff.After, yaml.UseJSONMarshaler())
 
 		renderDiff(to, string(payloadA), string(payloadB))
 	} else if diff.Before != nil {
 		fmt.Fprintf(to, ansi.Color("%s %s has been removed:", "yellow")+"\n", label, name(diff.Before))
 
-		payloadA, _ := yaml.Marshal(diff.Before)
+		payloadA, _ := yaml.MarshalWithOptions(diff.Before, yaml.UseJSONMarshaler())
 
 		renderDiff(to, string(payloadA), "")
 	} else {
 		fmt.Fprintf(to, ansi.Color("%s %s has been added:", "yellow")+"\n", label, name(diff.After))
 
-		payloadB, _ := yaml.Marshal(diff.After)
+		payloadB, _ := yaml.MarshalWithOptions(diff.After, yaml.UseJSONMarshaler())
 
 		renderDiff(to, "", string(payloadB))
 	}
@@ -62,16 +62,16 @@ func (diff DisplayDiff) Render(to io.Writer) {
 	label := "display configuration"
 	if diff.Before != nil && diff.After != nil {
 		fmt.Fprintf(to, ansi.Color("%s has changed:", "yellow")+"\n", label)
-		payloadA, _ := yaml.Marshal(diff.Before)
-		payloadB, _ := yaml.Marshal(diff.After)
+		payloadA, _ := yaml.MarshalWithOptions(diff.Before, yaml.UseJSONMarshaler())
+		payloadB, _ := yaml.MarshalWithOptions(diff.After, yaml.UseJSONMarshaler())
 		renderDiff(to, string(payloadA), string(payloadB))
 	} else if diff.Before != nil {
 		fmt.Fprintf(to, ansi.Color("%s has been removed:", "yellow")+"\n", label)
-		payloadA, _ := yaml.Marshal(diff.Before)
+		payloadA, _ := yaml.MarshalWithOptions(diff.Before, yaml.UseJSONMarshaler())
 		renderDiff(to, string(payloadA), "")
 	} else {
 		fmt.Fprintf(to, ansi.Color("%s has been added:", "yellow")+"\n", label)
-		payloadB, _ := yaml.Marshal(diff.After)
+		payloadB, _ := yaml.MarshalWithOptions(diff.After, yaml.UseJSONMarshaler())
 		renderDiff(to, "", string(payloadB))
 	}
 }
@@ -267,8 +267,8 @@ func practicallyDifferent(a, b any) bool {
 
 	// prevent silly things like 300 != 300.0 due to YAML vs. JSON
 	// inconsistencies
-	marshalledA, errA := yaml.Marshal(a)
-	marshalledB, errB := yaml.Marshal(b)
+	marshalledA, errA := yaml.MarshalWithOptions(a, yaml.UseJSONMarshaler())
+	marshalledB, errB := yaml.MarshalWithOptions(b, yaml.UseJSONMarshaler())
 
 	// If we can't marshal either value, they're different
 	if errA != nil || errB != nil {

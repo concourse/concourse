@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goccy/go-yaml"
 	"golang.org/x/crypto/ssh"
-	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/vars"
 )
@@ -40,20 +40,26 @@ func UnmarshalConfig(payload []byte, config any) error {
 	}
 
 	var stripped skeletonConfig
-	err := yaml.Unmarshal(payload, &stripped)
+	err := yaml.UnmarshalWithOptions(payload, &stripped, yaml.UseJSONUnmarshaler())
+	if err != nil {
+		return errors.New(yaml.FormatError(err, false, false))
+	}
+
+	strippedPayload, err := yaml.MarshalWithOptions(stripped, yaml.UseJSONMarshaler())
 	if err != nil {
 		return err
 	}
 
-	strippedPayload, err := yaml.Marshal(stripped)
-	if err != nil {
-		return err
-	}
-
-	return yaml.UnmarshalStrict(
+	err = yaml.UnmarshalWithOptions(
 		strippedPayload,
 		&config,
+		yaml.UseJSONUnmarshaler(),
+		yaml.Strict(),
 	)
+	if err != nil {
+		return errors.New(yaml.FormatError(err, false, false))
+	}
+	return nil
 }
 
 type GroupConfig struct {
@@ -103,7 +109,7 @@ func (c VarSourceConfigs) OrderByDependency() (VarSourceConfigs, error) {
 	added := map[string]any{}
 
 	for _, vs := range c {
-		b, err := yaml.Marshal(vs.Config)
+		b, err := yaml.MarshalWithOptions(vs.Config, yaml.UseJSONMarshaler())
 		if err != nil {
 			return nil, err
 		}

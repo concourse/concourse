@@ -2,9 +2,9 @@ package vars_test
 
 import (
 	"github.com/concourse/concourse/vars"
+	"github.com/goccy/go-yaml"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("Template", func() {

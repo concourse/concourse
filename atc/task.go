@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 type TaskConfig struct {
@@ -65,7 +65,7 @@ func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var config TaskConfig
-	err := yaml.UnmarshalStrict(configBytes, &config, yaml.DisallowUnknownFields)
+	err := yaml.UnmarshalWithOptions(configBytes, &config, yaml.UseJSONUnmarshaler(), yaml.DisallowUnknownField(), yaml.Strict())
 	if err != nil {
 		return TaskConfig{}, err
 	}

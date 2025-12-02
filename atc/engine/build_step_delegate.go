@@ -20,8 +20,8 @@ import (
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"github.com/goccy/go-yaml"
 	"go.opentelemetry.io/otel/trace"
-	"sigs.k8s.io/yaml"
 )
 
 type buildStepDelegate struct {
@@ -329,9 +329,7 @@ func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte,
 			return nil, fmt.Errorf("failed to interpolate template: %w", err)
 		}
 		var subPlan atc.Plan
-		// This must use sigs.k8s.io/yaml, since gopkg.in/yaml.v2 doesn't
-		// convert from YAML -> JSON first.
-		if err := yaml.Unmarshal(interpolatedBytes, &subPlan); err != nil {
+		if err := yaml.UnmarshalWithOptions(interpolatedBytes, &subPlan, yaml.UseJSONUnmarshaler()); err != nil {
 			return nil, fmt.Errorf("invalid template bytes: %w", err)
 		}
 

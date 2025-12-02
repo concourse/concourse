@@ -12,7 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -167,7 +167,7 @@ func (step *LoadVarStep) fetchVars(
 			return nil, InvalidLocalVarFile{file, "json", errors.New("invalid json: characters found after top-level value")}
 		}
 	case "yml", "yaml":
-		err = yaml.Unmarshal(fileContent, &value, useJSONNumber)
+		err = yaml.UnmarshalWithOptions(fileContent, &value, yaml.UseJSONUnmarshaler())
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}
@@ -180,11 +180,6 @@ func (step *LoadVarStep) fetchVars(
 	}
 
 	return value, nil
-}
-
-func useJSONNumber(decoder *json.Decoder) *json.Decoder {
-	decoder.UseNumber()
-	return decoder
 }
 
 func (step *LoadVarStep) fileFormat(file string) (string, error) {

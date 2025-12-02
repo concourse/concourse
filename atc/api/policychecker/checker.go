@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/policy"
@@ -64,7 +64,7 @@ func (c *checker) Check(action string, acc accessor.Access, req *http.Request) (
 			if ct == "application/json" {
 				err = json.Unmarshal(body, &input.Data)
 			} else {
-				err = yaml.Unmarshal(body, &input.Data)
+				err = yaml.UnmarshalWithOptions(body, &input.Data, yaml.UseJSONUnmarshaler())
 			}
 			if err != nil {
 				return nil, err

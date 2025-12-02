@@ -9,7 +9,7 @@ import (
 
 	"github.com/vito/go-interact/interact"
 
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"

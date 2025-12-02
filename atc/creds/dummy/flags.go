@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	yaml "sigs.k8s.io/yaml"
+	yaml "github.com/goccy/go-yaml"
 )
 
 type VarFlag struct {

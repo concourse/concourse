@@ -61,7 +61,7 @@ var _ = Describe("PipelineRef", func() {
 					"weird_bool": "yes",
 					"empty":      "",
 				}},
-				out: `some-pipeline/bool:"true",empty:"",float:"4e+6",int:"123",weird_bool:"yes"`,
+				out: `some-pipeline/bool:"true",empty:"",float:4e+6,int:"123",weird_bool:yes`,
 			},
 			{
 				desc: "doesn't quote non-string primitives",

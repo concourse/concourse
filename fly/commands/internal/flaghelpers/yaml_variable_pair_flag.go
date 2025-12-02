@@ -1,11 +1,10 @@
 package flaghelpers
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/concourse/concourse/vars"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 type YAMLVariablePairFlag vars.KVPair
@@ -21,15 +20,10 @@ func (pair *YAMLVariablePairFlag) UnmarshalFlag(value string) error {
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal([]byte(v), &pair.Value, useNumber)
+	err = yaml.UnmarshalWithOptions([]byte(v), &pair.Value, yaml.UseJSONUnmarshaler())
 	if err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func useNumber(d *json.Decoder) *json.Decoder {
-	d.UseNumber()
-	return d
 }

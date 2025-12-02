@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 

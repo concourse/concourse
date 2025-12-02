@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"sigs.k8s.io/yaml"
 )
 
 type StepsSuite struct {
@@ -152,7 +152,7 @@ var factoryTests = []StepTest{
 			params:
 			  NUMBER: 42
 			  FLOAT: 1.5
-			  BOOL: yes
+			  BOOL: true
 			  OBJECT: {foo: bar}
 		`,
 
@@ -395,10 +395,10 @@ var factoryTests = []StepTest{
 			across:
 			- var: var1
 			  values: [1, 2, 3]
-			  bogus_field: lol what ru gonna do about it 
+			  bogus_field: lol what ru gonna do about it
 		`,
 
-		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: json: unknown field "bogus_field"`,
+		Err: `malformed across step: json: unknown field "bogus_field"`,
 	},
 	{
 		Title: "across step with invalid max_in_flight",
@@ -412,7 +412,7 @@ var factoryTests = []StepTest{
 			  max_in_flight: some
 		`,
 
-		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: invalid max_in_flight "some"`,
+		Err: `malformed across step: invalid max_in_flight "some"`,
 	},
 	{
 		Title: "timeout modifier",
@@ -582,7 +582,7 @@ func (test StepTest) Run(s *StepsSuite) {
 	cleanIndents := strings.ReplaceAll(test.ConfigYAML, "\t", "")
 
 	var step atc.Step
-	actualErr := yaml.Unmarshal([]byte(cleanIndents), &step)
+	actualErr := yaml.UnmarshalWithOptions([]byte(cleanIndents), &step, yaml.UseJSONUnmarshaler())
 	if test.Err != "" {
 		s.Contains(actualErr.Error(), test.Err)
 		return
@@ -597,7 +597,7 @@ func (test StepTest) Run(s *StepsSuite) {
 	s.NoError(err)
 
 	var reStep atc.Step
-	err = yaml.Unmarshal(remarshalled, &reStep)
+	err = yaml.UnmarshalWithOptions(remarshalled, &reStep, yaml.UseJSONUnmarshaler())
 	s.NoError(err)
 
 	s.Equal(test.StepConfig, reStep.Config)

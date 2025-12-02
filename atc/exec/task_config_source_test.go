@@ -13,10 +13,10 @@ import (
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/vars"
 	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/goccy/go-yaml"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("TaskConfigSource", func() {
@@ -125,7 +125,7 @@ var _ = Describe("TaskConfigSource", func() {
 				var streamedOut *gbytes.Buffer
 
 				BeforeEach(func() {
-					marshalled, err := yaml.Marshal(taskConfig)
+					marshalled, err := yaml.MarshalWithOptions(taskConfig, yaml.UseJSONMarshaler())
 					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)
@@ -155,7 +155,7 @@ var _ = Describe("TaskConfigSource", func() {
 					invalidConfig.Platform = ""
 					invalidConfig.Run = atc.TaskRunConfig{}
 
-					marshalled, err := yaml.Marshal(invalidConfig)
+					marshalled, err := yaml.MarshalWithOptions(invalidConfig, yaml.UseJSONMarshaler())
 					Expect(err).NotTo(HaveOccurred())
 
 					streamedOut = gbytes.BufferWithBytes(marshalled)

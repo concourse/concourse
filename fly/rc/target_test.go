@@ -10,8 +10,8 @@ import (
 
 	"github.com/concourse/concourse/fly/rc"
 	fakes "github.com/concourse/concourse/go-concourse/concourse/concoursefakes"
+	"github.com/goccy/go-yaml"
 	"golang.org/x/oauth2"
-	"sigs.k8s.io/yaml"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

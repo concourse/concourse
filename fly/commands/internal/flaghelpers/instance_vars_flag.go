@@ -7,7 +7,7 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/vars"
-	"sigs.k8s.io/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 type InstanceVarsFlag struct {
@@ -46,7 +46,7 @@ func unmarshalInstanceVars(s string) (atc.InstanceVars, error) {
 			s = s[commaIndex+1:]
 		}
 
-		if err := yaml.Unmarshal(rawValue, &kvPair.Value, useNumber); err != nil {
+		if err := yaml.UnmarshalWithOptions(rawValue, &kvPair.Value, yaml.UseJSONUnmarshaler()); err != nil {
 			return nil, fmt.Errorf("invalid value for key '%s': %w", rawKey, err)
 		}
 		kvPairs = append(kvPairs, kvPair)
