@@ -3,6 +3,8 @@ package volume
 import (
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -284,7 +286,19 @@ type initVolume struct {
 func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
 	liveDir := vol.fs.liveVolumePath(vol.handle)
 
-	err := os.Rename(vol.dir, liveDir)
+	var err error
+	for range 5 {
+		err = os.Rename(vol.dir, liveDir)
+		if err != nil &&
+			// Windows specific error that some users have reported seeing.
+			// Injecting a sleep resolves the issue. Clearly some kind of
+			// race-condition issue, but it's unclear what we're racing with.
+			strings.Contains(err.Error(), "Access is denied") {
+			time.Sleep(25 * time.Millisecond)
+			continue
+		}
+		break
+	}
 	if err != nil {
 		return nil, err
 	}
