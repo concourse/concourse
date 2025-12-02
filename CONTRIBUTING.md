@@ -106,9 +106,7 @@ Cheers! 🍻
   running the various test suites, see [Testing your
   changes](#testing-your-changes).
 
-* All commits must have a signature certifying agreement to the [DCO][dco].
-  For more information, see [Signing your work](#signing-your-work). A check
-  for this will run automatically and prevent merging if it fails.
+* All contributors must be registered with the Linux Foundation's [EasyCLA](https://easycla.lfx.linuxfoundation.org/)
 
 * The [documentation][docs] should be updated (in a separate, linked PR), but
   if you're not confident in your technical writing you may skip this step.
@@ -706,81 +704,7 @@ BOSH_ENVIRONMENT=vbox ginkgo -v .
 
 ps.: you must have already installed the BOSH cli first.
 
-
-## Signing your work
-
-Concourse has joined other open-source projects in adopting the [Developer
-Certificate of Origin](https://developercertificate.org/) process for
-contributions. The purpose of the DCO is simply to determine that the content
-you are contributing is appropriate for submitting under the terms of our
-open-source license (Apache v2).
-
-The content of the DCO is as follows:
-
-```
-Developer Certificate of Origin
-Version 1.1
-
-Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
-1 Letterman Drive
-Suite D4700
-San Francisco, CA, 94129
-
-Everyone is permitted to copy and distribute verbatim copies of this
-license document, but changing it is not allowed.
-
-
-Developer's Certificate of Origin 1.1
-
-By making a contribution to this project, I certify that:
-
-(a) The contribution was created in whole or in part by me and I
-    have the right to submit it under the open source license
-    indicated in the file; or
-
-(b) The contribution is based upon previous work that, to the best
-    of my knowledge, is covered under an appropriate open source
-    license and I have the right under that license to submit that
-    work with modifications, whether created in whole or in part
-    by me, under the same open source license (unless I am
-    permitted to submit under a different license), as indicated
-    in the file; or
-
-(c) The contribution was provided directly to me by some other
-    person who certified (a), (b) or (c) and I have not modified
-    it.
-
-(d) I understand and agree that this project and the contribution
-    are public and that a record of the contribution (including all
-    personal information I submit with it, including my sign-off) is
-    maintained indefinitely and may be redistributed consistent with
-    this project or the open source license(s) involved.
-```
-
-This is also available at <https://developercertificate.org>.
-
-All commits require a `Signed-off-by:` signature indicating that the author has
-agreed to the DCO. This must be done using your real name, and must be done on
-each commit. This line can be automatically appended via `git commit -s`.
-
-Your commit should look something like this in `git log`:
-
-```
-commit 8a0a135f8d3362691235d057896e6fc2a1ca421b (HEAD -> master)
-Author: Alex Suraci <asuraci@example.com>
-Date:   Tue Dec 18 12:06:07 2018 -0500
-
-    document DCO process
-
-    Signed-off-by: Alex Suraci <asuraci@example.com>
-```
-
-If you forgot to add the signature, you can run `git commit --amend -s`. Note
-that you will have to force-push (`push -f`) after amending if you've already
-pushed commits without the signature.
-
 [concourse-helm-chart]: https://github.com/concourse/concourse-chart/blob/master/README.md
-[dco]: https://developercertificate.org
 [coc]: https://github.com/concourse/concourse/blob/master/CODE_OF_CONDUCT.md
 [discord]: https://discord.gg/MeRxXKW
 [docs]: https://github.com/concourse/docs
