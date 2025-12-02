@@ -2,6 +2,7 @@ changelog:
   exclude:
     labels:
       - ignore-for-release
+      - release/undocumented
   categories:
     - title: 🚨 Breaking Changes
       labels:
@@ -14,4 +15,4 @@ changelog:
         - bug
     - title: 🛠️ Misc. Changes
       labels:
-        - "*"
+        - "misc"
