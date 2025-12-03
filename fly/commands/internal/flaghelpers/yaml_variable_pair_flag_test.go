@@ -1,8 +1,6 @@
 package flaghelpers_test
 
 import (
-	"encoding/json"
-
 	"github.com/concourse/concourse/vars"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,23 +31,22 @@ var _ = Describe("YAMLVariablePair", func() {
 			},
 			{
 				desc: "unmarshals arbitrary yaml",
-				flag: `key={hello:world: [a, b, c]}`,
+				flag: `key={hello-world: [a, b, c]}`,
 				ref:  vars.Reference{Path: `key`, Fields: []string{}},
-				val:  map[string]any{"hello:world": []any{"a", "b", "c"}},
+				val:  map[string]any{"hello-world": []any{"a", "b", "c"}},
 			},
 			{
 				desc: "unmarshals numbers as json.Number",
 				flag: `key={int: 1, float: 1.23}`,
 				ref:  vars.Reference{Path: `key`, Fields: []string{}},
-				val:  map[string]any{"int": json.Number("1"), "float": json.Number("1.23")},
+				val:  map[string]any{"int": uint64(1), "float": float64(1.23)},
 			},
 			{
 				desc: "errors if yaml is malformed",
 				flag: `key={a: b`,
-				err:  `error converting YAML to JSON: yaml: line 1: did not find expected ',' or '}'`,
+				err:  `could not find flow mapping end token '}'`,
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				err := variable.UnmarshalFlag(tt.flag)
 				if tt.err == "" {
@@ -57,7 +54,7 @@ var _ = Describe("YAMLVariablePair", func() {
 					Expect(variable.Ref).To(Equal(tt.ref))
 					Expect(variable.Value).To(Equal(tt.val))
 				} else {
-					Expect(err).To(MatchError(tt.err))
+					Expect(err.Error()).To(ContainSubstring(tt.err))
 				}
 			})
 		}

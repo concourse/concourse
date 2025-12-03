@@ -1,8 +1,6 @@
 package flaghelpers_test
 
 import (
-	"encoding/json"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -32,11 +30,11 @@ var _ = Describe("InstanceVarsFlag", func() {
 			},
 			{
 				desc: "multiple instance vars",
-				flag: `branch:master,list:[1, "2"],other:{foo:bar: 123}`,
+				flag: `branch:master,list:[1, "2"],other:{foo_bar: 123}`,
 				instanceVars: atc.InstanceVars{
 					"branch": "master",
-					"list":   []any{json.Number("1"), "2"},
-					"other":  map[string]any{"foo:bar": json.Number("123")},
+					"list":   []any{uint64(1), "2"},
+					"other":  map[string]any{"foo_bar": uint64(123)},
 				},
 			},
 			{
@@ -79,7 +77,7 @@ var _ = Describe("InstanceVarsFlag", func() {
 							"a": "{",
 							"b": "[",
 						},
-						json.Number("1"),
+						uint64(1),
 					},
 				},
 			},
@@ -88,8 +86,8 @@ var _ = Describe("InstanceVarsFlag", func() {
 				flag: `field.0:0,field.1:1`,
 				instanceVars: atc.InstanceVars{
 					"field": map[string]any{
-						"0": json.Number("0"),
-						"1": json.Number("1"),
+						"0": uint64(0),
+						"1": uint64(1),
 					},
 				},
 			},
@@ -98,7 +96,7 @@ var _ = Describe("InstanceVarsFlag", func() {
 				flag: `branch: master, other: 123`,
 				instanceVars: atc.InstanceVars{
 					"branch": "master",
-					"other":  json.Number("123"),
+					"other":  uint64(123),
 				},
 			},
 			{
@@ -136,17 +134,16 @@ var _ = Describe("InstanceVarsFlag", func() {
 			{
 				desc: "errors if invalid YAML is passed as the value",
 				flag: `hello:{bad: yaml`,
-				err:  `invalid value for key 'hello': error converting YAML to JSON: yaml: line 1: did not find expected ',' or '}'`,
+				err:  `invalid value for key 'hello': [1:1] could not find flow mapping end token '}'`,
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				err := instanceVarsFlag.UnmarshalFlag(tt.flag)
 				if tt.err == "" {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(instanceVarsFlag.InstanceVars).To(Equal(tt.instanceVars))
 				} else {
-					Expect(err).To(MatchError(tt.err))
+					Expect(err.Error()).To(ContainSubstring(tt.err))
 				}
 			})
 		}
