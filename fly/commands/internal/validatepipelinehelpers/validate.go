@@ -22,9 +22,9 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 	var unmarshalledTemplate atc.Config
 	if strict {
 		// additionally catches unknown keys
-		err = yaml.UnmarshalWithOptions(evaluatedTemplate, &unmarshalledTemplate, yaml.Strict())
+		err = yaml.UnmarshalWithOptions(evaluatedTemplate, &unmarshalledTemplate, yaml.UseJSONUnmarshaler(), yaml.Strict())
 	} else {
-		err = yaml.Unmarshal(evaluatedTemplate, &unmarshalledTemplate)
+		err = yaml.UnmarshalWithOptions(evaluatedTemplate, &unmarshalledTemplate, yaml.UseJSONUnmarshaler())
 	}
 	if err != nil {
 		return err
