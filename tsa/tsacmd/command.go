@@ -6,13 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sync"
-	"time"
-
-	yaml "gopkg.in/yaml.v2"
-
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
@@ -22,6 +19,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"go.yaml.in/yaml/v3"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
