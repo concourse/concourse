@@ -260,12 +260,14 @@ jobs:
 				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
 			})
 
-			It("should return an error", func() {
-				Expect(stepErr).NotTo(HaveOccurred())
+			It("should finish unsuccessfully", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+				Expect(succeeded).To(BeFalse())
 			})
 
 			It("should log an error message", func() {
-				Expect(stderr).To(gbytes.Say("pipeline must contain at least one job"))
+				Expect(stderr).To(gbytes.Say("jobs: pipeline must contain at least one job"))
 			})
 
 			It("should not update the job and build id", func() {

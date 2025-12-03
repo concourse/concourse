@@ -52,7 +52,7 @@ func UnmarshalConfig(payload []byte, config any) error {
 
 	err = yaml.UnmarshalWithOptions(
 		strippedPayload,
-		&config,
+		config,
 		yaml.UseJSONUnmarshaler(),
 		yaml.Strict(),
 	)

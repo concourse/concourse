@@ -277,7 +277,7 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 		}
 
 		sv := vars.StaticVariables{}
-		if err = yaml.UnmarshalWithOptions(bytes, &sv, yaml.UseJSONUnmarshaler()); err != nil {
+		if err = yaml.Unmarshal(bytes, &sv); err != nil {
 			return atc.Config{}, err
 		}
 

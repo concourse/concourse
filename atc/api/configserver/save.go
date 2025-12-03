@@ -162,28 +162,36 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 	}
 
 	for _, resource := range config.Resources {
-		_, err := creds.NewSource(credMgrVars, resource.Source).Evaluate()
-		if err != nil {
-			errs = multierror.Append(errs, err)
+		if len(resource.Source) > 0 {
+			_, err := creds.NewSource(credMgrVars, resource.Source).Evaluate()
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
 		}
 
-		_, err = creds.NewString(credMgrVars, resource.WebhookToken).Evaluate()
-		if err != nil {
-			errs = multierror.Append(errs, err)
+		if len(resource.WebhookToken) > 0 {
+			_, err := creds.NewString(credMgrVars, resource.WebhookToken).Evaluate()
+			if err != nil {
+				errs = multierror.Append(errs, err)
+			}
 		}
 	}
 
 	for _, job := range config.Jobs {
 		_ = job.StepConfig().Visit(atc.StepRecursor{
 			OnTask: func(step *atc.TaskStep) error {
-				err := creds.NewTaskEnvValidator(credMgrVars, step.Params).Validate()
-				if err != nil {
-					errs = multierror.Append(errs, err)
+				if len(step.Params) > 0 {
+					err := creds.NewTaskEnvValidator(credMgrVars, step.Params).Validate()
+					if err != nil {
+						errs = multierror.Append(errs, err)
+					}
 				}
 
-				err = creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
-				if err != nil {
-					errs = multierror.Append(errs, err)
+				if len(step.Vars) > 0 {
+					err := creds.NewTaskVarsValidator(credMgrVars, step.Vars).Validate()
+					if err != nil {
+						errs = multierror.Append(errs, err)
+					}
 				}
 
 				if step.Config != nil {
@@ -197,7 +205,7 @@ func validateCredParams(credMgrVars vars.Variables, config atc.Config, session l
 						ExpectAllKeys: true,
 					}
 					taskConfigSource = exec.ValidatingConfigSource{ConfigSource: taskConfigSource}
-					_, err = taskConfigSource.FetchConfig(context.TODO(), session, nil)
+					_, err := taskConfigSource.FetchConfig(context.TODO(), session, nil)
 					if err != nil {
 						errs = multierror.Append(errs, err)
 					}

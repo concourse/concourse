@@ -1,6 +1,7 @@
 package vars
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -54,12 +55,19 @@ func (t Template) Evaluate(vars Variables, opts EvaluateOpts) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	bytes, err := yaml.Marshal(obj)
+	marshaled, err := yaml.Marshal(obj)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	return bytes, nil
+	// The goccy/yaml library does not consider this a valid yaml document and
+	// errors. So we catch this here and return an empty byte array instead
+	// which can be more gracefully handled.
+	if bytes.EqualFold(marshaled, []byte("null\n")) {
+		return []byte{}, nil
+	}
+
+	return marshaled, nil
 }
 
 func (t Template) interpolateRoot(obj any, tracker varsTracker) (any, error) {

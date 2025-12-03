@@ -442,7 +442,7 @@ var _ = Describe("Config API", func() {
 							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
+										"malformed config: [1:1] could not find flow mapping end token '}'"
 									]
 								}`))
 						})
@@ -473,7 +473,7 @@ var _ = Describe("Config API", func() {
 							Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 								{
 									"errors": [
-										"malformed config: error converting YAML to JSON: yaml: line 1: did not find expected node content"
+										"malformed config: [1:1] could not find flow mapping end token '}'"
 									]
 								}`))
 						})
@@ -1265,7 +1265,7 @@ jobs:
 					})
 
 					It("returns an error in the response body", func() {
-						Expect(io.ReadAll(response.Body)).To(ContainSubstring(`malformed config: error unmarshaling JSON: while decoding JSON: json: unknown field \"pubic\"`))
+						Expect(io.ReadAll(response.Body)).To(ContainSubstring(`malformed config: [4:3] unknown field \"pubic\"`))
 					})
 
 					It("does not save it", func() {
