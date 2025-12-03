@@ -221,7 +221,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": uint64(123)}, true)
 			})
 		})
 
@@ -242,7 +242,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": uint64(123)}, true)
 			})
 		})
 	})
@@ -304,7 +304,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": uint64(123)}, true)
 			})
 		})
 
@@ -324,7 +324,7 @@ var _ = Describe("LoadVarStep", func() {
 			})
 
 			It("var should be parsed correctly", func() {
-				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": json.Number("123")}, true)
+				expectLocalVarAdded("some-var", map[string]any{"k1": "yv1", "k2": "yv2", "k3": uint64(123)}, true)
 			})
 		})
 	})
@@ -353,7 +353,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.yaml",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: "a:\nb"}, nil)
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: "a\nb:"}, nil)
 			})
 
 			It("step should fail", func() {
