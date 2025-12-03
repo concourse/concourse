@@ -4,24 +4,17 @@ import (
 	"fmt"
 	"os"
 
-	"code.cloudfoundry.org/lager/v3"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
 func (cmd *BaggageclaimCommand) Execute(args []string) error {
-	runner, err := cmd.Runner(args)
+	runner, err := cmd.Runner(nil, args)
 	if err != nil {
 		return err
 	}
 
 	return <-ifrit.Invoke(sigmon.New(runner)).Wait()
-}
-
-func (cmd *BaggageclaimCommand) constructLogger() (lager.Logger, *lager.ReconfigurableSink) {
-	logger, reconfigurableSink := cmd.Logger.Logger("baggageclaim")
-
-	return logger, reconfigurableSink
 }
 
 func (cmd *BaggageclaimCommand) debugBindAddr() string {
