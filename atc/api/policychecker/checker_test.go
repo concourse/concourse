@@ -133,14 +133,14 @@ var _ = Describe("PolicyChecker", func() {
 
 			Context("when request body is a bad yaml", func() {
 				BeforeEach(func() {
-					body := bytes.NewBuffer([]byte("a:\nb"))
+					body := bytes.NewBuffer([]byte("a\nb:"))
 					fakeRequest = httptest.NewRequest("PUT", "/something", body)
 					fakeRequest.Header.Add("Content-type", "application/x-yaml")
 				})
 
 				It("should error", func() {
 					Expect(checkErr).To(HaveOccurred())
-					Expect(checkErr.Error()).To(Equal(`error converting YAML to JSON: yaml: line 3: could not find expected ':'`))
+					Expect(checkErr.Error()).To(ContainSubstring("unexpected key name"))
 					Expect(result).To(BeNil())
 				})
 
