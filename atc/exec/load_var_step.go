@@ -167,7 +167,7 @@ func (step *LoadVarStep) fetchVars(
 			return nil, InvalidLocalVarFile{file, "json", errors.New("invalid json: characters found after top-level value")}
 		}
 	case "yml", "yaml":
-		err = yaml.UnmarshalWithOptions(fileContent, &value, yaml.UseJSONUnmarshaler())
+		err = yaml.Unmarshal(fileContent, &value)
 		if err != nil {
 			return nil, InvalidLocalVarFile{file, "yaml", err}
 		}

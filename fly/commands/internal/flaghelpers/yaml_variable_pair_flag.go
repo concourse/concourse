@@ -20,7 +20,7 @@ func (pair *YAMLVariablePairFlag) UnmarshalFlag(value string) error {
 	if err != nil {
 		return err
 	}
-	err = yaml.UnmarshalWithOptions([]byte(v), &pair.Value, yaml.UseJSONUnmarshaler())
+	err = yaml.Unmarshal([]byte(v), &pair.Value)
 	if err != nil {
 		return err
 	}

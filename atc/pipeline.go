@@ -68,7 +68,7 @@ func instanceVarValueRequiresQuoting(v any) bool {
 		return false
 	}
 	var target any
-	if err := yaml.UnmarshalWithOptions([]byte(str), &target, yaml.UseJSONUnmarshaler()); err != nil {
+	if err := yaml.Unmarshal([]byte(str), &target); err != nil {
 		return true
 	}
 	_, isStringAfterUnmarshal := target.(string)

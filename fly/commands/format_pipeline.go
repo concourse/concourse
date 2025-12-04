@@ -23,12 +23,12 @@ func (command *FormatPipelineCommand) Execute(args []string) error {
 	}
 
 	var config atc.Config
-	err = yaml.Unmarshal(configBytes, &config)
+	err = yaml.UnmarshalWithOptions(configBytes, &config, yaml.UseJSONUnmarshaler())
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not unmarshal config", err)
 	}
 
-	formattedBytes, err := yaml.Marshal(config)
+	formattedBytes, err := yaml.MarshalWithOptions(config, yaml.UseJSONMarshaler())
 	if err != nil {
 		displayhelpers.FailWithErrorf("could not marshal config", err)
 	}

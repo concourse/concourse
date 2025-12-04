@@ -58,7 +58,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 	}
 
 	var newConfig atc.Config
-	err = yaml.Unmarshal(evaluatedTemplate, &newConfig)
+	err = yaml.UnmarshalWithOptions(evaluatedTemplate, &newConfig, yaml.UseJSONUnmarshaler())
 	if err != nil {
 		return err
 	}

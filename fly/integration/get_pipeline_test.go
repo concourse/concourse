@@ -151,7 +151,7 @@ var _ = Describe("Fly CLI", func() {
 							Expect(sess.ExitCode()).To(Equal(0))
 
 							var printedConfig atc.Config
-							err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+							err = yaml.UnmarshalWithOptions(sess.Out.Contents(), &printedConfig, yaml.UseJSONUnmarshaler())
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(printedConfig).To(Equal(config))
@@ -202,7 +202,7 @@ var _ = Describe("Fly CLI", func() {
 						Expect(sess.ExitCode()).To(Equal(0))
 
 						var printedConfig atc.Config
-						err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+						err = yaml.UnmarshalWithOptions(sess.Out.Contents(), &printedConfig, yaml.UseJSONUnmarshaler())
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(printedConfig).To(Equal(config))
@@ -276,7 +276,7 @@ var _ = Describe("Fly CLI", func() {
 								Expect(sess.ExitCode()).To(Equal(0))
 
 								var printedConfig atc.Config
-								err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+								err = yaml.UnmarshalWithOptions(sess.Out.Contents(), &printedConfig, yaml.UseJSONUnmarshaler())
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(printedConfig).To(Equal(config))
@@ -327,7 +327,7 @@ var _ = Describe("Fly CLI", func() {
 							Expect(sess.ExitCode()).To(Equal(0))
 
 							var printedConfig atc.Config
-							err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
+							err = yaml.UnmarshalWithOptions(sess.Out.Contents(), &printedConfig, yaml.UseJSONUnmarshaler())
 							Expect(err).NotTo(HaveOccurred())
 
 							Expect(printedConfig).To(Equal(config))

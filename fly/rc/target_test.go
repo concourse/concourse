@@ -176,7 +176,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 						},
 					},
 				}
-				flyrcContents, err := yaml.Marshal(flyrcConfig)
+				flyrcContents, err := yaml.MarshalWithOptions(flyrcConfig, yaml.UseJSONMarshaler())
 				Expect(err).NotTo(HaveOccurred())
 
 				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
@@ -234,7 +234,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 						},
 					},
 				}
-				flyrcContents, err := yaml.Marshal(flyrcConfig)
+				flyrcContents, err := yaml.MarshalWithOptions(flyrcConfig, yaml.UseJSONMarshaler())
 				Expect(err).NotTo(HaveOccurred())
 
 				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
@@ -277,7 +277,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 						},
 					},
 				}
-				flyrcContents, err := yaml.Marshal(flyrcConfig)
+				flyrcContents, err := yaml.MarshalWithOptions(flyrcConfig, yaml.UseJSONMarshaler())
 				Expect(err).NotTo(HaveOccurred())
 
 				os.WriteFile(flyrc, []byte(flyrcContents), 0777)
@@ -309,7 +309,7 @@ Lfkzl8ebb+tt0XFMUFc42WNr
 						},
 					},
 				}
-				flyrcContents, err := yaml.Marshal(flyrcConfig)
+				flyrcContents, err := yaml.MarshalWithOptions(flyrcConfig, yaml.UseJSONMarshaler())
 				Expect(err).NotTo(HaveOccurred())
 
 				os.WriteFile(flyrc, []byte(flyrcContents), 0777)

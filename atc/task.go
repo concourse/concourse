@@ -65,7 +65,7 @@ func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {
 
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var config TaskConfig
-	err := yaml.UnmarshalWithOptions(configBytes, &config, yaml.UseJSONUnmarshaler(), yaml.DisallowUnknownField(), yaml.Strict())
+	err := yaml.UnmarshalWithOptions(configBytes, &config, yaml.UseJSONUnmarshaler(), yaml.Strict())
 	if err != nil {
 		return TaskConfig{}, err
 	}

@@ -75,7 +75,7 @@ var _ = Describe("Credhub", func() {
 				} `json:"credhub_client_topgun"`
 			}
 
-			err = yaml.Unmarshal(varsBytes, &vars)
+			err = yaml.UnmarshalWithOptions(varsBytes, &vars, yaml.UseJSONUnmarshaler())
 			Expect(err).ToNot(HaveOccurred())
 
 			clientCert := filepath.Join(varsDir, "client.cert")
@@ -241,7 +241,7 @@ func generateCredhubCerts(filepath string) (err error) {
 	vars.CredHubClientAtc.Certificate = clientAtc
 	vars.CredHubClientAtc.PrivateKey = rootCaKey
 
-	varsYaml, _ := yaml.Marshal(&vars)
+	varsYaml, _ := yaml.MarshalWithOptions(&vars, yaml.UseJSONMarshaler())
 	os.WriteFile(filepath, varsYaml, 0644)
 	return nil
 }

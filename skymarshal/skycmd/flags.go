@@ -85,7 +85,7 @@ func (flag *AuthTeamFlags) formatFromFile() (atc.TeamAuth, error) {
 	var data struct {
 		Roles []map[string]any `json:"roles"`
 	}
-	if err = yaml.Unmarshal(content, &data); err != nil {
+	if err = yaml.UnmarshalWithOptions(content, &data, yaml.UseJSONUnmarshaler()); err != nil {
 		return nil, err
 	}
 

@@ -68,7 +68,7 @@ func dump(config atc.Config, asJSON bool) error {
 	if asJSON {
 		payload, err = json.Marshal(config)
 	} else {
-		payload, err = yaml.Marshal(config)
+		payload, err = yaml.MarshalWithOptions(config, yaml.UseJSONMarshaler())
 	}
 	if err != nil {
 		return err

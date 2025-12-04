@@ -195,7 +195,7 @@ func LoadTargets() (Targets, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = yaml.Unmarshal(flyTargetsBytes, &rc)
+		err = yaml.UnmarshalWithOptions(flyTargetsBytes, &rc, yaml.UseJSONUnmarshaler())
 		if err != nil {
 			return nil, fmt.Errorf("in the file '%s': %s", flyrc, err)
 		}
@@ -217,7 +217,7 @@ func LoadTargets() (Targets, error) {
 }
 
 func writeTargets(configFileLocation string, targetsToWrite Targets) error {
-	yamlBytes, err := yaml.Marshal(RC{Targets: targetsToWrite})
+	yamlBytes, err := yaml.MarshalWithOptions(RC{Targets: targetsToWrite}, yaml.UseJSONMarshaler())
 	if err != nil {
 		return err
 	}

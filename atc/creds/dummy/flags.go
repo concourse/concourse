@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	yaml "github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml"
 )
 
 type VarFlag struct {

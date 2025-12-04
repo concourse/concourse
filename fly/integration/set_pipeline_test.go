@@ -50,7 +50,7 @@ var _ = Describe("Fly CLI", func() {
 						bodyConfig := getConfig(r)
 
 						receivedConfig := atc.Config{}
-						err = yaml.Unmarshal(bodyConfig, &receivedConfig)
+						err = yaml.UnmarshalWithOptions(bodyConfig, &receivedConfig, yaml.UseJSONUnmarshaler())
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(receivedConfig).To(Equal(config))
@@ -602,7 +602,7 @@ this is super secure
 										bodyConfig := getConfig(r)
 
 										receivedConfig := atc.Config{}
-										err = yaml.Unmarshal(bodyConfig, &receivedConfig)
+										err = yaml.UnmarshalWithOptions(bodyConfig, &receivedConfig, yaml.UseJSONUnmarshaler())
 										Expect(err).NotTo(HaveOccurred())
 
 										Expect(receivedConfig).To(Equal(config))
@@ -677,7 +677,7 @@ this is super secure
 			JustBeforeEach(func() {
 				var err error
 
-				payload, err = yaml.Marshal(changedConfig)
+				payload, err = yaml.MarshalWithOptions(changedConfig, yaml.UseJSONMarshaler())
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = configFile.Write(payload)
