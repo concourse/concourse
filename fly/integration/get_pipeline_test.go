@@ -75,12 +75,14 @@ var _ = Describe("Fly CLI", func() {
 
 				Jobs: atc.JobConfigs{
 					{
-						Name:   "some-job",
-						Public: true,
-						Serial: true,
+						Name:         "some-job",
+						Public:       true,
+						Serial:       true,
+						PlanSequence: []atc.Step{},
 					},
 					{
-						Name: "some-other-job",
+						Name:         "some-other-job",
+						PlanSequence: []atc.Step{},
 					},
 				},
 			}
@@ -276,7 +278,7 @@ var _ = Describe("Fly CLI", func() {
 								Expect(sess.ExitCode()).To(Equal(0))
 
 								var printedConfig atc.Config
-								err = yaml.UnmarshalWithOptions(sess.Out.Contents(), &printedConfig, yaml.UseJSONUnmarshaler())
+								err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
 								Expect(err).NotTo(HaveOccurred())
 
 								Expect(printedConfig).To(Equal(config))

@@ -15,13 +15,13 @@ groups:
     - resource-4
 jobs:
   - name: some-job
-    plan: null
+    plan: []
     public: true
     serial: true
   - name: some-unchanged-job
-    plan: null
+    plan: []
   - name: some-other-job
-    plan: null
+    plan: []
   - name: pinned-resource-job
     plan:
     - get: some-resource

@@ -427,7 +427,7 @@ var _ = Describe("login Command", func() {
 					scanner := bufio.NewScanner(bytes.NewBuffer(sess.Out.Contents()))
 					var match []string
 					for scanner.Scan() {
-						re := regexp.MustCompile("fly_port=(\\d+)")
+						re := regexp.MustCompile(`fly_port=(\d+)`)
 						match = re.FindStringSubmatch(scanner.Text())
 						if len(match) > 0 {
 							break

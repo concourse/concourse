@@ -14,7 +14,7 @@ groups:
 
 jobs:
   - name: some-job
-    public: yes
+    public: true
     serial:       true
 
   - name: some-unchanged-job

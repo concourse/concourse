@@ -94,7 +94,7 @@ var _ = Describe("Fly CLI", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Err).Should(gbytes.Say("error parsing yaml before applying templates"))
-			Eventually(sess.Err).Should(gbytes.Say("key \"resources\" already set in map"))
+			Eventually(sess.Err).Should(gbytes.Say(`mapping key "resources" already defined`))
 
 			<-sess.Exited
 			Expect(sess.ExitCode()).To(Equal(1))
@@ -146,7 +146,7 @@ var _ = Describe("Fly CLI", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Err).Should(gbytes.Say("json: unknown field \"user_key\""))
+				Eventually(sess.Err).Should(gbytes.Say(`unknown field "user_key"`))
 
 				<-sess.Exited
 				Expect(sess.ExitCode()).To(Equal(1))
