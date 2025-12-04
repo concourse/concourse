@@ -698,6 +698,27 @@ all =
                             |> Common.queryView
                             |> iSeeStarUnfilled
                 ]
+            , describe "pipeline name tooltip" <|
+                let
+                    setupPipeline time =
+                        Common.init "/teams/team/pipelines/pipeline"
+                            |> pipelineFetched
+                                (Data.pipeline "team" 0
+                                    |> Data.withName "pipeline"
+                                    |> Data.withLastUpdatedAt time
+                                )
+                in
+                [ test "hovering pipeline name shows last updated tooltip" <|
+                    \_ ->
+                        setupPipeline (Time.millisToPosix 0)
+                            |> Common.expectTooltipWith
+                                (Message.Message.TopBarPipelineName 0)
+                                (Expect.all
+                                    [ Query.has [ text "pipeline last updated on" ]
+                                    , Query.has [ text "1970" ]
+                                    ]
+                                )
+                ]
             ]
         ]
 

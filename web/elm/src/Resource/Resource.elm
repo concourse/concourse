@@ -516,7 +516,7 @@ handleCallback callback session ( model, effects ) =
                         commentText =
                             "pinned by "
                                 ++ Login.userDisplayName user
-                                ++ " at "
+                                ++ " on "
                                 ++ formatDate session.timeZone time
                     in
                     ( { model
@@ -2097,7 +2097,7 @@ formatDate =
         , DateFormat.dayOfMonthNumber
         , DateFormat.text " "
         , DateFormat.yearNumber
-        , DateFormat.text " "
+        , DateFormat.text " at "
         , DateFormat.hourFixed
         , DateFormat.text ":"
         , DateFormat.minuteFixed

@@ -84,6 +84,7 @@ type DomID
     | PipelineCardFavoritedIcon PipelinesSection Concourse.DatabaseID
     | InstanceGroupCardFavoritedIcon PipelinesSection Concourse.InstanceGroupIdentifier
     | PipelineCardPauseToggle PipelinesSection Concourse.DatabaseID
+    | TopBarPipelineName Concourse.DatabaseID
     | TopBarPinIcon
     | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier

@@ -897,6 +897,9 @@ toHtmlID domId =
         ResourceCommentTextarea ->
             "resource_comment"
 
+        TopBarPipelineName _ ->
+            "top-bar-pipeline-name"
+
         TopBarFavoritedIcon _ ->
             "top-bar-favorited-icon"
 

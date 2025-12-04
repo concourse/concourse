@@ -85,6 +85,7 @@ import ScreenSize exposing (ScreenSize(..))
 import Set
 import SideBar.SideBar as SideBar exposing (byDatabaseId, lookupPipeline)
 import StrictEvents exposing (onScroll)
+import Time
 import Tooltip
 import UserState
 import Views.Spinner as Spinner
@@ -614,6 +615,7 @@ toConcoursePipeline p =
     , pausedAt = Maybe.Nothing
     , archived = p.archived
     , groups = []
+    , lastUpdatedAt = Time.millisToPosix 0
     , backgroundImage = Maybe.Nothing
     , backgroundFilter = Maybe.Nothing
     }
