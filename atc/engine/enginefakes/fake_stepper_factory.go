@@ -94,8 +94,6 @@ func (fake *FakeStepperFactory) StepperForBuildReturnsOnCall(i int, result1 exec
 func (fake *FakeStepperFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.stepperForBuildMutex.RLock()
-	defer fake.stepperForBuildMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

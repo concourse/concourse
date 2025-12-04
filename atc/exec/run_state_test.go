@@ -32,7 +32,7 @@ var _ = Describe("RunState", func() {
 
 		credVars = vars.StaticVariables{"k1": "v1", "k2": "v2", "k3": "v3"}
 
-		state = exec.NewRunState(stepper, credVars, false)
+		state = exec.NewRunState(stepper, credVars)
 	})
 
 	Describe("Run", func() {
@@ -166,7 +166,7 @@ var _ = Describe("RunState", func() {
 
 	Describe("Get", func() {
 		BeforeEach(func() {
-			state = exec.NewRunState(stepper, credVars, false)
+			state = exec.NewRunState(stepper, credVars)
 		})
 
 		It("fetches from cred vars", func() {
@@ -186,7 +186,7 @@ var _ = Describe("RunState", func() {
 
 		Context("when redaction is enabled", func() {
 			BeforeEach(func() {
-				state = exec.NewRunState(stepper, credVars, true)
+				state = exec.NewRunState(stepper, credVars)
 			})
 
 			It("fetched variables are tracked", func() {
@@ -197,22 +197,6 @@ var _ = Describe("RunState", func() {
 				Expect(mapit["k1"]).To(Equal("v1"))
 				Expect(mapit["k2"]).To(Equal("v2"))
 				// "k3" has not been Get, thus should not be tracked.
-				Expect(mapit).ToNot(HaveKey("k3"))
-			})
-		})
-
-		Context("when redaction is not enabled", func() {
-			BeforeEach(func() {
-				state = exec.NewRunState(stepper, credVars, false)
-			})
-
-			It("fetched variables are not tracked", func() {
-				state.Get(vars.Reference{Path: "k1"})
-				state.Get(vars.Reference{Path: "k2"})
-				mapit := vars.TrackedVarsMap{}
-				state.IterateInterpolatedCreds(mapit)
-				Expect(mapit).ToNot(HaveKey("k1"))
-				Expect(mapit).ToNot(HaveKey("k2"))
 				Expect(mapit).ToNot(HaveKey("k3"))
 			})
 		})
@@ -249,7 +233,7 @@ var _ = Describe("RunState", func() {
 	Describe("AddLocalVar", func() {
 		Describe("redact", func() {
 			BeforeEach(func() {
-				state = exec.NewRunState(stepper, credVars, true)
+				state = exec.NewRunState(stepper, credVars)
 				state.AddLocalVar("foo", "bar", true)
 			})
 
@@ -264,26 +248,6 @@ var _ = Describe("RunState", func() {
 				mapit := vars.TrackedVarsMap{}
 				state.IterateInterpolatedCreds(mapit)
 				Expect(mapit["foo"]).To(Equal("bar"))
-			})
-		})
-
-		Describe("not redact", func() {
-			BeforeEach(func() {
-				state.AddLocalVar("foo", "bar", false)
-			})
-
-			It("should get local value", func() {
-				val, found, err := state.Get(vars.Reference{Source: ".", Path: "foo"})
-				Expect(err).To(BeNil())
-				Expect(found).To(BeTrue())
-				Expect(val).To(Equal("bar"))
-			})
-
-			It("fetched variables are not tracked", func() {
-				state.Get(vars.Reference{Source: ".", Path: "foo"})
-				mapit := vars.TrackedVarsMap{}
-				state.IterateInterpolatedCreds(mapit)
-				Expect(mapit).ToNot(ContainElement("foo"))
 			})
 		})
 	})
@@ -357,7 +321,7 @@ var _ = Describe("RunState", func() {
 
 		Describe("TrackedVarsMap", func() {
 			BeforeEach(func() {
-				state = exec.NewRunState(stepper, credVars, true)
+				state = exec.NewRunState(stepper, credVars)
 			})
 
 			It("prefers the value set in the current scope over the parent scope", func() {

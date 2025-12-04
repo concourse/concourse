@@ -26,12 +26,11 @@ type Stepper func(atc.Plan) Step
 func NewRunState(
 	stepper Stepper,
 	credVars vars.Variables,
-	enableRedaction bool,
 ) RunState {
 	return &runState{
 		stepper: stepper,
 
-		vars: newBuildVariables(credVars, enableRedaction),
+		vars: newBuildVariables(credVars),
 
 		artifacts: build.NewRepository(),
 		results:   &sync.Map{},
@@ -86,10 +85,6 @@ func (state *runState) Parent() RunState {
 
 func (state *runState) AddLocalVar(name string, val any, redact bool) {
 	state.vars.AddLocalVar(name, val, redact)
-}
-
-func (state *runState) RedactionEnabled() bool {
-	return state.vars.RedactionEnabled()
 }
 
 func (state *runState) Run(ctx context.Context, plan atc.Plan) (bool, error) {

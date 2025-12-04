@@ -119,7 +119,7 @@ var _ = Describe("GetStep", func() {
 		runState = exec.NewRunState(noopStepper, vars.StaticVariables{
 			"source-var": "super-secret-source",
 			"params-var": "super-secret-params",
-		}, false)
+		})
 		artifactRepository = runState.ArtifactRepository()
 
 		fakeDelegate = new(execfakes.FakeGetDelegate)

@@ -55,7 +55,7 @@ var _ = Describe("TaskDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		state = exec.NewRunState(noopStepper, credVars, true)
+		state = exec.NewRunState(noopStepper, credVars)
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 		fakeWorkerFactory = new(dbfakes.FakeWorkerFactory)
@@ -188,7 +188,7 @@ var _ = Describe("TaskDelegate", func() {
 				return step
 			}
 
-			runState := exec.NewRunState(stepper, nil, false)
+			runState := exec.NewRunState(stepper, nil)
 			delegate = NewTaskDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, fakeWorkerFactory, fakeLockFactory)
 
 			imageResource = atc.ImageResource{

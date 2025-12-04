@@ -87,8 +87,6 @@ func (fake *FakeBuildStepDelegateFactory) BuildStepDelegateReturnsOnCall(i int, 
 func (fake *FakeBuildStepDelegateFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.buildStepDelegateMutex.RLock()
-	defer fake.buildStepDelegateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

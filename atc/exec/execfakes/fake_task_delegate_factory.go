@@ -87,8 +87,6 @@ func (fake *FakeTaskDelegateFactory) TaskDelegateReturnsOnCall(i int, result1 ex
 func (fake *FakeTaskDelegateFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.taskDelegateMutex.RLock()
-	defer fake.taskDelegateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
