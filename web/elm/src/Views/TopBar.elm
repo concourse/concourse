@@ -23,6 +23,7 @@ import RemoteData
 import Routes
 import SideBar.SideBar exposing (byPipelineId, isPipelineVisible, lookupPipeline)
 import Time
+import Tooltip
 import Url
 import Views.InstanceGroupBadge as InstanceGroupBadge
 import Views.Styles as Styles
@@ -267,6 +268,17 @@ pipelineBreadcrumb inInstanceGroup pipeline groups isLastBreadcrumb =
 
             else
                 pipelineNameView pipeline.name pipeline.archived
+
+        nameHtml =
+            if isLastBreadcrumb then
+                Html.div
+                    (Styles.ellipsedText ++ Tooltip.hoverAttrs (TopBarPipelineName pipeline.id))
+                    [ Html.text <| decodeName text ]
+
+            else
+                Html.span
+                    (Tooltip.hoverAttrs (TopBarPipelineName pipeline.id))
+                    [ Html.text <| decodeName text ]
     in
     Html.a
         ([ id "breadcrumb-pipeline"
@@ -276,16 +288,16 @@ pipelineBreadcrumb inInstanceGroup pipeline groups isLastBreadcrumb =
          ]
             ++ Styles.breadcrumbItem True isLastBreadcrumb
         )
-        (breadcrumbComponent
-            isLastBreadcrumb
-            { icon =
+        [ Html.div
+            (Styles.breadcrumbComponent
                 { component = Assets.PipelineComponent
                 , widthPx = 28
                 , heightPx = 16
                 }
-            , name = text
-            }
-        )
+            )
+            []
+        , nameHtml
+        ]
 
 
 jobBreadcrumb : String -> Bool -> Html Message
@@ -373,7 +385,7 @@ formatDate =
         , DateFormat.dayOfMonthNumber
         , DateFormat.text " "
         , DateFormat.yearNumber
-        , DateFormat.text " "
+        , DateFormat.text " at "
         , DateFormat.hourFixed
         , DateFormat.text ":"
         , DateFormat.minuteFixed

@@ -47,6 +47,7 @@ module Data exposing
     , withJob
     , withJobName
     , withLastChecked
+    , withLastUpdatedAt
     , withName
     , withNextBuild
     , withPaused
@@ -188,6 +189,7 @@ pipeline team id =
     , public = True
     , teamName = team
     , groups = []
+    , lastUpdatedAt = Time.millisToPosix 0
     , backgroundImage = Maybe.Nothing
     , backgroundFilter = Maybe.Nothing
     }
@@ -232,6 +234,11 @@ withName name p =
 withGroups : List Concourse.PipelineGroup -> { r | groups : List Concourse.PipelineGroup } -> { r | groups : List Concourse.PipelineGroup }
 withGroups groups p =
     { p | groups = groups }
+
+
+withLastUpdatedAt : Time.Posix -> { r | lastUpdatedAt : Time.Posix } -> { r | lastUpdatedAt : Time.Posix }
+withLastUpdatedAt time p =
+    { p | lastUpdatedAt = time }
 
 
 withBackgroundImage : String -> { r | backgroundImage : Maybe String } -> { r | backgroundImage : Maybe String }

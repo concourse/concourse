@@ -1143,6 +1143,7 @@ type alias Pipeline =
     , public : Bool
     , teamName : TeamName
     , groups : List PipelineGroup
+    , lastUpdatedAt : Time.Posix
     , backgroundImage : Maybe String
     , backgroundFilter : Maybe String
     }
@@ -1166,6 +1167,7 @@ encodePipeline pipeline =
         , ( "public", pipeline.public |> Json.Encode.bool )
         , ( "team_name", pipeline.teamName |> Json.Encode.string )
         , ( "groups", pipeline.groups |> Json.Encode.list encodePipelineGroup )
+        , ( "last_updated", (secondsFromDate >> Json.Encode.int) pipeline.lastUpdatedAt )
         , ( "display"
           , Json.Encode.object
                 [ ( "background_image", pipeline.backgroundImage |> Json.Encode.Extra.maybe Json.Encode.string )
@@ -1188,6 +1190,7 @@ decodePipeline =
         |> andMap (Json.Decode.field "public" Json.Decode.bool)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" (Json.Decode.list decodePipelineGroup))
+        |> andMap (Json.Decode.field "last_updated" (Json.Decode.map dateFromSeconds Json.Decode.int))
         |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_image" ] Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_filter" ] Json.Decode.string))
 

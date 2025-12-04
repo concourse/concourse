@@ -339,6 +339,22 @@ all =
                         >> Query.has
                             [ style "border-left" <| "1px solid " ++ borderGrey ]
                 ]
+            , context "when hovering over the pipeline name"
+                (hoverOver (Msgs.TopBarPipelineName 0) >> Tuple.first)
+              <|
+                [ it "shows tooltip with last updated time" <|
+                    Application.handleCallback
+                        (Callback.PipelineFetched <|
+                            Ok
+                                (Data.pipeline "t" 0
+                                    |> Data.withName "p"
+                                )
+                        )
+                        >> Tuple.first
+                        >> queryView
+                        >> Query.find [ id "tooltips" ]
+                        >> Query.has [ text "pipeline last updated on Jan 1 1970 at 12:00:00 AM" ]
+                ]
             , context "when hovering over the pinned icon"
                 (hoverOver Msgs.TopBarPinIcon >> Tuple.first)
               <|

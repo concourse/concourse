@@ -16,6 +16,7 @@ module Pipeline.Pipeline exposing
 import Application.Models exposing (Session)
 import Colors
 import Concourse
+import DateFormat
 import EffectTransformer exposing (ET)
 import Favorites
 import HoverState
@@ -451,6 +452,22 @@ view session model =
 tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip model session =
     case session.hovered of
+        HoverState.Tooltip (TopBarPipelineName _) _ ->
+            case lastUpdatedAt model.pipeline of
+                Just time ->
+                    Just
+                        { body =
+                            Html.text <|
+                                "pipeline last updated on "
+                                    ++ formatDate session.timeZone time
+                        , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.Start }
+                        , arrow = Just 5
+                        , containerAttrs = Nothing
+                        }
+
+                Nothing ->
+                    Nothing
+
         HoverState.Tooltip (TopBarFavoritedIcon _) _ ->
             let
                 isFavorited =
@@ -524,6 +541,16 @@ pausedAt pipeline =
 isArchived : WebData Concourse.Pipeline -> Bool
 isArchived p =
     RemoteData.withDefault False (RemoteData.map .archived p)
+
+
+lastUpdatedAt : WebData Concourse.Pipeline -> Maybe Time.Posix
+lastUpdatedAt pipeline =
+    case pipeline of
+        RemoteData.Success p ->
+            Just p.lastUpdatedAt
+
+        _ ->
+            Nothing
 
 
 backgroundImage : WebData Concourse.Pipeline -> List (Html.Attribute msg)
@@ -824,3 +851,22 @@ getNextUrl : List String -> Model -> String
 getNextUrl newGroups model =
     Routes.toString <|
         Routes.Pipeline { id = model.pipelineLocator, groups = newGroups }
+
+
+formatDate : Time.Zone -> Time.Posix -> String
+formatDate =
+    DateFormat.format
+        [ DateFormat.monthNameAbbreviated
+        , DateFormat.text " "
+        , DateFormat.dayOfMonthNumber
+        , DateFormat.text " "
+        , DateFormat.yearNumber
+        , DateFormat.text " at "
+        , DateFormat.hourFixed
+        , DateFormat.text ":"
+        , DateFormat.minuteFixed
+        , DateFormat.text ":"
+        , DateFormat.secondFixed
+        , DateFormat.text " "
+        , DateFormat.amPmUppercase
+        ]

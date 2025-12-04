@@ -2515,14 +2515,14 @@ all =
                                 >> Query.has
                                     [ attribute <|
                                         Attr.value
-                                            "pinned by some-user at Jan 1 1970 12:00:00 AM"
+                                            "pinned by some-user on Jan 1 1970 at 12:00:00 AM"
                                     ]
                         , test "automatically tries to set comment" <|
                             onSuccess
                                 >> Tuple.second
                                 >> Expect.equal
                                     [ Effects.SetPinComment Data.resourceId
-                                        "pinned by some-user at Jan 1 1970 12:00:00 AM"
+                                        "pinned by some-user on Jan 1 1970 at 12:00:00 AM"
                                     ]
                         ]
                     , test "clicked button shows unpinned state when pinning fails" <|
@@ -3007,7 +3007,7 @@ all =
                             |> Query.find [ id "last-checked" ]
                             |> Query.has
                                 [ attribute <|
-                                    Attr.title "Jan 1 1970 05:00:00 AM"
+                                    Attr.title "Jan 1 1970 at 05:00:00 AM"
                                 ]
                 ]
             ]
