@@ -14,10 +14,6 @@ type Middleware interface {
 	SetCSRFToken(http.ResponseWriter, string, time.Time) error
 	UnsetCSRFToken(http.ResponseWriter)
 	GetCSRFToken(*http.Request) string
-
-	SetStateToken(http.ResponseWriter, string, time.Time) error
-	UnsetStateToken(http.ResponseWriter)
-	GetStateToken(*http.Request) string
 }
 
 type middleware struct {
@@ -28,7 +24,6 @@ func NewMiddleware(secureCookies bool) Middleware {
 	return &middleware{secureCookies: secureCookies}
 }
 
-const stateCookieName = "skymarshal_state"
 const authCookieName = "skymarshal_auth"
 const csrfCookieName = "skymarshal_csrf"
 
@@ -92,39 +87,6 @@ func (m *middleware) SetCSRFToken(w http.ResponseWriter, csrfToken string, expir
 
 func (m *middleware) GetCSRFToken(r *http.Request) string {
 	cookie, err := r.Cookie(csrfCookieName)
-	if err != nil {
-		return ""
-	}
-	return cookie.Value
-}
-
-func (m *middleware) UnsetStateToken(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     stateCookieName,
-		Path:     "/",
-		MaxAge:   -1,
-		Secure:   m.secureCookies,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-}
-
-func (m *middleware) SetStateToken(w http.ResponseWriter, stateToken string, expiry time.Time) error {
-	http.SetCookie(w, &http.Cookie{
-		Name:     stateCookieName,
-		Value:    stateToken,
-		Path:     "/",
-		Expires:  expiry,
-		Secure:   m.secureCookies,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-
-	return nil
-}
-
-func (m *middleware) GetStateToken(r *http.Request) string {
-	cookie, err := r.Cookie(stateCookieName)
 	if err != nil {
 		return ""
 	}

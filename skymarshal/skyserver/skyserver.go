@@ -2,7 +2,9 @@ package skyserver
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -29,6 +31,7 @@ type SkyConfig struct {
 	HTTPClient         *http.Client
 	AccessTokenFactory db.AccessTokenFactory
 	ClaimsCacher       accessor.AccessTokenFetcher
+	StateSigningKey    []byte
 }
 
 func NewSkyHandler(server *SkyServer) http.Handler {
@@ -40,6 +43,9 @@ func NewSkyHandler(server *SkyServer) http.Handler {
 }
 
 func NewSkyServer(config *SkyConfig) (*SkyServer, error) {
+	if len(config.StateSigningKey) < 32 {
+		return nil, errors.New("StateSigningKey must be at least 32 bytes")
+	}
 	return &SkyServer{config}, nil
 }
 
@@ -101,14 +107,13 @@ func (s *SkyServer) NewLogin(w http.ResponseWriter, r *http.Request) {
 		redirectURI = "/"
 	}
 
-	stateToken := encode(stateToken{
+	stateToken, err := s.signState(stateToken{
 		RedirectURI: redirectURI,
 		Entropy:     randomString(),
+		Timestamp:   time.Now().Unix(),
 	})
-
-	err := s.config.TokenMiddleware.SetStateToken(w, stateToken, time.Now().Add(time.Hour))
 	if err != nil {
-		logger.Error("invalid-state-token", err)
+		logger.Error("failed-to-sign-state", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -128,20 +133,13 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stateToken := s.config.TokenMiddleware.GetStateToken(r)
-	if stateToken == "" {
-		logger.Error("failed-with-invalid-state-token", errors.New("state token is empty"))
+	urlState := r.FormValue("state")
+	state, err := s.verifyState(urlState)
+	if err != nil {
+		logger.Error("failed-to-verify-state", err)
 		http.Error(w, "invalid state token", http.StatusBadRequest)
 		return
 	}
-
-	if stateToken != r.FormValue("state") {
-		logger.Error("failed-with-unexpected-state-token", errors.New("state token does not match"))
-		http.Error(w, "unexpected state token", http.StatusBadRequest)
-		return
-	}
-
-	s.config.TokenMiddleware.UnsetStateToken(w)
 
 	ctx := context.WithValue(r.Context(), oauth2.HTTPClient, s.config.HTTPClient)
 
@@ -158,7 +156,7 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.Redirect(w, r, dexToken, decode(stateToken).RedirectURI)
+	s.Redirect(w, r, dexToken, state.RedirectURI)
 }
 
 func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, oauth2Token *oauth2.Token, redirectURI string) {
@@ -236,20 +234,66 @@ func (s *SkyServer) Logout(w http.ResponseWriter, r *http.Request) {
 type stateToken struct {
 	RedirectURI string `json:"redirect_uri"`
 	Entropy     string `json:"entropy"`
+	Timestamp   int64  `json:"ts"`
+	Signature   string `json:"sig,omitempty"`
 }
 
-func encode(token stateToken) string {
-	json, _ := json.Marshal(token)
+const stateTokenMaxAge = 3600 // 1 hour
 
-	return base64.StdEncoding.EncodeToString(json)
+func (s *SkyServer) signState(st stateToken) (string, error) {
+	st.Signature = ""
+	payload, err := json.Marshal(st)
+	if err != nil {
+		return "", err
+	}
+
+	mac := hmac.New(sha256.New, s.config.StateSigningKey)
+	mac.Write(payload)
+	st.Signature = base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	signed, err := json.Marshal(st)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(signed), nil
 }
 
-func decode(raw string) stateToken {
-	data, _ := base64.StdEncoding.DecodeString(raw)
+func (s *SkyServer) verifyState(raw string) (stateToken, error) {
+	data, err := base64.RawURLEncoding.DecodeString(raw)
+	if err != nil {
+		return stateToken{}, errors.New("failed to decode state")
+	}
 
-	var token stateToken
-	json.Unmarshal(data, &token)
-	return token
+	var st stateToken
+	if err := json.Unmarshal(data, &st); err != nil {
+		return stateToken{}, errors.New("failed to unmarshal state")
+	}
+
+	sig := st.Signature
+	if sig == "" {
+		return stateToken{}, errors.New("missing signature")
+	}
+
+	st.Signature = ""
+	payload, err := json.Marshal(st)
+	if err != nil {
+		return stateToken{}, errors.New("failed to marshal state for verification")
+	}
+
+	mac := hmac.New(sha256.New, s.config.StateSigningKey)
+	mac.Write(payload)
+	expected := base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	if !hmac.Equal([]byte(sig), []byte(expected)) {
+		return stateToken{}, errors.New("signature mismatch")
+	}
+
+	if time.Now().Unix()-st.Timestamp > stateTokenMaxAge {
+		return stateToken{}, errors.New("state expired")
+	}
+
+	return st, nil
 }
 
 func randomString() string {

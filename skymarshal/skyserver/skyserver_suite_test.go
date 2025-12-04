@@ -2,7 +2,6 @@ package skyserver_test
 
 import (
 	"crypto/rand"
-	"crypto/rsa"
 	"net/http/httptest"
 	"testing"
 
@@ -24,10 +23,10 @@ var (
 	fakeTokenParser        *tokenfakes.FakeParser
 	skyServer              *httptest.Server
 	dexServer              *ghttp.Server
-	signingKey             *rsa.PrivateKey
 	config                 *skyserver.SkyConfig
 	fakeClaimsCacher       *accessorfakes.FakeAccessTokenFetcher
 	fakeAccessTokenFactory *dbfakes.FakeAccessTokenFactory
+	stateSigningKey        []byte
 )
 
 func TestSkyServer(t *testing.T) {
@@ -45,7 +44,8 @@ var _ = BeforeEach(func() {
 
 	dexServer = ghttp.NewTLSServer()
 
-	signingKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	stateSigningKey = make([]byte, 32)
+	_, err = rand.Read(stateSigningKey)
 	Expect(err).NotTo(HaveOccurred())
 
 	endpoint := oauth2.Endpoint{
@@ -69,6 +69,7 @@ var _ = BeforeEach(func() {
 		HTTPClient:         dexServer.HTTPTestServer.Client(),
 		ClaimsCacher:       fakeClaimsCacher,
 		AccessTokenFactory: fakeAccessTokenFactory,
+		StateSigningKey:    stateSigningKey,
 	}
 
 	server, err := skyserver.NewSkyServer(config)
