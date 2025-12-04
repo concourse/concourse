@@ -16,15 +16,8 @@ func NewWorkerBaseResourceTypeFactory(conn DbConn) WorkerBaseResourceTypeFactory
 }
 
 func (f *workerBaseResourceTypeFactory) Find(name string, worker Worker) (*UsedWorkerBaseResourceType, bool, error) {
-	tx, err := f.conn.Begin()
-	if err != nil {
-		return nil, false, err
-	}
-
-	defer Rollback(tx)
-
 	return WorkerBaseResourceType{
 		Name:       name,
 		WorkerName: worker.Name(),
-	}.Find(tx)
+	}.Find(f.conn)
 }
