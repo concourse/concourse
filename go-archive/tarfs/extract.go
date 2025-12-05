@@ -98,6 +98,7 @@ func ExtractEntry(header *tar.Header, dest string, input io.Reader, chown bool) 
 
 		_, err = io.Copy(file, input)
 		if err != nil {
+			file.Close()
 			return err
 		}
 

@@ -23,6 +23,7 @@ func Extract(src io.Reader, dest string) error {
 	if err != nil {
 		return err
 	}
+	defer gr.Close()
 
 	tarReader := tar.NewReader(gr)
 
