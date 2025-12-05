@@ -39,6 +39,7 @@ func (m *middleware) UnsetAuthToken(w http.ResponseWriter) {
 		MaxAge:   -1,
 		Secure:   m.secureCookies,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -50,6 +51,7 @@ func (m *middleware) SetAuthToken(w http.ResponseWriter, tokenStr string, expiry
 		Expires:  expiry,
 		HttpOnly: true,
 		Secure:   m.secureCookies,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	return nil
@@ -70,6 +72,7 @@ func (m *middleware) UnsetCSRFToken(w http.ResponseWriter) {
 		MaxAge:   -1,
 		Secure:   m.secureCookies,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -81,6 +84,7 @@ func (m *middleware) SetCSRFToken(w http.ResponseWriter, csrfToken string, expir
 		Expires:  expiry,
 		Secure:   m.secureCookies,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	return nil
@@ -101,6 +105,7 @@ func (m *middleware) UnsetStateToken(w http.ResponseWriter) {
 		MaxAge:   -1,
 		Secure:   m.secureCookies,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -112,6 +117,7 @@ func (m *middleware) SetStateToken(w http.ResponseWriter, stateToken string, exp
 		Expires:  expiry,
 		Secure:   m.secureCookies,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	return nil

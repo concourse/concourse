@@ -61,6 +61,7 @@ var _ = Describe("Token Middleware", func() {
 				Expect(cookies[0].Name).To(Equal("skymarshal_auth"))
 				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
 				Expect(cookies[0].Value).To(Equal("blah"))
+				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})
 		})
 
@@ -74,6 +75,7 @@ var _ = Describe("Token Middleware", func() {
 				Expect(cookies).To(HaveLen(1))
 				Expect(cookies[0].Name).To(Equal("skymarshal_auth"))
 				Expect(cookies[0].Value).To(Equal(""))
+				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})
 		})
 	})
@@ -107,6 +109,7 @@ var _ = Describe("Token Middleware", func() {
 				Expect(cookies[0].Name).To(Equal("skymarshal_csrf"))
 				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
 				Expect(cookies[0].Value).To(Equal("blah"))
+				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})
 		})
 
@@ -120,6 +123,7 @@ var _ = Describe("Token Middleware", func() {
 				Expect(cookies).To(HaveLen(1))
 				Expect(cookies[0].Name).To(Equal("skymarshal_csrf"))
 				Expect(cookies[0].Value).To(Equal(""))
+				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})
 		})
 	})
@@ -153,6 +157,7 @@ var _ = Describe("Token Middleware", func() {
 				Expect(cookies[0].Name).To(Equal("skymarshal_state"))
 				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
 				Expect(cookies[0].Value).To(Equal("blah"))
+				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})
 		})
 
@@ -166,6 +171,7 @@ var _ = Describe("Token Middleware", func() {
 				Expect(cookies).To(HaveLen(1))
 				Expect(cookies[0].Name).To(Equal("skymarshal_state"))
 				Expect(cookies[0].Value).To(Equal(""))
+				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})
 		})
 	})
