@@ -47,9 +47,7 @@ type BaggageclaimCommand struct {
 	PrivilegedMode bespec.PrivilegedMode `hidden:"true"`
 }
 
-func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
-	logger, _ := cmd.constructLogger()
-
+func (cmd *BaggageclaimCommand) Runner(logger lager.Logger, args []string) (ifrit.Runner, error) {
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
 
 	privilegedNamespacer, unprivilegedNamespacer := cmd.SelectNamespacers(logger)
