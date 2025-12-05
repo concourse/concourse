@@ -27,7 +27,7 @@ var ErrUnsupportedStreamEncoding = errors.New("unsupported stream encoding")
 //counterfeiter:generate . Repository
 type Repository interface {
 	ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, []string, error)
-	GetVolume(ctx context.Context, handle string) (Volume, bool, error)
+	GetVolume(ctx context.Context, handle string, size bool) (Volume, bool, error)
 	CreateVolume(ctx context.Context, handle string, strategy Strategy, properties Properties, isPrivileged bool) (Volume, error)
 	DestroyVolume(ctx context.Context, handle string) error
 	DestroyVolumeAndDescendants(ctx context.Context, handle string) error
@@ -247,15 +247,28 @@ func (repo *repository) ListVolumes(ctx context.Context, queryProperties Propert
 	return healthyVolumes, corruptedVolumeHandles, nil
 }
 
-func (repo *repository) GetVolume(ctx context.Context, handle string) (Volume, bool, error) {
+func (repo *repository) GetVolume(ctx context.Context, handle string, size bool) (Volume, bool, error) {
 	logger := lagerctx.FromContext(ctx).Session("get-volume", lager.Data{
 		"volume": handle,
 	})
 
-	liveVolume, found, err := repo.filesystem.LookupVolume(handle)
-	if err != nil {
-		logger.Error("failed-to-lookup-volume", err)
-		return Volume{}, false, err
+	var liveVolume FilesystemLiveVolume
+	var found bool
+	var sizeInMB int
+	var err error
+	if size == true {
+		liveVolume, found, sizeInMB, err = repo.filesystem.LookupVolumeWithSize(handle)
+		if err != nil {
+			logger.Error("failed-to-lookup-volume", err)
+			return Volume{}, false, err
+		}
+
+	} else {
+		liveVolume, found, err = repo.filesystem.LookupVolume(handle)
+		if err != nil {
+			logger.Error("failed-to-lookup-volume", err)
+			return Volume{}, false, err
+		}
 	}
 
 	if !found {
@@ -264,6 +277,9 @@ func (repo *repository) GetVolume(ctx context.Context, handle string) (Volume, b
 	}
 
 	volume, err := repo.volumeFrom(liveVolume)
+	if sizeInMB != 0 {
+		volume.Size = sizeInMB
+	}
 	if err == ErrVolumeDoesNotExist {
 		return Volume{}, false, nil
 	}

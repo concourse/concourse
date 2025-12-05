@@ -2,7 +2,10 @@ package volume
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -12,6 +15,7 @@ import (
 type Filesystem interface {
 	NewVolume(string) (FilesystemInitVolume, error)
 	LookupVolume(string) (FilesystemLiveVolume, bool, error)
+	LookupVolumeWithSize(string) (FilesystemLiveVolume, bool, int, error)
 	ListVolumes() ([]FilesystemLiveVolume, error)
 }
 
@@ -135,6 +139,37 @@ func (fs *filesystem) LookupVolume(handle string) (FilesystemLiveVolume, bool, e
 			dir:    volumePath,
 		},
 	}, true, nil
+}
+
+func (fs *filesystem) LookupVolumeWithSize(handle string) (FilesystemLiveVolume, bool, int, error) {
+	volumePath := fs.liveVolumePath(handle)
+
+	info, err := os.Stat(volumePath)
+	if os.IsNotExist(err) {
+		return nil, false, 0, nil
+	}
+
+	if err != nil {
+		return nil, false, 0, err
+	}
+
+	if !info.IsDir() {
+		return nil, false, 0, nil
+	}
+
+	volumeSize, err := getDirSize(volumePath)
+	if err != nil {
+		return nil, false, 0, err
+	}
+
+	return &liveVolume{
+		baseVolume: baseVolume{
+			fs: fs,
+
+			handle: handle,
+			dir:    volumePath,
+		},
+	}, true, volumeSize, nil
 }
 
 func (fs *filesystem) ListVolumes() ([]FilesystemLiveVolume, error) {
@@ -335,4 +370,20 @@ func (vol *deadVolume) Destroy() error {
 	}
 
 	return vol.cleanup()
+}
+
+// Run "du -sm $path" command and get directory size in megabytes
+// TODO: du command may not exist on worker
+// TODO: replace implementation with github.com/ricochet2200/go-disk-usage
+func getDirSize(path string) (int, error) {
+	cmd := exec.Command("du", "-sm", path)
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, err
+	}
+	re := regexp.MustCompile(`(\d+)\s+`)
+	match := re.FindStringSubmatch(string(out))
+	sizeStr := match[1]
+	size, _ := strconv.Atoi(sizeStr)
+	return size, nil
 }
