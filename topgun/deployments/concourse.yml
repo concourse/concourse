@@ -14,7 +14,7 @@ instance_groups:
   instances: 1
   networks: [{name: test}]
   azs: [z1]
-  vm_type: test
+  vm_type: minimal
   stemcell: ((stemcell_variant))
   jobs:
   - release: bpm
@@ -54,7 +54,7 @@ instance_groups:
   azs: [z1]
   # don't bother with persistent disk
   # persistent_disk: 10240
-  vm_type: test
+  vm_type: minimal
   stemcell: ((stemcell_variant))
   jobs:
   - release: postgres
@@ -71,7 +71,7 @@ instance_groups:
   instances: 1
   networks: [{name: test}]
   azs: [z1]
-  vm_type: test
+  vm_type: minimal
   stemcell: ((stemcell_variant))
   jobs:
   - release: concourse((suite))
