@@ -51,7 +51,8 @@ instance_groups:
 
 - name: db
   instances: 1
-  networks: [{name: test}]
+  networks:
+    - name: default
   azs: [z1]
   # don't bother with persistent disk
   # persistent_disk: 10240
@@ -70,7 +71,8 @@ instance_groups:
 
 - name: worker
   instances: 1
-  networks: [{name: test}]
+  networks:
+    - name: default
   azs: [z1]
   vm_type: minimal
   stemcell: ((stemcell_variant))
