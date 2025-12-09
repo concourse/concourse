@@ -102,7 +102,7 @@ var _ = Describe("AcrossStep", func() {
 		ctx, cancel = context.WithCancel(context.Background())
 		ctx = lagerctx.NewContext(ctx, testLogger)
 
-		state = exec.NewRunState(stepper, vars.StaticVariables{}, false)
+		state = exec.NewRunState(stepper, vars.StaticVariables{})
 
 		stderr = gbytes.NewBuffer()
 

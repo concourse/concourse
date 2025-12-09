@@ -67,26 +67,15 @@ func (delegate *buildStepDelegate) Stdout() io.Writer {
 	if delegate.stdout != nil {
 		return delegate.stdout
 	}
-	if delegate.state.RedactionEnabled() {
-		delegate.stdout = newDBEventWriterWithSecretRedaction(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStdout,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-			delegate.buildOutputFilter,
-		)
-	} else {
-		delegate.stdout = newDBEventWriter(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStdout,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-		)
-	}
+	delegate.stdout = newDBEventWriter(
+		delegate.build,
+		event.Origin{
+			Source: event.OriginSourceStdout,
+			ID:     event.OriginID(delegate.planID),
+		},
+		delegate.clock,
+		delegate.buildOutputFilter,
+	)
 	return delegate.stdout
 }
 
@@ -94,26 +83,15 @@ func (delegate *buildStepDelegate) Stderr() io.Writer {
 	if delegate.stderr != nil {
 		return delegate.stderr
 	}
-	if delegate.state.RedactionEnabled() {
-		delegate.stderr = newDBEventWriterWithSecretRedaction(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStderr,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-			delegate.buildOutputFilter,
-		)
-	} else {
-		delegate.stderr = newDBEventWriter(
-			delegate.build,
-			event.Origin{
-				Source: event.OriginSourceStderr,
-				ID:     event.OriginID(delegate.planID),
-			},
-			delegate.clock,
-		)
-	}
+	delegate.stderr = newDBEventWriter(
+		delegate.build,
+		event.Origin{
+			Source: event.OriginSourceStderr,
+			ID:     event.OriginID(delegate.planID),
+		},
+		delegate.clock,
+		delegate.buildOutputFilter,
+	)
 	return delegate.stderr
 }
 
@@ -450,7 +428,7 @@ type credVarsIterator struct {
 }
 
 func (it *credVarsIterator) YieldCred(name, value string) {
-	for _, lineValue := range strings.Split(value, "\n") {
+	for lineValue := range strings.SplitSeq(value, "\n") {
 		lineValue = strings.TrimSpace(lineValue)
 		// Don't consider a single char as a secret.
 		if len(lineValue) > 1 {

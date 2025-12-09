@@ -918,7 +918,6 @@ type alias FeatureFlags =
     -- The fields must match the names in `atc/feature_flags.go -> FeatureFlags()`.
     -- If a field is deleted on the Go side, it must also be deleted here.
     { global_resources : Bool
-    , redact_secrets : Bool
     , build_rerun : Bool
     , cache_streamed_volumes : Bool
     , resource_causality : Bool
@@ -928,7 +927,6 @@ type alias FeatureFlags =
 defaultFeatureFlags : FeatureFlags
 defaultFeatureFlags =
     { global_resources = False
-    , redact_secrets = False
     , build_rerun = False
     , cache_streamed_volumes = False
     , resource_causality = False

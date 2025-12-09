@@ -338,7 +338,7 @@ func (b *engineBuild) runState(logger lager.Logger, stepper exec.Stepper) (exec.
 	if err != nil {
 		return nil, err
 	}
-	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, credVars, atc.EnableRedactSecrets))
+	state, _ := b.trackedStates.LoadOrStore(id, exec.NewRunState(stepper, credVars))
 	return state.(exec.RunState), nil
 }
 

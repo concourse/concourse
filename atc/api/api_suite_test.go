@@ -41,7 +41,6 @@ var (
 	"build_rerun": false,
 	"cache_streamed_volumes": false,
 	"global_resources": false,
-	"redact_secrets": false,
 	"resource_causality": false
 }`
 

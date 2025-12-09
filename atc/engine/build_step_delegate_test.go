@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,7 +60,6 @@ var _ = Describe("BuildStepDelegate", func() {
 		planID = "some-plan-id"
 
 		runState = new(execfakes.FakeRunState)
-		runState.RedactionEnabledReturns(true)
 
 		repo := build.NewRepository()
 		runState.ArtifactRepositoryReturns(repo)
@@ -162,7 +162,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				return step
 			}
 
-			parentRunState = exec.NewRunState(stepper, nil, true)
+			parentRunState = exec.NewRunState(stepper, nil)
 
 			privileged = false
 
@@ -575,19 +575,10 @@ var _ = Describe("BuildStepDelegate", func() {
 			// handled and added to this list.
 			handledFields := []string{"ID", "Get.VersionFrom"}
 
-			isHandled := func(field string) bool {
-				for _, f := range handledFields {
-					if f == field {
-						return true
-					}
-				}
-				return false
-			}
-
 			var dereference func(reflect.Type) reflect.Type
 			dereference = func(rt reflect.Type) reflect.Type {
 				switch rt.Kind() {
-				case reflect.Ptr, reflect.Array, reflect.Slice:
+				case reflect.Pointer, reflect.Array, reflect.Slice:
 					return dereference(rt.Elem())
 				default:
 					return rt
@@ -602,7 +593,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				rt = dereference(rt)
 
 				fieldPath := strings.Join(paths, ".")
-				if rt == planIDType && !isHandled(fieldPath) {
+				if rt == planIDType && !slices.Contains(handledFields, fieldPath) {
 					Fail(fmt.Sprintf("ConstructAcrossSubsteps does not handle PlanID field %q", fieldPath))
 				}
 
@@ -640,14 +631,11 @@ var _ = Describe("BuildStepDelegate", func() {
 			var writtenBytes int
 			var writeErr error
 
-			JustBeforeEach(func() {
-				writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
-				writer.(io.Closer).Close()
-			})
-
 			Context("when saving the event succeeds", func() {
 				BeforeEach(func() {
 					fakeBuild.SaveEventReturns(nil)
+					writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
+					writer.(io.Closer).Close()
 				})
 
 				It("returns the length of the string, and no error", func() {
@@ -681,11 +669,145 @@ var _ = Describe("BuildStepDelegate", func() {
 
 				BeforeEach(func() {
 					fakeBuild.SaveEventReturns(disaster)
+					writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
+					writer.(io.Closer).Close()
 				})
 
 				It("returns 0 length, and the error", func() {
 					Expect(writtenBytes).To(Equal(0))
 					Expect(writeErr).To(Equal(disaster))
+				})
+			})
+
+			Context("caches any text after \\n or \\r", func() {
+				Context("when the data only contains \\n", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello\nworld"))
+					})
+
+					It("returns the length of the string, and no error", func() {
+						Expect(writtenBytes).To(Equal(len("hello\nworld")))
+						Expect(writeErr).ToNot(HaveOccurred())
+					})
+
+					It("saves two log events", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "hello\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+
+						writer.(io.Closer).Close()
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2), "second event is cached and only written after writer.Close() is called")
+						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "world",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("when the data only contains \\r", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello\rworld"))
+					})
+
+					It("returns the length of the string, and no error", func() {
+						Expect(writtenBytes).To(Equal(len("hello\rworld")))
+						Expect(writeErr).ToNot(HaveOccurred())
+					})
+
+					It("saves two log events, breaking on \\r", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "hello\r",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+
+						writer.(io.Closer).Close()
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(2), "second event is cached and only written after writer.Close() is called")
+						Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "world",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("when the data contains \\n and \\r", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello\nbeautiful\rworld\n"))
+						writer.(io.Closer).Close()
+					})
+
+					It("returns the length of the string, and no error", func() {
+						Expect(writtenBytes).To(Equal(len("hello\nbeautiful\rworld\n")))
+						Expect(writeErr).ToNot(HaveOccurred())
+					})
+
+					It("writer prefers breaking on the last \\n over \\r", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    now.Unix(),
+							Payload: "hello\nbeautiful\rworld\n",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+					})
+				})
+
+				Context("when the data does not contain \\n or \\r", func() {
+					BeforeEach(func() {
+						fakeBuild.SaveEventReturns(nil)
+						writtenBytes, writeErr = writer.Write([]byte("hello world"))
+					})
+
+					It("returns the length of the string, no error, and does not log the event", func() {
+						Expect(writtenBytes).To(Equal(len("hello world")))
+						Expect(writeErr).ToNot(HaveOccurred())
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(0), "first payload should be entirely cached")
+					})
+
+					It("flushes the payload after 1 second", func() {
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(0), "first payload should be entirely cached")
+
+						fakeClock.Increment(time.Second)
+						writtenBytes, writeErr = writer.Write([]byte("!!!"))
+						Expect(writtenBytes).To(Equal(len("!!!")))
+						Expect(writeErr).ToNot(HaveOccurred())
+
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1), "entire payload should be flushed")
+						Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+							Time:    fakeClock.Now().Unix(),
+							Payload: "hello world!!!",
+							Origin: event.Origin{
+								Source: event.OriginSourceStdout,
+								ID:     "some-plan-id",
+							},
+						}))
+
+						writer.(io.Closer).Close()
+						Expect(fakeBuild.SaveEventCallCount()).To(Equal(1), "no more events should be written")
+					})
 				})
 			})
 		})
@@ -783,102 +905,6 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 	})
 
-	Describe("No line buffer without secrets redaction", func() {
-		var runState exec.RunState
-
-		BeforeEach(func() {
-			credVars := vars.StaticVariables{}
-			runState = exec.NewRunState(noopStepper, credVars, false)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
-		})
-
-		Context("Stdout", func() {
-			It("should not buffer lines", func() {
-				writer := delegate.Stdout()
-				writtenBytes, writeErr := writer.Write([]byte("1\r"))
-				Expect(writeErr).To(BeNil())
-				Expect(writtenBytes).To(Equal(len("1\r")))
-				writtenBytes, writeErr = writer.Write([]byte("2\r"))
-				Expect(writeErr).To(BeNil())
-				Expect(writtenBytes).To(Equal(len("2\r")))
-				writtenBytes, writeErr = writer.Write([]byte("3\r"))
-				Expect(writeErr).To(BeNil())
-				Expect(writtenBytes).To(Equal(len("3\r")))
-				writeErr = writer.(io.Closer).Close()
-				Expect(writeErr).To(BeNil())
-
-				Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
-				Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-					Time:    now.Unix(),
-					Payload: "1\r",
-					Origin: event.Origin{
-						Source: event.OriginSourceStdout,
-						ID:     "some-plan-id",
-					},
-				}))
-				Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
-					Time:    now.Unix(),
-					Payload: "2\r",
-					Origin: event.Origin{
-						Source: event.OriginSourceStdout,
-						ID:     "some-plan-id",
-					},
-				}))
-				Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
-					Time:    now.Unix(),
-					Payload: "3\r",
-					Origin: event.Origin{
-						Source: event.OriginSourceStdout,
-						ID:     "some-plan-id",
-					},
-				}))
-			})
-		})
-
-		Context("Stderr", func() {
-			It("should not buffer lines", func() {
-				writer := delegate.Stderr()
-				writtenBytes, writeErr := writer.Write([]byte("1\r"))
-				Expect(writeErr).To(BeNil())
-				Expect(writtenBytes).To(Equal(len("1\r")))
-				writtenBytes, writeErr = writer.Write([]byte("2\r"))
-				Expect(writeErr).To(BeNil())
-				Expect(writtenBytes).To(Equal(len("2\r")))
-				writtenBytes, writeErr = writer.Write([]byte("3\r"))
-				Expect(writeErr).To(BeNil())
-				Expect(writtenBytes).To(Equal(len("3\r")))
-				writeErr = writer.(io.Closer).Close()
-				Expect(writeErr).To(BeNil())
-
-				Expect(fakeBuild.SaveEventCallCount()).To(Equal(3))
-				Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
-					Time:    now.Unix(),
-					Payload: "1\r",
-					Origin: event.Origin{
-						Source: event.OriginSourceStderr,
-						ID:     "some-plan-id",
-					},
-				}))
-				Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
-					Time:    now.Unix(),
-					Payload: "2\r",
-					Origin: event.Origin{
-						Source: event.OriginSourceStderr,
-						ID:     "some-plan-id",
-					},
-				}))
-				Expect(fakeBuild.SaveEventArgsForCall(2)).To(Equal(event.Log{
-					Time:    now.Unix(),
-					Payload: "3\r",
-					Origin: event.Origin{
-						Source: event.OriginSourceStderr,
-						ID:     "some-plan-id",
-					},
-				}))
-			})
-		})
-	})
-
 	Describe("Secrets redaction", func() {
 		var (
 			runState     exec.RunState
@@ -888,7 +914,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		)
 
 		BeforeEach(func() {
-			runState = exec.NewRunState(noopStepper, credVars, true)
+			runState = exec.NewRunState(noopStepper, credVars)
 			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
 
 			runState.Get(vars.Reference{Path: "source-param"})

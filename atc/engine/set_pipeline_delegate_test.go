@@ -45,7 +45,7 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 			"source-param": "super-secret-source",
 			"git-key":      "{\n123\n456\n789\n}\n",
 		}
-		state = exec.NewRunState(noopStepper, credVars, true)
+		state = exec.NewRunState(noopStepper, credVars)
 
 		fakePolicyCheckResult = new(policyfakes.FakePolicyCheckResult)
 		fakePolicyChecker = new(policyfakes.FakeChecker)

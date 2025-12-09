@@ -87,7 +87,7 @@ var _ = Describe("TaskStep", func() {
 		fakeDelegateFactory = new(execfakes.FakeTaskDelegateFactory)
 		fakeDelegateFactory.TaskDelegateReturns(fakeDelegate)
 
-		state = exec.NewRunState(noopStepper, vars.StaticVariables{"source-param": "super-secret-source"}, false)
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{"source-param": "super-secret-source"})
 		repo = state.ArtifactRepository()
 
 		taskPlan = &atc.TaskPlan{
