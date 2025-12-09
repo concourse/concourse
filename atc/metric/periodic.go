@@ -76,6 +76,14 @@ func tick(logger lager.Logger, m *Monitor) {
 	)
 
 	m.emit(
+		logger.Session("volumes-streamed-via-fallback"),
+		Event{
+			Name:  "volumes streamed via fallback",
+			Value: m.VolumesStreamedViaFallback.Delta(),
+		},
+	)
+
+	m.emit(
 		logger.Session("get-step-cache-hits"),
 		Event{
 			Name:  "get step cache hits",
