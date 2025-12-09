@@ -12,9 +12,10 @@ releases:
 instance_groups:
 - name: web
   instances: 1
-  networks: [{name: test}]
+  networks:
+    - name: default
   azs: [z1]
-  vm_type: test
+  vm_type: minimal
   stemcell: ((stemcell_variant))
   jobs:
   - release: bpm
@@ -50,11 +51,12 @@ instance_groups:
 
 - name: db
   instances: 1
-  networks: [{name: test}]
+  networks:
+    - name: default
   azs: [z1]
   # don't bother with persistent disk
   # persistent_disk: 10240
-  vm_type: test
+  vm_type: minimal
   stemcell: ((stemcell_variant))
   jobs:
   - release: postgres
@@ -69,9 +71,10 @@ instance_groups:
 
 - name: worker
   instances: 1
-  networks: [{name: test}]
+  networks:
+    - name: default
   azs: [z1]
-  vm_type: test
+  vm_type: minimal
   stemcell: ((stemcell_variant))
   jobs:
   - release: concourse((suite))
