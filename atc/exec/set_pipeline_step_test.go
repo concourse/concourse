@@ -32,6 +32,42 @@ jobs:
 - name:
 `
 
+	const badPipelineWithDuplicateKeys = `
+---
+resources:
+- name: shadowed-resource
+  type: some-type
+  source:
+    source-config: some-value
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    source-config: some-value
+jobs:
+- name: job
+  plan:
+  - get: some-resource
+`
+
+	const pipelineWithMergeKeys = `
+---
+base_job: &base_job
+  name: job
+  plan:
+    - get: resource-that-doesnt-exist
+
+resources:
+  - name: some-resource
+    type: some-type
+    source:
+      source-config: some-value
+jobs:
+  - <<: *base_job
+    plan:
+      - get: some-resource
+`
+
 	const badPipelineContentWithEmptyContent = `
 ---
 `
@@ -246,7 +282,7 @@ jobs:
 				Expect(stepErr).NotTo(HaveOccurred())
 			})
 
-			It("should stderr have error message", func() {
+			It("should have an error message printed to stderr", func() {
 				Expect(stderr).To(gbytes.Say("invalid pipeline:"))
 				Expect(stderr).To(gbytes.Say("- invalid jobs:"))
 			})
@@ -255,6 +291,43 @@ jobs:
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 				Expect(succeeded).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline file exists but has duplicate keys", func() {
+			BeforeEach(func() {
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineWithDuplicateKeys}, nil)
+			})
+
+			It("should not return error", func() {
+				Expect(stepErr).NotTo(HaveOccurred())
+			})
+
+			It("should have an error message printed to stderr", func() {
+				Expect(stderr).To(gbytes.Say("error parsing pipeline:"))
+				Expect(stderr).To(gbytes.Say(`mapping key "resources" already defined`))
+			})
+
+			It("should finish unsuccessfully", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+				Expect(succeeded).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline file exists and has merge keys", func() {
+			BeforeEach(func() {
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineWithMergeKeys}, nil)
+			})
+
+			It("should not return error", func() {
+				Expect(stepErr).NotTo(HaveOccurred())
+			})
+
+			It("should finish successfully", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+				Expect(succeeded).To(BeTrue())
 			})
 		})
 
