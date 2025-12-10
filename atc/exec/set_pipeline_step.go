@@ -231,7 +231,10 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	}
 
 	fmt.Fprintf(stdout, "done\n")
-	logger.Info("saved-pipeline", lager.Data{"team": team.Name(), "pipeline": pipeline.Name()})
+	logger.Info("saved-pipeline", lager.Data{
+		"team":     team.Name(),
+		"pipeline": pipeline.Name()},
+	)
 	delegate.Finished(logger, true)
 
 	return true, nil
