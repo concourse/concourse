@@ -270,6 +270,28 @@ var _ = Describe("Fly CLI", func() {
 				})
 			})
 
+			Context("when using yaml merge keys", func() {
+				It("succeeds", func() {
+					flyCmd := exec.Command(
+						flyPath, "-t", targetName,
+						"set-pipeline",
+						"--pipeline", "awesome-pipeline",
+						"-c", "fixtures/testConfigMergeKeys.yml",
+					)
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					no(stdin)
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
+				})
+			})
+
 			Context("when a var is specified with -v", func() {
 				BeforeEach(func() {
 					expectSaveConfig(atc.Config{

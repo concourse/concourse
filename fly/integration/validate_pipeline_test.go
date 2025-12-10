@@ -100,6 +100,21 @@ var _ = Describe("Fly CLI", func() {
 			Expect(sess.ExitCode()).To(Equal(1))
 		})
 
+		It("returns valid when there are merge keys", func() {
+			flyCmd := exec.Command(
+				flyPath,
+				"validate-pipeline",
+				"-c", "fixtures/testConfigMergeKeys.yml",
+			)
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(sess).Should(gbytes.Say("looks good"))
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+		})
+
 		It("returns valid on a pipeline with unknown keys", func() {
 			flyCmd := exec.Command(
 				flyPath,
