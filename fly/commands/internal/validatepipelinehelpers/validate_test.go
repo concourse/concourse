@@ -166,11 +166,11 @@ jobs:
 		})
 		It("fails to validate a pipeline with duplicate keys", func() {
 			err := validatepipelinehelpers.Validate(dupkeyPipeline, false, false)
-			Expect(err.Error()).To(ContainSubstring("key \"resource_types\" already set in map"))
+			Expect(err.Error()).To(ContainSubstring(`mapping key "resource_types" already defined`))
 		})
 		It("fails to validate a pipeline with unknown keys with strict", func() {
 			err := validatepipelinehelpers.Validate(unknownKeyPipeline, true, false)
-			Expect(err.Error()).To(ContainSubstring("json: unknown field \"anchors\""))
+			Expect(err.Error()).To(ContainSubstring(`json: unknown field "anchors"`))
 		})
 		It("validates a pipeline with unknown keys", func() {
 			err := validatepipelinehelpers.Validate(unknownKeyPipeline, false, false)

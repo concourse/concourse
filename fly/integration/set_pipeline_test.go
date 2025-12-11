@@ -255,7 +255,7 @@ var _ = Describe("Fly CLI", func() {
 					flyCmd := exec.Command(
 						flyPath, "-t", targetName,
 						"set-pipeline",
-						"-n",
+						"--non-interactive",
 						"--pipeline", "awesome-pipeline",
 						"-c", "fixtures/testConfigDuplicate.yml",
 					)
@@ -263,10 +263,32 @@ var _ = Describe("Fly CLI", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).ToNot(HaveOccurred())
 					Eventually(sess.Err).Should(gbytes.Say("error parsing yaml before applying templates"))
-					Eventually(sess.Err).Should(gbytes.Say("key \"resources\" already set in map"))
+					Eventually(sess.Err).Should(gbytes.Say(`mapping key "resources" already defined`))
 
 					<-sess.Exited
 					Expect(sess.ExitCode()).To(Equal(1))
+				})
+			})
+
+			Context("when using yaml merge keys", func() {
+				It("succeeds", func() {
+					flyCmd := exec.Command(
+						flyPath, "-t", targetName,
+						"set-pipeline",
+						"--pipeline", "awesome-pipeline",
+						"-c", "fixtures/testConfigMergeKeys.yml",
+					)
+
+					stdin, err := flyCmd.StdinPipe()
+					Expect(err).NotTo(HaveOccurred())
+
+					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).ToNot(HaveOccurred())
+					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
+					no(stdin)
+
+					<-sess.Exited
+					Expect(sess.ExitCode()).To(Equal(0))
 				})
 			})
 
@@ -311,7 +333,7 @@ this is super secure
 						flyCmd := exec.Command(
 							flyPath, "-t", targetName,
 							"set-pipeline",
-							"-n",
+							"--non-interactive",
 							"--pipeline", "awesome-pipeline",
 							"-c", "fixtures/vars-pipeline.yml",
 							"-l", "fixtures/vars-pipeline-params-a.yml",
@@ -370,7 +392,7 @@ this is super secure
 						flyCmd := exec.Command(
 							flyPath, "-t", targetName,
 							"set-pipeline",
-							"-n",
+							"--non-interactive",
 							"--pipeline", "awesome-pipeline",
 							"-c", "fixtures/vars-pipeline.yml",
 							"-l", "fixtures/vars-pipeline-params-a.yml",
@@ -435,7 +457,7 @@ this is super secure
 						flyCmd := exec.Command(
 							flyPath, "-t", targetName,
 							"set-pipeline",
-							"-n",
+							"--non-interactive",
 							"--pipeline", "awesome-pipeline",
 							"-c", "fixtures/vars-pipeline.yml",
 							"-l", "fixtures/vars-pipeline-params-a.yml",
@@ -488,7 +510,7 @@ this is super secure
 						flyCmd := exec.Command(
 							flyPath, "-t", targetName,
 							"set-pipeline",
-							"-n",
+							"--non-interactive",
 							"--pipeline", "awesome-pipeline",
 							"-c", "fixtures/nested-vars-pipeline.yml",
 							"-v", "source.a=foo",
@@ -548,7 +570,7 @@ this is super secure
 						flyCmd := exec.Command(
 							flyPath, "-t", targetName,
 							"set-pipeline",
-							"-n",
+							"--non-interactive",
 							"--pipeline", "awesome-pipeline",
 							"-c", "fixtures/vars-pipeline.yml",
 							"-l", "fixtures/vars-pipeline-params-a.yml",
@@ -571,7 +593,7 @@ this is super secure
 								flyCmd := exec.Command(
 									flyPath, "-t", targetName,
 									"set-pipeline",
-									"-n",
+									"--non-interactive",
 									"--pipeline", "awesome-pipeline",
 									"-c", "fixtures/vars-pipeline.yml",
 									"-l", "fixtures/vars-pipeline-params-a.yml",
@@ -617,7 +639,7 @@ this is super secure
 								flyCmd := exec.Command(
 									flyPath, "-t", targetName,
 									"set-pipeline",
-									"-n",
+									"--non-interactive",
 									"--pipeline", "awesome-pipeline",
 									"-c", "fixtures/vars-pipeline.yml",
 									"-l", "fixtures/vars-pipeline-params-a.yml",

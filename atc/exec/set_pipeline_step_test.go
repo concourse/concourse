@@ -32,6 +32,42 @@ jobs:
 - name:
 `
 
+	const badPipelineWithDuplicateKeys = `
+---
+resources:
+- name: shadowed-resource
+  type: some-type
+  source:
+    source-config: some-value
+resources:
+- name: some-resource
+  type: some-type
+  source:
+    source-config: some-value
+jobs:
+- name: job
+  plan:
+  - get: some-resource
+`
+
+	const pipelineWithMergeKeys = `
+---
+base_job: &base_job
+  name: job
+  plan:
+    - get: resource-that-doesnt-exist
+
+resources:
+  - name: some-resource
+    type: some-type
+    source:
+      source-config: some-value
+jobs:
+  - <<: *base_job
+    plan:
+      - get: some-resource
+`
+
 	const badPipelineContentWithEmptyContent = `
 ---
 `
@@ -173,6 +209,9 @@ jobs:
 		fakeTeamFactory.GetByIDReturns(fakeTeam)
 		fakeBuildFactory.BuildReturns(fakeBuild, true, nil)
 
+		fakeTeam.PipelineReturns(nil, false, nil)
+		fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
+
 		fakeAgent = new(policyfakes.FakeAgent)
 		fakeAgent.CheckReturns(policy.PassedPolicyCheck(), nil)
 		fakePolicyAgentFactory.NewAgentReturns(fakeAgent, nil)
@@ -234,7 +273,7 @@ jobs:
 			})
 		})
 
-		Context("when pipeline file exists but bad syntax", func() {
+		Context("when pipeline file exists but has bad syntax", func() {
 			BeforeEach(func() {
 				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
 			})
@@ -243,7 +282,7 @@ jobs:
 				Expect(stepErr).NotTo(HaveOccurred())
 			})
 
-			It("should stderr have error message", func() {
+			It("should have an error message printed to stderr", func() {
 				Expect(stderr).To(gbytes.Say("invalid pipeline:"))
 				Expect(stderr).To(gbytes.Say("- invalid jobs:"))
 			})
@@ -252,6 +291,43 @@ jobs:
 				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 				Expect(succeeded).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline file exists but has duplicate keys", func() {
+			BeforeEach(func() {
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineWithDuplicateKeys}, nil)
+			})
+
+			It("should not return error", func() {
+				Expect(stepErr).NotTo(HaveOccurred())
+			})
+
+			It("should have an error message printed to stderr", func() {
+				Expect(stderr).To(gbytes.Say("error parsing pipeline:"))
+				Expect(stderr).To(gbytes.Say(`mapping key "resources" already defined`))
+			})
+
+			It("should finish unsuccessfully", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+				Expect(succeeded).To(BeFalse())
+			})
+		})
+
+		Context("when pipeline file exists and has merge keys", func() {
+			BeforeEach(func() {
+				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineWithMergeKeys}, nil)
+			})
+
+			It("should not return error", func() {
+				Expect(stepErr).NotTo(HaveOccurred())
+			})
+
+			It("should finish successfully", func() {
+				Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
+				_, succeeded := fakeDelegate.FinishedArgsForCall(0)
+				Expect(succeeded).To(BeTrue())
 			})
 		})
 
@@ -290,11 +366,6 @@ jobs:
 			})
 
 			Context("when specified pipeline not found", func() {
-				BeforeEach(func() {
-					fakeTeam.PipelineReturns(nil, false, nil)
-					fakeBuild.SavePipelineReturns(fakePipeline, true, nil)
-				})
-
 				It("should save the pipeline", func() {
 					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
 					ref, _, _, _, paused := fakeBuild.SavePipelineArgsForCall(0)
@@ -422,7 +493,6 @@ jobs:
 						Team:         "foo-team",
 						InstanceVars: atc.InstanceVars{"branch": "feature/foo"},
 					}
-					fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 				})
 
 				It("should save the pipeline itself", func() {
@@ -462,8 +532,6 @@ jobs:
 
 				Context("when team is set to the empty string", func() {
 					BeforeEach(func() {
-						fakeBuild.PipelineReturns(fakePipeline, true, nil)
-						fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 						spPlan.Team = ""
 					})
 
@@ -497,9 +565,6 @@ jobs:
 								1,
 								fakeUserCurrentTeam, true, nil,
 							)
-
-							fakeBuild.PipelineReturns(fakePipeline, true, nil)
-							fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 						})
 
 						It("should finish successfully", func() {
@@ -523,9 +588,6 @@ jobs:
 						Context("when the current team is an admin team", func() {
 							BeforeEach(func() {
 								fakeUserCurrentTeam.AdminReturns(true)
-
-								fakeBuild.PipelineReturns(fakePipeline, true, nil)
-								fakeBuild.SavePipelineReturns(fakePipeline, false, nil)
 							})
 
 							It("should finish successfully", func() {

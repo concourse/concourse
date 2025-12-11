@@ -1,0 +1,15 @@
+base_job: &base_job
+  name: job
+  plan:
+    - get: resource-that-doesnt-exist
+
+groups: []
+resources:
+  - name: some-resource
+    type: some-type
+    source:
+      source-config: some-value
+jobs:
+  - <<: *base_job
+    plan:
+      - get: some-resource

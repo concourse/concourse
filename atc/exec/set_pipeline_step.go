@@ -10,6 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	yamlv3 "go.yaml.in/yaml/v3"
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
@@ -104,12 +105,20 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		return false, err
 	}
 
-	atcConfig, err := source.FetchPipelineConfig()
+	pipelineBits, err := source.FetchPipelineBits()
 	if err != nil {
 		return false, err
 	}
 
 	delegate.Starting(logger)
+
+	atcConfig, err := source.MarshalPipelineConfig(pipelineBits)
+	if err != nil {
+		fmt.Fprintln(delegate.Stderr(), "error parsing pipeline:")
+		fmt.Fprintf(stderr, "%s", err)
+		delegate.Finished(logger, false)
+		return false, nil
+	}
 
 	warnings, errors := configvalidate.Validate(atcConfig)
 	for _, warning := range warnings {
@@ -231,7 +240,10 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 	}
 
 	fmt.Fprintf(stdout, "done\n")
-	logger.Info("saved-pipeline", lager.Data{"team": team.Name(), "pipeline": pipeline.Name()})
+	logger.Info("saved-pipeline", lager.Data{
+		"team":     team.Name(),
+		"pipeline": pipeline.Name()},
+	)
 	delegate.Finished(logger, true)
 
 	return true, nil
@@ -252,10 +264,13 @@ func (s setPipelineSource) Validate() error {
 	return nil
 }
 
-// FetchPipelineConfig streams pipeline config file and var files from other resources
-// and construct an atc.Config object
-func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
-	config, err := s.fetchPipelineBits(s.step.plan.File)
+// MarshalPipelineConfig marshals a pipeline config and var files from other resources
+// and constructs an atc.Config object
+func (s setPipelineSource) MarshalPipelineConfig(config []byte) (atc.Config, error) {
+	var err error
+
+	// check for duplicate keys and general syntax issues
+	err = yamlv3.Unmarshal(config, make(map[any]any))
 	if err != nil {
 		return atc.Config{}, err
 	}
@@ -297,6 +312,10 @@ func (s setPipelineSource) FetchPipelineConfig() (atc.Config, error) {
 	}
 
 	return atcConfig, nil
+}
+
+func (s setPipelineSource) FetchPipelineBits() ([]byte, error) {
+	return s.fetchPipelineBits(s.step.plan.File)
 }
 
 func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {

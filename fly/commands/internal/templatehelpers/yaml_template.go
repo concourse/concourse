@@ -7,6 +7,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/vars"
+	yamlv3 "go.yaml.in/yaml/v3"
 	"sigs.k8s.io/yaml"
 )
 
@@ -43,9 +44,9 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(strict bool) ([]byte, error)
 	if strict {
 		// We use a generic map here, since templates are not evaluated yet.
 		// (else a template string may cause an error when a struct is expected)
-		// If we don't check Strict now, then the subsequent steps will mask any
-		// duplicate key errors.
-		err = yaml.UnmarshalStrict(config, make(map[string]any))
+		// If we don't check for duplicate keys now, then the subsequent steps
+		// will mask any duplicate key errors.
+		err = yamlv3.Unmarshal(config, make(map[string]any))
 		if err != nil {
 			return nil, fmt.Errorf("error parsing yaml before applying templates: %s", err.Error())
 		}
