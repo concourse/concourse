@@ -3,8 +3,9 @@
   value:
     name: credhub
     instances: 1
-    networks: [{name: test}]
+    networks:
+      - name: default
     azs: [z1]
-    vm_type: test
+    vm_type: minimal
     stemcell: ((stemcell_variant))
     jobs: []

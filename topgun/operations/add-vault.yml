@@ -10,10 +10,11 @@
   value:
     name: vault
     instances: 1
-    networks: [{name: test}]
+    networks:
+      - name: default
     azs: [z1]
     persistent_disk: 10240
-    vm_type: test
+    vm_type: minimal
     stemcell: ((stemcell_variant))
     jobs:
     - release: vault
