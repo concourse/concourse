@@ -8,7 +8,8 @@ releases:
 instance_groups:
 - name: git-server
   instances: 1
-  networks: [{name: test}]
+  networks:
+    - name: default
   azs: [z1]
   vm_type: minimal
   stemcell: ((stemcell_variant))
