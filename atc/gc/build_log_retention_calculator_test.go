@@ -9,63 +9,174 @@ import (
 )
 
 var _ = Describe("BuildLogRetentionCalculator", func() {
-	It("nothing set gives all", func() {
-		logRetention := NewBuildLogRetentionCalculator(0, 0, 0, 0).BuildLogsToRetain(makeJob(0, 0, 0))
+	It("nothing set returns zeros", func() {
+		logRetention := NewBuildLogRetentionCalculator(
+			0, // default builds to retain
+			0, // max builds to retain
+			0, // default days to retain
+			0, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			0, // builds to retain
+			0, // days to retain
+			0, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(0))
+		Expect(logRetention.Days).To(Equal(0))
 		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
-		Expect(logRetention.Days).To(Equal(0))
 	})
-	It("nothing set but job gives job", func() {
-		logRetention := NewBuildLogRetentionCalculator(0, 0, 0, 0).BuildLogsToRetain(makeJob(3, 1, 0))
+	It("no default or max set, returns job values", func() {
+		logRetention := NewBuildLogRetentionCalculator(
+			0, // default builds to retain
+			0, // max builds to retain
+			0, // default days to retain
+			0, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			3, // builds to retain
+			2, // days to retain
+			1, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(3))
+		Expect(logRetention.Days).To(Equal(2))
 		Expect(logRetention.MinimumSucceededBuilds).To(Equal(1))
-		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("default set gives default", func() {
-		logRetention := NewBuildLogRetentionCalculator(5, 0, 0, 0).BuildLogsToRetain(makeJob(0, 0, 0))
+		logRetention := NewBuildLogRetentionCalculator(
+			5, // default builds to retain
+			0, // max builds to retain
+			4, // default days to retain
+			0, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			0, // builds to retain
+			0, // days to retain
+			0, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(5))
+		Expect(logRetention.Days).To(Equal(4))
 		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
-		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("default and job set gives job", func() {
-		logRetention := NewBuildLogRetentionCalculator(5, 0, 0, 0).BuildLogsToRetain(makeJob(6, 2, 0))
+		logRetention := NewBuildLogRetentionCalculator(
+			5, // default builds to retain
+			0, // max builds to retain
+			4, // default days to retain
+			0, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			6, // builds to retain
+			3, // days to retain
+			0, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(6))
-		Expect(logRetention.MinimumSucceededBuilds).To(Equal(2))
-		Expect(logRetention.Days).To(Equal(0))
-	})
-	It("default and job set and max set gives max if lower", func() {
-		logRetention := NewBuildLogRetentionCalculator(5, 4, 0, 0).BuildLogsToRetain(makeJob(6, 7, 0))
-		Expect(logRetention.Builds).To(Equal(4))
+		Expect(logRetention.Days).To(Equal(3))
 		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
-		Expect(logRetention.Days).To(Equal(0))
+	})
+	It("default, max, and job set, gives max if lower", func() {
+		logRetention := NewBuildLogRetentionCalculator(
+			5, // default builds to retain
+			6, // max builds to retain
+			5, // default days to retain
+			6, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			10, // builds to retain
+			9,  // days to retain
+			0,  // min success to retain
+		))
+		Expect(logRetention.Builds).To(Equal(6))
+		Expect(logRetention.Days).To(Equal(6))
+		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
 	})
 	It("max only set gives max", func() {
-		logRetention := NewBuildLogRetentionCalculator(0, 4, 0, 0).BuildLogsToRetain(makeJob(0, 6, 0))
+		logRetention := NewBuildLogRetentionCalculator(
+			0, // default builds to retain
+			4, // max builds to retain
+			0, // default days to retain
+			3, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			0, // builds to retain
+			0, // days to retain
+			0, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(4))
+		Expect(logRetention.Days).To(Equal(3))
 		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
-		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("mix of count and days with max", func() {
-		logRetention := NewBuildLogRetentionCalculator(2, 4, 3, 2).BuildLogsToRetain(makeJob(5, 8, 5))
+		logRetention := NewBuildLogRetentionCalculator(
+			2, // default builds to retain
+			4, // max builds to retain
+			3, // default days to retain
+			2, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			5, // builds to retain
+			5, // days to retain
+			8, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(4))
-		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
 		Expect(logRetention.Days).To(Equal(2))
+		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
 	})
 	It("min success builds equals to builds", func() {
-		logRetention := NewBuildLogRetentionCalculator(2, 10, 3, 0).BuildLogsToRetain(makeJob(5, 5, 0))
+		logRetention := NewBuildLogRetentionCalculator(
+			2,  // default builds to retain
+			10, // max builds to retain
+			3,  // default days to retain
+			0,  // max days to retain
+		).BuildLogsToRetain(makeJob(
+			5, // builds to retain
+			0, // days to retain
+			5, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(5))
+		Expect(logRetention.Days).To(Equal(3))
 		Expect(logRetention.MinimumSucceededBuilds).To(Equal(5))
-		Expect(logRetention.Days).To(Equal(0))
 	})
 	It("min success builds greater than builds", func() {
-		logRetention := NewBuildLogRetentionCalculator(2, 10, 3, 0).BuildLogsToRetain(makeJob(5, 8, 0))
+		logRetention := NewBuildLogRetentionCalculator(
+			2,  // default builds to retain
+			10, // max builds to retain
+			3,  // default days to retain
+			0,  // max days to retain
+		).BuildLogsToRetain(makeJob(
+			5, // builds to retain
+			0, // days to retain
+			8, // min success to retain
+		))
 		Expect(logRetention.Builds).To(Equal(5))
+		Expect(logRetention.Days).To(Equal(3))
 		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
-		Expect(logRetention.Days).To(Equal(0))
+	})
+	It("when only max builds is set and job build and days are set", func() {
+		logRetention := NewBuildLogRetentionCalculator(
+			0, // default builds to retain
+			7, // max builds to retain
+			0, // default days to retain
+			0, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			5, // builds to retain
+			7, // days to retain
+			0, // min success to retain
+		))
+		Expect(logRetention.Builds).To(Equal(5))
+		Expect(logRetention.Days).To(Equal(7))
+		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
+	})
+	It("when only max days is set and job build and days are set", func() {
+		logRetention := NewBuildLogRetentionCalculator(
+			0, // default builds to retain
+			0, // max builds to retain
+			0, // default days to retain
+			7, // max days to retain
+		).BuildLogsToRetain(makeJob(
+			7, // builds to retain
+			5, // days to retain
+			0, // min success to retain
+		))
+		Expect(logRetention.Builds).To(Equal(7))
+		Expect(logRetention.Days).To(Equal(5))
+		Expect(logRetention.MinimumSucceededBuilds).To(Equal(0))
 	})
 })
 
-func makeJob(retainAmount int, retainMinSuccessAmount, retainAmountDays int) atc.JobConfig {
+func makeJob(retainAmount, retainAmountDays, retainMinSuccessAmount int) atc.JobConfig {
 	return atc.JobConfig{
 		BuildLogRetention: &atc.BuildLogRetention{
 			Builds:                 retainAmount,

@@ -50,30 +50,40 @@ func (blrc *buildLogRetentionCalculator) BuildLogsToRetain(jobConfig atc.JobConf
 		daysToRetainBuildLogs = int(blrc.defaultDaysToRetainBuildLogs)
 	}
 
+	var logRetention atc.BuildLogRetention
+
 	// If we don't have a max set, then we're done
 	if blrc.maxBuildLogsToRetain == 0 && blrc.maxDaysToRetainBuildLogs == 0 {
-		return atc.BuildLogRetention{Builds: buildLogsToRetain, MinimumSucceededBuilds: minSuccessBuildLogsToRetain, Days: daysToRetainBuildLogs}
-	}
-
-	var logRetention atc.BuildLogRetention
-	// If we have a value set, and we're less than the max, then return
-	if buildLogsToRetain > 0 && buildLogsToRetain < int(blrc.maxBuildLogsToRetain) {
 		logRetention.Builds = buildLogsToRetain
-	} else {
-		logRetention.Builds = int(blrc.maxBuildLogsToRetain)
+		logRetention.MinimumSucceededBuilds = minSuccessBuildLogsToRetain
+		logRetention.Days = daysToRetainBuildLogs
+		return logRetention
 	}
 
-	if daysToRetainBuildLogs > 0 && daysToRetainBuildLogs < int(blrc.maxDaysToRetainBuildLogs) {
-		logRetention.Days = daysToRetainBuildLogs
+	logRetention.Builds = int(blrc.maxBuildLogsToRetain)
+	logRetention.Days = int(blrc.maxDaysToRetainBuildLogs)
+
+	if logRetention.Builds > 0 {
+		// current value will be the max, only override if it's less than the current value
+		if buildLogsToRetain > 0 && (buildLogsToRetain < logRetention.Builds) {
+			logRetention.Builds = buildLogsToRetain
+		}
 	} else {
-		logRetention.Days = int(blrc.maxDaysToRetainBuildLogs)
+		logRetention.Builds = buildLogsToRetain
+	}
+
+	if logRetention.Days > 0 {
+		// current value will be the max, only override if it's less than the current value
+		if daysToRetainBuildLogs > 0 && daysToRetainBuildLogs < logRetention.Days {
+			logRetention.Days = daysToRetainBuildLogs
+		}
+	} else {
+		logRetention.Days = daysToRetainBuildLogs
 	}
 
 	// successBuildLogsToRetain defaults to 0, and up to buildLogsToRetain.
 	if minSuccessBuildLogsToRetain >= 0 && minSuccessBuildLogsToRetain <= logRetention.Builds {
 		logRetention.MinimumSucceededBuilds = minSuccessBuildLogsToRetain
-	} else {
-		logRetention.MinimumSucceededBuilds = 0
 	}
 
 	return logRetention
