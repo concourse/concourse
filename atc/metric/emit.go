@@ -83,7 +83,8 @@ type Monitor struct {
 	ConcurrentRequests         map[string]*Gauge
 	ConcurrentRequestsLimitHit map[string]*Counter
 
-	VolumesStreamed Counter
+	VolumesStreamed            Counter
+	VolumesStreamedViaFallback Counter
 
 	GetStepCacheHits       Counter
 	StreamedResourceCaches Counter
