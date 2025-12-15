@@ -114,11 +114,11 @@ func (s Streamer) stream(ctx context.Context, src runtime.Artifact, dst runtime.
 	err := s.p2pStream(ctx, p2pSrc, p2pDst)
 	if err != nil {
 		// P2P streaming failed - fallback to streaming through ATC (web node)
-		logger.Info("p2p-stream-failed-falling-back-to-atc", lager.Data{
-			"error":       err.Error(),
+		logger.Error("p2p-stream-failed-falling-back-to-atc", err, lager.Data{
 			"src-worker":  p2pSrc.DBVolume().WorkerName(),
 			"dest-worker": p2pDst.DBVolume().WorkerName(),
 		})
+
 		metric.Metrics.VolumesStreamedViaFallback.Inc()
 		return s.streamThroughATC(ctx, src, dst)
 	}
