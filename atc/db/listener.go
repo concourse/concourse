@@ -95,16 +95,18 @@ func (l *PgxListener) listenerLoop() {
 	)
 
 	for {
+		ctx, cancel := context.WithCancel(context.Background())
+
 		if !stillMyTurn {
 			<-l.comms
 			stillMyTurn = true
 		}
 
 		if l.conn == nil {
+			cancel()
 			return
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
 			notification, err = l.conn.Conn().WaitForNotification(ctx)
 			if notification != nil {
