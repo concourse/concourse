@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -1280,7 +1281,13 @@ func (j *job) finishedBuild(tx Tx) (Build, error) {
 func (j *job) getNewRerunBuildName(tx Tx, buildID int) (string, int, error) {
 	var rerunNum int
 	var buildName string
-	err := psql.Select("b.name", "( SELECT COUNT(id) FROM builds WHERE (rerun_of = b.id OR rerun_of_old = b.id) )").
+	var rerunSubquery string
+	if buildID > math.MaxInt32 {
+		rerunSubquery = "( SELECT COUNT(id) FROM builds WHERE rerun_of = b.id )"
+	} else {
+		rerunSubquery = "( SELECT COUNT(id) FROM builds WHERE (rerun_of = b.id OR rerun_of_old = b.id) )"
+	}
+	err := psql.Select("b.name", rerunSubquery).
 		From("builds b").
 		Where(sq.Eq{
 			"b.id": buildID,

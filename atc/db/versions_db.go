@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"time"
@@ -664,13 +665,19 @@ func (cursor BuildCursor) OlderBuilds(idCol string) sq.Sqlizer {
 
 func (cursor BuildCursor) NewerBuilds(idCol string) sq.Sqlizer {
 	if cursor.RerunOf.Valid {
+		rerunOf := sq.Or{
+			sq.Eq{"rerun_of": cursor.RerunOf.Int64},
+			sq.Eq{"rerun_of_old": cursor.RerunOf.Int64},
+		}
+
+		if cursor.RerunOf.Int64 > math.MaxInt32 {
+			rerunOf = sq.Or{sq.Eq{"rerun_of": cursor.RerunOf.Int64}}
+		}
+
 		return sq.Or{
 			sq.Expr("COALESCE(rerun_of, rerun_of_old, "+idCol+") > ?", cursor.RerunOf.Int64),
 			sq.And{
-				sq.Or{
-					sq.Eq{"rerun_of": cursor.RerunOf.Int64},
-					sq.Eq{"rerun_of_old": cursor.RerunOf.Int64},
-				},
+				rerunOf,
 				sq.Gt{idCol: cursor.ID},
 			},
 		}

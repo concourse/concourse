@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -2162,12 +2163,20 @@ func updateNextBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 
 func updateLatestCompletedBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 	var latestRerunId sql.NullString
-	err := latestCompletedBuildQuery.
-		Where(sq.Eq{"job_id": jobID}).
-		Where(sq.Or{
+
+	var rerunOfCheck any
+	if latestNonRerunId > math.MaxInt32 {
+		rerunOfCheck = sq.Eq{"rerun_of": latestNonRerunId}
+	} else {
+		rerunOfCheck = sq.Or{
 			sq.Eq{"rerun_of": latestNonRerunId},
 			sq.Eq{"rerun_of_old": latestNonRerunId},
-		}).
+		}
+	}
+
+	err := latestCompletedBuildQuery.
+		Where(sq.Eq{"job_id": jobID}).
+		Where(rerunOfCheck).
 		RunWith(tx).
 		QueryRow().
 		Scan(&latestRerunId)
