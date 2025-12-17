@@ -278,7 +278,7 @@ func getBuildsWithDates(buildsQuery sq.SelectBuilder, page Page, conn DbConn, lo
 	}
 
 	buildsQuery = buildsQuery.
-		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
+		OrderBy("COALESCE(b.rerun_of, b.rerun_of_old, b.id) DESC, b.id DESC").
 		Limit(uint64(page.Limit))
 
 	rows, err := buildsQuery.RunWith(conn).Query()
@@ -318,8 +318,8 @@ func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn DbCon
 
 	buildsQuery = buildsQuery.Limit(uint64(page.Limit))
 
-	desc := "COALESCE(b.rerun_of, b.id) DESC, b.id DESC"
-	asc := "COALESCE(b.rerun_of, b.id) ASC, b.id ASC"
+	desc := "COALESCE(b.rerun_of, b.rerun_of_old, b.id) DESC, b.id DESC"
+	asc := "COALESCE(b.rerun_of, b.rerun_of_old, b.id) ASC, b.id ASC"
 	if chronological {
 		desc = "b.id DESC"
 		asc = "b.id ASC"
@@ -385,7 +385,7 @@ func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn DbCon
 
 	row := origBuildsQuery.
 		Where(sq.Lt{"b.id": oldestBuild.ID()}).
-		OrderBy("COALESCE(b.rerun_of, b.id) DESC, b.id DESC").
+		OrderBy("COALESCE(b.rerun_of, b.rerun_of_old, b.id) DESC, b.id DESC").
 		Limit(1).
 		RunWith(tx).
 		QueryRow()
@@ -403,7 +403,7 @@ func getBuildsWithPagination(buildsQuery sq.SelectBuilder, page Page, conn DbCon
 
 	row = origBuildsQuery.
 		Where(sq.Gt{"b.id": newestBuild.ID()}).
-		OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
+		OrderBy("COALESCE(b.rerun_of, b.rerun_of_old, b.id) ASC, b.id ASC").
 		Limit(1).
 		RunWith(tx).
 		QueryRow()

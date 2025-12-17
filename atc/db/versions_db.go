@@ -98,13 +98,13 @@ func (versions VersionsDB) LatestVersionOfResource(ctx context.Context, resource
 }
 
 func (versions VersionsDB) SuccessfulBuilds(ctx context.Context, jobID int) PaginatedBuilds {
-	builder := psql.Select("id", "rerun_of").
+	builder := psql.Select("id", "COALESCE(rerun_of, rerun_of_old) AS rerun_of").
 		From("builds").
 		Where(sq.Eq{
 			"job_id": jobID,
 			"status": "succeeded",
 		}).
-		OrderBy("COALESCE(rerun_of, id) DESC, id DESC")
+		OrderBy("COALESCE(rerun_of, rerun_of_old, id) DESC, id DESC")
 
 	return PaginatedBuilds{
 		builder: builder,
@@ -384,7 +384,7 @@ func (versions VersionsDB) NextEveryVersion(ctx context.Context, jobID int, reso
 }
 
 func (versions VersionsDB) LatestBuildPipes(ctx context.Context, buildID int) (map[int]BuildCursor, error) {
-	rows, err := psql.Select("p.from_build_id", "b.rerun_of", "b.job_id").
+	rows, err := psql.Select("p.from_build_id", "COALESCE(b.rerun_of, b.rerun_of_old) AS rerun_of", "b.job_id").
 		From("build_pipes p").
 		Join("builds b ON b.id = p.from_build_id").
 		Where(sq.Eq{
@@ -451,7 +451,7 @@ func (versions VersionsDB) UnusedBuilds(ctx context.Context, jobID int, lastUsed
 		return PaginatedBuilds{}, err
 	}
 
-	builder := psql.Select("id", "rerun_of").
+	builder := psql.Select("id", "COALESCE(rerun_of, rerun_of_old) AS rerun_of").
 		From("builds").
 		Where(sq.And{
 			sq.Eq{
@@ -463,7 +463,7 @@ func (versions VersionsDB) UnusedBuilds(ctx context.Context, jobID int, lastUsed
 				lastUsedBuild.OlderBuilds("id"),
 			},
 		}).
-		OrderBy("COALESCE(rerun_of, id) DESC, id DESC")
+		OrderBy("COALESCE(rerun_of, rerun_of_old, id) DESC, id DESC")
 
 	return PaginatedBuilds{
 		builder:      builder,
@@ -516,7 +516,7 @@ func (versions VersionsDB) UnusedBuildsVersionConstrained(ctx context.Context, j
 }
 
 func (versions VersionsDB) newerBuilds(ctx context.Context, jobID int, lastUsedBuild BuildCursor) ([]BuildCursor, error) {
-	rows, err := psql.Select("id", "rerun_of").
+	rows, err := psql.Select("id", "COALESCE(rerun_of, rerun_of_old) AS rerun_of").
 		From("builds").
 		Where(sq.And{
 			sq.Eq{
@@ -525,7 +525,7 @@ func (versions VersionsDB) newerBuilds(ctx context.Context, jobID int, lastUsedB
 			},
 			lastUsedBuild.NewerBuilds("id"),
 		}).
-		OrderBy("COALESCE(rerun_of, id) ASC, id ASC").
+		OrderBy("COALESCE(rerun_of, rerun_of_old, id) ASC, id ASC").
 		RunWith(versions.conn).
 		QueryContext(ctx)
 	if err != nil {
@@ -604,7 +604,7 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 			WHERE id = $1
 		)
 			INSERT INTO successful_build_outputs (
-				SELECT b.id, b.job_id, json_object_agg(sp.resource_id, sp.v), b.rerun_of
+				SELECT b.id, b.job_id, json_object_agg(sp.resource_id, sp.v), COALESCE(b.rerun_of, b.rerun_of_old) AS rerun_of
 				FROM builds b
 				JOIN (
 					SELECT build_id, resource_id, json_agg(version_digest) AS v
@@ -622,7 +622,7 @@ func (versions VersionsDB) migrateSingle(ctx context.Context, buildID int) (stri
 						)
 				) AS agg GROUP BY build_id, resource_id) sp ON sp.build_id = b.id
 				WHERE b.id = $1
-				GROUP BY b.id, b.job_id, b.rerun_of
+				GROUP BY b.id, b.job_id, rerun_of
 			)
 			ON CONFLICT (build_id) DO UPDATE SET outputs = EXCLUDED.outputs
 			RETURNING outputs
@@ -665,14 +665,17 @@ func (cursor BuildCursor) OlderBuilds(idCol string) sq.Sqlizer {
 func (cursor BuildCursor) NewerBuilds(idCol string) sq.Sqlizer {
 	if cursor.RerunOf.Valid {
 		return sq.Or{
-			sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.RerunOf.Int64),
+			sq.Expr("COALESCE(rerun_of, rerun_of_old, "+idCol+") > ?", cursor.RerunOf.Int64),
 			sq.And{
-				sq.Eq{"rerun_of": cursor.RerunOf.Int64},
+				sq.Or{
+					sq.Eq{"rerun_of": cursor.RerunOf.Int64},
+					sq.Eq{"rerun_of_old": cursor.RerunOf.Int64},
+				},
 				sq.Gt{idCol: cursor.ID},
 			},
 		}
 	} else {
-		return sq.Expr("COALESCE(rerun_of, "+idCol+") > ?", cursor.ID)
+		return sq.Expr("COALESCE(rerun_of, rerun_of_old, "+idCol+") > ?", cursor.ID)
 	}
 }
 
@@ -753,14 +756,14 @@ func (bs *PaginatedBuilds) migrateLimit(ctx context.Context) (bool, error) {
 
 	span.SetAttributes(attribute.Int("jobID", bs.jobID))
 
-	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "rerun_of").
+	buildsToMigrateQueryBuilder := psql.Select("id", "job_id", "COALESCE(rerun_of, rerun_of_old) AS rerun_of").
 		From("builds").
 		Where(sq.Eq{
 			"job_id":             bs.jobID,
 			"needs_v6_migration": true,
 			"status":             "succeeded",
 		}).
-		OrderBy("COALESCE(rerun_of, id) DESC, id DESC").
+		OrderBy("COALESCE(rerun_of, rerun_of_old, id) DESC, id DESC").
 		Limit(uint64(bs.limitRows))
 
 	buildsToMigrateQuery, params, err := buildsToMigrateQueryBuilder.ToSql()

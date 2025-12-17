@@ -799,7 +799,7 @@ func (j *job) GetPendingBuilds() ([]Build, error) {
 			"b.job_id": j.id,
 			"b.status": BuildStatusPending,
 		}).
-		OrderBy("COALESCE(b.rerun_of, b.id) ASC, b.id ASC").
+		OrderBy("COALESCE(b.rerun_of, b.rerun_of_old, b.id) ASC, b.id ASC").
 		RunWith(j.conn).
 		Query()
 	if err != nil {
@@ -1280,7 +1280,7 @@ func (j *job) finishedBuild(tx Tx) (Build, error) {
 func (j *job) getNewRerunBuildName(tx Tx, buildID int) (string, int, error) {
 	var rerunNum int
 	var buildName string
-	err := psql.Select("b.name", "( SELECT COUNT(id) FROM builds WHERE rerun_of = b.id )").
+	err := psql.Select("b.name", "( SELECT COUNT(id) FROM builds WHERE (rerun_of = b.id OR rerun_of_old = b.id) )").
 		From("builds b").
 		Where(sq.Eq{
 			"b.id": buildID,
