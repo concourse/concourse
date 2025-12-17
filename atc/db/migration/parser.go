@@ -56,7 +56,7 @@ func (p *Parser) ParseFileToMigration(migrationName string) (migration, error) {
 	}
 
 	migrationContents = string(migrationBytes)
-	migration.Strategy = determineMigrationStrategy(migrationName, migrationContents)
+	migration.Strategy = determineMigrationStrategy(migrationName)
 
 	switch migration.Strategy {
 	case GoMigration:
@@ -84,7 +84,7 @@ func determineDirection(migrationName string) (string, error) {
 	return matches[1], nil
 }
 
-func determineMigrationStrategy(migrationName string, migrationContents string) Strategy {
+func determineMigrationStrategy(migrationName string) Strategy {
 	if strings.HasSuffix(migrationName, ".go") {
 		return GoMigration
 	} else {

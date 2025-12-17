@@ -37,7 +37,7 @@ var _ = Describe("Migration", func() {
 		db, err = sql.Open("pgx", postgresRunner.DataSourceName())
 		Expect(err).NotTo(HaveOccurred())
 
-		for i := 0; i < lock.FactoryCount; i++ {
+		for i := range lock.FactoryCount {
 			lockDB[i], err = sql.Open("pgx", postgresRunner.DataSourceName())
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -562,7 +562,7 @@ func SetupSchemaFromFile(db *sql.DB, path string) {
 	migrations, err := os.ReadFile(path)
 	Expect(err).NotTo(HaveOccurred())
 
-	for _, migration := range strings.Split(string(migrations), ";") {
+	for migration := range strings.SplitSeq(string(migrations), ";") {
 		_, err = db.Exec(migration)
 		Expect(err).NotTo(HaveOccurred())
 	}
