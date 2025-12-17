@@ -896,15 +896,16 @@ func (p *pipeline) LoadDebugVersionsDB() (*atc.DebugVersionsDB, error) {
 		db.ResourceVersions = append(db.ResourceVersions, output)
 	}
 
-	rows, err = psql.Select("j.id, b.id, b.rerun_of").
+	rows, err = psql.Select("j.id, b.id, COALESCE(b.rerun_of, b.rerun_of_old) AS rerun_of").
 		From("builds b").
 		Join("jobs j ON j.id = b.job_id").
 		Where(sq.Eq{
 			"j.active":      true,
 			"b.pipeline_id": p.id,
 		}).
-		Where(sq.NotEq{
-			"b.rerun_of": nil,
+		Where(sq.Or{
+			sq.NotEq{"b.rerun_of": nil},
+			sq.NotEq{"b.rerun_of_old": nil},
 		}).
 		RunWith(tx).
 		Query()
