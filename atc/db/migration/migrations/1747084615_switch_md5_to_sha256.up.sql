@@ -1,34 +1,37 @@
 -- Ensure the pgcrypto extension is available for hashing
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Rename columns from version_md5 to version_sha256
+-- Keep version_md5 so the scheduler/algorithm planning keeps working with
+-- historical data
 ALTER TABLE resource_config_versions
-RENAME COLUMN version_md5 TO version_sha256;
+ADD COLUMN version_sha256 TEXT NOT NULL;
 
+-- Rename columns from version_md5 to version_digest for all other tables. Other
+-- tables will now have a mix of md5 and sha256 digests
 ALTER TABLE build_resource_config_version_inputs
-RENAME COLUMN version_md5 TO version_sha256;
+RENAME COLUMN version_md5 TO version_digest;
 
 ALTER TABLE build_resource_config_version_outputs
-RENAME COLUMN version_md5 TO version_sha256;
+RENAME COLUMN version_md5 TO version_digest;
 
 ALTER TABLE next_build_inputs
-RENAME COLUMN version_md5 TO version_sha256;
+RENAME COLUMN version_md5 TO version_digest;
 
 ALTER TABLE resource_caches
-RENAME COLUMN version_md5 TO version_sha256;
+RENAME COLUMN version_md5 TO version_digest;
 
 ALTER TABLE resource_disabled_versions
-RENAME COLUMN version_md5 TO version_sha256;
+RENAME COLUMN version_md5 TO version_digest;
 
 --- Drop Indexes
 -- resource_config_versions
-ALTER TABLE resource_config_versions 
+ALTER TABLE resource_config_versions
     DROP CONSTRAINT IF EXISTS resource_config_scope_id_and_version_md5_unique;
 DROP INDEX IF EXISTS resource_config_versions_check_order_idx;
 DROP INDEX IF EXISTS resource_config_versions_version;
 
 -- resource_disabled_versions
-DROP INDEX IF EXISTS resource_disabled_versions_resource_id_version_md5_uniq; 
+DROP INDEX IF EXISTS resource_disabled_versions_resource_id_version_md5_uniq;
 
 -- resource_caches
 DROP INDEX IF EXISTS resource_caches_resource_config_id_version_md5_params_hash_uniq;
@@ -44,13 +47,13 @@ DROP INDEX IF EXISTS build_resource_config_version_outputs_resource_id_idx;
 DROP INDEX IF EXISTS build_resource_config_version_outputs_uniq;
 
 -- next_build_inputs
-ALTER TABLE next_build_inputs 
+ALTER TABLE next_build_inputs
     DROP CONSTRAINT IF EXISTS next_build_inputs_unique_job_id_input_name;
 DROP INDEX IF EXISTS next_build_inputs_job_id;
 
 -- Convert all rows to their new sha256 values
 WITH json_string_cte AS (
-    SELECT 
+    SELECT
         rcv.id,
         rcv.version_sha256 AS old_version_sha256,
         COALESCE(
@@ -63,7 +66,7 @@ WITH json_string_cte AS (
     GROUP BY rcv.id, rcv.version_sha256
 ),
 hashed_json_string_cte AS (
-    SELECT 
+    SELECT
         json_string_cte.id,
         json_string_cte.old_version_sha256,
         encode(digest(json_string_cte.json_string, 'sha256'), 'hex') AS new_version_sha256
@@ -75,36 +78,7 @@ update_resource_versions AS (
     SET version_sha256 = hjs.new_version_sha256
     FROM hashed_json_string_cte hjs
     WHERE rcv.id = hjs.id
-),
-update_resource_disabled_versions AS (
-    UPDATE resource_disabled_versions rdv
-    SET version_sha256 = hjs.new_version_sha256
-    FROM hashed_json_string_cte hjs
-    WHERE rdv.version_sha256 = hjs.old_version_sha256
-),
-update_build_resource_config_version_inputs AS (
-    UPDATE build_resource_config_version_inputs bri
-    SET version_sha256 = hjs.new_version_sha256
-    FROM hashed_json_string_cte hjs
-    WHERE bri.version_sha256 = hjs.old_version_sha256
-),
-update_build_resource_config_version_outputs AS (
-    UPDATE build_resource_config_version_outputs bro
-    SET version_sha256 = hjs.new_version_sha256
-    FROM hashed_json_string_cte hjs
-    WHERE bro.version_sha256 = hjs.old_version_sha256
-),
-update_resource_caches AS (
-    UPDATE resource_caches rc
-    SET version_sha256 = hjs.new_version_sha256
-    FROM hashed_json_string_cte hjs
-    WHERE rc.version_sha256 = hjs.old_version_sha256
 )
-
-UPDATE next_build_inputs nbi
-SET version_sha256 = hjs.new_version_sha256
-FROM hashed_json_string_cte hjs
-WHERE nbi.version_sha256 = hjs.old_version_sha256;
 
 --- Recreate indexes
 -- resource_config_versions
