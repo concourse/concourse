@@ -31,7 +31,8 @@ RENAME COLUMN version_md5 TO version_digest;
 -- Drop Indexes
 -- resource_config_versions
 ALTER TABLE resource_config_versions
-    DROP CONSTRAINT IF EXISTS resource_config_scope_id_and_version_md5_unique;
+DROP CONSTRAINT IF EXISTS resource_config_scope_id_and_version_md5_unique;
+
 DROP INDEX IF EXISTS resource_config_versions_check_order_idx;
 DROP INDEX IF EXISTS resource_config_versions_version;
 
@@ -76,10 +77,16 @@ update_resource_versions AS (
 --- Recreate indexes
 -- resource_config_versions
 ALTER TABLE resource_config_versions
-    ADD CONSTRAINT resource_config_scope_id_and_version_digest_unique UNIQUE (resource_config_scope_id, version_sha256);
+ADD CONSTRAINT resource_config_scope_id_and_version_sha256_unique
+UNIQUE (resource_config_scope_id, version_sha256);
 
-CREATE INDEX resource_config_versions_check_order_idx ON resource_config_versions (resource_config_scope_id, check_order DESC);
-CREATE INDEX resource_config_versions_version ON resource_config_versions USING gin(version jsonb_path_ops) WITH (FASTUPDATE = false);
+CREATE INDEX resource_config_versions_check_order_idx
+ON resource_config_versions (resource_config_scope_id, check_order DESC);
+
+CREATE INDEX resource_config_versions_version
+ON resource_config_versions
+USING gin(version jsonb_path_ops)
+WITH (FASTUPDATE = false);
 
 -- New records will not have md5 digests
 ALTER TABLE resource_config_versions
