@@ -65,14 +65,11 @@ hashed_json_string_cte AS (
         json_string_cte.old_version_sha256,
         encode(digest(json_string_cte.json_string, 'sha256'), 'hex') AS new_version_sha256
     FROM json_string_cte
-),
-
-update_resource_versions AS (
-    UPDATE resource_config_versions rcv
-    SET version_sha256 = hjs.new_version_sha256
-    FROM hashed_json_string_cte hjs
-    WHERE rcv.id = hjs.id
 )
+UPDATE resource_config_versions rcv
+SET version_sha256 = hjs.new_version_sha256
+FROM hashed_json_string_cte hjs
+WHERE rcv.id = hjs.id;
 
 --- Recreate indexes
 -- resource_config_versions
