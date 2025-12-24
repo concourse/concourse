@@ -6,6 +6,11 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 ALTER TABLE resource_config_versions
 ADD COLUMN version_sha256 TEXT;
 
+-- Temporary check constraint to avoid full table scan when we add NOT NULL later
+ALTER TABLE resource_config_versions
+ADD CONSTRAINT temporary_digest_not_null
+CHECK (version_sha256 IS NOT NULL) NOT VALID;
+
 -- Rename columns from version_md5 to version_digest for all other tables. Other
 -- tables will now have a mix of md5 and sha256 digests
 ALTER TABLE build_resource_config_version_inputs
@@ -83,3 +88,6 @@ ALTER COLUMN version_md5 DROP NOT NULL;
 -- With digests regenerated, all records should have sha256 digests
 ALTER TABLE resource_config_versions
 ALTER COLUMN version_sha256 SET NOT NULL;
+
+ALTER TABLE resource_config_versions
+DROP CONSTRAINT temporary_digest_not_null;
