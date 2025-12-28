@@ -7,6 +7,7 @@ import ColorValues
 import Colors
 import Common exposing (defineHoverBehaviour, queryView)
 import Concourse
+import Concourse.BuildStatus as BuildStatus
 import DashboardTests exposing (iconSelector)
 import Data
 import Expect exposing (..)
@@ -263,6 +264,147 @@ all =
                             [ style "display" "flex"
                             , style "flex-direction" "column"
                             ]
+            , describe "group status colors" <|
+                let
+                    statusGroups =
+                        [ { name = "passing-group"
+                          , jobs = []
+                          , resources = []
+                          }
+                        , { name = "failing-group"
+                          , jobs = []
+                          , resources = []
+                          }
+                        , { name = "errored-group"
+                          , jobs = []
+                          , resources = []
+                          }
+                        , { name = "mixed-group"
+                          , jobs = []
+                          , resources = []
+                          }
+                        ]
+
+                    jobWithGroups name groups =
+                        let
+                            baseJob =
+                                Data.job 0
+                        in
+                        { baseJob | name = name, groups = groups }
+
+                    jobWithStatus name groups status =
+                        jobWithGroups name groups
+                            |> Data.withFinishedBuild (Just (Data.build status))
+
+                    setupGroupsWithJobs jobs =
+                        Application.init Data.flags
+                            { protocol = Url.Http
+                            , host = ""
+                            , port_ = Nothing
+                            , path = "/teams/team/pipelines/pipeline"
+                            , query = Nothing
+                            , fragment = Nothing
+                            }
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.PipelineFetched
+                                    (Ok <|
+                                        (Data.pipeline "team" 0
+                                            |> Data.withName "pipeline"
+                                            |> Data.withGroups statusGroups
+                                        )
+                                    )
+                                )
+                            |> Tuple.first
+                            |> Application.handleCallback
+                                (Callback.JobsFetched (Ok jobs))
+                            |> Tuple.first
+
+                    findGroupByIndex idx =
+                        Common.queryView
+                            >> Query.find [ id "groups-bar" ]
+                            >> Query.children []
+                            >> Query.index idx
+                in
+                [ test "group with passing jobs has default background" <|
+                    \_ ->
+                        let
+                            jobs =
+                                [ jobWithStatus "job-ok" [ "passing-group" ] BuildStatus.BuildStatusSucceeded
+                                ]
+                        in
+                        setupGroupsWithJobs jobs
+                            |> findGroupByIndex 0
+                            |> Query.has
+                                [ style "background" "rgba(151, 151, 151, 0.1)"
+                                ]
+                , test "group with failed job has failure background color" <|
+                    \_ ->
+                        let
+                            jobs =
+                                [ jobWithStatus "job-fail" [ "failing-group" ] BuildStatus.BuildStatusFailed
+                                ]
+                        in
+                        setupGroupsWithJobs jobs
+                            |> findGroupByIndex 1
+                            |> Query.has
+                                [ style "background" Colors.failure
+                                ]
+                , test "group with errored job has error background color" <|
+                    \_ ->
+                        let
+                            jobs =
+                                [ jobWithStatus "job-error" [ "errored-group" ] BuildStatus.BuildStatusErrored
+                                ]
+                        in
+                        setupGroupsWithJobs jobs
+                            |> findGroupByIndex 2
+                            |> Query.has
+                                [ style "background" Colors.error
+                                ]
+                , test "group with both errored and failed jobs shows error color (errored takes precedence)" <|
+                    \_ ->
+                        let
+                            jobs =
+                                [ jobWithStatus "job-fail" [ "mixed-group" ] BuildStatus.BuildStatusFailed
+                                , jobWithStatus "job-error" [ "mixed-group" ] BuildStatus.BuildStatusErrored
+                                ]
+                        in
+                        setupGroupsWithJobs jobs
+                            |> findGroupByIndex 3
+                            |> Query.has
+                                [ style "background" Colors.error
+                                ]
+                , test "group with no finished builds has default background" <|
+                    \_ ->
+                        let
+                            jobs =
+                                [ jobWithGroups "job-pending" [ "passing-group" ]
+                                ]
+                        in
+                        setupGroupsWithJobs jobs
+                            |> findGroupByIndex 0
+                            |> Query.has
+                                [ style "background" "rgba(151, 151, 151, 0.1)"
+                                ]
+                , test "job failure only affects its own group" <|
+                    \_ ->
+                        let
+                            jobs =
+                                [ jobWithStatus "job-fail" [ "failing-group" ] BuildStatus.BuildStatusFailed
+                                , jobWithStatus "job-ok" [ "passing-group" ] BuildStatus.BuildStatusSucceeded
+                                ]
+                        in
+                        setupGroupsWithJobs jobs
+                            |> Expect.all
+                                [ findGroupByIndex 0
+                                    >> Query.has
+                                        [ style "background" "rgba(151, 151, 151, 0.1)" ]
+                                , findGroupByIndex 1
+                                    >> Query.has
+                                        [ style "background" Colors.failure ]
+                                ]
+                ]
             ]
         , test "pipeline view fills available space" <|
             \_ ->
