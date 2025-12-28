@@ -160,6 +160,7 @@ mostSevereStepState model stepTree =
                 case step.buildStep of
                     Concourse.BuildStepDo _ ->
                         state
+
                     _ ->
                         case stepStateOrdering step.state state of
                             LT ->
@@ -323,8 +324,10 @@ activeStepIds model tree =
         Retry _ trees ->
             trees
                 |> Array.toList
-                |> List.Extra.takeWhile (mostSevereStepState model >> (/=) StepStateSucceeded)
-                |> List.concatMap (activeStepIds model)
+                |> List.filter (treeIsActive model)
+                |> List.Extra.last
+                |> Maybe.map (activeStepIds model)
+                |> Maybe.withDefault []
 
 
 updateTreeNodeAt : StepID -> (StepTree -> StepTree) -> StepTree -> StepTree
