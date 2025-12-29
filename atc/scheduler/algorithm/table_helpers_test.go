@@ -441,7 +441,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 			txn, err := pgxConn.Begin(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
-			cols := []string{"build_id", "resource_id", "version_sha256", "name", "first_occurrence"}
+			cols := []string{"build_id", "resource_id", "version_digest", "name", "first_occurrence"}
 			copyCount, err := txn.CopyFrom(ctx,
 				pgx.Identifier{"build_resource_config_version_inputs"},
 				cols, pgx.CopyFromSlice(len(debugDB.BuildInputs), func(i int) (row []any, err error) {
@@ -483,7 +483,7 @@ func (example Example) importVersionsDB(ctx context.Context, setup setupDB, cach
 			txn, err := pgxConn.Begin(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
-			cols := []string{"build_id", "resource_id", "version_sha256", "name"}
+			cols := []string{"build_id", "resource_id", "version_digest", "name"}
 			copyCount, err := txn.CopyFrom(ctx,
 				pgx.Identifier{"build_resource_config_version_outputs"},
 				cols, pgx.CopyFromSlice(len(debugDB.BuildOutputs), func(i int) (row []any, err error) {
@@ -538,7 +538,7 @@ func (example Example) setupVersionsDB(ctx context.Context, setup setupDB, cache
 		Expect(err).ToNot(HaveOccurred())
 
 		_, err = setup.psql.Insert("build_resource_config_version_outputs").
-			Columns("build_id", "resource_id", "version_sha256", "name").
+			Columns("build_id", "resource_id", "version_digest", "name").
 			Values(row.BuildID, resourceID, sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON), row.Resource).
 			Exec()
 		Expect(err).ToNot(HaveOccurred())
@@ -571,7 +571,7 @@ func (example Example) setupVersionsDB(ctx context.Context, setup setupDB, cache
 		Expect(err).ToNot(HaveOccurred())
 
 		_, err = setup.psql.Insert("build_resource_config_version_inputs").
-			Columns("build_id", "resource_id", "version_sha256", "name", "first_occurrence").
+			Columns("build_id", "resource_id", "version_digest", "name", "first_occurrence").
 			Values(row.BuildID, resourceID, sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON), row.Resource, false).
 			Exec()
 		Expect(err).ToNot(HaveOccurred())
@@ -668,8 +668,11 @@ func (example Example) assert(
 						From("resource_config_versions v").
 						Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 						Where(sq.Eq{
-							"v.version_sha256": inputSource.Input.AlgorithmVersion.Version,
-							"r.id":             inputSource.Input.ResourceID,
+							"r.id": inputSource.Input.ResourceID,
+						}).
+						Where(sq.Or{
+							sq.Eq{"v.version_md5": inputSource.Input.AlgorithmVersion.Version},
+							sq.Eq{"v.version_sha256": inputSource.Input.AlgorithmVersion.Version},
 						}).
 						QueryRow().
 						Scan(&versionID)
@@ -875,7 +878,7 @@ func (s setupDB) insertRowVersion(resources map[string]atc.ResourceConfig, row D
 
 	if row.Disabled {
 		_, err = s.psql.Insert("resource_disabled_versions").
-			Columns("resource_id", "version_sha256").
+			Columns("resource_id", "version_digest").
 			Values(resourceID, sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON)).
 			Suffix("ON CONFLICT DO NOTHING").
 			Exec()

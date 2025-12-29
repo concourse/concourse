@@ -138,7 +138,7 @@ var _ = Describe("Resolve", func() {
 
 			resourceID := setup.resourceIDs.ID(buildOutput.ResourceName)
 			_, err = setup.psql.Insert("build_resource_config_version_outputs").
-				Columns("build_id", "resource_id", "version_sha256", "name").
+				Columns("build_id", "resource_id", "version_digest", "name").
 				Values(buildOutput.BuildID, resourceID, sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON), buildOutput.ResourceName).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())
@@ -175,7 +175,7 @@ var _ = Describe("Resolve", func() {
 
 			resourceID := setup.resourceIDs.ID(buildInput.ResourceName)
 			_, err = setup.psql.Insert("build_resource_config_version_inputs").
-				Columns("build_id", "resource_id", "version_sha256", "name", "first_occurrence").
+				Columns("build_id", "resource_id", "version_digest", "name", "first_occurrence").
 				Values(buildInput.BuildID, resourceID, sq.Expr("encode(digest(?, 'sha256'), 'hex')", versionJSON), buildInput.InputName, false).
 				Exec()
 			Expect(err).ToNot(HaveOccurred())

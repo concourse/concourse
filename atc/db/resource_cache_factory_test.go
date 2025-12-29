@@ -99,7 +99,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(usedResourceCache.Version()).To(Equal(atc.Version{"some": "version"}))
 
-			rows, err := psql.Select("a.version, a.version_sha256, a.params_hash, o.source_hash, b.name").
+			rows, err := psql.Select("a.version, a.version_digest, a.params_hash, o.source_hash, b.name").
 				From("resource_caches a").
 				LeftJoin("resource_configs o ON a.resource_config_id = o.id").
 				LeftJoin("base_resource_types b ON o.base_resource_type_id = b.id").
