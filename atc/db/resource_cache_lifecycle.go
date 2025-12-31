@@ -63,8 +63,8 @@ func (f *resourceCacheLifecycle) CleanInvalidWorkerResourceCaches(logger lager.L
 		Where(sq.Expr("id in (SELECT id FROM invalid_caches)")).
 		Prefix(
 			`WITH invalid_caches AS (
-				    SELECT id FROM worker_resource_caches 
-				    WHERE worker_base_resource_type_id IS NULL AND 
+				    SELECT id FROM worker_resource_caches
+				    WHERE worker_base_resource_type_id IS NULL AND
 				        invalid_since < (
 				            SELECT COALESCE(MIN(start_time), now()) FROM builds WHERE status = 'started'
 				        )
@@ -105,8 +105,8 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 		Select("r_cache.id").
 		From("next_build_inputs nbi").
 		Join("resources r ON r.id = nbi.resource_id").
-		Join("resource_config_versions rcv ON rcv.version_sha256 = nbi.version_sha256 AND rcv.resource_config_scope_id = r.resource_config_scope_id").
-		Join("resource_caches r_cache ON r_cache.resource_config_id = r.resource_config_id AND r_cache.version_sha256 = rcv.version_sha256").
+		Join("resource_config_versions rcv ON nbi.version_digest IN (rcv.version_md5, rcv.version_sha256) AND rcv.resource_config_scope_id = r.resource_config_scope_id").
+		Join("resource_caches r_cache ON r_cache.resource_config_id = r.resource_config_id AND r_cache.version_digest IN (rcv.version_md5, rcv.version_sha256)").
 		Join("jobs j ON nbi.job_id = j.id").
 		Join("pipelines p ON j.pipeline_id = p.id").
 		Where(sq.Expr("p.paused = false")).

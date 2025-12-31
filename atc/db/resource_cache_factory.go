@@ -77,7 +77,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 			"resource_config_id": rc.id,
 			"params_hash":        paramsHash(params),
 		}).
-		Where(sq.Expr("version_sha256 = encode(digest(?, 'sha256'), 'hex')", cacheVersion)).
+		Where(sq.Expr("version_digest = encode(digest(?, 'sha256'), 'hex')", cacheVersion)).
 		Suffix("FOR SHARE").
 		RunWith(tx).
 		QueryRow().
@@ -95,7 +95,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 			Columns(
 				"resource_config_id",
 				"version",
-				"version_sha256",
+				"version_digest",
 				"params_hash",
 			).
 			Values(
@@ -105,10 +105,10 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 				paramsHash(params),
 			).
 			Suffix(`
-				ON CONFLICT (resource_config_id, version_sha256, params_hash) DO UPDATE SET
+				ON CONFLICT (resource_config_id, version_digest, params_hash) DO UPDATE SET
 				resource_config_id = EXCLUDED.resource_config_id,
 				version = EXCLUDED.version,
-				version_sha256 = EXCLUDED.version_sha256,
+				version_digest = EXCLUDED.version_digest,
 				params_hash = EXCLUDED.params_hash
 				RETURNING id
 			`).

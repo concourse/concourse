@@ -1,7 +1,6 @@
 package db_test
 
 import (
-	"code.cloudfoundry.org/clock/fakeclock"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -9,6 +8,8 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"code.cloudfoundry.org/clock/fakeclock"
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
@@ -1466,7 +1467,7 @@ var _ = Describe("Build", func() {
 					Where(sq.Eq{
 						"build_id":       build.ID(),
 						"resource_id":    inputResource.ID(),
-						"version_sha256": convertToSHA256(atc.Version{"ver": "1"}),
+						"version_digest": convertToSHA256(atc.Version{"ver": "1"}),
 					}).
 					RunWith(dbConn).
 					Exec()
@@ -1511,7 +1512,7 @@ var _ = Describe("Build", func() {
 						Where(sq.Eq{
 							"build_id":       newBuild.ID(),
 							"resource_id":    inputResource.ID(),
-							"version_sha256": convertToSHA256(atc.Version{"ver": "1"}),
+							"version_digest": convertToSHA256(atc.Version{"ver": "1"}),
 						}).
 						RunWith(dbConn).
 						Exec()

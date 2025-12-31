@@ -42,12 +42,12 @@ const (
 WITH RECURSIVE build_ids AS (
 		SELECT DISTINCT i.build_id
 		FROM build_resource_config_version_inputs i
-		WHERE i.resource_id=$1 AND i.version_sha256=$2
+		WHERE i.resource_id=$1 AND i.version_digest=$2
 	UNION
 		SELECT i.build_id
 		FROM build_ids bi
 		INNER JOIN build_resource_config_version_outputs o ON o.build_id = bi.build_id
-		INNER JOIN build_resource_config_version_inputs i ON i.resource_id = o.resource_id AND i.version_sha256 = o.version_sha256
+		INNER JOIN build_resource_config_version_inputs i ON i.resource_id = o.resource_id AND i.version_digest = o.version_digest
 		WHERE i.resource_id!=$1
 )
 `
@@ -56,12 +56,12 @@ WITH RECURSIVE build_ids AS (
 WITH RECURSIVE build_ids AS (
 		SELECT DISTINCT o.build_id
 		FROM build_resource_config_version_outputs o
-		WHERE o.resource_id=$1 AND o.version_sha256=$2
+		WHERE o.resource_id=$1 AND o.version_digest=$2
 	UNION
 		SELECT o.build_id
 		FROM build_ids bi
 		INNER JOIN build_resource_config_version_inputs i ON i.build_id = bi.build_id
-		INNER JOIN build_resource_config_version_outputs o ON o.resource_id = i.resource_id AND o.version_sha256 = i.version_sha256
+		INNER JOIN build_resource_config_version_outputs o ON o.resource_id = i.resource_id AND o.version_digest = i.version_digest
 		WHERE i.resource_id!=$1
 )
 `
@@ -514,7 +514,7 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			NOT EXISTS (
 				SELECT 1
 				FROM resource_disabled_versions d
-				WHERE v.version_sha256 = d.version_sha256
+				WHERE d.version_digest IN (v.version_md5, v.version_sha256)
 				AND r.resource_config_scope_id = v.resource_config_scope_id
 				AND r.id = d.resource_id
 			)
@@ -783,12 +783,12 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 		results, err = tx.Exec(`
 			DELETE FROM resource_disabled_versions
 			WHERE resource_id = $1
-			AND version_sha256 = (SELECT version_sha256 FROM resource_config_versions rcv WHERE rcv.id = $2)
+			AND version_digest = (SELECT COALESCE(version_md5, version_sha256) FROM resource_config_versions rcv WHERE rcv.id = $2)
 			`, r.id, rcvID)
 	} else {
 		results, err = tx.Exec(`
-			INSERT INTO resource_disabled_versions (resource_id, version_sha256)
-			SELECT $1, rcv.version_sha256
+			INSERT INTO resource_disabled_versions (resource_id, version_digest)
+			SELECT $1, COALESCE(rcv.version_md5, rcv.version_sha256)
 			FROM resource_config_versions rcv
 			WHERE rcv.id = $2
 			`, r.id, rcvID)
@@ -839,7 +839,7 @@ func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
 		}
 
 		selectStatement = selectStatement.Where(
-			sq.Expr("version_sha256 = encode(digest(?, 'sha256'), 'hex')", versionJson),
+			sq.Expr("version_digest = encode(digest(?, 'sha256'), 'hex')", versionJson),
 		)
 	}
 
@@ -1285,13 +1285,13 @@ func causalityResourceVersions(tx Tx, resourceID int, versionSHA256 string, dire
 	SELECT r.id, rcv.id, r.name, rcv.version, i.build_id, 'input' AS type
 	FROM build_resource_config_version_inputs i
 	JOIN resources r ON r.id = i.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_sha256 = i.version_sha256 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN resource_config_versions rcv ON (rcv.version_md5 = i.version_digest OR rcv.version_sha256 = i.version_digest) AND rcv.resource_config_scope_id = r.resource_config_scope_id
 	JOIN build_ids bi ON i.build_id = bi.build_id
 UNION ALL
 	SELECT r.id, rcv.id, r.name, rcv.version, o.build_id, 'output' AS type
 	FROM build_resource_config_version_outputs o
 	JOIN resources r ON r.id = o.resource_id
-	JOIN resource_config_versions rcv ON rcv.version_sha256 = o.version_sha256 AND rcv.resource_config_scope_id = r.resource_config_scope_id
+	JOIN resource_config_versions rcv ON (rcv.version_md5 = o.version_digest OR rcv.version_sha256 = o.version_digest) AND rcv.resource_config_scope_id = r.resource_config_scope_id
 	JOIN build_ids bi ON o.build_id = bi.build_id
 LIMIT $3
 `
@@ -1408,7 +1408,7 @@ func (r *resource) Causality(rcvID int, direction CausalityDirection) (atc.Causa
 	defer Rollback(tx) // everything is readonly, so no need to commit
 
 	var versionSHA256 string
-	err = psql.Select("version_sha256").
+	err = psql.Select("COALESCE(version_md5, version_sha256)").
 		From("resource_config_versions").
 		Where(sq.Eq{"id": rcvID}).
 		RunWith(tx).
