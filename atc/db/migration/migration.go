@@ -257,7 +257,7 @@ func (helper *migrator) Migrate(newKey, oldKey *encryption.Key, toVersion int) e
 		// special case - if the old key is not provided but the new key is,
 		// this might mean the data was not encrypted, or that it was encrypted with newKey
 		strategy = encryption.NewFallbackStrategy(newKey, encryption.NewNoEncryption())
-	} else if newKey == nil {
+	} else {
 		strategy = encryption.NewNoEncryption()
 	}
 

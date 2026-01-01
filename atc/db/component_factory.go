@@ -82,9 +82,6 @@ func (f *componentFactory) CreateOrUpdate(c atc.Component) (Component, error) {
 		`).
 		RunWith(tx).
 		QueryRow()
-	if err != nil {
-		return nil, err
-	}
 
 	err = scanComponent(obj, row)
 	if err != nil {

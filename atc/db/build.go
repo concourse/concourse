@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -96,7 +97,7 @@ var buildsQuery = psql.Select(`
 		b.aborted,
 		b.completed,
 		b.inputs_ready,
-		b.rerun_of,
+		COALESCE(b.rerun_of, b.rerun_of_old) AS rerun_of,
 		rb.name,
 		b.rerun_number,
 		b.span_context,
@@ -107,7 +108,7 @@ var buildsQuery = psql.Select(`
 	JoinClause("LEFT OUTER JOIN resources r ON b.resource_id = r.id").
 	JoinClause("LEFT OUTER JOIN pipelines p ON b.pipeline_id = p.id").
 	JoinClause("LEFT OUTER JOIN teams t ON b.team_id = t.id").
-	JoinClause("LEFT OUTER JOIN builds rb ON rb.id = b.rerun_of").
+	JoinClause("LEFT OUTER JOIN builds rb ON (rb.id = b.rerun_of OR rb.id = b.rerun_of_old)").
 	JoinClause("LEFT OUTER JOIN build_comments bc ON b.id = bc.build_id")
 
 var latestCompletedBuildQuery = psql.Select("max(id)").
@@ -2124,7 +2125,10 @@ func latestCompletedNonRerunBuild(tx Tx, jobID int) (int, error) {
 	var latestNonRerunId int
 	err := latestCompletedBuildQuery.
 		Where(sq.Eq{"job_id": jobID}).
-		Where(sq.Eq{"rerun_of": nil}).
+		Where(sq.And{
+			sq.Eq{"rerun_of": nil},
+			sq.Eq{"rerun_of_old": nil},
+		}).
 		RunWith(tx).
 		QueryRow().
 		Scan(&latestNonRerunId)
@@ -2144,7 +2148,10 @@ func updateNextBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 			INNER JOIN jobs j ON j.id = b.job_id
 			WHERE b.job_id = $1
 			AND b.status IN ('pending', 'started')
-			AND (b.rerun_of IS NULL OR b.rerun_of = $2)
+			AND (
+				(b.rerun_of IS NULL AND b.rerun_of_old IS NULL) OR
+				(b.rerun_of = $2 OR b.rerun_of_old = $2)
+			)
 		)
 		WHERE j.id = $1
 	`, jobID, latestNonRerunId)
@@ -2156,9 +2163,20 @@ func updateNextBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 
 func updateLatestCompletedBuildForJob(tx Tx, jobID int, latestNonRerunId int) error {
 	var latestRerunId sql.NullString
+
+	var rerunOfCheck any
+	if latestNonRerunId > math.MaxInt32 {
+		rerunOfCheck = sq.Eq{"rerun_of": latestNonRerunId}
+	} else {
+		rerunOfCheck = sq.Or{
+			sq.Eq{"rerun_of": latestNonRerunId},
+			sq.Eq{"rerun_of_old": latestNonRerunId},
+		}
+	}
+
 	err := latestCompletedBuildQuery.
 		Where(sq.Eq{"job_id": jobID}).
-		Where(sq.Eq{"rerun_of": latestNonRerunId}).
+		Where(rerunOfCheck).
 		RunWith(tx).
 		QueryRow().
 		Scan(&latestRerunId)

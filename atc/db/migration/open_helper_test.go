@@ -25,7 +25,7 @@ var _ = Describe("OpenHelper", func() {
 		db, err = sql.Open("pgx", postgresRunner.DataSourceName())
 		Expect(err).NotTo(HaveOccurred())
 
-		for i := 0; i < lock.FactoryCount; i++ {
+		for i := range lock.FactoryCount {
 			lockDB[i], err = sql.Open("pgx", postgresRunner.DataSourceName())
 			Expect(err).NotTo(HaveOccurred())
 		}
