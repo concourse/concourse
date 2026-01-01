@@ -2171,6 +2171,18 @@ var _ = Describe("ValidateConfig", func() {
 			})
 		})
 
+		Context("when a job has build_logs_to_retain configured", func() {
+			BeforeEach(func() {
+				config.Jobs[0].BuildLogsToRetain = 1
+			})
+
+			It("returns a warning", func() {
+				Expect(warnings).To(HaveLen(1))
+				Expect(warnings[0].Type).To(Equal("deprecated_field"))
+				Expect(warnings[0].Message).To(ContainSubstring(".build_logs_to_retain is deprecated. Use build_log_retention instead."))
+			})
+		})
+
 		Context("when a job has negative build_log_retention values", func() {
 			BeforeEach(func() {
 				config.Jobs[0].BuildLogRetention = &atc.BuildLogRetention{

@@ -356,6 +356,13 @@ func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
 			errorMessages = append(errorMessages, identifier+" has no name")
 		}
 
+		if job.BuildLogsToRetain != 0 {
+			warnings = append(warnings, atc.ConfigWarning{
+				Type:    "deprecated_field",
+				Message: fmt.Sprintf("%s.build_logs_to_retain is deprecated. Use build_log_retention instead.", identifier),
+			})
+		}
+
 		if job.BuildLogRetention != nil && job.BuildLogsToRetain != 0 {
 			errorMessages = append(
 				errorMessages,
