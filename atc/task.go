@@ -93,10 +93,6 @@ func (config TaskConfig) Validate() error {
 		errors = append(errors, "missing 'platform'")
 	}
 
-	if config.Run.Path == "" {
-		errors = append(errors, "missing path to executable to run")
-	}
-
 	errors = append(errors, config.validateInputContainsNames()...)
 	errors = append(errors, config.validateOutputContainsNames()...)
 

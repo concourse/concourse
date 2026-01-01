@@ -390,8 +390,8 @@ run: {path: a/file}
 				invalidConfig.Run.Path = ""
 			})
 
-			It("returns an error", func() {
-				Expect(invalidConfig.Validate()).To(MatchError(ContainSubstring("missing path to executable to run")))
+			It("does not return an error", func() {
+				Expect(invalidConfig.Validate()).To(BeNil())
 			})
 		})
 

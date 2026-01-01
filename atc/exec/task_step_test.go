@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc"
@@ -16,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -741,17 +744,133 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
-		Context("when missing the path to the executable", func() {
+		Context("when missing the path to the executable and ENTRYPOINT/CMD is not defined", func() {
 			BeforeEach(func() {
 				taskPlan.Config.Run.Path = ""
 			})
 
 			It("returns the error", func() {
 				Expect(stepErr).To(HaveOccurred())
+				Expect(stepErr.Error()).To(ContainSubstring("No executable defined for task. Specify an executable to run in either the task config (run.path) or as an ENTRYPOINT/CMD in the container image."))
 			})
 
 			It("is not successful", func() {
 				Expect(stepOk).To(BeFalse())
+			})
+
+			Context("when the image's metadata.json is malformed", func() {
+				BeforeEach(func() {
+					taskPlan.Config.Run.Path = ""
+					fakeStreamer.StreamFileReturns(io.NopCloser(strings.NewReader("definitely not json")), nil)
+
+					taskPlan.ImageArtifactName = "some-image-artifact"
+					imageVolume := runtimetest.NewVolume("image-volume")
+					repo.RegisterArtifact("some-image-artifact", imageVolume, false)
+				})
+
+				It("returns the error", func() {
+					Expect(stepErr).To(HaveOccurred())
+					Expect(stepErr.Error()).To(ContainSubstring("error parsing metadata.json from rootfs"))
+				})
+
+				It("is not successful", func() {
+					Expect(stepOk).To(BeFalse())
+				})
+
+			})
+
+			Context("when the image's metadata.json is not present in the image artifact", func() {
+				BeforeEach(func() {
+					taskPlan.Config.Run.Path = ""
+					fakeStreamer.StreamFileReturns(nil, baggageclaim.ErrFileNotFound)
+
+					taskPlan.ImageArtifactName = "some-image-artifact"
+					imageVolume := runtimetest.NewVolume("image-volume")
+					repo.RegisterArtifact("some-image-artifact", imageVolume, false)
+				})
+
+				It("returns the error", func() {
+					Expect(stepErr).To(HaveOccurred())
+					Expect(stepErr.Error()).To(ContainSubstring("file 'metadata.json' not found within artifact 'image-volume'"))
+				})
+
+				It("is not successful", func() {
+					Expect(stepOk).To(BeFalse())
+				})
+
+			})
+		})
+
+		Context("the task container has an ENTRYPOINT/CMD defined", func() {
+			BeforeEach(func() {
+				taskPlan.Config.Run.Path = ""
+				taskPlan.Config.Run.Args = []string{}
+				rootfsMetadata := `{
+  "entrypoint": [
+    "/bin/sh",
+    "-c"
+  ],
+  "cmd": [
+    "echo hello world"
+  ]
+}`
+				fakeStreamer.StreamFileReturns(io.NopCloser(strings.NewReader(rootfsMetadata)), nil)
+
+				taskPlan.ImageArtifactName = "some-image-artifact"
+				imageVolume := runtimetest.NewVolume("image-volume")
+				repo.RegisterArtifact("some-image-artifact", imageVolume, false)
+			})
+
+			It("uses the ENTRYPOINT/CMD and passes it back to the task delegate", func() {
+				Expect(fakeDelegate.SetTaskConfigCallCount()).To(Equal(1))
+				actualTaskConfig := fakeDelegate.SetTaskConfigArgsForCall(0)
+				Expect(actualTaskConfig.Run.Path).To(Equal("/bin/sh"))
+				Expect(actualTaskConfig.Run.Args).To(Equal([]string{"-c", "echo hello world"}))
+			})
+
+			Context("there are args in the task config", func() {
+				BeforeEach(func() {
+					taskPlan.Config.Run.Args = []string{"task", "args"}
+				})
+
+				It("they are appended to the ENTRYPOINT/CMD args", func() {
+					Expect(fakeDelegate.SetTaskConfigCallCount()).To(Equal(1))
+					actualTaskConfig := fakeDelegate.SetTaskConfigArgsForCall(0)
+					Expect(actualTaskConfig.Run.Path).To(Equal("/bin/sh"))
+					Expect(actualTaskConfig.Run.Args).To(Equal([]string{"-c", "echo hello world", "task", "args"}))
+				})
+			})
+
+			Context("only ENTRYPOINT is specified", func() {
+				BeforeEach(func() {
+					taskPlan.Config.Run.Path = ""
+					taskPlan.Config.Run.Args = []string{}
+					rootfsMetadata := `{ "entrypoint": [ "some-program", "some-arg" ] }`
+					fakeStreamer.StreamFileReturns(io.NopCloser(strings.NewReader(rootfsMetadata)), nil)
+				})
+
+				It("is parsed correctly", func() {
+					Expect(fakeDelegate.SetTaskConfigCallCount()).To(Equal(1))
+					actualTaskConfig := fakeDelegate.SetTaskConfigArgsForCall(0)
+					Expect(actualTaskConfig.Run.Path).To(Equal("some-program"))
+					Expect(actualTaskConfig.Run.Args).To(Equal([]string{"some-arg"}))
+				})
+			})
+
+			Context("only CMD is specified", func() {
+				BeforeEach(func() {
+					taskPlan.Config.Run.Path = ""
+					taskPlan.Config.Run.Args = []string{}
+					rootfsMetadata := `{ "cmd": [ "cmd-program", "cmd-arg" ] }`
+					fakeStreamer.StreamFileReturns(io.NopCloser(strings.NewReader(rootfsMetadata)), nil)
+				})
+
+				It("is parsed correctly", func() {
+					Expect(fakeDelegate.SetTaskConfigCallCount()).To(Equal(1))
+					actualTaskConfig := fakeDelegate.SetTaskConfigArgsForCall(0)
+					Expect(actualTaskConfig.Run.Path).To(Equal("cmd-program"))
+					Expect(actualTaskConfig.Run.Args).To(Equal([]string{"cmd-arg"}))
+				})
 			})
 		})
 
