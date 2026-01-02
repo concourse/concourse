@@ -16,6 +16,7 @@ module Pipeline.Pipeline exposing
 import Application.Models exposing (Session)
 import Colors
 import Concourse
+import Concourse.BuildStatus exposing (BuildStatus(..))
 import DateFormat
 import EffectTransformer exposing (ET)
 import Favorites
@@ -682,6 +683,9 @@ viewSubPage session model =
 viewGroupsBar : { a | hovered : HoverState.HoverState } -> Model -> Html Message
 viewGroupsBar session model =
     let
+        jobs =
+            Maybe.withDefault [] model.fetchedJobs
+
         groupList =
             case model.pipeline of
                 RemoteData.Success pipeline ->
@@ -690,6 +694,7 @@ viewGroupsBar session model =
                             { selectedGroups = selectedGroupsOrDefault model
                             , pipelineLocator = model.pipelineLocator
                             , hovered = session.hovered
+                            , jobs = jobs
                             }
                         )
                         pipeline.groups
@@ -711,15 +716,29 @@ viewGroup :
         | selectedGroups : List String
         , pipelineLocator : Concourse.PipelineIdentifier
         , hovered : HoverState.HoverState
+        , jobs : List Concourse.Job
     }
     -> Int
     -> Concourse.PipelineGroup
     -> Html Message
-viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
+viewGroup { selectedGroups, pipelineLocator, hovered, jobs } idx grp =
     let
         url =
             Routes.toString <|
                 Routes.Pipeline { id = pipelineLocator, groups = [ grp.name ] }
+
+        groupJobs =
+            List.filter (\job -> List.member grp.name job.groups) jobs
+
+        ( hasFailedJob, hasErroredJob ) =
+            List.foldl
+                (\job ( failedAcc, erroredAcc ) ->
+                    ( failedAcc || jobHasStatus BuildStatusFailed job
+                    , erroredAcc || jobHasStatus BuildStatusErrored job
+                    )
+                )
+                ( False, False )
+                groupJobs
     in
     Html.a
         ([ Html.Attributes.href <| url
@@ -730,9 +749,23 @@ viewGroup { selectedGroups, pipelineLocator, hovered } idx grp =
             ++ Styles.groupItem
                 { selected = List.member grp.name selectedGroups
                 , hovered = HoverState.isHovered (JobGroup idx) hovered
+                , hasFailedJob = hasFailedJob
+                , hasErroredJob = hasErroredJob
                 }
         )
         [ Html.text grp.name ]
+
+
+{-| Check if a job's finished build has the given status
+-}
+jobHasStatus : BuildStatus -> Concourse.Job -> Bool
+jobHasStatus status job =
+    case job.finishedBuild of
+        Just build ->
+            build.status == status
+
+        Nothing ->
+            False
 
 
 jobAppearsInGroups : List String -> Concourse.Job -> Bool

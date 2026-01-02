@@ -24,13 +24,21 @@ groupsBar =
     ]
 
 
-groupItem : { selected : Bool, hovered : Bool } -> List (Html.Attribute msg)
-groupItem { selected, hovered } =
+groupItem : { selected : Bool, hovered : Bool, hasFailedJob : Bool, hasErroredJob : Bool } -> List (Html.Attribute msg)
+groupItem { selected, hovered, hasFailedJob, hasErroredJob } =
     [ style "font-size" "14px"
-    , style "background" Colors.groupBackground
     , style "margin" "5px"
     , style "padding" "10px"
     ]
+        ++ (if hasErroredJob then
+                [ style "background" Colors.error ]
+
+            else if hasFailedJob then
+                [ style "background" Colors.failure ]
+
+            else
+                [ style "background" Colors.groupBackground ]
+           )
         ++ (if selected then
                 [ style "opacity" "1"
                 , style "border" <| "1px solid " ++ Colors.groupBorderSelected
