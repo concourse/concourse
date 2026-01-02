@@ -2,6 +2,7 @@ package exec
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -207,8 +209,6 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	config, err := taskConfigSource.FetchConfig(ctx, logger, repository)
 
-	delegate.SetTaskConfig(config)
-
 	for _, warning := range taskConfigSource.Warnings() {
 		fmt.Fprintln(delegate.Stderr(), "[WARNING]", warning)
 	}
@@ -233,6 +233,24 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 	if err != nil {
 		return false, err
 	}
+
+	if config.Run.Path == "" {
+		path, args, err := step.getOciEntrypoint(ctx, imageSpec)
+		if err != nil {
+			return false, err
+		}
+
+		config.Run.Path = path
+		// Append any args defined in the Task config to those from the
+		// container image
+		config.Run.Args = append(args, config.Run.Args...)
+	}
+
+	if config.Run.Path == "" {
+		return false, errors.New("No executable defined for task. Specify an executable to run in either the task config (run.path) or as an ENTRYPOINT/CMD in the container image.")
+	}
+
+	delegate.SetTaskConfig(config)
 
 	containerSpec, err := step.containerSpec(logger, state, imageSpec, config, step.containerMetadata)
 	if err != nil {
@@ -504,6 +522,67 @@ func (step *TaskStep) registerCaches(ctx context.Context, repository *build.Repo
 	}
 
 	return nil
+}
+
+type ociRunConfig struct {
+	Cmd        []string `json:"cmd"`
+	EntryPoint []string `json:"entrypoint"`
+}
+
+// Try and use OCI image Entrypoint and/or CMD. This relies on the
+// registry-image resource providing this information when it converts OCI
+// images into our rootfs format.
+func (step *TaskStep) getOciEntrypoint(ctx context.Context, imageSpec runtime.ImageSpec) (string, []string, error) {
+	path := ""
+	args := []string{}
+
+	if imageSpec.ImageArtifact == nil {
+		// there's no image artifact for Windows and Darwin tasks
+		return path, args, nil
+	}
+
+	metadataStream, err := step.streamer.StreamFile(ctx, imageSpec.ImageArtifact, "metadata.json")
+	if err != nil {
+		if err == baggageclaim.ErrFileNotFound {
+			return path, args, FileNotFoundError{
+				Name:     imageSpec.ImageArtifact.Handle(),
+				FilePath: "metadata.json",
+			}
+		}
+		return path, args, err
+	}
+
+	defer metadataStream.Close()
+
+	imageMetadata, err := io.ReadAll(metadataStream)
+	if err != nil {
+		return path, args, err
+	}
+
+	imgCmd := ociRunConfig{}
+	err = json.Unmarshal(imageMetadata, &imgCmd)
+	if err != nil {
+		return path, args, fmt.Errorf("error parsing metadata.json from rootfs: %s", err.Error())
+	}
+
+	if len(imgCmd.EntryPoint) >= 1 {
+		path = imgCmd.EntryPoint[0]
+	}
+
+	if len(imgCmd.EntryPoint) > 1 {
+		args = append(args, imgCmd.EntryPoint[1:]...)
+	}
+
+	if path == "" && len(imgCmd.Cmd) >= 1 {
+		path = imgCmd.Cmd[0]
+		if len(imgCmd.Cmd) > 1 {
+			args = append(args, imgCmd.Cmd[1:]...)
+		}
+	} else {
+		args = append(args, imgCmd.Cmd...)
+	}
+
+	return path, args, err
 }
 
 func artifactPath(workingDir string, name string, path string) string {
