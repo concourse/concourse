@@ -730,11 +730,15 @@ viewGroup { selectedGroups, pipelineLocator, hovered, jobs } idx grp =
         groupJobs =
             List.filter (\job -> List.member grp.name job.groups) jobs
 
-        hasFailedJob =
-            List.any (jobHasStatus BuildStatusFailed) groupJobs
-
-        hasErroredJob =
-            List.any (jobHasStatus BuildStatusErrored) groupJobs
+        ( hasFailedJob, hasErroredJob ) =
+            List.foldl
+                (\job ( failedAcc, erroredAcc ) ->
+                    ( failedAcc || jobHasStatus BuildStatusFailed job
+                    , erroredAcc || jobHasStatus BuildStatusErrored job
+                    )
+                )
+                ( False, False )
+                groupJobs
     in
     Html.a
         ([ Html.Attributes.href <| url
