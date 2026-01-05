@@ -167,8 +167,8 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       if (graphNodes[i].status == "failed") {
         var xCenter = graphNodes[i].position().x + (graphNodes[i].width() / 2)
         var found = false
-        for (var i in failureCenters) {
-          if (Math.abs(xCenter - failureCenters[i]) < epsilon) {
+        for (var j in failureCenters) {
+          if (Math.abs(xCenter - failureCenters[j]) < epsilon) {
             found = true
             break
           }
