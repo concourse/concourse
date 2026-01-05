@@ -285,7 +285,7 @@ Graph.prototype.collapseEquivalentNodes = function() {
       continue;
     }
 
-    byEqv = byRank[node.equivalentBy];
+    var byEqv = byRank[node.equivalentBy];
     if (byEqv === undefined) {
       byEqv = [];
       byRank[node.equivalentBy] = byEqv;
@@ -592,6 +592,7 @@ GraphNode.prototype.copy = function() {
   return new GraphNode({
     id: this.id,
     name: this.name,
+    icon: this.icon,
     class: this.class,
     status: this.status,
     repeatable: this.repeatable,
