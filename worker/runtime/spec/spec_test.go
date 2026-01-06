@@ -351,7 +351,7 @@ func (s *SpecSuite) TestOciResourceLimits() {
 			},
 			expected: &specs.LinuxResources{
 				Pids: &specs.LinuxPids{
-					Limit: 1000,
+					Limit: int64Ptr(1000),
 				},
 			},
 			swapEnabled: true,
@@ -618,7 +618,7 @@ func (s *SpecSuite) TestContainerSpec() {
 				s.NotNil(oci.Linux.Resources.Memory)
 				s.Equal(int64Ptr(10000), oci.Linux.Resources.Memory.Limit)
 				s.NotNil(oci.Linux.Resources.Pids)
-				s.Equal(int64(1000), oci.Linux.Resources.Pids.Limit)
+				s.Equal(int64Ptr(1000), oci.Linux.Resources.Pids.Limit)
 
 				s.NotNil(oci.Linux.Resources.Devices)
 			},

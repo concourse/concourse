@@ -7,12 +7,12 @@
   "type": "module",
   "dependencies": {
     "request": "^2.88.2",
-    "uuid": "^11.1.0"
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.0",
+    "@babel/core": "^7.28.5",
     "@babel/plugin-syntax-dynamic-import": "7.8.3",
-    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-env": "^7.28.5",
     "@mdi/svg": "7.4.47",
     "babel-loader": "^10.0.0",
     "child-process-promise": "2.2.1",
@@ -21,11 +21,11 @@
     "elm-analyse": "0.16.5",
     "elm-format": "0.8.8",
     "elm-test": "0.19.1-revision16",
-    "less": "4.4.0",
+    "less": "4.5.1",
     "less-plugin-autoprefix": "2.0.0",
-    "puppeteer": "^24.15.0",
+    "puppeteer": "^24.34.0",
     "uglify-js": "^3.19.3",
-    "webpack": "^5.101.0",
+    "webpack": "^5.104.1",
     "webpack-cli": "6.0.1"
   },
   "resolutions": {
