@@ -194,7 +194,7 @@ func OciResources(limits garden.Limits, swapLimitEnabled bool) *specs.LinuxResou
 	maxPids := int64(limits.Pid.Max)
 	if maxPids > 0 {
 		pidLimit = &specs.LinuxPids{
-			Limit: maxPids,
+			Limit: &maxPids,
 		}
 	}
 
