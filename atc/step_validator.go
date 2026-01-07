@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/gobwas/glob"
 )
 
 // StepValidator is a StepVisitor which validates each step that visits it,
@@ -140,32 +142,43 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 
 	validator.pushContext(".passed")
 
-	for _, job := range step.Passed {
-		jobConfig, found := validator.config.Jobs.Lookup(job)
-		if !found {
-			validator.recordErrorf("unknown job '%s'", job)
+	for _, jobGlob := range step.Passed {
+		g, err := glob.Compile(jobGlob)
+		if err != nil {
+			validator.recordErrorf("invalid glob expression '%s'", jobGlob)
 			continue
 		}
 
-		foundResource := false
+		foundJob := false
+		for _, jobConfig := range validator.config.Jobs {
+			if g.Match(jobConfig.Name) {
+				foundJob = true
 
-		_ = jobConfig.StepConfig().Visit(StepRecursor{
-			OnGet: func(input *GetStep) error {
-				if input.ResourceName() == resourceName {
-					foundResource = true
-				}
-				return nil
-			},
-			OnPut: func(output *PutStep) error {
-				if output.ResourceName() == resourceName {
-					foundResource = true
-				}
-				return nil
-			},
-		})
+				foundResource := false
 
-		if !foundResource {
-			validator.recordErrorf("job '%s' does not interact with resource '%s'", job, resourceName)
+				_ = jobConfig.StepConfig().Visit(StepRecursor{
+					OnGet: func(input *GetStep) error {
+						if input.ResourceName() == resourceName {
+							foundResource = true
+						}
+						return nil
+					},
+					OnPut: func(output *PutStep) error {
+						if output.ResourceName() == resourceName {
+							foundResource = true
+						}
+						return nil
+					},
+				})
+
+				if !foundResource {
+					validator.recordErrorf("job '%s' does not interact with resource '%s'", jobConfig.Name, resourceName)
+				}
+			}
+		}
+
+		if !foundJob {
+			validator.recordErrorf("unknown job '%s'", jobGlob)
 		}
 	}
 

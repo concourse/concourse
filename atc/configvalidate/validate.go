@@ -527,10 +527,18 @@ func detectCycle(j atc.JobConfig, visited map[string]JobState, pipelineConfig at
 
 	err := j.StepConfig().Visit(atc.StepRecursor{
 		OnGet: func(step *atc.GetStep) error {
-			for _, nextJobName := range step.Passed {
-				nextJob := findJobByName(nextJobName, pipelineConfig.Jobs)
-				if err := detectCycle(nextJob, visited, pipelineConfig); err != nil {
+			for _, nextJobGlob := range step.Passed {
+				g, err := glob.Compile(nextJobGlob)
+				if err != nil {
 					return err
+				}
+
+				for _, job := range pipelineConfig.Jobs {
+					if g.Match(job.Name) {
+						if err := detectCycle(job, visited, pipelineConfig); err != nil {
+							return err
+						}
+					}
 				}
 			}
 			return nil

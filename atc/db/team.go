@@ -1801,24 +1801,33 @@ func insertJobPipes(tx Tx, jobConfigs atc.JobConfigs, resourceNameToID map[strin
 
 func insertJobInput(tx Tx, step *atc.GetStep, jobName string, resourceNameToID map[string]int, jobNameToID map[string]int) error {
 	if len(step.Passed) != 0 {
-		for _, passedJob := range step.Passed {
-			var version sql.NullString
-			if step.Version != nil {
-				versionJSON, err := step.Version.MarshalJSON()
-				if err != nil {
-					return err
-				}
-
-				version = sql.NullString{Valid: true, String: string(versionJSON)}
-			}
-
-			_, err := psql.Insert("job_inputs").
-				Columns("name", "job_id", "resource_id", "passed_job_id", "trigger", "version").
-				Values(step.Name, jobNameToID[jobName], resourceNameToID[step.ResourceName()], jobNameToID[passedJob], step.Trigger, version).
-				RunWith(tx).
-				Exec()
+		for _, passedJobGlob := range step.Passed {
+			g, err := glob.Compile(passedJobGlob)
 			if err != nil {
 				return err
+			}
+
+			for job, jobID := range jobNameToID {
+				if g.Match(job) {
+					var version sql.NullString
+					if step.Version != nil {
+						versionJSON, err := step.Version.MarshalJSON()
+						if err != nil {
+							return err
+						}
+
+						version = sql.NullString{Valid: true, String: string(versionJSON)}
+					}
+
+					_, err := psql.Insert("job_inputs").
+						Columns("name", "job_id", "resource_id", "passed_job_id", "trigger", "version").
+						Values(step.Name, jobNameToID[jobName], resourceNameToID[step.ResourceName()], jobID, step.Trigger, version).
+						RunWith(tx).
+						Exec()
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 	} else {
