@@ -166,6 +166,8 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 	})
 	defer span.End()
 	logger := lagerctx.FromContext(ctx).Session("create-volume", lager.Data{"handle": handle})
+	logger.Debug("creating")
+	defer logger.Debug("created")
 
 	// only the import strategy uses the gzip streamer as,
 	// base resource type rootfs' are available locally as .tgz
