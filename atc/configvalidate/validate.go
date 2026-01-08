@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
 	"strings"
 
 	"github.com/concourse/concourse/atc"
@@ -528,13 +529,10 @@ func detectCycle(j atc.JobConfig, visited map[string]JobState, pipelineConfig at
 	err := j.StepConfig().Visit(atc.StepRecursor{
 		OnGet: func(step *atc.GetStep) error {
 			for _, nextJobGlob := range step.Passed {
-				g, err := glob.Compile(nextJobGlob)
-				if err != nil {
-					return err
-				}
-
 				for _, job := range pipelineConfig.Jobs {
-					if g.Match(job.Name) {
+					matched, _ := path.Match(nextJobGlob, job.Name)
+
+					if matched {
 						if err := detectCycle(job, visited, pipelineConfig); err != nil {
 							return err
 						}

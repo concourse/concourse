@@ -2,10 +2,9 @@ package atc
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"time"
-
-	"github.com/gobwas/glob"
 )
 
 // StepValidator is a StepVisitor which validates each step that visits it,
@@ -143,15 +142,11 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 	validator.pushContext(".passed")
 
 	for _, jobGlob := range step.Passed {
-		g, err := glob.Compile(jobGlob)
-		if err != nil {
-			validator.recordErrorf("invalid glob expression '%s'", jobGlob)
-			continue
-		}
-
 		foundJob := false
 		for _, jobConfig := range validator.config.Jobs {
-			if g.Match(jobConfig.Name) {
+			matched, _ := path.Match(jobGlob, jobConfig.Name)
+
+			if matched {
 				foundJob = true
 
 				foundResource := false

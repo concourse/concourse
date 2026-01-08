@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -1802,13 +1803,10 @@ func insertJobPipes(tx Tx, jobConfigs atc.JobConfigs, resourceNameToID map[strin
 func insertJobInput(tx Tx, step *atc.GetStep, jobName string, resourceNameToID map[string]int, jobNameToID map[string]int) error {
 	if len(step.Passed) != 0 {
 		for _, passedJobGlob := range step.Passed {
-			g, err := glob.Compile(passedJobGlob)
-			if err != nil {
-				return err
-			}
-
 			for job, jobID := range jobNameToID {
-				if g.Match(job) {
+				matched, _ := path.Match(passedJobGlob, job)
+
+				if matched {
 					var version sql.NullString
 					if step.Version != nil {
 						versionJSON, err := step.Version.MarshalJSON()
