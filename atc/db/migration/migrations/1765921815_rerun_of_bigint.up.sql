@@ -16,3 +16,8 @@ ALTER INDEX order_job_builds_by_rerun_of_or_id_idx RENAME TO order_job_builds_by
 CREATE INDEX order_job_builds_by_rerun_of_or_id_idx
   ON builds (job_id, COALESCE(rerun_of, id) DESC, id DESC)
   WHERE job_id IS NOT NULL;
+
+-- Table stats are outdated after creating the above indexes. After testing,
+-- found that we needed to force postgres to update stats on builds, otherwise
+-- query plans were severly inefficient when querying the new run_of column.
+ANALYZE builds;
