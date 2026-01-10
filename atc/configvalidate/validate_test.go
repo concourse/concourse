@@ -1830,6 +1830,24 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when a job's input's passed constraints reference a bogus glob job", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "lol",
+							Passed: []string{"bogus-*"},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(lol).passed: unknown job 'bogus-*'"))
+				})
+			})
+
 			Context("when a job's input's passed constraints references a valid job that has the resource as an output", func() {
 				BeforeEach(func() {
 					config.Jobs[0].PlanSequence = append(config.Jobs[0].PlanSequence, atc.Step{
@@ -1860,6 +1878,23 @@ var _ = Describe("ValidateConfig", func() {
 						Config: &atc.GetStep{
 							Name:   "some-resource",
 							Passed: []string{"some-job"},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Expect(errorMessages).To(HaveLen(0))
+				})
+			})
+
+			Context("when a job's input's passed constraints references a valid job through glob that has the resource as an input", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.GetStep{
+							Name:   "some-resource",
+							Passed: []string{"some-j*"},
 						},
 					})
 
@@ -2294,12 +2329,13 @@ var _ = Describe("ValidateConfig", func() {
 					},
 				}
 			})
+
 			It("detects a cycle", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("pipeline contains a cycle that starts at Job 'some-job-1'"))
 			})
-
 		})
+
 		Context("contains a cycle that covers multiple jobs", func() {
 			BeforeEach(func() {
 				config = atc.Config{
@@ -2364,12 +2400,84 @@ var _ = Describe("ValidateConfig", func() {
 					},
 				}
 			})
+
 			It("detects a cycle", func() {
 				Expect(errorMessages).To(HaveLen(1))
 				Expect(errorMessages[0]).To(ContainSubstring("pipeline contains a cycle that starts at Job 'some-job-2'"))
 			})
-
 		})
+
+		Context("contains a cycle that covers multiple jobs caused by glob", func() {
+			BeforeEach(func() {
+				config = atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+						},
+					},
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job-1",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Passed:   []string{"some-job-2"},
+									},
+								},
+							},
+						},
+						{
+							Name: "some-job-2",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Passed:   []string{"some-job-3"},
+									},
+								},
+							},
+						},
+						{
+							Name: "some-job-3",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Passed:   []string{"some-job-4"},
+									},
+								},
+							},
+						},
+						{
+							Name: "some-job-4",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Passed:   []string{"some-job-*"},
+									},
+								},
+							},
+						},
+					},
+				}
+			})
+
+			It("detects a cycle", func() {
+				Expect(errorMessages).To(HaveLen(1))
+				Expect(errorMessages[0]).To(ContainSubstring("pipeline contains a cycle that starts at Job 'some-job-1'"))
+			})
+		})
+
 		Context("contains Job with multiple passes but not a cycle", func() {
 			BeforeEach(func() {
 				config = atc.Config{
@@ -2433,16 +2541,16 @@ var _ = Describe("ValidateConfig", func() {
 					},
 				}
 			})
+
 			It("does not return an error", func() {
 				Expect(errorMessages).To(HaveLen(0))
 			})
-
 		})
+
 		Context("contains no cycles", func() {
 			It("does not return an error", func() {
 				Expect(errorMessages).To(HaveLen(0))
 			})
-
 		})
 	})
 })

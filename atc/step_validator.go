@@ -2,6 +2,7 @@ package atc
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"time"
 )
@@ -140,32 +141,39 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 
 	validator.pushContext(".passed")
 
-	for _, job := range step.Passed {
-		jobConfig, found := validator.config.Jobs.Lookup(job)
-		if !found {
-			validator.recordErrorf("unknown job '%s'", job)
-			continue
+	for _, jobGlob := range step.Passed {
+		foundJob := false
+		for _, jobConfig := range validator.config.Jobs {
+			matched, _ := path.Match(jobGlob, jobConfig.Name)
+
+			if matched {
+				foundJob = true
+
+				foundResource := false
+
+				_ = jobConfig.StepConfig().Visit(StepRecursor{
+					OnGet: func(input *GetStep) error {
+						if input.ResourceName() == resourceName {
+							foundResource = true
+						}
+						return nil
+					},
+					OnPut: func(output *PutStep) error {
+						if output.ResourceName() == resourceName {
+							foundResource = true
+						}
+						return nil
+					},
+				})
+
+				if !foundResource {
+					validator.recordErrorf("job '%s' does not interact with resource '%s'", jobConfig.Name, resourceName)
+				}
+			}
 		}
 
-		foundResource := false
-
-		_ = jobConfig.StepConfig().Visit(StepRecursor{
-			OnGet: func(input *GetStep) error {
-				if input.ResourceName() == resourceName {
-					foundResource = true
-				}
-				return nil
-			},
-			OnPut: func(output *PutStep) error {
-				if output.ResourceName() == resourceName {
-					foundResource = true
-				}
-				return nil
-			},
-		})
-
-		if !foundResource {
-			validator.recordErrorf("job '%s' does not interact with resource '%s'", job, resourceName)
+		if !foundJob {
+			validator.recordErrorf("unknown job '%s'", jobGlob)
 		}
 	}
 
