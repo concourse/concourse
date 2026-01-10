@@ -69,6 +69,8 @@ DROP COLUMN version_sha256;
 ALTER TABLE resource_config_versions
 ALTER COLUMN version_md5 SET NOT NULL;
 
+DROP INDEX resource_config_scope_id_and_version_md5_idx;
+
 -- Revert column renames from version_digest back to version_md5
 ALTER TABLE build_resource_config_version_inputs
 RENAME COLUMN version_digest TO version_md5;
