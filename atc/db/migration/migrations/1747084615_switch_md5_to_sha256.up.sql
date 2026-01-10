@@ -81,6 +81,9 @@ ALTER TABLE resource_config_versions
 ADD CONSTRAINT resource_config_scope_id_and_version_sha256_unique
 UNIQUE (resource_config_scope_id, version_sha256);
 
+-- ensure lookups using version_md5 are still fast
+CREATE INDEX resource_config_scope_id_and_version_md5_idx ON resource_config_versions(resource_config_scope_id, version_md5);
+
 CREATE INDEX resource_config_versions_check_order_idx
 ON resource_config_versions (resource_config_scope_id, check_order DESC);
 
