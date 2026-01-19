@@ -2,6 +2,8 @@ package atccmd
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
@@ -1996,12 +1998,25 @@ func (cmd *RunCommand) constructSkyHandler(
 		HTTPClient:         httpClient,
 		ClaimsCacher:       claimsCacher,
 		AccessTokenFactory: accessTokenFactory,
+		StateSigningKey: deriveStateSigningKey(
+			oauth2Config.ClientID,
+			oauth2Config.ClientSecret,
+			cmd.Postgres.User,
+			cmd.Postgres.Password),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return skyserver.NewSkyHandler(skyServer), nil
+}
+
+func deriveStateSigningKey(clientID, clientSecret, dbUser, dbPassword string) []byte {
+	mac := hmac.New(sha256.New, []byte(clientSecret))
+	mac.Write([]byte(clientID))
+	mac.Write([]byte(dbUser))
+	mac.Write([]byte(dbPassword))
+	return mac.Sum(nil)
 }
 
 func (cmd *RunCommand) constructTokenVerifier(claimsCacher accessor.AccessTokenFetcher) accessor.TokenVerifier {
