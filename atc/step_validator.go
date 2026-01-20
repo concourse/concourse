@@ -173,7 +173,7 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 		}
 
 		if !foundJob {
-			validator.recordErrorf("unknown job '%s'", jobGlob)
+			validator.recordErrorf("no matching job(s) for '%s'", jobGlob)
 		}
 	}
 

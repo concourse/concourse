@@ -1826,11 +1826,11 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(lol).passed: unknown job 'bogus-job'"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(lol).passed: no matching job(s) for 'bogus-job'"))
 				})
 			})
 
-			Context("when a job's input's passed constraints reference a bogus glob job", func() {
+			Context("when a job's input's passed constraints glob pattern does not match any jobs", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
 						Config: &atc.GetStep{
@@ -1844,7 +1844,7 @@ var _ = Describe("ValidateConfig", func() {
 
 				It("returns an error", func() {
 					Expect(errorMessages).To(HaveLen(1))
-					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(lol).passed: unknown job 'bogus-*'"))
+					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].get(lol).passed: no matching job(s) for 'bogus-*'"))
 				})
 			})
 
@@ -1889,7 +1889,7 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
-			Context("when a job's input's passed constraints references a valid job through glob that has the resource as an input", func() {
+			Context("when a job's input's passed constraints references a valid job through a glob pattern that has the resource as an input", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
 						Config: &atc.GetStep{

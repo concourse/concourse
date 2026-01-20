@@ -2459,7 +2459,7 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeFalse())
 		})
 
-		Context("save get glob passed", func() {
+		Context("get steps have passed constraints with glob patterns", func() {
 			var (
 				newConfig atc.Config
 			)
