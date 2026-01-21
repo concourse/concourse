@@ -1279,13 +1279,14 @@ func (cmd *RunCommand) backendComponents(
 }
 
 func (cmd *RunCommand) compression() compression.Compression {
-	if cmd.StreamingArtifactsCompression == "zstd" {
+	switch cmd.StreamingArtifactsCompression {
+	case "zstd":
 		return compression.NewZstdCompression()
-	} else if cmd.StreamingArtifactsCompression == "s2" {
+	case "s2":
 		return compression.NewS2Compression()
-	} else if cmd.StreamingArtifactsCompression == "raw" {
+	case "raw":
 		return compression.NewNoCompression()
-	} else {
+	default:
 		return compression.NewGzipCompression()
 	}
 }
@@ -1779,7 +1780,7 @@ type Closer interface {
 
 func constructLockConns(driverName, connectionString string) ([lock.FactoryCount]*sql.DB, error) {
 	conns := [lock.FactoryCount]*sql.DB{}
-	for i := 0; i < lock.FactoryCount; i++ {
+	for i := range lock.FactoryCount {
 		dbConn, err := sql.Open(driverName, connectionString)
 		if err != nil {
 			return conns, err
