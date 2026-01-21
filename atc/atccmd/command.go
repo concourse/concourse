@@ -260,7 +260,7 @@ type RunCommand struct {
 
 	FeatureFlags struct {
 		EnableGlobalResources                bool `long:"enable-global-resources" description:"Enable equivalent resources across pipelines and teams to share a single version history."`
-		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"DEPRECATED: Secrets are always redacted from build logs. This flag has no effect."`
+		EnableRedactSecrets                  bool `long:"enable-redact-secrets" description:"DEPRECATED: Secrets are always redacted from build logs. This flag has no effect. See --disable-redact-secrets to turn secret redaction off."`
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"DEPRECATED: The across step is always enabled and this config has no effect."`
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"DEPRECATED: Pipeline instances are always enabled and this config has no effect."`
@@ -282,6 +282,8 @@ type RunCommand struct {
 	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
 
 	DBNotificationBusQueueSize int `long:"db-notification-bus-queue-size" default:"10000" description:"DB notification bus queue size, default is 10000. If UI often misses loading running build logs, then consider to increase the queue size."`
+
+	DisableRedactSecrets bool `long:"disable-redact-secrets" description:"Disables secret redaction in build logs."`
 }
 
 type Migration struct {
@@ -560,6 +562,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.DefaultCheckInterval = cmd.ResourceCheckingInterval
 	atc.DefaultWebhookInterval = cmd.ResourceWithWebhookCheckingInterval
 	atc.DefaultResourceTypeInterval = cmd.ResourceTypeCheckingInterval
+	atc.DisableRedactSecrets = cmd.DisableRedactSecrets
 
 	if cmd.FeatureFlags.EnablePipelineInstances {
 		commandSession.Info("deprecated", lager.Data{
@@ -575,7 +578,7 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 
 	if cmd.FeatureFlags.EnableRedactSecrets {
 		commandSession.Info("deprecated", lager.Data{
-			"message": "--enable-redact-secrets/CONCOURSE_ENABLE_REDACT_SECRETS is deprecated and has no effect. This feature is always enabled.",
+			"message": "--enable-redact-secrets/CONCOURSE_ENABLE_REDACT_SECRETS is deprecated and has no effect. To disable secret redaction use --disable-redact-secrets/CONCOURSE_DISABLE_REDACT_SECRETS.",
 		})
 	}
 
