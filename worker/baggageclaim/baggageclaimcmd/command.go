@@ -9,7 +9,8 @@ import (
 )
 
 func (cmd *BaggageclaimCommand) Execute(args []string) error {
-	runner, err := cmd.Runner(nil, args)
+	logger, _ := cmd.Logger.Logger("baggageclaim")
+	runner, err := cmd.Runner(logger, args)
 	if err != nil {
 		return err
 	}
