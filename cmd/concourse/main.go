@@ -28,10 +28,10 @@ func main() {
 	twentythousandtonnesofcrudeoil.TheEnvironmentIsPerfectlySafe(parser, "CONCOURSE_")
 
 	_, err := parser.Parse()
-	handleError(parser, err)
+	handleError(err)
 }
 
-func handleError(helpParser *flags.Parser, err error) {
+func handleError(err error) {
 	if err != nil {
 		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
 			fmt.Println(err)
