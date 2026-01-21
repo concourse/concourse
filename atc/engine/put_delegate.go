@@ -22,7 +22,7 @@ func NewPutDelegate(
 	policyChecker policy.Checker,
 ) exec.PutDelegate {
 	return &putDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, atc.DisableRedactSecrets),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		build:       build,

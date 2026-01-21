@@ -31,7 +31,7 @@ func NewCheckDelegate(
 	policyChecker policy.Checker,
 ) exec.CheckDelegate {
 	return &checkDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker),
+		BuildStepDelegate: NewBuildStepDelegate(build, plan.ID, state, clock, policyChecker, atc.DisableRedactSecrets),
 
 		build:       build,
 		plan:        plan.Check,
