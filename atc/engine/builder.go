@@ -480,6 +480,7 @@ func (factory *stepperFactory) stepMetadata(
 		PipelineID:           build.PipelineID(),
 		PipelineName:         build.PipelineName(),
 		PipelineInstanceVars: build.PipelineInstanceVars(),
+		InstanceVarsQuery:    build.PipelineRef().QueryParams(),
 		ExternalURL:          externalURL,
 	}
 	if exposeBuildCreatedBy && build.CreatedBy() != nil {
