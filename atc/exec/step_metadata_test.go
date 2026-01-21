@@ -1,6 +1,8 @@
 package exec_test
 
 import (
+	"net/url"
+
 	"github.com/concourse/concourse/atc/exec"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -61,6 +63,15 @@ var _ = Describe("StepMetadata", func() {
 					PipelineInstanceVars: map[string]any{
 						"branch": "main",
 						"env":    "prod",
+						"num":    9000,
+					},
+					InstanceVarsQuery: url.Values{
+						// Because of all the JSON encoding/decoding, string
+						// vars are wrapped in quotes which should persist to
+						// the final encoded URL
+						"vars.branch": []string{`"main"`},
+						"vars.env":    []string{`"prod"`},
+						"vars.num":    []string{"9000"},
 					},
 				}
 			})
@@ -70,10 +81,9 @@ var _ = Describe("StepMetadata", func() {
 
 				Expect(env).To(ContainElement("BUILD_ID=1"))
 				Expect(env).To(ContainElement("BUILD_NAME=42"))
-				Expect(env).To(ContainElement(MatchRegexp(`BUILD_PIPELINE_INSTANCE_VARS=.*branch.*main.*`)))
+				Expect(env).To(ContainElement(`BUILD_PIPELINE_INSTANCE_VARS={"branch":"main","env":"prod","num":9000}`))
 
-				// Query parameters are sorted alphabetically
-				Expect(env).To(ContainElement("BUILD_URL=https://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42?vars.branch=main&vars.env=prod"))
+				Expect(env).To(ContainElement("BUILD_URL=https://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42?vars.branch=%22main%22&vars.env=%22prod%22&vars.num=9000"))
 				Expect(env).To(ContainElement("BUILD_URL_SHORT=https://www.example.com/builds/1"))
 			})
 		})
