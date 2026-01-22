@@ -25,13 +25,14 @@ import (
 )
 
 type buildStepDelegate struct {
-	build         db.Build
-	planID        atc.PlanID
-	clock         clock.Clock
-	state         exec.RunState
-	stderr        io.Writer
-	stdout        io.Writer
-	policyChecker policy.Checker
+	build                db.Build
+	planID               atc.PlanID
+	clock                clock.Clock
+	state                exec.RunState
+	stderr               io.Writer
+	stdout               io.Writer
+	policyChecker        policy.Checker
+	disableRedactSecrets bool
 }
 
 func NewBuildStepDelegate(
@@ -40,15 +41,17 @@ func NewBuildStepDelegate(
 	state exec.RunState,
 	clock clock.Clock,
 	policyChecker policy.Checker,
+	disableRedactSecrets bool,
 ) *buildStepDelegate {
 	return &buildStepDelegate{
-		build:         build,
-		planID:        planID,
-		clock:         clock,
-		state:         state,
-		stdout:        nil,
-		stderr:        nil,
-		policyChecker: policyChecker,
+		build:                build,
+		planID:               planID,
+		clock:                clock,
+		state:                state,
+		stdout:               nil,
+		stderr:               nil,
+		policyChecker:        policyChecker,
+		disableRedactSecrets: disableRedactSecrets,
 	}
 }
 
@@ -75,6 +78,7 @@ func (delegate *buildStepDelegate) Stdout() io.Writer {
 		},
 		delegate.clock,
 		delegate.buildOutputFilter,
+		delegate.disableRedactSecrets,
 	)
 	return delegate.stdout
 }
@@ -91,6 +95,7 @@ func (delegate *buildStepDelegate) Stderr() io.Writer {
 		},
 		delegate.clock,
 		delegate.buildOutputFilter,
+		delegate.disableRedactSecrets,
 	)
 	return delegate.stderr
 }
@@ -432,7 +437,7 @@ func (it *credVarsIterator) YieldCred(name, value string) {
 		lineValue = strings.TrimSpace(lineValue)
 		// Don't consider a single char as a secret.
 		if len(lineValue) > 1 {
-			it.line = strings.Replace(it.line, lineValue, "((redacted))", -1)
+			it.line = strings.ReplaceAll(it.line, lineValue, "((redacted))")
 		}
 	}
 }

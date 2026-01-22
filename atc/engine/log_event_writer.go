@@ -12,23 +12,25 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 )
 
-func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter) io.WriteCloser {
+func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter, disableSecretRedaction bool) io.WriteCloser {
 	return &dbEventWriter{
-		build:     build,
-		origin:    origin,
-		clock:     clock,
-		filter:    filter,
-		lastFlush: clock.Now(),
+		build:                build,
+		origin:               origin,
+		clock:                clock,
+		filter:               filter,
+		lastFlush:            clock.Now(),
+		disableRedactSecrets: disableSecretRedaction,
 	}
 }
 
 type dbEventWriter struct {
-	build     db.Build
-	origin    event.Origin
-	clock     clock.Clock
-	dangling  []byte
-	lastFlush time.Time
-	filter    exec.BuildOutputFilter
+	build                db.Build
+	origin               event.Origin
+	clock                clock.Clock
+	dangling             []byte
+	lastFlush            time.Time
+	filter               exec.BuildOutputFilter
+	disableRedactSecrets bool
 }
 
 func (writer *dbEventWriter) Write(data []byte) (int, error) {
@@ -48,6 +50,17 @@ func (writer *dbEventWriter) Write(data []byte) (int, error) {
 	}
 
 	payload := string(text)
+
+	if writer.disableRedactSecrets {
+		err := writer.saveLog(payload)
+		if err != nil {
+			return 0, err
+		}
+
+		writer.lastFlush = writer.clock.Now()
+		return len(data), nil
+	}
+
 	if data != nil {
 		idx := strings.LastIndex(payload, "\n")
 		if idx < 0 {

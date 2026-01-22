@@ -32,7 +32,7 @@ func (delegate DelegateFactory) TaskDelegate(state exec.RunState) exec.TaskDeleg
 }
 
 func (delegate DelegateFactory) RunDelegate(state exec.RunState) exec.RunDelegate {
-	return NewBuildStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker)
+	return NewBuildStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker, atc.DisableRedactSecrets)
 }
 
 func (delegate DelegateFactory) CheckDelegate(state exec.RunState) exec.CheckDelegate {
@@ -40,7 +40,7 @@ func (delegate DelegateFactory) CheckDelegate(state exec.RunState) exec.CheckDel
 }
 
 func (delegate DelegateFactory) BuildStepDelegate(state exec.RunState) exec.BuildStepDelegate {
-	return NewBuildStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker)
+	return NewBuildStepDelegate(delegate.build, delegate.plan.ID, state, clock.NewClock(), delegate.policyChecker, atc.DisableRedactSecrets)
 }
 
 func (delegate DelegateFactory) SetPipelineStepDelegate(state exec.RunState) exec.SetPipelineStepDelegate {

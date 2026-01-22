@@ -25,7 +25,7 @@ func NewTaskDelegate(
 	lockFactory lock.LockFactory,
 ) exec.TaskDelegate {
 	return &taskDelegate{
-		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker),
+		BuildStepDelegate: NewBuildStepDelegate(build, planID, state, clock, policyChecker, atc.DisableRedactSecrets),
 
 		eventOrigin: event.Origin{ID: event.OriginID(planID)},
 		planID:      planID,

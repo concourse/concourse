@@ -66,7 +66,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)
 
-		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker)
+		delegate = engine.NewBuildStepDelegate(fakeBuild, planID, runState, fakeClock, fakePolicyChecker, false)
 	})
 
 	Describe("Initializing", func() {
@@ -169,7 +169,7 @@ var _ = Describe("BuildStepDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, planID, parentRunState, fakeClock, fakePolicyChecker, false)
 			imageSpec, resourceCache, fetchErr = delegate.FetchImage(context.TODO(), *expectedGetPlan, expectedCheckPlan, privileged)
 		})
 
@@ -915,7 +915,7 @@ var _ = Describe("BuildStepDelegate", func() {
 
 		BeforeEach(func() {
 			runState = exec.NewRunState(noopStepper, credVars)
-			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker)
+			delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, false)
 
 			runState.Get(vars.Reference{Path: "source-param"})
 			runState.Get(vars.Reference{Path: "git-key"})
@@ -997,6 +997,29 @@ var _ = Describe("BuildStepDelegate", func() {
 					}))
 				})
 			})
+
+			Context("is disabled", func() {
+				BeforeEach(func() {
+					delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, true)
+				})
+
+				It("does not redact secrets", func() {
+					writer = delegate.Stdout()
+					writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+					writer.(io.Closer).Close()
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    now.Unix(),
+						Payload: "ok super-secret-source ok",
+						Origin: event.Origin{
+							Source: event.OriginSourceStdout,
+							ID:     "some-plan-id",
+						},
+					}))
+				})
+			})
 		})
 
 		Context("Stderr", func() {
@@ -1068,6 +1091,29 @@ var _ = Describe("BuildStepDelegate", func() {
 					Expect(fakeBuild.SaveEventArgsForCall(1)).To(Equal(event.Log{
 						Time:    now.Unix(),
 						Payload: "ok((redacted))ok\nok((redacted))ok\n",
+						Origin: event.Origin{
+							Source: event.OriginSourceStderr,
+							ID:     "some-plan-id",
+						},
+					}))
+				})
+			})
+
+			Context("is disabled", func() {
+				BeforeEach(func() {
+					delegate = engine.NewBuildStepDelegate(fakeBuild, "some-plan-id", runState, fakeClock, fakePolicyChecker, true)
+				})
+
+				It("does not redact secrets", func() {
+					writer = delegate.Stderr()
+					writtenBytes, writeErr = writer.Write([]byte("ok super-secret-source ok"))
+					writer.(io.Closer).Close()
+					Expect(writeErr).To(BeNil())
+					Expect(writtenBytes).To(Equal(len("ok super-secret-source ok")))
+					Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+					Expect(fakeBuild.SaveEventArgsForCall(0)).To(Equal(event.Log{
+						Time:    now.Unix(),
+						Payload: "ok super-secret-source ok",
 						Origin: event.Origin{
 							Source: event.OriginSourceStderr,
 							ID:     "some-plan-id",
