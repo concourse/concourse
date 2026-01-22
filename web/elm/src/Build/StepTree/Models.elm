@@ -427,7 +427,7 @@ updateTreeNodeAt id fn tree =
         Retry stepId trees ->
             let
                 withUpdatedChildren =
-                    Retry stepId <| Array.map (updateTreeNodeAt stepId fn) trees
+                    Retry stepId <| Array.map (updateTreeNodeAt id fn) trees
             in
             if stepId == id then
                 fn withUpdatedChildren
