@@ -734,6 +734,11 @@ var _ = Describe("GetStep", func() {
 			Expect(fakeDelegate.UpdateResourceVersionCallCount()).To(Equal(1))
 		})
 
+		It("adds metadata to the build variables", func() {
+			value, _, _ := runState.Get(vars.Reference{Source: ".", Path: getPlan.Name, Fields: []string{"some"}})
+			Expect(value).To(Equal("metadata"))
+		})
+
 		It("does not return an err", func() {
 			Expect(stepErr).ToNot(HaveOccurred())
 		})

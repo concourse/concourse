@@ -253,6 +253,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			delegate.UpdateResourceVersion(logger, step.plan.Resource, versionResult)
 		}
 
+		state.AddLocalVar(step.plan.Name, AsMap(versionResult.Metadata), false)
+
 		succeeded = true
 	}
 
@@ -525,4 +527,12 @@ func (step *GetStep) resourceMountVolume(mounts []runtime.VolumeMount) runtime.V
 		}
 	}
 	return nil
+}
+
+func AsMap(metadata []atc.MetadataField) map[string]any {
+	result := make(map[string]any, len(metadata))
+	for _, kv := range metadata {
+		result[kv.Name] = kv.Value
+	}
+	return result
 }
