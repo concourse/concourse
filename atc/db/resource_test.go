@@ -859,7 +859,7 @@ var _ = Describe("Resource", func() {
 						"commit": "v" + strconv.Itoa(i),
 					})
 
-					var metadata []atc.MetadataField
+					var metadata atc.Metadata
 
 					for _, v := range rcv.Metadata() {
 						metadata = append(metadata, atc.MetadataField(v))
@@ -965,7 +965,7 @@ var _ = Describe("Resource", func() {
 				for i := 0; i < 10; i++ {
 					rcv := scenario.ResourceVersion("some-resource", atc.Version{"ref": "v" + strconv.Itoa(i)})
 
-					var metadata []atc.MetadataField
+					var metadata atc.Metadata
 
 					for _, v := range rcv.Metadata() {
 						metadata = append(metadata, atc.MetadataField(v))
@@ -1060,7 +1060,7 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
-					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name1", Value: "value1"}}))
+					Expect(historyPage[0].Metadata).To(Equal(atc.Metadata{{Name: "name1", Value: "value1"}}))
 				})
 
 				It("maintains existing metadata after same version is saved with no metadata", func() {
@@ -1071,7 +1071,7 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
-					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name1", Value: "value1"}}))
+					Expect(historyPage[0].Metadata).To(Equal(atc.Metadata{{Name: "name1", Value: "value1"}}))
 				})
 
 				It("updates metadata after same version is saved with different metadata", func() {
@@ -1083,7 +1083,7 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
-					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name-new", Value: "value-new"}}))
+					Expect(historyPage[0].Metadata).To(Equal(atc.Metadata{{Name: "name-new", Value: "value-new"}}))
 				})
 			})
 
@@ -1117,7 +1117,7 @@ var _ = Describe("Resource", func() {
 					Expect(found).To(BeTrue())
 					Expect(len(historyPage)).To(Equal(1))
 					Expect(historyPage[0].Version).To(Equal(resourceVersions[9].Version))
-					Expect(historyPage[0].Metadata).To(Equal([]atc.MetadataField{{Name: "name1", Value: "value1"}}))
+					Expect(historyPage[0].Metadata).To(Equal(atc.Metadata{{Name: "name1", Value: "value1"}}))
 				})
 			})
 		})
@@ -1153,7 +1153,7 @@ var _ = Describe("Resource", func() {
 				for i := 1; i < 5; i++ {
 					rcv := scenario.ResourceVersion("some-resource", atc.Version{"ref": "v" + strconv.Itoa(i)})
 
-					var metadata []atc.MetadataField
+					var metadata atc.Metadata
 
 					for _, v := range rcv.Metadata() {
 						metadata = append(metadata, atc.MetadataField(v))

@@ -48,7 +48,7 @@ var _ = Describe("PutDelegate", func() {
 
 		info = resource.VersionResult{
 			Version:  atc.Version{"foo": "bar"},
-			Metadata: []atc.MetadataField{{Name: "baz", Value: "shmaz"}},
+			Metadata: atc.Metadata{{Name: "baz", Value: "shmaz"}},
 		}
 
 		fakePolicyChecker = new(policyfakes.FakeChecker)

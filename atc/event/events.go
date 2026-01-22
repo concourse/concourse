@@ -183,11 +183,11 @@ func (StartGet) EventType() atc.EventType  { return EventTypeStartGet }
 func (StartGet) Version() atc.EventVersion { return "1.0" }
 
 type FinishGet struct {
-	Origin          Origin              `json:"origin"`
-	Time            int64               `json:"time"`
-	ExitStatus      int                 `json:"exit_status"`
-	FetchedVersion  atc.Version         `json:"version"`
-	FetchedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	Origin          Origin       `json:"origin"`
+	Time            int64        `json:"time"`
+	ExitStatus      int          `json:"exit_status"`
+	FetchedVersion  atc.Version  `json:"version"`
+	FetchedMetadata atc.Metadata `json:"metadata,omitempty"`
 }
 
 func (FinishGet) EventType() atc.EventType  { return EventTypeFinishGet }
@@ -210,11 +210,11 @@ func (StartPut) EventType() atc.EventType  { return EventTypeStartPut }
 func (StartPut) Version() atc.EventVersion { return "1.0" }
 
 type FinishPut struct {
-	Origin          Origin              `json:"origin"`
-	Time            int64               `json:"time"`
-	ExitStatus      int                 `json:"exit_status"`
-	CreatedVersion  atc.Version         `json:"version"`
-	CreatedMetadata []atc.MetadataField `json:"metadata,omitempty"`
+	Origin          Origin       `json:"origin"`
+	Time            int64        `json:"time"`
+	ExitStatus      int          `json:"exit_status"`
+	CreatedVersion  atc.Version  `json:"version"`
+	CreatedMetadata atc.Metadata `json:"metadata,omitempty"`
 }
 
 func (FinishPut) EventType() atc.EventType  { return EventTypeFinishPut }
