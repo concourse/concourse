@@ -87,7 +87,7 @@ var _ = Describe("Versions API", func() {
 							Version: atc.Version{
 								"some": "version",
 							},
-							Metadata: []atc.MetadataField{
+							Metadata: atc.Metadata{
 								{
 									Name:  "some",
 									Value: "metadata",
@@ -100,7 +100,7 @@ var _ = Describe("Versions API", func() {
 							Version: atc.Version{
 								"some": "version",
 							},
-							Metadata: []atc.MetadataField{
+							Metadata: atc.Metadata{
 								{
 									Name:  "some",
 									Value: "metadata",
@@ -329,7 +329,7 @@ var _ = Describe("Versions API", func() {
 									"some": "version",
 									"ref":  "foo",
 								},
-								Metadata: []atc.MetadataField{
+								Metadata: atc.Metadata{
 									{
 										Name:  "some",
 										Value: "metadata",
@@ -343,7 +343,7 @@ var _ = Describe("Versions API", func() {
 									"some": "version",
 									"ref":  "blah",
 								},
-								Metadata: []atc.MetadataField{
+								Metadata: atc.Metadata{
 									{
 										Name:  "some",
 										Value: "metadata",

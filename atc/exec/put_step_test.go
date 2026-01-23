@@ -84,7 +84,7 @@ var _ = Describe("PutStep", func() {
 
 		versionResult = resource.VersionResult{
 			Version:  atc.Version{"some": "version"},
-			Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+			Metadata: atc.Metadata{{Name: "some", Value: "metadata"}},
 		}
 
 		chosenWorker = runtimetest.NewWorker("worker").
@@ -419,7 +419,7 @@ var _ = Describe("PutStep", func() {
 		Expect(actualSource).To(Equal(atc.Source{"some": "super-secret-source"}))
 		Expect(irc).To(BeNil())
 		Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-		Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+		Expect(info.Metadata).To(Equal(atc.Metadata{{Name: "some", Value: "metadata"}}))
 	})
 
 	Context("when using a custom resource type", func() {
@@ -622,7 +622,7 @@ var _ = Describe("PutStep", func() {
 			_, status, info := fakeDelegate.FinishedArgsForCall(0)
 			Expect(status).To(Equal(exec.ExitStatus(0)))
 			Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-			Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+			Expect(info.Metadata).To(Equal(atc.Metadata{{Name: "some", Value: "metadata"}}))
 		})
 
 		It("stores the version as the step result", func() {

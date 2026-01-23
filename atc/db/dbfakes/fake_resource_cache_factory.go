@@ -55,11 +55,11 @@ type FakeResourceCacheFactory struct {
 		result1 db.ResourceConfigMetadataFields
 		result2 error
 	}
-	UpdateResourceCacheMetadataStub        func(db.ResourceCache, []atc.MetadataField) error
+	UpdateResourceCacheMetadataStub        func(db.ResourceCache, atc.Metadata) error
 	updateResourceCacheMetadataMutex       sync.RWMutex
 	updateResourceCacheMetadataArgsForCall []struct {
 		arg1 db.ResourceCache
-		arg2 []atc.MetadataField
+		arg2 atc.Metadata
 	}
 	updateResourceCacheMetadataReturns struct {
 		result1 error
@@ -271,21 +271,16 @@ func (fake *FakeResourceCacheFactory) ResourceCacheMetadataReturnsOnCall(i int, 
 	}{result1, result2}
 }
 
-func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 db.ResourceCache, arg2 []atc.MetadataField) error {
-	var arg2Copy []atc.MetadataField
-	if arg2 != nil {
-		arg2Copy = make([]atc.MetadataField, len(arg2))
-		copy(arg2Copy, arg2)
-	}
+func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadata(arg1 db.ResourceCache, arg2 atc.Metadata) error {
 	fake.updateResourceCacheMetadataMutex.Lock()
 	ret, specificReturn := fake.updateResourceCacheMetadataReturnsOnCall[len(fake.updateResourceCacheMetadataArgsForCall)]
 	fake.updateResourceCacheMetadataArgsForCall = append(fake.updateResourceCacheMetadataArgsForCall, struct {
 		arg1 db.ResourceCache
-		arg2 []atc.MetadataField
-	}{arg1, arg2Copy})
+		arg2 atc.Metadata
+	}{arg1, arg2})
 	stub := fake.UpdateResourceCacheMetadataStub
 	fakeReturns := fake.updateResourceCacheMetadataReturns
-	fake.recordInvocation("UpdateResourceCacheMetadata", []interface{}{arg1, arg2Copy})
+	fake.recordInvocation("UpdateResourceCacheMetadata", []interface{}{arg1, arg2})
 	fake.updateResourceCacheMetadataMutex.Unlock()
 	if stub != nil {
 		return stub(arg1, arg2)
@@ -302,13 +297,13 @@ func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataCallCount() int
 	return len(fake.updateResourceCacheMetadataArgsForCall)
 }
 
-func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataCalls(stub func(db.ResourceCache, []atc.MetadataField) error) {
+func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataCalls(stub func(db.ResourceCache, atc.Metadata) error) {
 	fake.updateResourceCacheMetadataMutex.Lock()
 	defer fake.updateResourceCacheMetadataMutex.Unlock()
 	fake.UpdateResourceCacheMetadataStub = stub
 }
 
-func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataArgsForCall(i int) (db.ResourceCache, []atc.MetadataField) {
+func (fake *FakeResourceCacheFactory) UpdateResourceCacheMetadataArgsForCall(i int) (db.ResourceCache, atc.Metadata) {
 	fake.updateResourceCacheMetadataMutex.RLock()
 	defer fake.updateResourceCacheMetadataMutex.RUnlock()
 	argsForCall := fake.updateResourceCacheMetadataArgsForCall[i]
