@@ -44,10 +44,11 @@ var _ = Describe("A job with a step that retries", func() {
 		})
 
 		It("correctly displays information about attempts", func() {
-			hijackS = fly("intercept", "-j", pipelineName+"/retry-job-fail-for-hijacking", "-s", "succeed-on-3rd-attempt", "--", "sh", "-c", "exit")
-			Eventually(hijackS).Should(gbytes.Say("[1-9]*: build #1, step: succeed-on-3rd-attempt, type: task, attempt: [1-3]"))
-			Eventually(hijackS).Should(gbytes.Say("[1-9]*: build #1, step: succeed-on-3rd-attempt, type: task, attempt: [1-3]"))
-			Eventually(hijackS).Should(gbytes.Say("[1-9]*: build #1, step: succeed-on-3rd-attempt, type: task, attempt: [1-3]"))
+			hijackS = spawnFly("intercept", "-j", pipelineName+"/retry-job-fail-for-hijacking", "--step", "succeed-on-3rd-attempt", "--", "sh", "-c", "exit")
+			Eventually(hijackS).Should(gbytes.Say("step: succeed-on-3rd-attempt, type: task, attempt: [1-3]"))
+			Eventually(hijackS).Should(gbytes.Say("step: succeed-on-3rd-attempt, type: task, attempt: [1-3]"))
+			Eventually(hijackS).Should(gbytes.Say("step: succeed-on-3rd-attempt, type: task, attempt: [1-3]"))
+			hijackS.Interrupt()
 			Eventually(hijackS).Should(gexec.Exit())
 		})
 	})

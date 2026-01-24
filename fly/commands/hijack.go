@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -11,16 +12,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/commands/internal/hijacker"
 	"github.com/concourse/concourse/fly/commands/internal/hijackhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/pty"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/tedsuo/rata"
-	"github.com/vito/go-interact/interact"
 )
 
 type HijackCommand struct {
@@ -102,17 +104,9 @@ func (command *HijackCommand) Execute([]string) error {
 		if len(hijackableContainers) == 0 {
 			displayhelpers.Failf("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.")
 		} else if len(hijackableContainers) > 1 {
-			var choices []interact.Choice
+			var choices []list.Item
 			for _, container := range hijackableContainers {
 				var infos []string
-
-				if container.BuildID != 0 {
-					if container.JobName != "" {
-						infos = append(infos, fmt.Sprintf("build #%s", container.BuildName))
-					} else {
-						infos = append(infos, fmt.Sprintf("build id: %d", container.BuildID))
-					}
-				}
 
 				if container.StepName != "" {
 					infos = append(infos, fmt.Sprintf("step: %s", container.StepName))
@@ -124,7 +118,7 @@ func (command *HijackCommand) Execute([]string) error {
 
 				infos = append(infos, fmt.Sprintf("type: %s", container.Type))
 
-				if container.Type == "check" {
+				if container.Type == "check" && container.ExpiresIn != "" {
 					infos = append(infos, fmt.Sprintf("expires in: %s", container.ExpiresIn))
 				}
 
@@ -132,20 +126,26 @@ func (command *HijackCommand) Execute([]string) error {
 					infos = append(infos, fmt.Sprintf("attempt: %s", container.Attempt))
 				}
 
-				choices = append(choices, interact.Choice{
+				choices = append(choices, interaction.Item{
 					Display: strings.Join(infos, ", "),
 					Value:   container,
 				})
 			}
 
-			err = interact.NewInteraction("choose a container", choices...).Resolve(&chosenContainer)
-			if err == io.EOF {
-				return nil
-			}
-
+			choice, err := interaction.Select("Select a container", choices)
 			if err != nil {
 				return err
 			}
+			if choice == nil {
+				return nil
+			}
+			selected, ok := choice.(atc.Container)
+			if ok {
+				chosenContainer = selected
+			} else {
+				return errors.New("unknown type returned by selection")
+			}
+
 		} else {
 			chosenContainer = hijackableContainers[0]
 		}
