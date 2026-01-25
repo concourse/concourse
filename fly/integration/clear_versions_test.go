@@ -42,12 +42,12 @@ var _ = Describe("Fly CLI", func() {
 
 		yes := func() {
 			Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
-			fmt.Fprintf(stdin, "y\n")
+			fmt.Fprintf(stdin, "y\r")
 		}
 
 		no := func() {
 			Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
-			fmt.Fprintf(stdin, "n\n")
+			fmt.Fprintf(stdin, "n\r")
 		}
 
 		Context("when a resource or resource type is not specified", func() {

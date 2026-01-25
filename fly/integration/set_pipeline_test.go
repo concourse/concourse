@@ -29,11 +29,11 @@ var _ = Describe("Fly CLI", func() {
 		)
 
 		yes := func(stdin io.Writer) {
-			fmt.Fprintf(stdin, "y\n")
+			fmt.Fprintf(stdin, "y\r")
 		}
 
 		no := func(stdin io.Writer) {
-			fmt.Fprintf(stdin, "n\n")
+			fmt.Fprintf(stdin, "n\r")
 		}
 
 		expectSaveConfigWithRef := func(ref atc.PipelineRef, config atc.Config) {

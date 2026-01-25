@@ -8,12 +8,12 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	"github.com/jessevdk/go-flags"
-	"github.com/vito/go-interact/interact"
 )
 
 func WireTeamConnectors(command *flags.Command) {
@@ -109,8 +109,7 @@ func (command *SetTeamCommand) Execute([]string) error {
 
 	confirm := true
 	if !command.SkipInteractive {
-		confirm = false
-		err = interact.NewInteraction("\napply team configuration?").Resolve(&confirm)
+		confirm, err = interaction.Confirm("\napply team configuration?")
 		if err != nil {
 			return err
 		}
