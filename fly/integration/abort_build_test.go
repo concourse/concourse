@@ -15,7 +15,7 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-var _ = Describe("AbortBuild", func() {
+var _ = Describe("abort-build", func() {
 	var expectedAbortURL = "/api/v1/builds/23/abort"
 
 	var expectedBuild = atc.Build{

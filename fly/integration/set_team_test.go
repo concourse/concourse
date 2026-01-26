@@ -15,7 +15,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Set Team", func() {
+var _ = Describe("set-team", func() {
 	var (
 		flyCmd    *exec.Cmd
 		cmdParams []string

@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("logout", func() {
+var _ = Describe("logout", func() {
 	var (
 		logoutATCServer *ghttp.Server
 	)

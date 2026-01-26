@@ -19,7 +19,7 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("archive-pipeline", func() {
 	yes := func(stdin io.Writer) {
 		fmt.Fprintf(stdin, "y\r")
 	}

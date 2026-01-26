@@ -21,12 +21,12 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-var _ = Describe("login Command", func() {
+var _ = Describe("login", func() {
 	var (
 		loginATCServer *ghttp.Server
 	)
 
-	Describe("login with no target name", func() {
+	Describe("with no target name", func() {
 		var (
 			flyCmd *exec.Cmd
 		)
@@ -427,7 +427,7 @@ var _ = Describe("login Command", func() {
 					scanner := bufio.NewScanner(bytes.NewBuffer(sess.Out.Contents()))
 					var match []string
 					for scanner.Scan() {
-						re := regexp.MustCompile("fly_port=(\\d+)")
+						re := regexp.MustCompile(`fly_port=(\d+)`)
 						match = re.FindStringSubmatch(scanner.Text())
 						if len(match) > 0 {
 							break

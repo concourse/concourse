@@ -17,7 +17,7 @@ import (
 	"github.com/concourse/concourse/atc/event"
 )
 
-var _ = Describe("Watching", func() {
+var _ = Describe("watch", func() {
 	var streaming chan struct{}
 	var events chan atc.Event
 
