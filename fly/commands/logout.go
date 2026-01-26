@@ -23,8 +23,12 @@ func (command *LogoutCommand) Execute(args []string) error {
 		}
 
 		for targetName := range targets {
+			errs := []error{}
 			if err := command.logoutSingleTarget(targetName); err != nil {
-				return err
+				errs = append(errs, errors.Join(errors.New(string(targetName)), err))
+			}
+			if len(errs) > 0 {
+				return errors.Join(errs...)
 			}
 		}
 
