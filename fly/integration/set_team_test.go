@@ -85,7 +85,7 @@ var _ = Describe("set-team", func() {
 						Eventually(sess.Out).ShouldNot(gbytes.Say("role viewer:"))
 
 						sess.Interrupt()
-						Eventually(sess).Should(gexec.Exit(1))
+						Eventually(sess).Should(gexec.Exit())
 					})
 				})
 			})

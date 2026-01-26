@@ -48,7 +48,7 @@ var _ = Describe("destroy-team", func() {
 		})
 
 		typesName := func(name string) {
-			fmt.Fprintf(stdin, "%s\n", name)
+			fmt.Fprintf(stdin, "%s\r", name)
 		}
 
 		It("reminds the user this is a destructive operation", func() {

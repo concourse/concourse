@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/pty"
@@ -221,9 +221,9 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, isRawMode bool) (st
 		_ = open.Start(openURL)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go waitForTokenInput(ctx, stdinChannel, errorChannel, isRawMode)
+	prg := interaction.TokenProgram()
+	defer prg.Quit()
+	go waitForTokenInput(prg, stdinChannel, errorChannel)
 
 	select {
 	case tokenStrMsg := <-tokenChannel:
@@ -292,34 +292,20 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-func waitForTokenInput(ctx context.Context, tokenChannel chan string, errorChannel chan error, isRawMode bool) {
+func waitForTokenInput(prg *tea.Program, tokenChannel chan string, errorChannel chan error) {
 	fmt.Println()
 
-	for {
-		if isRawMode {
-			fmt.Print("or enter token manually (input hidden): ")
-		} else {
-			fmt.Print("or enter token manually: ")
-		}
-		tokenBytes, err := pty.ReadLine(ctx, os.Stdin)
-		token := strings.TrimSpace(string(tokenBytes))
-		if len(token) == 0 && err == io.EOF {
-			return
-		}
-		if err != nil && err != io.EOF {
-			errorChannel <- err
-			return
-		}
-
-		parts := strings.Split(token, " ")
-		if len(parts) != 2 {
-			fmt.Println("\rtoken must be of the format 'TYPE VALUE', e.g. 'Bearer ...'\r")
-			continue
-		}
-
-		tokenChannel <- token
-		break
+	model, err := prg.Run()
+	if err != nil {
+		errorChannel <- err
+		return
 	}
+	in, ok := model.(interaction.TokenModel)
+	if !ok {
+		errorChannel <- errors.New("unknown model returned by bubbletea")
+		return
+	}
+	tokenChannel <- in.Token()
 }
 
 func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCert string, clientCertPath string, clientKeyPath string) error {
@@ -441,9 +427,9 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 			_ = open.Start(theURL)
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		go waitForTokenInput(ctx, stdinChannel, errorChannel, isRawMode)
+		prg := interaction.TokenProgram()
+		defer prg.Quit()
+		go waitForTokenInput(prg, stdinChannel, errorChannel)
 
 		select {
 		case tokenStrMsg := <-tokenChannel:

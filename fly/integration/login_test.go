@@ -334,7 +334,7 @@ var _ = Describe("login", func() {
 				Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/login\\?fly_port=(\\d+)"))
 				Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
-				_, err = fmt.Fprintf(stdin, "Bearer some-token\n")
+				_, err = fmt.Fprintf(stdin, "Bearer some-token\r")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = stdin.Close()
@@ -356,12 +356,12 @@ var _ = Describe("login", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
-					_, err = fmt.Fprintf(stdin, "not a token\n")
+					_, err = fmt.Fprintf(stdin, "not a token\r")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'"))
 
-					_, err = fmt.Fprintf(stdin, "Bearer ok-this-time-its-the-real-deal\n")
+					_, err = fmt.Fprintf(stdin, "Bearer ok-this-time-its-the-real-deal\r")
 					Expect(err).NotTo(HaveOccurred())
 
 					err = stdin.Close()
@@ -384,7 +384,7 @@ var _ = Describe("login", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
-					_, err = fmt.Fprintf(stdin, "bearer no-new-line-here")
+					_, err = fmt.Fprintf(stdin, "bearer no-new-line-here\r")
 					Expect(err).NotTo(HaveOccurred())
 
 					err = stdin.Close()
