@@ -94,7 +94,7 @@ ALTER INDEX IF EXISTS resource_disabled_versions_resource_id_version_digest_uniq
 RENAME TO resource_disabled_versions_resource_id_version_md5_uniq;
 
 -- resource_caches
-ALTER INDEX IF EXISTS resource_caches_resource_config_id_version_digest_params_hash_uniq
+ALTER INDEX IF EXISTS resource_caches_rsc_config_id_version_digest_params_hash_uniq
 RENAME to resource_caches_resource_config_id_version_md5_params_hash_uniq;
 
 DROP FUNCTION IF EXISTS jsonb_coalesce_empty(value jsonb);
