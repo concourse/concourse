@@ -13,9 +13,9 @@ import (
 // Prompts a user to enter a bearer token
 func TokenProgram() *tea.Program {
 	i := textinput.New()
-	i.Prompt = "or enter token manually: "
+	i.Prompt = "or enter token manually (input hidden): "
 	i.PromptStyle = lipgloss.NewStyle()
-	i.EchoMode = textinput.EchoPassword
+	i.EchoMode = textinput.EchoNone
 	i.Focus()
 	return tea.NewProgram(TokenModel{input: i}, tea.WithInput(os.Stdin))
 }

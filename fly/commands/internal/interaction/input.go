@@ -30,7 +30,7 @@ func InputProgram(prompt string, isSensitive bool) *tea.Program {
 	i.PromptStyle = lipgloss.NewStyle()
 	i.Focus()
 	if isSensitive {
-		i.EchoMode = textinput.EchoPassword
+		i.EchoMode = textinput.EchoNone
 	}
 	return tea.NewProgram(InputModel{input: i}, tea.WithInput(os.Stdin))
 }
