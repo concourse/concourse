@@ -11,13 +11,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/pty"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/vito/go-interact/interact"
 	"golang.org/x/oauth2"
 	"golang.org/x/term"
 )
@@ -378,10 +379,10 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 			return "", "", errors.New("basic auth is not available")
 		}
 	} else {
-		choices := make([]interact.Choice, len(authMethods))
+		choices := make([]list.Item, len(authMethods))
 
 		for i, method := range authMethods {
-			choices[i] = interact.Choice{
+			choices[i] = interaction.Item{
 				Display: method.DisplayName,
 				Value:   method,
 			}
@@ -398,10 +399,18 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 		}
 
 		if len(choices) > 1 {
-			err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
+			choice, err := interaction.Select("choose an auth method", choices)
 			if err != nil {
 				return "", "", err
 			}
+			if choice == nil {
+				return "", "", nil
+			}
+			method, ok := choice.(authMethod)
+			if !ok {
+				return "", "", errors.New("unknown type returned by selection")
+			}
+			chosenMethod = method
 
 			fmt.Println("")
 		}
@@ -454,22 +463,22 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 		if command.Username != "" {
 			username = command.Username
 		} else {
-			err := interact.NewInteraction("username").Resolve(interact.Required(&username))
+			u, err := interaction.Input("username", false)
 			if err != nil {
 				return "", "", err
 			}
+			username = u
 		}
 
 		var password string
 		if command.Password != "" {
 			password = command.Password
 		} else {
-			var interactivePassword interact.Password
-			err := interact.NewInteraction("password").Resolve(interact.Required(&interactivePassword))
+			p, err := interaction.Input("password", true)
 			if err != nil {
 				return "", "", err
 			}
-			password = string(interactivePassword)
+			password = p
 		}
 
 		request, err := http.NewRequest("GET", target.URL()+"/api/v1/teams/"+target.Team().Name()+"/auth/token", nil)

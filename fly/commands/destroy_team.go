@@ -6,10 +6,10 @@ import (
 	"os"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/vito/go-interact/interact"
 )
 
 type DestroyTeamCommand struct {
@@ -32,8 +32,7 @@ func (command *DestroyTeamCommand) Execute([]string) error {
 	fmt.Printf("!!! this will remove all data for team `%s`\n\n", teamName)
 
 	if !command.SkipInteractive {
-		var confirm string
-		err = interact.NewInteraction("please type the team name to confirm").Resolve(interact.Required(&confirm))
+		confirm, err := interaction.Input("please type the team name to confirm", false)
 		if err != nil {
 			return err
 		}
