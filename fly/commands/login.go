@@ -20,7 +20,6 @@ import (
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
-	"golang.org/x/term"
 )
 
 type LoginCommand struct {
@@ -119,27 +118,14 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	isRawMode := pty.IsTerminal()
-	if isRawMode {
-		state, err := term.MakeRaw(int(os.Stdin.Fd()))
-		if err != nil {
-			isRawMode = false
-		} else {
-			defer func() {
-				term.Restore(int(os.Stdin.Fd()), state)
-				fmt.Print("\r")
-			}()
-		}
-	}
-
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
 		// Legacy Auth Support
-		tokenType, tokenValue, err = command.legacyAuth(target, isRawMode)
+		tokenType, tokenValue, err = command.legacyAuth(target)
 	} else {
 		if command.Username != "" && command.Password != "" {
 			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
 		} else {
-			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), isRawMode)
+			tokenType, tokenValue, err = command.authCodeGrant(client.URL())
 		}
 	}
 
@@ -194,7 +180,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	return token.TokenType, token.AccessToken, nil
 }
 
-func (command *LoginCommand) authCodeGrant(targetUrl string, isRawMode bool) (string, string, error) {
+func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, error) {
 	var tokenStr string
 
 	stdinChannel := make(chan string)
@@ -331,7 +317,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	return nil
 }
 
-func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (string, string, error) {
+func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error) {
 
 	httpClient := target.Client().HTTPClient()
 
