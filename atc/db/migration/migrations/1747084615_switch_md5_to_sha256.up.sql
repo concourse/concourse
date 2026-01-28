@@ -49,6 +49,15 @@ RENAME TO resource_disabled_versions_resource_id_version_digest_uniq;
 ALTER INDEX IF EXISTS resource_caches_resource_config_id_version_md5_params_hash_uniq
 RENAME to resource_caches_rsc_config_id_version_digest_params_hash_uniq;
 
+CREATE OR REPLACE FUNCTION jsonb_coalesce_empty(value jsonb)
+RETURNS jsonb AS $$
+  SELECT
+      CASE WHEN jsonb_typeof($1) != 'object'
+          THEN '{}'::jsonb
+          ELSE $1
+  END
+$$ LANGUAGE sql;
+
 -- Convert all rows to their new sha256 values
 WITH json_string_cte AS (
     SELECT
@@ -59,8 +68,7 @@ WITH json_string_cte AS (
             '{}'
         ) AS json_string
     FROM resource_config_versions rcv
-    LEFT JOIN jsonb_each_text(rcv.version::jsonb) AS kv ON true
-    WHERE jsonb_typeof(rcv.version::jsonb) = 'object'
+    LEFT JOIN jsonb_each_text(jsonb_coalesce_empty(rcv.version::jsonb)) AS kv ON true
     GROUP BY rcv.id, rcv.version_sha256
 ),
 hashed_json_string_cte AS (

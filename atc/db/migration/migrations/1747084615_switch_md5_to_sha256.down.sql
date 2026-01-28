@@ -8,8 +8,8 @@ WITH json_string_cte AS (
             '{}'
         ) AS json_string
     FROM resource_config_versions rcv
-    LEFT JOIN jsonb_each_text(rcv.version::jsonb) AS kv ON true
-    WHERE jsonb_typeof(rcv.version::jsonb) = 'object' AND rcv.version_md5 IS NULL
+    LEFT JOIN jsonb_each_text(jsonb_coalesce_empty(rcv.version::jsonb)) AS kv ON true
+    WHERE rcv.version_md5 IS NULL
     GROUP BY rcv.id, rcv.version_sha256
 ),
 hashed_json_string_cte AS (
@@ -70,6 +70,7 @@ ALTER TABLE resource_config_versions
 ALTER COLUMN version_md5 SET NOT NULL;
 
 DROP INDEX resource_config_scope_id_and_version_md5_idx;
+DROP INDEX resource_config_versions_version_md5;
 
 -- Revert column renames from version_digest back to version_md5
 ALTER TABLE build_resource_config_version_inputs
@@ -93,5 +94,7 @@ ALTER INDEX IF EXISTS resource_disabled_versions_resource_id_version_digest_uniq
 RENAME TO resource_disabled_versions_resource_id_version_md5_uniq;
 
 -- resource_caches
-ALTER INDEX IF EXISTS resource_caches_resource_config_id_version_digest_params_hash_uniq
+ALTER INDEX IF EXISTS resource_caches_rsc_config_id_version_digest_params_hash_uniq
 RENAME to resource_caches_resource_config_id_version_md5_params_hash_uniq;
+
+DROP FUNCTION IF EXISTS jsonb_coalesce_empty(value jsonb);
