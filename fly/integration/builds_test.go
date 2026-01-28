@@ -21,7 +21,7 @@ import (
 const timeDateLayout = "2006-01-02@15:04:05-0700"
 const timeLayout = "2006-01-02 15:04:05"
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("builds", func() {
 	var (
 		runningBuildStartTime   time.Time
 		pendingBuildStartTime   time.Time

@@ -14,83 +14,170 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Fly CLI", func() {
-	Describe("destroy-pipeline", func() {
-		var (
-			stdin io.Writer
-			args  []string
-			sess  *gexec.Session
-		)
+var _ = Describe("destroy-pipeline", func() {
+	var (
+		stdin io.Writer
+		args  []string
+		sess  *gexec.Session
+	)
 
+	BeforeEach(func() {
+		stdin = nil
+		args = []string{}
+	})
+
+	JustBeforeEach(func() {
+		var err error
+
+		flyCmd := exec.Command(flyPath, append([]string{"-t", targetName, "destroy-pipeline"}, args...)...)
+		stdin, err = flyCmd.StdinPipe()
+		Expect(err).NotTo(HaveOccurred())
+
+		sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Context("when a pipeline name is not specified", func() {
+		It("asks the user to specify a pipeline name", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "destroy-pipeline")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess).Should(gexec.Exit(1))
+
+			Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
+		})
+	})
+
+	Context("when the pipeline flag is invalid", func() {
+		It("fails and print invalid flag error", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "destroy-pipeline", "-p", "forbidden/pipelinename")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(1))
+
+			Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
+		})
+	})
+
+	Context("when a pipeline name is specified", func() {
 		BeforeEach(func() {
-			stdin = nil
-			args = []string{}
+			args = append(args, "-p", "some-pipeline/branch:master")
 		})
 
-		JustBeforeEach(func() {
-			var err error
+		yes := func() {
+			Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
+			fmt.Fprintf(stdin, "y\r")
+		}
 
-			flyCmd := exec.Command(flyPath, append([]string{"-t", targetName, "destroy-pipeline"}, args...)...)
-			stdin, err = flyCmd.StdinPipe()
-			Expect(err).NotTo(HaveOccurred())
+		no := func() {
+			Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
+			fmt.Fprintf(stdin, "n\r")
+		}
 
-			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-		})
+		queryParams := "vars.branch=%22master%22"
 
-		Context("when a pipeline name is not specified", func() {
-			It("asks the user to specify a pipeline name", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "destroy-pipeline")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				Eventually(sess).Should(gexec.Exit(1))
-
-				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
-			})
-		})
-
-		Context("when the pipeline flag is invalid", func() {
-			It("fails and print invalid flag error", func() {
-				flyCmd := exec.Command(flyPath, "-t", targetName, "destroy-pipeline", "-p", "forbidden/pipelinename")
-
-				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
-				Expect(err).NotTo(HaveOccurred())
-
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
-
-				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
-			})
-		})
-
-		Context("when a pipeline name is specified", func() {
+		Context("when the pipeline exists", func() {
 			BeforeEach(func() {
-				args = append(args, "-p", "some-pipeline/branch:master")
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{Name: "some-pipeline"}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
+						ghttp.RespondWith(204, ""),
+					),
+				)
 			})
 
-			yes := func() {
-				Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
-				fmt.Fprintf(stdin, "y\n")
-			}
+			It("warns that it's about to do bad things", func() {
+				Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline/branch:master`"))
+			})
 
-			no := func() {
-				Eventually(sess).Should(gbytes.Say(`are you sure\? \[yN\]: `))
-				fmt.Fprintf(stdin, "n\n")
-			}
+			It("bails out if the user says no", func() {
+				no()
+				Eventually(sess).Should(gbytes.Say(`bailing out`))
+				Eventually(sess).Should(gexec.Exit(0))
+			})
 
-			queryParams := "vars.branch=%22master%22"
+			It("succeeds if the user says yes", func() {
+				yes()
+				Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
+				Eventually(sess).Should(gexec.Exit(0))
+			})
+
+			Context("when run noninteractively", func() {
+				BeforeEach(func() {
+					args = append(args, "-n")
+				})
+
+				It("destroys the pipeline without confirming", func() {
+					Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
+					Eventually(sess).Should(gexec.Exit(0))
+				})
+			})
+		})
+
+		Context("and the pipeline does not exist", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
+						ghttp.RespondWith(404, ""),
+					),
+				)
+			})
+
+			It("writes that it did not exist without confirmation and exits successfully", func() {
+				Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` does not exist"))
+				Eventually(sess).Should(gexec.Exit(0))
+			})
+		})
+
+		Context("and the api returns an unexpected status code on check", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
+						ghttp.RespondWith(500, ""),
+					),
+				)
+			})
+
+			It("writes an error message to stderr", func() {
+				Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
+				Eventually(sess).Should(gexec.Exit(1))
+			})
+		})
+
+		Context("with a team specified", func() {
+			BeforeEach(func() {
+				args = append(args, "--team", "team-two")
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/team-two"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
+							Name: "team-two",
+						}),
+					),
+				)
+			})
 
 			Context("when the pipeline exists", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{Name: "some-pipeline"}),
 						),
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("DELETE", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
+							ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
 							ghttp.RespondWith(204, ""),
 						),
 					)
@@ -111,24 +198,13 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
 					Eventually(sess).Should(gexec.Exit(0))
 				})
-
-				Context("when run noninteractively", func() {
-					BeforeEach(func() {
-						args = append(args, "-n")
-					})
-
-					It("destroys the pipeline without confirming", func() {
-						Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
-						Eventually(sess).Should(gexec.Exit(0))
-					})
-				})
 			})
 
 			Context("and the pipeline does not exist", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
+							ghttp.VerifyRequest("GET", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
 							ghttp.RespondWith(404, ""),
 						),
 					)
@@ -137,84 +213,6 @@ var _ = Describe("Fly CLI", func() {
 				It("writes that it did not exist without confirmation and exits successfully", func() {
 					Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` does not exist"))
 					Eventually(sess).Should(gexec.Exit(0))
-				})
-			})
-
-			Context("and the api returns an unexpected status code on check", func() {
-				BeforeEach(func() {
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/main/pipelines/some-pipeline", queryParams),
-							ghttp.RespondWith(500, ""),
-						),
-					)
-				})
-
-				It("writes an error message to stderr", func() {
-					Eventually(sess.Err).Should(gbytes.Say("Unexpected Response"))
-					Eventually(sess).Should(gexec.Exit(1))
-				})
-			})
-
-			Context("with a team specified", func() {
-				BeforeEach(func() {
-					args = append(args, "--team", "team-two")
-
-					atcServer.AppendHandlers(
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/api/v1/teams/team-two"),
-							ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{
-								Name: "team-two",
-							}),
-						),
-					)
-				})
-
-				Context("when the pipeline exists", func() {
-					BeforeEach(func() {
-						atcServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
-								ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Pipeline{Name: "some-pipeline"}),
-							),
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
-								ghttp.RespondWith(204, ""),
-							),
-						)
-					})
-
-					It("warns that it's about to do bad things", func() {
-						Eventually(sess).Should(gbytes.Say("!!! this will remove all data for pipeline `some-pipeline/branch:master`"))
-					})
-
-					It("bails out if the user says no", func() {
-						no()
-						Eventually(sess).Should(gbytes.Say(`bailing out`))
-						Eventually(sess).Should(gexec.Exit(0))
-					})
-
-					It("succeeds if the user says yes", func() {
-						yes()
-						Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` deleted"))
-						Eventually(sess).Should(gexec.Exit(0))
-					})
-				})
-
-				Context("and the pipeline does not exist", func() {
-					BeforeEach(func() {
-						atcServer.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/api/v1/teams/team-two/pipelines/some-pipeline", queryParams),
-								ghttp.RespondWith(404, ""),
-							),
-						)
-					})
-
-					It("writes that it did not exist without confirmation and exits successfully", func() {
-						Eventually(sess).Should(gbytes.Say("`some-pipeline/branch:master` does not exist"))
-						Eventually(sess).Should(gexec.Exit(0))
-					})
 				})
 			})
 		})

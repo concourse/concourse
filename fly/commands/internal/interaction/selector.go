@@ -22,14 +22,14 @@ type Item struct {
 
 func (i Item) FilterValue() string { return i.Display }
 
-type selector struct {
+type selectModel struct {
 	prompt string
 	list   list.Model
 	choice any
 }
 
-func (s selector) Choice() any         { return s.choice }
-func (s selector) UserCancelled() bool { return s.UserCancelled() }
+func (s selectModel) Choice() any         { return s.choice }
+func (s selectModel) UserCancelled() bool { return s.UserCancelled() }
 
 var blankStyle = lipgloss.NewStyle()
 
@@ -54,24 +54,24 @@ func Select(prompt string, items []list.Item) (any, error) {
 	l.KeyMap.GoToStart.Unbind()
 	l.KeyMap.ShowFullHelp.Unbind()
 
-	done, err := tea.NewProgram(selector{prompt: prompt, list: l},
+	done, err := tea.NewProgram(selectModel{prompt: prompt, list: l},
 		tea.WithInput(os.Stdin)).Run()
 	if err != nil {
 		return nil, err
 	}
 
-	choice, ok := done.(selector)
+	choice, ok := done.(selectModel)
 	if ok {
 		return choice.Choice(), nil
 	}
 	return nil, errors.New("unknown model returned by bubbletea")
 }
 
-func (s selector) Init() tea.Cmd {
+func (s selectModel) Init() tea.Cmd {
 	return nil
 }
 
-func (s selector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (s selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		s.list.SetWidth(msg.Width)
@@ -108,7 +108,7 @@ func (s selector) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 var titleStyle = lipgloss.NewStyle().MarginLeft(2)
 
-func (s selector) View() string {
+func (s selectModel) View() string {
 	finalView := strings.Builder{}
 	finalView.WriteString("\n")
 	if s.list.FilterState() != list.Filtering {

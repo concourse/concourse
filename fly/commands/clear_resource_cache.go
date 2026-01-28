@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/vito/go-interact/interact"
-
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 )
@@ -51,8 +50,7 @@ func (command *ClearResourceCacheCommand) Execute(args []string) error {
 	warningMsg += "\n"
 	fmt.Println(warningMsg)
 
-	var confirm bool
-	err = interact.NewInteraction("are you sure?").Resolve(&confirm)
+	confirm, err := interaction.Confirm("are you sure?")
 	if err != nil || !confirm {
 		fmt.Println("bailing out")
 		return err

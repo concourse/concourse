@@ -8,13 +8,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/concourse/concourse/atc"
 )
 
-var _ = Describe("RenamePipeline", func() {
+var _ = Describe("rename-pipeline", func() {
 	Context("when team is not specified", func() {
 		var (
 			expectedURL        string

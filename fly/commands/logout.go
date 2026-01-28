@@ -22,10 +22,15 @@ func (command *LogoutCommand) Execute(args []string) error {
 			return err
 		}
 
+		errs := []error{}
 		for targetName := range targets {
 			if err := command.logoutSingleTarget(targetName); err != nil {
-				return err
+				errs = append(errs, fmt.Errorf("%s: %w", string(targetName), err))
 			}
+		}
+
+		if len(errs) > 0 {
+			return errors.Join(errs...)
 		}
 
 		fmt.Println("logged out of all targets")

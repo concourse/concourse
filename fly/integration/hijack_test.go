@@ -17,7 +17,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Hijacking", func() {
+var _ = Describe("hijack", func() {
 	var hijacked <-chan struct{}
 	var workingDirectory string
 	var user string

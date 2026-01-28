@@ -19,13 +19,13 @@ import (
 	"github.com/tedsuo/rata"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("archive-pipeline", func() {
 	yes := func(stdin io.Writer) {
-		fmt.Fprintf(stdin, "y\n")
+		fmt.Fprintf(stdin, "y\r")
 	}
 
 	no := func(stdin io.Writer) {
-		fmt.Fprintf(stdin, "n\n")
+		fmt.Fprintf(stdin, "n\r")
 	}
 
 	Describe("archive-pipeline", func() {
