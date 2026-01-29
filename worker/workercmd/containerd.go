@@ -41,6 +41,9 @@ version = 3
 
 oom_score = -999
 disabled_plugins = ["io.containerd.grpc.v1.cri", "io.containerd.snapshotter.v1.aufs", "io.containerd.snapshotter.v1.btrfs", "io.containerd.snapshotter.v1.zfs"]
+
+[debug]
+  format = "json"
 `
 	err := os.WriteFile(dest, []byte(config), 0755)
 	if err != nil {
