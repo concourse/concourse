@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("RenameTeam", func() {
+var _ = Describe("rename-team", func() {
 	var newName string
 	BeforeEach(func() {
 		expectedURL := "/api/v1/teams/a-team/rename"

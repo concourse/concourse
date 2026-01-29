@@ -5,6 +5,7 @@ package runtime_test
 import (
 	"errors"
 	"fmt"
+	"unicode/utf8"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
@@ -487,6 +488,19 @@ func (s *ContainerSuite) TestPropertyReturnsValue() {
 	result, err := s.container.Property("any")
 	s.NoError(err)
 	s.Equal("some-value", result)
+}
+
+func (s *ContainerSuite) TestSetPropertyStripsNonUTF8Runes() {
+	s.containerdContainer.SetLabelsReturns(nil, nil)
+	invalid := string([]byte{0xff, 0xfe, 0xfd})
+	err := s.container.SetProperty("any",
+		"regular"+invalid+"utf8\nchars")
+	s.NoError(err)
+
+	s.Equal(1, s.containerdContainer.SetLabelsCallCount())
+	_, labels := s.containerdContainer.SetLabelsArgsForCall(0)
+	expected := "regular" + string(utf8.RuneError) + "utf8\nchars"
+	s.Equal(expected, labels["any.0"])
 }
 
 func (s *ContainerSuite) TestCurrentCPULimitsGetInfoFails() {

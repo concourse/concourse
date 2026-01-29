@@ -7,13 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vito/go-interact/interact"
-
 	"sigs.k8s.io/yaml"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
@@ -37,8 +36,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 		return true
 	}
 
-	confirm := false
-	err := interact.NewInteraction("apply configuration?").Resolve(&confirm)
+	confirm, err := interaction.Confirm("apply configuration?")
 	if err != nil {
 		return false
 	}

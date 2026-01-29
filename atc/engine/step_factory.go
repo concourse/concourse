@@ -177,7 +177,7 @@ func (factory *coreStepFactory) TaskStep(
 	containerMetadata db.ContainerMetadata,
 	delegateFactory DelegateFactory,
 ) exec.Step {
-	sum := sha256.Sum256(fmt.Appendf([]byte{}, "%d", time.Now().Unix()))
+	sum := sha256.Sum256([]byte(plan.Task.Name))
 	containerMetadata.WorkingDirectory = filepath.Join("/tmp", "build", fmt.Sprintf("%x", sum[:4]))
 
 	taskStep := exec.NewTaskStep(

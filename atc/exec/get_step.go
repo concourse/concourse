@@ -253,6 +253,8 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 			delegate.UpdateResourceVersion(logger, step.plan.Resource, versionResult)
 		}
 
+		state.AddLocalVar(step.plan.Name, versionResult.Metadata.AsMap(), false)
+
 		succeeded = true
 	}
 

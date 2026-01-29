@@ -15,7 +15,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("set-team", func() {
 	var (
 		flyCmd    *exec.Cmd
 		cmdParams []string
@@ -27,11 +27,11 @@ var _ = Describe("Fly CLI", func() {
 	})
 
 	yes := func(stdin io.Writer) {
-		fmt.Fprintf(stdin, "y\n")
+		fmt.Fprintf(stdin, "y\r")
 	}
 
 	no := func(stdin io.Writer) {
-		fmt.Fprintf(stdin, "n\n")
+		fmt.Fprintf(stdin, "n\r")
 	}
 
 	Context("using a config file", func() {
@@ -61,6 +61,7 @@ var _ = Describe("Fly CLI", func() {
 
 						Eventually(sess.Out).ShouldNot(gbytes.Say("role viewer:"))
 
+						sess.Interrupt()
 						Eventually(sess).Should(gexec.Exit(1))
 					})
 				})
@@ -83,7 +84,8 @@ var _ = Describe("Fly CLI", func() {
 
 						Eventually(sess.Out).ShouldNot(gbytes.Say("role viewer:"))
 
-						Eventually(sess).Should(gexec.Exit(1))
+						sess.Interrupt()
+						Eventually(sess).Should(gexec.Exit())
 					})
 				})
 			})
@@ -119,6 +121,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -152,6 +155,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- github:some-org:some-team"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -190,6 +194,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-org:some-space:auditor"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-guid"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -223,6 +228,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- ldap:some-group"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -256,6 +262,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- oauth:some-group"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -289,6 +296,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -523,6 +531,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -545,6 +554,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- cf:myorg-2:myspace"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:myspace-guid"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -565,6 +575,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- ldap:my-group"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -587,6 +598,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- oauth:cool-scope-name"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
@@ -607,6 +619,7 @@ var _ = Describe("Fly CLI", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- github:samson-org:samson-team"))
 
+					sess.Interrupt()
 					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})

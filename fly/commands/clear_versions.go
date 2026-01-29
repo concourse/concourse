@@ -5,10 +5,10 @@ import (
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/jessevdk/go-flags"
-	"github.com/vito/go-interact/interact"
 )
 
 type ClearVersionsCommand struct {
@@ -123,8 +123,7 @@ and the following resource types:`)
 
 	fmt.Println("")
 
-	var confirm bool
-	err := interact.NewInteraction("are you sure?").Resolve(&confirm)
+	confirm, err := interaction.Confirm("are you sure?")
 	if err != nil || !confirm {
 		fmt.Println("bailing out")
 		return false, err

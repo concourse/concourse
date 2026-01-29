@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"code.cloudfoundry.org/garden"
 )
@@ -39,6 +40,7 @@ func propertiesToLabels(properties garden.Properties) (map[string]string, error)
 		if len(key) > maxKeyLen {
 			return nil, fmt.Errorf("property name %q is too long", key[:32]+"...")
 		}
+		value = strings.ToValidUTF8(value, string(utf8.RuneError))
 		for {
 			chunkKey := key + "." + strconv.Itoa(sequenceNum)
 			valueLen := min(maxLabelLen-len(chunkKey), len(value))

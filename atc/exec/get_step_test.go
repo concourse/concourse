@@ -318,7 +318,7 @@ var _ = Describe("GetStep", func() {
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 					_, exitStatus, versionResult := fakeDelegate.FinishedArgsForCall(0)
 					Expect(exitStatus).To(Equal(exec.ExitStatus(0)))
-					Expect(versionResult.Metadata).To(Equal([]atc.MetadataField{
+					Expect(versionResult.Metadata).To(Equal(atc.Metadata{
 						{Name: "some", Value: "metadata"},
 					}))
 				})
@@ -334,7 +334,7 @@ var _ = Describe("GetStep", func() {
 
 					chosenContainer.ProcessDefs[0].Stub.Output = resource.VersionResult{
 						Version:  atc.Version{"some": "version"},
-						Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+						Metadata: atc.Metadata{{Name: "some", Value: "metadata"}},
 					}
 				})
 
@@ -369,7 +369,7 @@ var _ = Describe("GetStep", func() {
 					_, status, info := fakeDelegate.FinishedArgsForCall(0)
 					Expect(status).To(Equal(exec.ExitStatus(0)))
 					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-					Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+					Expect(info.Metadata).To(Equal(atc.Metadata{{Name: "some", Value: "metadata"}}))
 				})
 
 				It("does not log any info messages", func() {
@@ -432,7 +432,7 @@ var _ = Describe("GetStep", func() {
 
 					chosenContainer.ProcessDefs[0].Stub.Output = resource.VersionResult{
 						Version:  atc.Version{"some": "version"},
-						Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+						Metadata: atc.Metadata{{Name: "some", Value: "metadata"}},
 					}
 				})
 
@@ -451,7 +451,7 @@ var _ = Describe("GetStep", func() {
 					_, status, info := fakeDelegate.FinishedArgsForCall(0)
 					Expect(status).To(Equal(exec.ExitStatus(0)))
 					Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-					Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+					Expect(info.Metadata).To(Equal(atc.Metadata{{Name: "some", Value: "metadata"}}))
 				})
 
 				It("does not log any info messages", func() {
@@ -697,7 +697,7 @@ var _ = Describe("GetStep", func() {
 		BeforeEach(func() {
 			chosenContainer.ProcessDefs[0].Stub.Output = resource.VersionResult{
 				Version:  atc.Version{"some": "version"},
-				Metadata: []atc.MetadataField{{Name: "some", Value: "metadata"}},
+				Metadata: atc.Metadata{{Name: "some", Value: "metadata"}},
 			}
 		})
 
@@ -727,11 +727,16 @@ var _ = Describe("GetStep", func() {
 			_, status, info := fakeDelegate.FinishedArgsForCall(0)
 			Expect(status).To(Equal(exec.ExitStatus(0)))
 			Expect(info.Version).To(Equal(atc.Version{"some": "version"}))
-			Expect(info.Metadata).To(Equal([]atc.MetadataField{{Name: "some", Value: "metadata"}}))
+			Expect(info.Metadata).To(Equal(atc.Metadata{{Name: "some", Value: "metadata"}}))
 		})
 
 		It("saves the version for the resource", func() {
 			Expect(fakeDelegate.UpdateResourceVersionCallCount()).To(Equal(1))
+		})
+
+		It("adds metadata to the build variables", func() {
+			value, _, _ := runState.Get(vars.Reference{Source: ".", Path: getPlan.Name, Fields: []string{"some"}})
+			Expect(value).To(Equal("metadata"))
 		})
 
 		It("does not return an err", func() {

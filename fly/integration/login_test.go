@@ -21,12 +21,12 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
-var _ = Describe("login Command", func() {
+var _ = Describe("login", func() {
 	var (
 		loginATCServer *ghttp.Server
 	)
 
-	Describe("login with no target name", func() {
+	Describe("with no target name", func() {
 		var (
 			flyCmd *exec.Cmd
 		)
@@ -334,7 +334,7 @@ var _ = Describe("login Command", func() {
 				Eventually(sess.Out).Should(gbytes.Say("http://127.0.0.1:(\\d+)/login\\?fly_port=(\\d+)"))
 				Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
-				_, err = fmt.Fprintf(stdin, "Bearer some-token\n")
+				_, err = fmt.Fprintf(stdin, "Bearer some-token\r")
 				Expect(err).NotTo(HaveOccurred())
 
 				err = stdin.Close()
@@ -356,12 +356,12 @@ var _ = Describe("login Command", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
-					_, err = fmt.Fprintf(stdin, "not a token\n")
+					_, err = fmt.Fprintf(stdin, "not a token\r")
 					Expect(err).NotTo(HaveOccurred())
 
 					Eventually(sess.Out).Should(gbytes.Say("token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'"))
 
-					_, err = fmt.Fprintf(stdin, "Bearer ok-this-time-its-the-real-deal\n")
+					_, err = fmt.Fprintf(stdin, "Bearer ok-this-time-its-the-real-deal\r")
 					Expect(err).NotTo(HaveOccurred())
 
 					err = stdin.Close()
@@ -384,7 +384,7 @@ var _ = Describe("login Command", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("or enter token manually"))
 
-					_, err = fmt.Fprintf(stdin, "bearer no-new-line-here")
+					_, err = fmt.Fprintf(stdin, "bearer no-new-line-here\r")
 					Expect(err).NotTo(HaveOccurred())
 
 					err = stdin.Close()
@@ -427,7 +427,7 @@ var _ = Describe("login Command", func() {
 					scanner := bufio.NewScanner(bytes.NewBuffer(sess.Out.Contents()))
 					var match []string
 					for scanner.Scan() {
-						re := regexp.MustCompile("fly_port=(\\d+)")
+						re := regexp.MustCompile(`fly_port=(\d+)`)
 						match = re.FindStringSubmatch(scanner.Text())
 						if len(match) > 0 {
 							break

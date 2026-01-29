@@ -2459,6 +2459,78 @@ var _ = Describe("Team", func() {
 			Expect(found).To(BeFalse())
 		})
 
+		Context("get steps have passed constraints with glob patterns", func() {
+			var (
+				newConfig atc.Config
+			)
+
+			BeforeEach(func() {
+				newConfig = atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+							Icon: "some-icon",
+						},
+					},
+
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name: "some-resource-type",
+							Type: "some-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+						},
+					},
+
+					Jobs: atc.JobConfigs{
+						{
+							Name: "final-tasking",
+
+							Public: true,
+
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
+										Passed:  []string{"job-*"},
+										Trigger: true,
+									},
+								},
+							},
+						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
+						},
+					},
+				}
+			})
+
+			It("resolves appropriately", func() {
+				pipeline, _, err := team.SavePipeline(pipelineRef, newConfig, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				job, found, err := pipeline.Job("final-tasking")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				jobConfig, err := job.Config()
+				getStep := jobConfig.PlanSequence[0].Config.(*atc.GetStep)
+				Expect(getStep.Passed).To(ConsistOf("job-*"))
+			})
+		})
+
 		Context("update job names but keeps history", func() {
 			BeforeEach(func() {
 				newJobConfig := atc.JobConfig{

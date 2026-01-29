@@ -21,7 +21,7 @@ import (
 	"github.com/vito/go-sse/sse"
 )
 
-var _ = Describe("Fly CLI", func() {
+var _ = Describe("execute", func() {
 	var buildDir string
 	var otherInputDir string
 

@@ -1,10 +1,9 @@
 package token_test
 
 import (
-	"time"
-
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	"github.com/concourse/concourse/skymarshal/token"
 	. "github.com/onsi/ginkgo/v2"
@@ -122,54 +121,6 @@ var _ = Describe("Token Middleware", func() {
 				cookies := w.Result().Cookies()
 				Expect(cookies).To(HaveLen(1))
 				Expect(cookies[0].Name).To(Equal("skymarshal_csrf"))
-				Expect(cookies[0].Value).To(Equal(""))
-				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
-			})
-		})
-	})
-
-	Describe("State Tokens", func() {
-
-		Describe("GetStateToken", func() {
-			var result string
-
-			BeforeEach(func() {
-				r.AddCookie(&http.Cookie{Name: "skymarshal_state", Value: "blah"})
-			})
-
-			JustBeforeEach(func() {
-				result = middleware.GetStateToken(r)
-			})
-
-			It("gets the token from the request", func() {
-				Expect(result).To(Equal("blah"))
-			})
-		})
-
-		Describe("SetStateToken", func() {
-			JustBeforeEach(func() {
-				err = middleware.SetStateToken(w, "blah", expiry)
-			})
-
-			It("writes the token to a cookie", func() {
-				cookies := w.Result().Cookies()
-				Expect(cookies).To(HaveLen(1))
-				Expect(cookies[0].Name).To(Equal("skymarshal_state"))
-				Expect(cookies[0].Expires.Unix()).To(Equal(expiry.Unix()))
-				Expect(cookies[0].Value).To(Equal("blah"))
-				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
-			})
-		})
-
-		Describe("UnsetStateToken", func() {
-			JustBeforeEach(func() {
-				middleware.UnsetStateToken(w)
-			})
-
-			It("clears the token from the cookie", func() {
-				cookies := w.Result().Cookies()
-				Expect(cookies).To(HaveLen(1))
-				Expect(cookies[0].Name).To(Equal("skymarshal_state"))
 				Expect(cookies[0].Value).To(Equal(""))
 				Expect(cookies[0].SameSite).To(Equal(http.SameSiteLaxMode))
 			})

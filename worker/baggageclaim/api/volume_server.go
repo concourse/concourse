@@ -693,6 +693,7 @@ func (vs *VolumeServer) prepareCreate(w http.ResponseWriter, req *http.Request, 
 
 func (vs *VolumeServer) doCreate(ctx context.Context, w http.ResponseWriter, request baggageclaim.VolumeRequest, handle string, strategy volume.Strategy, hLog lager.Logger, handlers volumeCreationHandler) (volume.Volume, error) {
 	hLog.Debug("creating")
+	ctx = lagerctx.NewContext(ctx, hLog)
 
 	createdVolume, err := vs.volumeRepo.CreateVolume(
 		ctx,

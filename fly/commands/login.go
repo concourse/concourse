@@ -5,21 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/pty"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/vito/go-interact/interact"
 	"golang.org/x/oauth2"
-	"golang.org/x/term"
 )
 
 type LoginCommand struct {
@@ -118,27 +118,14 @@ func (command *LoginCommand) Execute(args []string) error {
 		return err
 	}
 
-	isRawMode := pty.IsTerminal()
-	if isRawMode {
-		state, err := term.MakeRaw(int(os.Stdin.Fd()))
-		if err != nil {
-			isRawMode = false
-		} else {
-			defer func() {
-				term.Restore(int(os.Stdin.Fd()), state)
-				fmt.Print("\r")
-			}()
-		}
-	}
-
 	if semver.Compare(legacySemver) <= 0 && semver.Compare(devSemver) != 0 {
 		// Legacy Auth Support
-		tokenType, tokenValue, err = command.legacyAuth(target, isRawMode)
+		tokenType, tokenValue, err = command.legacyAuth(target)
 	} else {
 		if command.Username != "" && command.Password != "" {
 			tokenType, tokenValue, err = command.passwordGrant(client, command.Username, command.Password)
 		} else {
-			tokenType, tokenValue, err = command.authCodeGrant(client.URL(), isRawMode)
+			tokenType, tokenValue, err = command.authCodeGrant(client.URL())
 		}
 	}
 
@@ -193,7 +180,7 @@ func (command *LoginCommand) passwordGrant(client concourse.Client, username, pa
 	return token.TokenType, token.AccessToken, nil
 }
 
-func (command *LoginCommand) authCodeGrant(targetUrl string, isRawMode bool) (string, string, error) {
+func (command *LoginCommand) authCodeGrant(targetUrl string) (string, string, error) {
 	var tokenStr string
 
 	stdinChannel := make(chan string)
@@ -220,9 +207,9 @@ func (command *LoginCommand) authCodeGrant(targetUrl string, isRawMode bool) (st
 		_ = open.Start(openURL)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go waitForTokenInput(ctx, stdinChannel, errorChannel, isRawMode)
+	prg := interaction.TokenProgram()
+	defer prg.Quit()
+	go waitForTokenInput(prg, stdinChannel, errorChannel)
 
 	select {
 	case tokenStrMsg := <-tokenChannel:
@@ -291,34 +278,20 @@ type tcpKeepAliveListener struct {
 	*net.TCPListener
 }
 
-func waitForTokenInput(ctx context.Context, tokenChannel chan string, errorChannel chan error, isRawMode bool) {
+func waitForTokenInput(prg *tea.Program, tokenChannel chan string, errorChannel chan error) {
 	fmt.Println()
 
-	for {
-		if isRawMode {
-			fmt.Print("or enter token manually (input hidden): ")
-		} else {
-			fmt.Print("or enter token manually: ")
-		}
-		tokenBytes, err := pty.ReadLine(ctx, os.Stdin)
-		token := strings.TrimSpace(string(tokenBytes))
-		if len(token) == 0 && err == io.EOF {
-			return
-		}
-		if err != nil && err != io.EOF {
-			errorChannel <- err
-			return
-		}
-
-		parts := strings.Split(token, " ")
-		if len(parts) != 2 {
-			fmt.Println("\rtoken must be of the format 'TYPE VALUE', e.g. 'Bearer ...'\r")
-			continue
-		}
-
-		tokenChannel <- token
-		break
+	model, err := prg.Run()
+	if err != nil {
+		errorChannel <- err
+		return
 	}
+	in, ok := model.(interaction.TokenModel)
+	if !ok {
+		errorChannel <- errors.New("unknown model returned by bubbletea")
+		return
+	}
+	tokenChannel <- in.Token()
 }
 
 func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCert string, clientCertPath string, clientKeyPath string) error {
@@ -344,7 +317,7 @@ func (command *LoginCommand) saveTarget(url string, token *rc.TargetToken, caCer
 	return nil
 }
 
-func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (string, string, error) {
+func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error) {
 
 	httpClient := target.Client().HTTPClient()
 
@@ -378,10 +351,10 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 			return "", "", errors.New("basic auth is not available")
 		}
 	} else {
-		choices := make([]interact.Choice, len(authMethods))
+		choices := make([]list.Item, len(authMethods))
 
 		for i, method := range authMethods {
-			choices[i] = interact.Choice{
+			choices[i] = interaction.Item{
 				Display: method.DisplayName,
 				Value:   method,
 			}
@@ -398,10 +371,18 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 		}
 
 		if len(choices) > 1 {
-			err = interact.NewInteraction("choose an auth method", choices...).Resolve(&chosenMethod)
+			choice, err := interaction.Select("choose an auth method", choices)
 			if err != nil {
 				return "", "", err
 			}
+			if choice == nil {
+				return "", "", nil
+			}
+			method, ok := choice.(authMethod)
+			if !ok {
+				return "", "", errors.New("unknown type returned by selection")
+			}
+			chosenMethod = method
 
 			fmt.Println("")
 		}
@@ -432,9 +413,9 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 			_ = open.Start(theURL)
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		go waitForTokenInput(ctx, stdinChannel, errorChannel, isRawMode)
+		prg := interaction.TokenProgram()
+		defer prg.Quit()
+		go waitForTokenInput(prg, stdinChannel, errorChannel)
 
 		select {
 		case tokenStrMsg := <-tokenChannel:
@@ -454,22 +435,22 @@ func (command *LoginCommand) legacyAuth(target rc.Target, isRawMode bool) (strin
 		if command.Username != "" {
 			username = command.Username
 		} else {
-			err := interact.NewInteraction("username").Resolve(interact.Required(&username))
+			u, err := interaction.Input("username", false)
 			if err != nil {
 				return "", "", err
 			}
+			username = u
 		}
 
 		var password string
 		if command.Password != "" {
 			password = command.Password
 		} else {
-			var interactivePassword interact.Password
-			err := interact.NewInteraction("password").Resolve(interact.Required(&interactivePassword))
+			p, err := interaction.Input("password", true)
 			if err != nil {
 				return "", "", err
 			}
-			password = string(interactivePassword)
+			password = p
 		}
 
 		request, err := http.NewRequest("GET", target.URL()+"/api/v1/teams/"+target.Team().Name()+"/auth/token", nil)

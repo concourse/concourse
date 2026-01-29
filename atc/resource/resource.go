@@ -17,8 +17,8 @@ const resourceProcessID = "resource"
 const resultCachePropertyName = "concourse:resource-result"
 
 type VersionResult struct {
-	Version  atc.Version         `json:"version"`
-	Metadata []atc.MetadataField `json:"metadata,omitempty"`
+	Version  atc.Version  `json:"version"`
+	Metadata atc.Metadata `json:"metadata,omitempty"`
 }
 
 type Resource struct {

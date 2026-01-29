@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/rc"
-	"github.com/vito/go-interact/interact"
 )
 
 type ClearTaskCacheCommand struct {
@@ -43,9 +43,8 @@ func (command *ClearTaskCacheCommand) Execute([]string) error {
 	warningMsg += "\n"
 	fmt.Println(warningMsg)
 
-	confirm := command.SkipInteractive
-	if !confirm {
-		err := interact.NewInteraction("are you sure?").Resolve(&confirm)
+	if !command.SkipInteractive {
+		confirm, err := interaction.Confirm("are you sure?")
 		if err != nil || !confirm {
 			fmt.Println("bailing out")
 			return err

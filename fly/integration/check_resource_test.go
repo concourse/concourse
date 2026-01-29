@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("CheckResource", func() {
+var _ = Describe("check-resource", func() {
 	var (
 		flyCmd              *exec.Cmd
 		build               atc.Build

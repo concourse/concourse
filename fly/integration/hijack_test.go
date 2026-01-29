@@ -3,9 +3,9 @@ package integration_test
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/gorilla/websocket"
@@ -17,7 +17,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Hijacking", func() {
+var _ = Describe("hijack", func() {
 	var hijacked <-chan struct{}
 	var workingDirectory string
 	var user string
@@ -395,14 +395,18 @@ var _ = Describe("Hijacking", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(sess.Out).Should(gbytes.Say("1. resource: banana, type: check"))
-			Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-input, type: get, attempt: 1.1.1"))
-			Eventually(sess.Out).Should(gbytes.Say("3. build #2, step: some-output, type: put, attempt: 1.1.2"))
-			Eventually(sess.Out).Should(gbytes.Say("4. build #2, step: some-output, type: task, attempt: 1"))
-			Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
+			Eventually(sess.Out).Should(gbytes.Say("Select a container:"))
+			Eventually(sess.Out).Should(gbytes.Say("resource: banana, type: check"))
+			Eventually(sess.Out).Should(gbytes.Say("step: some-input, type: get, attempt: 1.1.1"))
+			Eventually(sess.Out).Should(gbytes.Say("step: some-output, type: put, attempt: 1.1.2"))
+			Eventually(sess.Out).Should(gbytes.Say("step: some-output, type: task, attempt: 1"))
+			Eventually(sess.Out).Should(gbytes.Say(`\[↑/k\] up • \[↓/j\] down • \[/\] filter • \[esc/q\] quit`))
 
-			_, err = fmt.Fprintf(stdin, "3\n")
-			Expect(err).NotTo(HaveOccurred())
+			fmt.Fprint(stdin, "j")
+			time.Sleep(time.Millisecond)
+			fmt.Fprint(stdin, "j")
+			time.Sleep(time.Millisecond)
+			fmt.Fprint(stdin, "\r")
 
 			Eventually(hijacked).Should(BeClosed())
 
@@ -515,11 +519,12 @@ var _ = Describe("Hijacking", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				Eventually(sess.Out).Should(gbytes.Say("1. build #2, step: some-output, type: put, attempt: 1.1.2"))
-				Eventually(sess.Out).Should(gbytes.Say("2. build #2, step: some-output, type: task, attempt: 1"))
-				Eventually(sess.Out).Should(gbytes.Say("choose a container: "))
+				Eventually(sess.Out).Should(gbytes.Say("Select a container:"))
+				Eventually(sess.Out).Should(gbytes.Say("step: some-output, type: put, attempt: 1.1.2"))
+				Eventually(sess.Out).Should(gbytes.Say("step: some-output, type: task, attempt: 1"))
+				Eventually(sess.Out).Should(gbytes.Say(`\[↑/k\] up • \[↓/j\] down • \[/\] filter • \[esc/q\] quit`))
 
-				_, err = fmt.Fprintf(stdin, "1\n")
+				_, err = fmt.Fprintf(stdin, "\r")
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(hijacked).Should(BeClosed())
@@ -1126,8 +1131,7 @@ var _ = Describe("Hijacking", func() {
 			BeforeEach(func() {
 				path = "sh"
 			})
-			It("tries \"bash\" then \"sh\"", func() {
-				os.Stdout.WriteString("\n")
+			It(`tries "bash" then "sh"`, func() {
 				flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "--check", "a-pipeline/some-resource-name")
 
 				stdin, err := flyCmd.StdinPipe()
@@ -1139,7 +1143,7 @@ var _ = Describe("Hijacking", func() {
 				Eventually(hijacked).Should(BeClosed())
 
 				Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("executable not found", "red+b") + "\n"))
-				Eventually(sess.Err.Contents).Should(ContainSubstring("Couldn't find \"bash\" on container, retrying with \"sh\""))
+				Eventually(sess.Err.Contents).Should(ContainSubstring(`Couldn't find "bash" on container, retrying with "sh"`))
 
 				Eventually(hijacked2).Should(BeClosed())
 
