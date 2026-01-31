@@ -98,6 +98,14 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	if plan.Config != nil {
 		validator.pushContext(".config")
 
+		if len(plan.Config.UnknownFields) > 0 {
+			var fieldNames []string
+			for field := range plan.Config.UnknownFields {
+				fieldNames = append(fieldNames, field)
+			}
+			validator.recordErrorf("unknown fields %+q", fieldNames)
+		}
+
 		if err := plan.Config.Validate(); err != nil {
 			if validationErr, ok := err.(TaskValidationError); ok {
 				for _, msg := range validationErr.Errors {
