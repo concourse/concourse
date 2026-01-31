@@ -84,6 +84,7 @@ var taskConfigKnownFields = map[string]bool{
 
 // UnmarshalJSON implements custom unmarshaling for TaskConfig to detect
 // unknown fields (like typos such as "ouputs" instead of "outputs").
+// reference: https://github.com/concourse/concourse/issues/8923
 func (config *TaskConfig) UnmarshalJSON(data []byte) error {
 	// First, unmarshal into a map to capture all fields
 	var rawConfig map[string]*json.RawMessage
