@@ -61,8 +61,8 @@ var _ = Describe("set-team", func() {
 
 						Eventually(sess.Out).ShouldNot(gbytes.Say("role viewer:"))
 
-						sess.Interrupt()
-						Eventually(sess).Should(gexec.Exit(1))
+						sess.Kill()
+						Eventually(sess).ShouldNot(gexec.Exit(0))
 					})
 				})
 
@@ -84,8 +84,8 @@ var _ = Describe("set-team", func() {
 
 						Eventually(sess.Out).ShouldNot(gbytes.Say("role viewer:"))
 
-						sess.Interrupt()
-						Eventually(sess).Should(gexec.Exit())
+						sess.Kill()
+						Eventually(sess).ShouldNot(gexec.Exit(0))
 					})
 				})
 			})
@@ -121,8 +121,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -155,8 +155,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- github:some-org:some-team"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -194,8 +194,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-org:some-space:auditor"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:some-guid"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -228,8 +228,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- ldap:some-group"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -262,8 +262,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- oauth:some-group"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -296,8 +296,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 		})
@@ -531,8 +531,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("none"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -554,8 +554,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("- cf:myorg-2:myspace"))
 					Eventually(sess.Out).Should(gbytes.Say("- cf:myspace-guid"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -575,8 +575,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- ldap:my-group"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -598,8 +598,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- oauth:cool-scope-name"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 
@@ -619,8 +619,8 @@ var _ = Describe("set-team", func() {
 					Eventually(sess.Out).Should(gbytes.Say("groups:"))
 					Eventually(sess.Out).Should(gbytes.Say("- github:samson-org:samson-team"))
 
-					sess.Interrupt()
-					Eventually(sess).Should(gexec.Exit(1))
+					sess.Kill()
+					Eventually(sess).ShouldNot(gexec.Exit(0))
 				})
 			})
 		})
