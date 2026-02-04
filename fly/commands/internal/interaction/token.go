@@ -2,7 +2,6 @@ package interaction
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -17,7 +16,7 @@ func TokenProgram() *tea.Program {
 	i.PromptStyle = lipgloss.NewStyle()
 	i.EchoMode = textinput.EchoNone
 	i.Focus()
-	return tea.NewProgram(TokenModel{input: i}, tea.WithInput(os.Stdin))
+	return tea.NewProgram(TokenModel{input: i}, tea.WithInput(checkStdin()))
 }
 
 var _ tea.Model = TokenModel{}

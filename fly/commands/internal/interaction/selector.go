@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -55,7 +54,7 @@ func Select(prompt string, items []list.Item) (any, error) {
 	l.KeyMap.ShowFullHelp.Unbind()
 
 	done, err := tea.NewProgram(selectModel{prompt: prompt, list: l},
-		tea.WithInput(os.Stdin)).Run()
+		tea.WithInput(checkStdin())).Run()
 	if err != nil {
 		return nil, err
 	}

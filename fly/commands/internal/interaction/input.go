@@ -3,7 +3,6 @@ package interaction
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -32,7 +31,7 @@ func InputProgram(prompt string, isSensitive bool) *tea.Program {
 	if isSensitive {
 		i.EchoMode = textinput.EchoNone
 	}
-	return tea.NewProgram(InputModel{input: i}, tea.WithInput(os.Stdin))
+	return tea.NewProgram(InputModel{input: i}, tea.WithInput(checkStdin()))
 }
 
 var _ tea.Model = InputModel{}
