@@ -136,7 +136,7 @@ func (step Step) MarshalJSON() ([]byte, error) {
 }
 
 // See the note about json tags here: https://golang.org/pkg/encoding/json/#Marshal
-func deleteKnownFields(rawStepConfig map[string]*json.RawMessage, step StepConfig) {
+func deleteKnownFields(rawStepConfig map[string]*json.RawMessage, step any) {
 	stepType := reflect.TypeOf(step).Elem()
 	for i := 0; i < stepType.NumField(); i++ {
 		field := stepType.Field(i)

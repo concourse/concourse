@@ -36,6 +36,11 @@ type TaskConfig struct {
 
 	// Path to cached directory that will be shared between builds for the same task.
 	Caches []TaskCacheConfig `json:"caches,omitempty"`
+
+	// UnknownFields holds any fields that were present in the config but not
+	// recognized. This is used for validation to report typos like "ouputs"
+	// instead of "outputs".
+	UnknownFields map[string]*json.RawMessage `json:"-"`
 }
 
 type ImageResource struct {
@@ -63,11 +68,49 @@ func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {
 	}
 }
 
+// UnmarshalJSON implements custom unmarshaling for TaskConfig to detect
+// unknown fields (like typos such as "ouputs" instead of "outputs").
+func (config *TaskConfig) UnmarshalJSON(data []byte) error {
+	// First, unmarshal into a map to capture all fields
+	var rawConfig map[string]*json.RawMessage
+	if err := json.Unmarshal(data, &rawConfig); err != nil {
+		return err
+	}
+
+	// Use a type alias to avoid infinite recursion
+	type taskConfigAlias TaskConfig
+	var alias taskConfigAlias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+
+	*config = TaskConfig(alias)
+
+	deleteKnownFields(rawConfig, config)
+	if len(rawConfig) != 0 {
+		config.UnknownFields = rawConfig
+	}
+
+	return nil
+}
+
 func NewTaskConfig(configBytes []byte) (TaskConfig, error) {
 	var config TaskConfig
-	err := yaml.UnmarshalStrict(configBytes, &config, yaml.DisallowUnknownFields)
+	// Note: yaml.UnmarshalStrict's DisallowUnknownFields doesn't work with
+	// custom UnmarshalJSON methods, so we rely on UnknownFields being populated
+	// by our UnmarshalJSON and check it explicitly below.
+	err := yaml.Unmarshal(configBytes, &config)
 	if err != nil {
 		return TaskConfig{}, err
+	}
+
+	// Check for unknown fields (e.g., typos like "ouputs" instead of "outputs")
+	if len(config.UnknownFields) > 0 {
+		var fieldNames []string
+		for field := range config.UnknownFields {
+			fieldNames = append(fieldNames, field)
+		}
+		return TaskConfig{}, fmt.Errorf("unknown fields: %v", fieldNames)
 	}
 
 	err = config.Validate()

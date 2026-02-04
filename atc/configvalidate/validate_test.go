@@ -2000,6 +2000,30 @@ var _ = Describe("ValidateConfig", func() {
 				})
 			})
 
+			Context("when an inline task config has unknown fields (e.g. typo like 'ouputs')", func() {
+				BeforeEach(func() {
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name: "task",
+							Config: &atc.TaskConfig{
+								Platform: "linux",
+								Run: atc.TaskRunConfig{
+									Path: "/bin/true",
+								},
+								UnknownFields: map[string]*json.RawMessage{"ouputs": nil},
+							},
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("returns an error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring(`jobs.some-other-job.plan.do[0].task(task).config: unknown fields ["ouputs"]`))
+				})
+			})
+
 			Context("when an across step is valid", func() {
 				BeforeEach(func() {
 					job.PlanSequence = append(job.PlanSequence, atc.Step{
