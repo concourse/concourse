@@ -395,7 +395,7 @@ var factoryTests = []StepTest{
 			across:
 			- var: var1
 			  values: [1, 2, 3]
-			  bogus_field: lol what ru gonna do about it 
+			  bogus_field: lol what ru gonna do about it
 		`,
 
 		Err: `error unmarshaling JSON: while decoding JSON: malformed across step: json: unknown field "bogus_field"`,
@@ -584,6 +584,7 @@ func (test StepTest) Run(s *StepsSuite) {
 	var step atc.Step
 	actualErr := yaml.Unmarshal([]byte(cleanIndents), &step)
 	if test.Err != "" {
+		s.Error(actualErr)
 		s.Contains(actualErr.Error(), test.Err)
 		return
 	} else {

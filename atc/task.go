@@ -68,23 +68,8 @@ func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {
 	}
 }
 
-// taskConfigKnownFields lists all valid JSON field names for TaskConfig.
-// This is used by UnmarshalJSON to detect unknown fields like typos.
-var taskConfigKnownFields = map[string]bool{
-	"platform":         true,
-	"rootfs_uri":       true,
-	"image_resource":   true,
-	"container_limits": true,
-	"params":           true,
-	"run":              true,
-	"inputs":           true,
-	"outputs":          true,
-	"caches":           true,
-}
-
 // UnmarshalJSON implements custom unmarshaling for TaskConfig to detect
 // unknown fields (like typos such as "ouputs" instead of "outputs").
-// reference: https://github.com/concourse/concourse/issues/8923
 func (config *TaskConfig) UnmarshalJSON(data []byte) error {
 	// First, unmarshal into a map to capture all fields
 	var rawConfig map[string]*json.RawMessage
@@ -101,14 +86,9 @@ func (config *TaskConfig) UnmarshalJSON(data []byte) error {
 
 	*config = TaskConfig(alias)
 
-	// Detect unknown fields
-	for key := range rawConfig {
-		if !taskConfigKnownFields[key] {
-			if config.UnknownFields == nil {
-				config.UnknownFields = make(map[string]*json.RawMessage)
-			}
-			config.UnknownFields[key] = rawConfig[key]
-		}
+	deleteKnownFields(rawConfig, config)
+	if len(rawConfig) != 0 {
+		config.UnknownFields = rawConfig
 	}
 
 	return nil
