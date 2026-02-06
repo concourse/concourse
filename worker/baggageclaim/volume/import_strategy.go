@@ -20,6 +20,16 @@ func (strategy ImportStrategy) Materialize(logger lager.Logger, handle string, f
 		return nil, err
 	}
 
+	var populated bool
+	defer func() {
+		if !populated {
+			err := initVolume.Destroy()
+			if err != nil {
+				logger.Error("failed-to-destroy-volume-after-materialize-error", err)
+			}
+		}
+	}()
+
 	destination := initVolume.DataPath()
 
 	info, err := os.Stat(strategy.Path)
@@ -54,6 +64,7 @@ func (strategy ImportStrategy) Materialize(logger lager.Logger, handle string, f
 		}
 	}
 
+	populated = true
 	return initVolume, nil
 }
 
