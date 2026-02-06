@@ -110,7 +110,10 @@ func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
 
 	err = fs.driver.CreateVolume(volume)
 	if err != nil {
-		volume.cleanup()
+		e := volume.Destroy()
+		if e != nil {
+			fs.log.Error("error-cleaning-up-volume-after-failed-creation", e)
+		}
 		return nil, err
 	}
 
@@ -275,10 +278,6 @@ func (base *baseVolume) Destroy() error {
 	return deadVol.Destroy()
 }
 
-func (base *baseVolume) cleanup() error {
-	return os.RemoveAll(base.dir)
-}
-
 func (base *baseVolume) parentLink() string {
 	return filepath.Join(base.dir, "parent")
 }
@@ -329,13 +328,19 @@ func (vol *liveVolume) NewSubvolume(handle string) (FilesystemInitVolume, error)
 
 	err = vol.fs.driver.CreateCopyOnWriteLayer(child, vol)
 	if err != nil {
-		child.cleanup()
+		e := child.Destroy()
+		if e != nil {
+			vol.fs.log.Error("error-cleaning-up-volume-after-fail-cow-creation", e)
+		}
 		return nil, err
 	}
 
 	err = os.Symlink(vol.dir, child.parentLink())
 	if err != nil {
-		child.Destroy()
+		e := child.Destroy()
+		if e != nil {
+			vol.fs.log.Error("error-cleaning-up-volume-after-symlink-call", e)
+		}
 		return nil, err
 	}
 
@@ -351,6 +356,5 @@ func (vol *deadVolume) Destroy() error {
 	if err != nil {
 		return err
 	}
-
-	return vol.cleanup()
+	return os.RemoveAll(vol.dir)
 }
