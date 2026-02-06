@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
 
@@ -22,11 +23,13 @@ var _ = Describe("Overlay", func() {
 			tmpdir, err = os.MkdirTemp("", "overlay-test")
 			Expect(err).ToNot(HaveOccurred())
 
+			logger := lagertest.NewTestLogger("fs")
+
 			overlaysDir := filepath.Join(tmpdir, "overlays")
 			overlayDriver := driver.NewOverlayDriver(overlaysDir)
 
 			volumesDir := filepath.Join(tmpdir, "volumes")
-			fs, err = volume.NewFilesystem(overlayDriver, volumesDir)
+			fs, err = volume.NewFilesystem(logger, overlayDriver, volumesDir)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

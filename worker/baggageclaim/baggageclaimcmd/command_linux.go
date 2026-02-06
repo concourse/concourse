@@ -60,7 +60,7 @@ func (cmd *BaggageclaimCommand) Runner(logger lager.Logger, args []string) (ifri
 		return nil, err
 	}
 
-	filesystem, err := volume.NewFilesystem(driver, cmd.VolumesDir.Path())
+	filesystem, err := volume.NewFilesystem(logger, driver, cmd.VolumesDir.Path())
 	if err != nil {
 		logger.Error("failed-to-initialize-filesystem", err)
 		return nil, err

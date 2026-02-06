@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"code.cloudfoundry.org/lager/v3"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -62,6 +64,7 @@ const (
 )
 
 type filesystem struct {
+	log    lager.Logger
 	driver Driver
 
 	initDir string
@@ -69,7 +72,7 @@ type filesystem struct {
 	deadDir string
 }
 
-func NewFilesystem(driver Driver, parentDir string) (Filesystem, error) {
+func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesystem, error) {
 	initDir := filepath.Join(parentDir, initDirname)
 	liveDir := filepath.Join(parentDir, liveDirname)
 	deadDir := filepath.Join(parentDir, deadDirname)
@@ -90,6 +93,7 @@ func NewFilesystem(driver Driver, parentDir string) (Filesystem, error) {
 	}
 
 	return &filesystem{
+		log:    logger.Session("filesystem"),
 		driver: driver,
 
 		initDir: initDir,
