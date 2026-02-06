@@ -48,7 +48,7 @@ var _ = Describe("Overlay", func() {
 
 			for depth := 1; depth <= 10; depth++ {
 				doomedFile := filepath.Join(rootVolInit.DataPath(), fmt.Sprintf("doomed-file-%d", depth))
-				err := os.WriteFile(doomedFile, []byte(fmt.Sprintf("i will be removed at depth %d", depth)), 0644)
+				err := os.WriteFile(doomedFile, fmt.Appendf([]byte{}, "i will be removed at depth %d", depth), 0644)
 				Expect(err).ToNot(HaveOccurred())
 			}
 
@@ -96,7 +96,7 @@ var _ = Describe("Overlay", func() {
 				content, err := os.ReadFile(updateFilePath)
 				Expect(string(content)).To(Equal(fmt.Sprintf("depth-%d", depth-1)))
 
-				err = os.WriteFile(updateFilePath, []byte(fmt.Sprintf("depth-%d", depth)), 0644)
+				err = os.WriteFile(updateFilePath, fmt.Appendf([]byte{}, "depth-%d", depth), 0644)
 				Expect(err).ToNot(HaveOccurred())
 
 				nest = childLive

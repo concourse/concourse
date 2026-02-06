@@ -133,8 +133,6 @@ func supportsFilesystem(fs string) (bool, error) {
 			return true, nil
 		}
 	}
-
-	return false, nil
 }
 
 func isMountBtrfs(volMountInfo syscall.Statfs_t) bool {
