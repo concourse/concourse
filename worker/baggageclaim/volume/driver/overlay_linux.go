@@ -32,6 +32,8 @@ func metacopySupported() bool {
 	return true
 }
 
+var _ volume.Driver = (*OverlayDriver)(nil)
+
 type OverlayDriver struct {
 	OverlaysDir string
 }

@@ -12,6 +12,8 @@ import (
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
+var _ volume.Driver = (*BtrFSDriver)(nil)
+
 type BtrFSDriver struct {
 	logger                lager.Logger
 	btrfsBin              string
