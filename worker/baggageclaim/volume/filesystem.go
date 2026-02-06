@@ -63,6 +63,8 @@ const (
 	deadDirname = "dead" // volumes being torn down
 )
 
+var _ Filesystem = (*filesystem)(nil)
+
 type filesystem struct {
 	log    lager.Logger
 	driver Driver
@@ -207,6 +209,8 @@ func (fs *filesystem) deadVolumePath(handle string) string {
 	return filepath.Join(fs.deadDir, handle)
 }
 
+var _ FilesystemVolume = (*baseVolume)(nil)
+
 type baseVolume struct {
 	fs *filesystem
 
@@ -282,6 +286,8 @@ func (base *baseVolume) parentLink() string {
 	return filepath.Join(base.dir, "parent")
 }
 
+var _ FilesystemInitVolume = (*initVolume)(nil)
+
 type initVolume struct {
 	baseVolume
 }
@@ -316,6 +322,8 @@ func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
 	}, nil
 }
 
+var _ FilesystemLiveVolume = (*liveVolume)(nil)
+
 type liveVolume struct {
 	baseVolume
 }
@@ -346,6 +354,8 @@ func (vol *liveVolume) NewSubvolume(handle string) (FilesystemInitVolume, error)
 
 	return child, nil
 }
+
+var _ FilesystemVolume = (*deadVolume)(nil)
 
 type deadVolume struct {
 	baseVolume
