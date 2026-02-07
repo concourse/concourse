@@ -48,7 +48,7 @@ var _ = Describe("BtrFS", func() {
 
 		fsDriver = driver.NewBtrFSDriver(logger, "btrfs")
 
-		volumeFs, err = volume.NewFilesystem(fsDriver, volumesDir)
+		volumeFs, err = volume.NewFilesystem(logger, fsDriver, volumesDir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

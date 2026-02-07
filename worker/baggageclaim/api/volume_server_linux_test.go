@@ -53,7 +53,7 @@ var _ = Describe("Volume Server", func() {
 	JustBeforeEach(func() {
 		logger := lagertest.NewTestLogger("volume-server")
 
-		fs, err := volume.NewFilesystem(&driver.NaiveDriver{}, volumeDir)
+		fs, err := volume.NewFilesystem(logger, &driver.NaiveDriver{}, volumeDir)
 		Expect(err).NotTo(HaveOccurred())
 
 		privilegedNamespacer := &uidgid.UidNamespacer{

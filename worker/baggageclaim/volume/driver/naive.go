@@ -7,6 +7,8 @@ import (
 	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
 )
 
+var _ volume.Driver = (*NaiveDriver)(nil)
+
 type NaiveDriver struct{}
 
 func (driver *NaiveDriver) CreateVolume(vol volume.FilesystemInitVolume) error {

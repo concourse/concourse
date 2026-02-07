@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"code.cloudfoundry.org/lager/v3"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -61,7 +63,10 @@ const (
 	deadDirname = "dead" // volumes being torn down
 )
 
+var _ Filesystem = (*filesystem)(nil)
+
 type filesystem struct {
+	log    lager.Logger
 	driver Driver
 
 	initDir string
@@ -69,7 +74,7 @@ type filesystem struct {
 	deadDir string
 }
 
-func NewFilesystem(driver Driver, parentDir string) (Filesystem, error) {
+func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesystem, error) {
 	initDir := filepath.Join(parentDir, initDirname)
 	liveDir := filepath.Join(parentDir, liveDirname)
 	deadDir := filepath.Join(parentDir, deadDirname)
@@ -90,6 +95,7 @@ func NewFilesystem(driver Driver, parentDir string) (Filesystem, error) {
 	}
 
 	return &filesystem{
+		log:    logger.Session("filesystem"),
 		driver: driver,
 
 		initDir: initDir,
@@ -106,7 +112,10 @@ func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
 
 	err = fs.driver.CreateVolume(volume)
 	if err != nil {
-		volume.cleanup()
+		e := volume.Destroy()
+		if e != nil {
+			fs.log.Error("error-cleaning-up-volume-after-failed-creation", e)
+		}
 		return nil, err
 	}
 
@@ -200,6 +209,8 @@ func (fs *filesystem) deadVolumePath(handle string) string {
 	return filepath.Join(fs.deadDir, handle)
 }
 
+var _ FilesystemVolume = (*baseVolume)(nil)
+
 type baseVolume struct {
 	fs *filesystem
 
@@ -271,13 +282,11 @@ func (base *baseVolume) Destroy() error {
 	return deadVol.Destroy()
 }
 
-func (base *baseVolume) cleanup() error {
-	return os.RemoveAll(base.dir)
-}
-
 func (base *baseVolume) parentLink() string {
 	return filepath.Join(base.dir, "parent")
 }
+
+var _ FilesystemInitVolume = (*initVolume)(nil)
 
 type initVolume struct {
 	baseVolume
@@ -313,6 +322,8 @@ func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
 	}, nil
 }
 
+var _ FilesystemLiveVolume = (*liveVolume)(nil)
+
 type liveVolume struct {
 	baseVolume
 }
@@ -325,18 +336,26 @@ func (vol *liveVolume) NewSubvolume(handle string) (FilesystemInitVolume, error)
 
 	err = vol.fs.driver.CreateCopyOnWriteLayer(child, vol)
 	if err != nil {
-		child.cleanup()
+		e := child.Destroy()
+		if e != nil {
+			vol.fs.log.Error("error-cleaning-up-volume-after-fail-cow-creation", e)
+		}
 		return nil, err
 	}
 
 	err = os.Symlink(vol.dir, child.parentLink())
 	if err != nil {
-		child.Destroy()
+		e := child.Destroy()
+		if e != nil {
+			vol.fs.log.Error("error-cleaning-up-volume-after-symlink-call", e)
+		}
 		return nil, err
 	}
 
 	return child, nil
 }
+
+var _ FilesystemVolume = (*deadVolume)(nil)
 
 type deadVolume struct {
 	baseVolume
@@ -347,6 +366,5 @@ func (vol *deadVolume) Destroy() error {
 	if err != nil {
 		return err
 	}
-
-	return vol.cleanup()
+	return os.RemoveAll(vol.dir)
 }

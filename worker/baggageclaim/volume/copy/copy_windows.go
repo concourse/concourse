@@ -30,7 +30,7 @@ func Cp(followSymlinks bool, src, dest string) error {
 func robocopy(args ...string) error {
 	cmd := exec.Command("robocopy", args...)
 
-	err := cmd.Run()
+	_, err := cmd.Output()
 	if err != nil {
 		// Robocopy returns a status code indicating what action occurred. 0 means nothing was copied,
 		// 1 means that files were copied successfully. Google for additional error codes.
@@ -38,9 +38,8 @@ func robocopy(args ...string) error {
 			if exitErr.ExitCode() > 1 {
 				return errors.Join(err, errors.New(string(exitErr.Stderr)))
 			}
-		} else {
-			return err
 		}
+		return err
 	}
 
 	return nil
