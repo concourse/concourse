@@ -1,0 +1,77 @@
+package volume_test
+
+import (
+	"errors"
+	"os"
+	"path"
+
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/worker/baggageclaim/volume/volumefakes"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("ImportStrategy", func() {
+	var (
+		driver    volumefakes.FakeDriver
+		parentDir string
+		fs        Filesystem
+		logger    *lagertest.TestLogger
+	)
+
+	BeforeEach(func() {
+		parentDir = GinkgoT().TempDir()
+		logger = lagertest.NewTestLogger("fs")
+		driver = volumefakes.FakeDriver{}
+		f, err := NewFilesystem(logger, &driver, parentDir)
+		Expect(err).NotTo(HaveOccurred())
+		fs = f
+
+		driver.CreateVolumeStub = func(fiv FilesystemInitVolume) error {
+			return os.Mkdir(fiv.DataPath(), 0755)
+		}
+	})
+
+	It("creates the volume", func() {
+		importPath := GinkgoT().TempDir()
+		_, err := os.Create(path.Join(importPath, "some-file"))
+		Expect(err).ToNot(HaveOccurred())
+
+		is := ImportStrategy{Path: importPath}
+		ivol, err := is.Materialize(logger, "new-vol", fs, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ivol).ToNot(BeNil())
+		Expect(path.Join(ivol.DataPath(), "some-file")).To(BeARegularFile(), "should contain the file from the import path")
+	})
+
+	It("destroys the volume if it errors", func() {
+		importPath := GinkgoT().TempDir()
+		fakeTar := path.Join(importPath, "some-file.tgz")
+		_, err := os.Create(fakeTar)
+		Expect(err).ToNot(HaveOccurred())
+
+		driver.DestroyVolumeReturns(errors.New("destroy-volume-err"))
+
+		streamer := volumefakes.FakeStreamer{}
+		streamer.InReturns(false, errors.New("streamer-err"))
+
+		is := ImportStrategy{Path: fakeTar}
+		ivol, err := is.Materialize(logger, "new-vol", fs, &streamer)
+		Expect(err).To(HaveOccurred())
+		Expect(ivol).To(BeNil())
+
+		Expect(driver.DestroyVolumeCallCount()).To(Equal(1), "should call volume.Destroy()")
+		logs := logger.Logs()
+		Expect(len(logs)).To(Equal(2))
+		Expect(logs[0].Message).To(Equal("fs.failed-to-stream-in"), "should log the streamer.In() error")
+		Expect(logs[0].LogLevel).To(Equal(lager.ERROR))
+		Expect(logs[0].Data["error"]).To(Equal("streamer-err"))
+
+		Expect(logs[1].Message).To(Equal("fs.failed-to-destroy-volume-after-materialize-error"), "should log the volume.Destroy() error")
+		Expect(logs[1].LogLevel).To(Equal(lager.ERROR))
+		Expect(logs[1].Data["error"]).To(Equal("destroy-volume-err"))
+	})
+})
