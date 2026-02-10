@@ -65,13 +65,13 @@ var _ = Describe("ImportStrategy", func() {
 
 		Expect(driver.DestroyVolumeCallCount()).To(Equal(1), "should call volume.Destroy()")
 		logs := logger.Logs()
-		Expect(len(logs)).To(Equal(2))
-		Expect(logs[0].Message).To(Equal("fs.failed-to-stream-in"), "should log the streamer.In() error")
-		Expect(logs[0].LogLevel).To(Equal(lager.ERROR))
-		Expect(logs[0].Data["error"]).To(Equal("streamer-err"))
-
-		Expect(logs[1].Message).To(Equal("fs.failed-to-destroy-volume-after-materialize-error"), "should log the volume.Destroy() error")
+		Expect(len(logs)).To(Equal(4))
+		Expect(logs[1].Message).To(Equal("fs.failed-to-stream-in"), "should log the streamer.In() error")
 		Expect(logs[1].LogLevel).To(Equal(lager.ERROR))
-		Expect(logs[1].Data["error"]).To(Equal("destroy-volume-err"))
+		Expect(logs[1].Data["error"]).To(Equal("streamer-err"))
+
+		Expect(logs[3].Message).To(Equal("fs.filesystem.driver-destroy-volume"), "should log the volume.Destroy() error")
+		Expect(logs[3].LogLevel).To(Equal(lager.ERROR))
+		Expect(logs[3].Data["error"]).To(Equal("destroy-volume-err"))
 	})
 })
