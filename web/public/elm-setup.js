@@ -331,23 +331,33 @@ app.ports.setFavicon.subscribe(function(url) {
 app.ports.rawHttpRequest.subscribe(function(url) {
   var xhr = new XMLHttpRequest();
 
-  xhr.addEventListener('error', function(error) {
-    app.ports.rawHttpResponse.send('networkError');
-  });
-  xhr.addEventListener('timeout', function() {
-    app.ports.rawHttpResponse.send('timeout');
-  });
-  xhr.addEventListener('load', function() {
-    app.ports.rawHttpResponse.send('success');
-  });
-
   xhr.open('GET', url, true);
 
-  try {
-    xhr.send();
-  } catch (error) {
-    app.ports.rawHttpResponse.send('networkError');
-  }
+  xhr.onload = () => {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      app.ports.rawHttpResponse.send('success');
+    } else {
+      app.ports.rawHttpResponse.send('networkError');
+    }
+  };
+
+  xhr.ontimeout = () => {
+    app.ports.rawHttpResponse.send('timeout');
+  };
+
+  xhr.onerror = () => {
+    if (
+      xhr.readyState === XMLHttpRequest.UNSENT ||
+      xhr.readyState === XMLHttpRequest.OPENED ||
+      (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 0)
+    ) {
+      app.ports.rawHttpResponse.send('browserError');
+    } else {
+      app.ports.rawHttpResponse.send('networkError');
+    }
+  };
+
+  xhr.send(null);
 });
 
 app.ports.renderSvgIcon.subscribe(function(icon, id) {
