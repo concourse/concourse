@@ -61,22 +61,14 @@ func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, erro
 
 	volumesDir := cmd.VolumesDir.Path()
 	btrfsImg := volumesDir + ".img"
-	btrfsFS := fs.New(logger.Session("fs"), btrfsImg, volumesDir, cmd.MkfsBin)
+	btrfsFS := fs.New(logger, btrfsImg, volumesDir, cmd.MkfsBin)
 
-	if cmd.Driver == "btrfs" && !isMountBtrfs(volMountInfo) {
-		diskSize := volMountInfo.Blocks * uint64(volMountInfo.Bsize)
-		mountSize := diskSize - (10 * 1024 * 1024 * 1024)
-		if int64(mountSize) < 0 {
-			mountSize = diskSize
-		}
+	logger.Info("using-driver", lager.Data{"driver": cmd.Driver})
 
-		err = btrfsFS.Create(mountSize)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create btrfs filesystem: %s", err)
-		}
-	}
-
-	if cmd.Driver == "overlay" {
+	var d volume.Driver
+	switch cmd.Driver {
+	case "overlay":
+		d = driver.NewOverlayDriver(logger, cmd.OverlaysDir)
 		if !kernelSupportsOverlay {
 			return nil, errors.New("overlay driver requires kernel version >= 4.0.0")
 		}
@@ -88,16 +80,23 @@ func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, erro
 				return nil, fmt.Errorf("failed to delete existing btrfs filesystem at %s: %s", cmd.VolumesDir.Path(), err)
 			}
 		}
-	}
 
-	logger.Info("using-driver", lager.Data{"driver": cmd.Driver})
-
-	var d volume.Driver
-	switch cmd.Driver {
-	case "overlay":
-		d = driver.NewOverlayDriver(logger, cmd.OverlaysDir)
 	case "btrfs":
 		d = driver.NewBtrFSDriver(logger, cmd.BtrfsBin)
+
+		if !isMountBtrfs(volMountInfo) {
+			diskSize := volMountInfo.Blocks * uint64(volMountInfo.Bsize)
+			mountSize := diskSize - (10 * 1024 * 1024 * 1024)
+			if int64(mountSize) < 0 {
+				mountSize = diskSize
+			}
+
+			err = btrfsFS.Create(mountSize)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create btrfs filesystem: %s", err)
+			}
+		}
+
 	case "naive":
 		d = &driver.NaiveDriver{}
 	default:
