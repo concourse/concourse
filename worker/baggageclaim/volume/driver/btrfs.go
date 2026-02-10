@@ -29,7 +29,6 @@ func NewBtrFSDriver(
 		btrfsBin: btrfsBin,
 	}
 
-	// Check if btrfs supports -R flag for recursive deletion
 	driver.supportsRecursiveFlag = driver.checkRecursiveFlagSupport()
 
 	return driver
@@ -41,10 +40,9 @@ func (driver *BtrFSDriver) CreateVolume(vol volume.FilesystemInitVolume) error {
 }
 
 func (driver *BtrFSDriver) DestroyVolume(vol volume.FilesystemVolume) error {
-	// If btrfs supports -R flag, use it for recursive deletion
 	if driver.supportsRecursiveFlag {
 		driver.logger.Debug("using-recursive-flag", lager.Data{"path": vol.DataPath()})
-		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", "-R", vol.DataPath())
+		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", "--recursive", vol.DataPath())
 		return err
 	}
 
