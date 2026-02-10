@@ -26,7 +26,7 @@ var _ = Describe("Overlay", func() {
 			logger := lagertest.NewTestLogger("fs")
 
 			overlaysDir := filepath.Join(tmpdir, "overlays")
-			overlayDriver := driver.NewOverlayDriver(overlaysDir)
+			overlayDriver := driver.NewOverlayDriver(logger, overlaysDir)
 
 			volumesDir := filepath.Join(tmpdir, "volumes")
 			fs, err = volume.NewFilesystem(logger, overlayDriver, volumesDir)

@@ -95,9 +95,9 @@ func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, erro
 	var d volume.Driver
 	switch cmd.Driver {
 	case "overlay":
-		d = driver.NewOverlayDriver(cmd.OverlaysDir)
+		d = driver.NewOverlayDriver(logger, cmd.OverlaysDir)
 	case "btrfs":
-		d = driver.NewBtrFSDriver(logger.Session("driver"), cmd.BtrfsBin)
+		d = driver.NewBtrFSDriver(logger, cmd.BtrfsBin)
 	case "naive":
 		d = &driver.NaiveDriver{}
 	default:

@@ -25,7 +25,7 @@ func NewBtrFSDriver(
 	btrfsBin string,
 ) *BtrFSDriver {
 	driver := &BtrFSDriver{
-		logger:   logger,
+		logger:   logger.Session("btrfs-driver"),
 		btrfsBin: btrfsBin,
 	}
 
