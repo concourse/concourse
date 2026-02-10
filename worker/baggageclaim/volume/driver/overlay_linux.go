@@ -70,17 +70,19 @@ func (driver *OverlayDriver) DestroyVolume(vol volume.FilesystemVolume) error {
 	// on it, syscall.EINVAL is returned as an error
 	// ignore this error and continue to clean up
 	if err != nil && !errors.Is(err, syscall.EINVAL) {
-		return err
+		driver.logger.Error("unmount", err, lager.Data{"path": path})
 	}
 
-	err = os.RemoveAll(driver.workDir(vol))
+	workDir := driver.workDir((vol))
+	err = os.RemoveAll(workDir)
 	if err != nil {
-		return err
+		driver.logger.Error("rm-work-dir", err, lager.Data{"path": workDir})
 	}
 
-	err = os.RemoveAll(driver.layerDir(vol))
+	layerDir := driver.layerDir(vol)
+	err = os.RemoveAll(layerDir)
 	if err != nil {
-		return err
+		driver.logger.Error("rm-layer-dir", err, lager.Data{"path": layerDir})
 	}
 
 	return os.RemoveAll(path)
