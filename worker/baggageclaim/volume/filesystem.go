@@ -105,6 +105,7 @@ func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesy
 }
 
 func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
+	fs.log.Debug("new-volume", lager.Data{"handle": handle})
 	volume, err := fs.initRawVolume(handle)
 	if err != nil {
 		return nil, err
@@ -168,6 +169,8 @@ func (fs *filesystem) ListVolumes() ([]FilesystemLiveVolume, error) {
 			},
 		})
 	}
+
+	fs.log.Debug("list-volumes", lager.Data{"live-volumes": len(response)})
 
 	return response, nil
 }
@@ -263,6 +266,7 @@ func (base *baseVolume) Parent() (FilesystemLiveVolume, bool, error) {
 }
 
 func (base *baseVolume) Destroy() error {
+	base.fs.log.Debug("destroy-volume", lager.Data{"handle": base.Handle()})
 	deadDir := base.fs.deadVolumePath(base.handle)
 
 	err := os.Rename(base.dir, deadDir)
@@ -293,6 +297,7 @@ type initVolume struct {
 }
 
 func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
+	vol.fs.log.Debug("init-volume", lager.Data{"handle": vol.Handle()})
 	liveDir := vol.fs.liveVolumePath(vol.handle)
 
 	var err error
@@ -329,6 +334,10 @@ type liveVolume struct {
 }
 
 func (vol *liveVolume) NewSubvolume(handle string) (FilesystemInitVolume, error) {
+	vol.fs.log.Debug("new-subvolume", lager.Data{
+		"parent": vol.Handle(),
+		"child":  handle,
+	})
 	child, err := vol.fs.initRawVolume(handle)
 	if err != nil {
 		return nil, err
@@ -364,7 +373,7 @@ type deadVolume struct {
 func (vol *deadVolume) Destroy() error {
 	err := vol.fs.driver.DestroyVolume(vol)
 	if err != nil {
-		return err
+		vol.fs.log.Error("driver-destroy-volume", err, lager.Data{"handle": vol.Handle()})
 	}
 	return os.RemoveAll(vol.dir)
 }
