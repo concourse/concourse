@@ -34,20 +34,52 @@ func NewVersionsDB(conn DbConn, limitRows int, cache *gocache.Cache) VersionsDB 
 	}
 }
 
-func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inputName string, versionSHA256 ResourceVersion, resourceId int) (bool, error) {
-	var exists bool
+func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inputName string, versionDigest ResourceVersion, resourceID int) (bool, error) {
+	var lastBuildID sql.NullInt64
 	err := versions.conn.QueryRowContext(ctx, `
-		WITH builds_of_job AS (
-			SELECT id FROM builds WHERE job_id = $1
-		)
+		SELECT id FROM builds
+		WHERE job_id = $1 AND status = 'succeeded'
+		ORDER BY id DESC
+		LIMIT 1`, jobID).Scan(&lastBuildID)
+	if err != nil && err != sql.ErrNoRows {
+		return false, err
+	}
+
+	if lastBuildID.Valid {
+		var exists bool
+		err := versions.conn.QueryRowContext(ctx, `
+			SELECT EXISTS (
+				SELECT 1
+				FROM build_resource_config_version_inputs
+				WHERE build_id = $1
+				AND name = $2
+				AND version_digest = $3
+				AND resource_id = $4
+			)`, lastBuildID.Int64, inputName, versionDigest, resourceID).
+			Scan(&exists)
+		if err != nil {
+			return false, err
+		}
+		if exists {
+			return false, nil
+		}
+	}
+
+	// Fallback: nested EXISTS, filters by version first then checks job.
+	var exists bool
+	err = versions.conn.QueryRowContext(ctx, `
 		SELECT EXISTS (
 			SELECT 1
 			FROM build_resource_config_version_inputs i
-			JOIN builds_of_job b ON b.id = i.build_id
-			WHERE i.name = $2
-			AND i.version_digest = $3
-			AND i.resource_id = $4
-		)`, jobID, inputName, versionSHA256, resourceId).
+			WHERE i.resource_id = $1
+			AND i.version_digest = $2
+			AND i.name = $3
+			AND EXISTS (
+				SELECT 1 FROM builds b
+				WHERE b.id = i.build_id
+				AND b.job_id = $4
+			)
+		)`, resourceID, versionDigest, inputName, jobID).
 		Scan(&exists)
 	if err != nil {
 		return false, err
