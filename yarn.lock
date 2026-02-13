@@ -58,7 +58,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/core@npm:^7.28.5":
+"@babel/core@npm:^7.29.0":
   version: 7.29.0
   resolution: "@babel/core@npm:7.29.0"
   dependencies:
@@ -1020,7 +1020,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/preset-env@npm:^7.28.5":
+"@babel/preset-env@npm:^7.29.0":
   version: 7.29.0
   resolution: "@babel/preset-env@npm:7.29.0"
   dependencies:
@@ -1235,35 +1235,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lydell/elm@npm:0.19.1-14":
-  version: 0.19.1-14
-  resolution: "@lydell/elm@npm:0.19.1-14"
-  dependencies:
-    "@lydell/elm_darwin_arm64": "npm:0.19.1-3"
-    "@lydell/elm_darwin_x64": "npm:0.19.1-2"
-    "@lydell/elm_linux_arm": "npm:0.19.1-0"
-    "@lydell/elm_linux_arm64": "npm:0.19.1-4"
-    "@lydell/elm_linux_x64": "npm:0.19.1-1"
-    "@lydell/elm_win32_x64": "npm:0.19.1-1"
-  dependenciesMeta:
-    "@lydell/elm_darwin_arm64":
-      optional: true
-    "@lydell/elm_darwin_x64":
-      optional: true
-    "@lydell/elm_linux_arm":
-      optional: true
-    "@lydell/elm_linux_arm64":
-      optional: true
-    "@lydell/elm_linux_x64":
-      optional: true
-    "@lydell/elm_win32_x64":
-      optional: true
-  bin:
-    elm: bin/elm
-  checksum: 10c0/d812e3b4f539ddd53827155ef78030c20dc09dd0383745732ae3d1e2449c2f2791f4572d91325a7cc2486d6fd96ac9d2c3b6b3b8561229fd28f70abb5fdbc089
-  languageName: node
-  linkType: hard
-
 "@lydell/elm_darwin_arm64@npm:0.19.1-3":
   version: 0.19.1-3
   resolution: "@lydell/elm_darwin_arm64@npm:0.19.1-3"
@@ -1335,20 +1306,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@puppeteer/browsers@npm:2.12.0":
-  version: 2.12.0
-  resolution: "@puppeteer/browsers@npm:2.12.0"
+"@puppeteer/browsers@npm:2.12.1":
+  version: 2.12.1
+  resolution: "@puppeteer/browsers@npm:2.12.1"
   dependencies:
     debug: "npm:^4.4.3"
     extract-zip: "npm:^2.0.1"
     progress: "npm:^2.0.3"
     proxy-agent: "npm:^6.5.0"
-    semver: "npm:^7.7.3"
+    semver: "npm:^7.7.4"
     tar-fs: "npm:^3.1.1"
     yargs: "npm:^17.7.2"
   bin:
     browsers: lib/cjs/main-cli.js
-  checksum: 10c0/1895591d9acbdd7b20f971be9678f2f84148e6290c0407b0dfd7e5482fd668402dc1d25831374bf16a473f0dc97f5dcc9784f8e9a4e05fd86f3b44b640295571
+  checksum: 10c0/e55507127ae0620100187d8f74ba31a44e24268ed2dfc136f3064df2d65a09580d1e997d37997888e669030097de71a88310356d98514ddee1dc02f706c2116f
   languageName: node
   linkType: hard
 
@@ -2214,15 +2185,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chromium-bidi@npm:13.1.1":
-  version: 13.1.1
-  resolution: "chromium-bidi@npm:13.1.1"
+"chromium-bidi@npm:14.0.0":
+  version: 14.0.0
+  resolution: "chromium-bidi@npm:14.0.0"
   dependencies:
     mitt: "npm:^3.0.1"
     zod: "npm:^3.24.1"
   peerDependencies:
     devtools-protocol: "*"
-  checksum: 10c0/50f5fea90a61c8995b53e1e55179f3064033552a076349cf1ded8417c17c0e736851ccb0af5c22a2c4bd85b8523afd0e9725a6d0d2e6e7400aeb1eded2e6deba
+  checksum: 10c0/49da03868d3a46c68e40d20f68a75ffacc05b22dc247b7c1b2126716d8d69e618780f8ab1d63e676fb372cddb32b773efaabb2f520217321caece9a258500d31
   languageName: node
   linkType: hard
 
@@ -2657,6 +2628,35 @@ __metadata:
   bin:
     elm-test: bin/elm-test
   checksum: 10c0/4932fd7baecba563424cc1779032f4d10e951a2f1a4a8abc8d395e178f4840bda441851a77a18404a8fc5c5980588263b450236f8653cf81bfc3f17f9ff4f349
+  languageName: node
+  linkType: hard
+
+"elm@npm:@lydell/elm@0.19.1-14":
+  version: 0.19.1-14
+  resolution: "@lydell/elm@npm:0.19.1-14"
+  dependencies:
+    "@lydell/elm_darwin_arm64": "npm:0.19.1-3"
+    "@lydell/elm_darwin_x64": "npm:0.19.1-2"
+    "@lydell/elm_linux_arm": "npm:0.19.1-0"
+    "@lydell/elm_linux_arm64": "npm:0.19.1-4"
+    "@lydell/elm_linux_x64": "npm:0.19.1-1"
+    "@lydell/elm_win32_x64": "npm:0.19.1-1"
+  dependenciesMeta:
+    "@lydell/elm_darwin_arm64":
+      optional: true
+    "@lydell/elm_darwin_x64":
+      optional: true
+    "@lydell/elm_linux_arm":
+      optional: true
+    "@lydell/elm_linux_arm64":
+      optional: true
+    "@lydell/elm_linux_x64":
+      optional: true
+    "@lydell/elm_win32_x64":
+      optional: true
+  bin:
+    elm: bin/elm
+  checksum: 10c0/d812e3b4f539ddd53827155ef78030c20dc09dd0383745732ae3d1e2449c2f2791f4572d91325a7cc2486d6fd96ac9d2c3b6b3b8561229fd28f70abb5fdbc089
   languageName: node
   linkType: hard
 
@@ -4581,34 +4581,34 @@ __metadata:
   languageName: node
   linkType: hard
 
-"puppeteer-core@npm:24.37.2":
-  version: 24.37.2
-  resolution: "puppeteer-core@npm:24.37.2"
+"puppeteer-core@npm:24.37.3":
+  version: 24.37.3
+  resolution: "puppeteer-core@npm:24.37.3"
   dependencies:
-    "@puppeteer/browsers": "npm:2.12.0"
-    chromium-bidi: "npm:13.1.1"
+    "@puppeteer/browsers": "npm:2.12.1"
+    chromium-bidi: "npm:14.0.0"
     debug: "npm:^4.4.3"
     devtools-protocol: "npm:0.0.1566079"
     typed-query-selector: "npm:^2.12.0"
-    webdriver-bidi-protocol: "npm:0.4.0"
+    webdriver-bidi-protocol: "npm:0.4.1"
     ws: "npm:^8.19.0"
-  checksum: 10c0/2effc9783f119acfd59a66ec66dc027ca9c601a05081e038ad29ac51e2bebb85d5c0aa70919b11f752c08d900f4b6573db5e7433a5d46f5633e31a99d72526de
+  checksum: 10c0/96a60fdb5803c7edc7648fce64e0ea62125c6906e00232ad0669d6d5498ba011464ad61d7988aa288472118e8f63fd9b0d0b9474a13427703c59e888fce444aa
   languageName: node
   linkType: hard
 
-"puppeteer@npm:^24.34.0":
-  version: 24.37.2
-  resolution: "puppeteer@npm:24.37.2"
+"puppeteer@npm:^24.37.3":
+  version: 24.37.3
+  resolution: "puppeteer@npm:24.37.3"
   dependencies:
-    "@puppeteer/browsers": "npm:2.12.0"
-    chromium-bidi: "npm:13.1.1"
+    "@puppeteer/browsers": "npm:2.12.1"
+    chromium-bidi: "npm:14.0.0"
     cosmiconfig: "npm:^9.0.0"
     devtools-protocol: "npm:0.0.1566079"
-    puppeteer-core: "npm:24.37.2"
+    puppeteer-core: "npm:24.37.3"
     typed-query-selector: "npm:^2.12.0"
   bin:
     puppeteer: lib/cjs/puppeteer/node/cli.js
-  checksum: 10c0/813c39cdf6aee37a5aa1292a7d941346b89fcb65cd42eccadb0f801027762d0c44ebc06ee246e10634d3574ebf78b087079e4047a445eab931888aa38cc53b3b
+  checksum: 10c0/fc5556ec2102ce322f4b3b4d0f2f527ced68104ffcd530b619ea4332d468fec31b87632794b8371f242b598243b3cfe1463ae44b016ca9e2af7c009e0d5a3f1c
   languageName: node
   linkType: hard
 
@@ -4951,12 +4951,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"semver@npm:^7.3.5, semver@npm:^7.7.3":
+"semver@npm:^7.3.5":
   version: 7.7.3
   resolution: "semver@npm:7.7.3"
   bin:
     semver: bin/semver.js
   checksum: 10c0/4afe5c986567db82f44c8c6faef8fe9df2a9b1d98098fc1721f57c696c4c21cebd572f297fc21002f81889492345b8470473bc6f4aff5fb032a6ea59ea2bc45e
+  languageName: node
+  linkType: hard
+
+"semver@npm:^7.7.4":
+  version: 7.7.4
+  resolution: "semver@npm:7.7.4"
+  bin:
+    semver: bin/semver.js
+  checksum: 10c0/5215ad0234e2845d4ea5bb9d836d42b03499546ddafb12075566899fc617f68794bb6f146076b6881d755de17d6c6cc73372555879ec7dce2c2feee947866ad2
   languageName: node
   linkType: hard
 
@@ -5635,32 +5644,32 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "web@workspace:."
   dependencies:
-    "@babel/core": "npm:^7.28.5"
+    "@babel/core": "npm:^7.29.0"
     "@babel/plugin-syntax-dynamic-import": "npm:7.8.3"
-    "@babel/preset-env": "npm:^7.28.5"
-    "@lydell/elm": "npm:0.19.1-14"
+    "@babel/preset-env": "npm:^7.29.0"
     "@mdi/svg": "npm:7.4.47"
     babel-loader: "npm:^10.0.0"
     child-process-promise: "npm:2.2.1"
     clean-css-cli: "npm:5.6.3"
+    elm: "npm:0.19.1-6"
     elm-analyse: "npm:0.16.5"
     elm-format: "npm:0.8.8"
     elm-test: "npm:0.19.1-revision17"
     less: "npm:4.5.1"
     less-plugin-autoprefix: "npm:2.0.0"
-    puppeteer: "npm:^24.34.0"
+    puppeteer: "npm:^24.37.3"
     request: "npm:^2.88.2"
     uglify-js: "npm:^3.19.3"
     uuid: "npm:^13.0.0"
-    webpack: "npm:^5.104.1"
+    webpack: "npm:^5.105.2"
     webpack-cli: "npm:6.0.1"
   languageName: unknown
   linkType: soft
 
-"webdriver-bidi-protocol@npm:0.4.0":
-  version: 0.4.0
-  resolution: "webdriver-bidi-protocol@npm:0.4.0"
-  checksum: 10c0/6299783860198c73f76895dd784cc7a0c9cdaab193ee662b769e0514b09de6d35f4a7bea15ee1a4ab111d5e2ecc85272f17c2ba3cab2780a82b634fe992f3db6
+"webdriver-bidi-protocol@npm:0.4.1":
+  version: 0.4.1
+  resolution: "webdriver-bidi-protocol@npm:0.4.1"
+  checksum: 10c0/16e6f0be41d725a465f02ad9b7bd9a6ce44466b381f31423485ad4d2e2bd0c5fb6f16bacb1867afbe45a41f3fe34960be890bcd28d32116ec2f9ff56794f28f3
   languageName: node
   linkType: hard
 
@@ -5712,9 +5721,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:^5.104.1":
-  version: 5.105.1
-  resolution: "webpack@npm:5.105.1"
+"webpack@npm:^5.105.2":
+  version: 5.105.2
+  resolution: "webpack@npm:5.105.2"
   dependencies:
     "@types/eslint-scope": "npm:^3.7.7"
     "@types/estree": "npm:^1.0.8"
@@ -5746,7 +5755,7 @@ __metadata:
       optional: true
   bin:
     webpack: bin/webpack.js
-  checksum: 10c0/421fb761202473dbc6dd87d6a9efe0ea02293ca4352bf988db669f0d6ebfb5b8ea499e09971539357b531f126ae4209956b984d807aece769ad6826612739c7a
+  checksum: 10c0/565df8072c00d72e0a22e136971862b7eac7beb8b8d39a2ae4ab00838941ea58acc5b49dd7ea268e3d839810756cb86ba5c272b3a25904f6db7807cfa8ed0b29
   languageName: node
   linkType: hard
 

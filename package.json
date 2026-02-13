@@ -10,26 +10,27 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.28.5",
+    "@babel/core": "^7.29.0",
     "@babel/plugin-syntax-dynamic-import": "7.8.3",
-    "@babel/preset-env": "^7.28.5",
-    "@lydell/elm": "0.19.1-14",
+    "@babel/preset-env": "^7.29.0",
     "@mdi/svg": "7.4.47",
     "babel-loader": "^10.0.0",
     "child-process-promise": "2.2.1",
     "clean-css-cli": "5.6.3",
+    "elm": "0.19.1-6",
     "elm-analyse": "0.16.5",
     "elm-format": "0.8.8",
     "elm-test": "0.19.1-revision17",
     "less": "4.5.1",
     "less-plugin-autoprefix": "2.0.0",
-    "puppeteer": "^24.34.0",
+    "puppeteer": "^24.37.3",
     "uglify-js": "^3.19.3",
-    "webpack": "^5.104.1",
+    "webpack": "^5.105.2",
     "webpack-cli": "6.0.1"
   },
   "resolutions": {
-    "less/request": "^2.86.0"
+    "less/request": "^2.86.0",
+    "elm": "npm:@lydell/elm@0.19.1-14"
   },
   "scripts": {
     "format": "elm-format --elm-version=0.19 web/elm --yes",
