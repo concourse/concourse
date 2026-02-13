@@ -26,7 +26,7 @@ var ErrUnsupportedStreamEncoding = errors.New("unsupported stream encoding")
 
 //counterfeiter:generate . Repository
 type Repository interface {
-	ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, []string, error)
+	ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, error)
 	GetVolume(ctx context.Context, handle string) (Volume, bool, error)
 	CreateVolume(ctx context.Context, handle string, strategy Strategy, properties Properties, isPrivileged bool) (Volume, error)
 	DestroyVolume(ctx context.Context, handle string) error
@@ -217,17 +217,16 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 	}, nil
 }
 
-func (repo *repository) ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, []string, error) {
+func (repo *repository) ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, error) {
 	logger := lagerctx.FromContext(ctx).Session("list-volumes")
 
 	liveVolumes, err := repo.filesystem.ListVolumes()
 	if err != nil {
 		logger.Error("failed-to-list-volumes", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	healthyVolumes := make(Volumes, 0, len(liveVolumes))
-	corruptedVolumeHandles := []string{}
 
 	for _, liveVolume := range liveVolumes {
 		volume, err := repo.volumeFrom(liveVolume)
@@ -236,8 +235,7 @@ func (repo *repository) ListVolumes(ctx context.Context, queryProperties Propert
 		}
 
 		if err != nil {
-			corruptedVolumeHandles = append(corruptedVolumeHandles, liveVolume.Handle())
-			logger.Error("failed-hydrating-volume", err)
+			logger.Error("failed-hydrating-volume", err, lager.Data{"handle": liveVolume.Handle()})
 			continue
 		}
 
@@ -246,7 +244,7 @@ func (repo *repository) ListVolumes(ctx context.Context, queryProperties Propert
 		}
 	}
 
-	return healthyVolumes, corruptedVolumeHandles, nil
+	return healthyVolumes, nil
 }
 
 func (repo *repository) GetVolume(ctx context.Context, handle string) (Volume, bool, error) {

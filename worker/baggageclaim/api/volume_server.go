@@ -307,7 +307,7 @@ func (vs *VolumeServer) ListVolumes(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	volumes, _, err := vs.volumeRepo.ListVolumes(ctx, properties)
+	volumes, err := vs.volumeRepo.ListVolumes(ctx, properties)
 	if err != nil {
 		hLog.Error("failed-to-list-volumes", err)
 		RespondWithError(w, ErrListVolumesFailed, http.StatusInternalServerError)
