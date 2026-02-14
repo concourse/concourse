@@ -11,7 +11,10 @@ import (
 
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/worker/baggageclaim"
+	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
 )
+
+var _ bclient.Client = (*Baggageclaim)(nil)
 
 type Baggageclaim struct {
 	Volumes []*Volume
@@ -85,6 +88,10 @@ func (b *Baggageclaim) DestroyVolume(_ context.Context, handle string) error {
 	b.Volumes = b.FilteredVolumes(func(v *Volume) bool {
 		return v.handle != handle
 	})
+	return nil
+}
+
+func (b *Baggageclaim) CleanupOrphanedVolumes(_ context.Context) error {
 	return nil
 }
 

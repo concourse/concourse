@@ -8,6 +8,16 @@ import (
 )
 
 type FakeFilesystem struct {
+	CleanupOrphanedEntriesStub        func() error
+	cleanupOrphanedEntriesMutex       sync.RWMutex
+	cleanupOrphanedEntriesArgsForCall []struct {
+	}
+	cleanupOrphanedEntriesReturns struct {
+		result1 error
+	}
+	cleanupOrphanedEntriesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	ListVolumesStub        func() ([]volume.FilesystemLiveVolume, error)
 	listVolumesMutex       sync.RWMutex
 	listVolumesArgsForCall []struct {
@@ -50,6 +60,59 @@ type FakeFilesystem struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeFilesystem) CleanupOrphanedEntries() error {
+	fake.cleanupOrphanedEntriesMutex.Lock()
+	ret, specificReturn := fake.cleanupOrphanedEntriesReturnsOnCall[len(fake.cleanupOrphanedEntriesArgsForCall)]
+	fake.cleanupOrphanedEntriesArgsForCall = append(fake.cleanupOrphanedEntriesArgsForCall, struct {
+	}{})
+	stub := fake.CleanupOrphanedEntriesStub
+	fakeReturns := fake.cleanupOrphanedEntriesReturns
+	fake.recordInvocation("CleanupOrphanedEntries", []interface{}{})
+	fake.cleanupOrphanedEntriesMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeFilesystem) CleanupOrphanedEntriesCallCount() int {
+	fake.cleanupOrphanedEntriesMutex.RLock()
+	defer fake.cleanupOrphanedEntriesMutex.RUnlock()
+	return len(fake.cleanupOrphanedEntriesArgsForCall)
+}
+
+func (fake *FakeFilesystem) CleanupOrphanedEntriesCalls(stub func() error) {
+	fake.cleanupOrphanedEntriesMutex.Lock()
+	defer fake.cleanupOrphanedEntriesMutex.Unlock()
+	fake.CleanupOrphanedEntriesStub = stub
+}
+
+func (fake *FakeFilesystem) CleanupOrphanedEntriesReturns(result1 error) {
+	fake.cleanupOrphanedEntriesMutex.Lock()
+	defer fake.cleanupOrphanedEntriesMutex.Unlock()
+	fake.CleanupOrphanedEntriesStub = nil
+	fake.cleanupOrphanedEntriesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeFilesystem) CleanupOrphanedEntriesReturnsOnCall(i int, result1 error) {
+	fake.cleanupOrphanedEntriesMutex.Lock()
+	defer fake.cleanupOrphanedEntriesMutex.Unlock()
+	fake.CleanupOrphanedEntriesStub = nil
+	if fake.cleanupOrphanedEntriesReturnsOnCall == nil {
+		fake.cleanupOrphanedEntriesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanupOrphanedEntriesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeFilesystem) ListVolumes() ([]volume.FilesystemLiveVolume, error) {

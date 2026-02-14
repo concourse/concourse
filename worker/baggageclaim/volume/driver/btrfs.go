@@ -145,3 +145,8 @@ func (driver *BtrFSDriver) Recover(volume.Filesystem) error {
 	// nothing to do
 	return nil
 }
+
+func (driver *BtrFSDriver) RemoveOrphanedResources(_ map[string]struct{}) error {
+	// nothing to do. btrfs volumes live under the managed volume/ directory
+	return nil
+}

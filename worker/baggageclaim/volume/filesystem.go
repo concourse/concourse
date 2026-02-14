@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,7 @@ type Filesystem interface {
 	NewVolume(string) (FilesystemInitVolume, error)
 	LookupVolume(string) (FilesystemLiveVolume, bool, error)
 	ListVolumes() ([]FilesystemLiveVolume, error)
+	CleanupOrphanedEntries() error
 }
 
 //counterfeiter:generate . FilesystemVolume
@@ -173,6 +175,59 @@ func (fs *filesystem) ListVolumes() ([]FilesystemLiveVolume, error) {
 	fs.log.Debug("list-volumes", lager.Data{"live-volumes": len(response)})
 
 	return response, nil
+}
+
+func (fs *filesystem) CleanupOrphanedEntries() error {
+	// Clean up stale dead/ entries
+	deadDirs, err := os.ReadDir(fs.deadDir)
+	if err != nil {
+		return fmt.Errorf("read dead dir: %w", err)
+	}
+
+	for _, entry := range deadDirs {
+		handle := entry.Name()
+		fs.log.Debug("cleaning-up-dead-volume", lager.Data{"handle": handle})
+
+		deadVol := &deadVolume{
+			baseVolume: baseVolume{
+				fs:     fs,
+				handle: handle,
+				dir:    fs.deadVolumePath(handle),
+			},
+		}
+
+		if err := deadVol.Destroy(); err != nil {
+			fs.log.Error("failed-to-cleanup-dead-volume", err, lager.Data{"handle": handle})
+		}
+	}
+
+	// Collect live and init handles, then ask the driver to remove
+	// any orphaned driver-specific resources.
+	knownHandles := map[string]struct{}{}
+	liveDirs, err := os.ReadDir(fs.liveDir)
+	if err != nil {
+		return fmt.Errorf("read live dir: %w", err)
+	}
+
+	for _, entry := range liveDirs {
+		knownHandles[entry.Name()] = struct{}{}
+	}
+
+	initDirs, err := os.ReadDir(fs.initDir)
+	if err != nil {
+		return fmt.Errorf("read init dir: %w", err)
+	}
+
+	for _, entry := range initDirs {
+		knownHandles[entry.Name()] = struct{}{}
+	}
+
+	err = fs.driver.RemoveOrphanedResources(knownHandles)
+	if err != nil {
+		fs.log.Error("failed-to-remove-orphaned-driver-resources", err)
+	}
+
+	return nil
 }
 
 func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {

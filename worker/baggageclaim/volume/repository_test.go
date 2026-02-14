@@ -421,9 +421,8 @@ var _ = Describe("Repository", func() {
 		var (
 			queryProperties volume.Properties
 
-			corruptedVolumes []string
-			volumes          volume.Volumes
-			listErr          error
+			volumes volume.Volumes
+			listErr error
 		)
 
 		BeforeEach(func() {
@@ -431,7 +430,7 @@ var _ = Describe("Repository", func() {
 		})
 
 		JustBeforeEach(func() {
-			volumes, corruptedVolumes, listErr = repository.ListVolumes(context.Background(), queryProperties)
+			volumes, listErr = repository.ListVolumes(context.Background(), queryProperties)
 		})
 
 		Context("when volumes are found in the filesystem", func() {
@@ -546,7 +545,7 @@ var _ = Describe("Repository", func() {
 							fakeVolume2.LoadPropertiesReturns(nil, errors.New("nope"))
 						})
 
-						It("returns corrupted and working volumes", func() {
+						It("returns only working volumes", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
 									Handle:     "handle-1",
@@ -567,8 +566,6 @@ var _ = Describe("Repository", func() {
 									Privileged: false,
 								},
 							}))
-
-							Expect(corruptedVolumes).To(ConsistOf(fakeVolume2.Handle()))
 						})
 					})
 				})
@@ -619,7 +616,7 @@ var _ = Describe("Repository", func() {
 							fakeVolume2.LoadPropertiesReturns(nil, errors.New("nope"))
 						})
 
-						It("returns corrupted and working volumes", func() {
+						It("returns only working volumes", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
 									Handle:     "handle-1",
@@ -628,8 +625,6 @@ var _ = Describe("Repository", func() {
 									Privileged: true,
 								},
 							}))
-
-							Expect(corruptedVolumes).To(ConsistOf(fakeVolume2.Handle()))
 						})
 					})
 				})
@@ -1220,6 +1215,37 @@ var _ = Describe("Repository", func() {
 						Expect(serverReadBytes[:n]).To(Equal(b.Bytes()[:n]))
 					})
 				})
+			})
+		})
+	})
+
+	Describe("CleanupOrphanedVolumes", func() {
+		var cleanupErr error
+
+		JustBeforeEach(func() {
+			cleanupErr = repository.CleanupOrphanedVolumes(context.Background())
+		})
+
+		Context("when CleanupOrphanedEntries succeeds", func() {
+			BeforeEach(func() {
+				fakeFilesystem.CleanupOrphanedEntriesReturns(nil)
+			})
+
+			It("delegates to filesystem.CleanupOrphanedEntries", func() {
+				Expect(cleanupErr).ToNot(HaveOccurred())
+				Expect(fakeFilesystem.CleanupOrphanedEntriesCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when CleanupOrphanedEntries fails", func() {
+			expectedErr := errors.New("cleanup-failed")
+
+			BeforeEach(func() {
+				fakeFilesystem.CleanupOrphanedEntriesReturns(expectedErr)
+			})
+
+			It("returns the error", func() {
+				Expect(cleanupErr).To(Equal(expectedErr))
 			})
 		})
 	})
