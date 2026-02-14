@@ -53,6 +53,17 @@ type FakeDriver struct {
 	recoverReturnsOnCall map[int]struct {
 		result1 error
 	}
+	RemoveOrphanedResourcesStub        func(map[string]struct{}) error
+	removeOrphanedResourcesMutex       sync.RWMutex
+	removeOrphanedResourcesArgsForCall []struct {
+		arg1 map[string]struct{}
+	}
+	removeOrphanedResourcesReturns struct {
+		result1 error
+	}
+	removeOrphanedResourcesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -298,6 +309,67 @@ func (fake *FakeDriver) RecoverReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.recoverReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDriver) RemoveOrphanedResources(arg1 map[string]struct{}) error {
+	fake.removeOrphanedResourcesMutex.Lock()
+	ret, specificReturn := fake.removeOrphanedResourcesReturnsOnCall[len(fake.removeOrphanedResourcesArgsForCall)]
+	fake.removeOrphanedResourcesArgsForCall = append(fake.removeOrphanedResourcesArgsForCall, struct {
+		arg1 map[string]struct{}
+	}{arg1})
+	stub := fake.RemoveOrphanedResourcesStub
+	fakeReturns := fake.removeOrphanedResourcesReturns
+	fake.recordInvocation("RemoveOrphanedResources", []interface{}{arg1})
+	fake.removeOrphanedResourcesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeDriver) RemoveOrphanedResourcesCallCount() int {
+	fake.removeOrphanedResourcesMutex.RLock()
+	defer fake.removeOrphanedResourcesMutex.RUnlock()
+	return len(fake.removeOrphanedResourcesArgsForCall)
+}
+
+func (fake *FakeDriver) RemoveOrphanedResourcesCalls(stub func(map[string]struct{}) error) {
+	fake.removeOrphanedResourcesMutex.Lock()
+	defer fake.removeOrphanedResourcesMutex.Unlock()
+	fake.RemoveOrphanedResourcesStub = stub
+}
+
+func (fake *FakeDriver) RemoveOrphanedResourcesArgsForCall(i int) map[string]struct{} {
+	fake.removeOrphanedResourcesMutex.RLock()
+	defer fake.removeOrphanedResourcesMutex.RUnlock()
+	argsForCall := fake.removeOrphanedResourcesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeDriver) RemoveOrphanedResourcesReturns(result1 error) {
+	fake.removeOrphanedResourcesMutex.Lock()
+	defer fake.removeOrphanedResourcesMutex.Unlock()
+	fake.RemoveOrphanedResourcesStub = nil
+	fake.removeOrphanedResourcesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDriver) RemoveOrphanedResourcesReturnsOnCall(i int, result1 error) {
+	fake.removeOrphanedResourcesMutex.Lock()
+	defer fake.removeOrphanedResourcesMutex.Unlock()
+	fake.RemoveOrphanedResourcesStub = nil
+	if fake.removeOrphanedResourcesReturnsOnCall == nil {
+		fake.removeOrphanedResourcesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.removeOrphanedResourcesReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

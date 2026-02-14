@@ -291,6 +291,24 @@ func (vs *VolumeServer) DestroyVolumes(w http.ResponseWriter, req *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (vs *VolumeServer) CleanupOrphanedVolumes(w http.ResponseWriter, req *http.Request) {
+	hLog := vs.logger.Session("cleanup-orphaned-volumes")
+
+	hLog.Debug("start")
+	defer hLog.Debug("done")
+
+	ctx := lagerctx.NewContext(req.Context(), hLog)
+
+	err := vs.volumeRepo.CleanupOrphanedVolumes(ctx)
+	if err != nil {
+		hLog.Error("failed-to-cleanup-orphaned-volumes", err)
+		RespondWithError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (vs *VolumeServer) ListVolumes(w http.ResponseWriter, req *http.Request) {
 	hLog := vs.logger.Session("list-volumes")
 

@@ -30,3 +30,8 @@ func (driver *NaiveDriver) Recover(volume.Filesystem) error {
 	// nothing to do
 	return nil
 }
+
+func (driver *NaiveDriver) RemoveOrphanedResources(_ map[string]struct{}) error {
+	// nothing to do. naive volumes live under the managed volume/ directory
+	return nil
+}

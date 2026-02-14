@@ -11,6 +11,17 @@ import (
 )
 
 type FakeRepository struct {
+	CleanupOrphanedVolumesStub        func(context.Context) error
+	cleanupOrphanedVolumesMutex       sync.RWMutex
+	cleanupOrphanedVolumesArgsForCall []struct {
+		arg1 context.Context
+	}
+	cleanupOrphanedVolumesReturns struct {
+		result1 error
+	}
+	cleanupOrphanedVolumesReturnsOnCall map[int]struct {
+		result1 error
+	}
 	CreateVolumeStub        func(context.Context, string, volume.Strategy, volume.Properties, bool) (volume.Volume, error)
 	createVolumeMutex       sync.RWMutex
 	createVolumeArgsForCall []struct {
@@ -189,6 +200,67 @@ type FakeRepository struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeRepository) CleanupOrphanedVolumes(arg1 context.Context) error {
+	fake.cleanupOrphanedVolumesMutex.Lock()
+	ret, specificReturn := fake.cleanupOrphanedVolumesReturnsOnCall[len(fake.cleanupOrphanedVolumesArgsForCall)]
+	fake.cleanupOrphanedVolumesArgsForCall = append(fake.cleanupOrphanedVolumesArgsForCall, struct {
+		arg1 context.Context
+	}{arg1})
+	stub := fake.CleanupOrphanedVolumesStub
+	fakeReturns := fake.cleanupOrphanedVolumesReturns
+	fake.recordInvocation("CleanupOrphanedVolumes", []interface{}{arg1})
+	fake.cleanupOrphanedVolumesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeRepository) CleanupOrphanedVolumesCallCount() int {
+	fake.cleanupOrphanedVolumesMutex.RLock()
+	defer fake.cleanupOrphanedVolumesMutex.RUnlock()
+	return len(fake.cleanupOrphanedVolumesArgsForCall)
+}
+
+func (fake *FakeRepository) CleanupOrphanedVolumesCalls(stub func(context.Context) error) {
+	fake.cleanupOrphanedVolumesMutex.Lock()
+	defer fake.cleanupOrphanedVolumesMutex.Unlock()
+	fake.CleanupOrphanedVolumesStub = stub
+}
+
+func (fake *FakeRepository) CleanupOrphanedVolumesArgsForCall(i int) context.Context {
+	fake.cleanupOrphanedVolumesMutex.RLock()
+	defer fake.cleanupOrphanedVolumesMutex.RUnlock()
+	argsForCall := fake.cleanupOrphanedVolumesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeRepository) CleanupOrphanedVolumesReturns(result1 error) {
+	fake.cleanupOrphanedVolumesMutex.Lock()
+	defer fake.cleanupOrphanedVolumesMutex.Unlock()
+	fake.CleanupOrphanedVolumesStub = nil
+	fake.cleanupOrphanedVolumesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRepository) CleanupOrphanedVolumesReturnsOnCall(i int, result1 error) {
+	fake.cleanupOrphanedVolumesMutex.Lock()
+	defer fake.cleanupOrphanedVolumesMutex.Unlock()
+	fake.CleanupOrphanedVolumesStub = nil
+	if fake.cleanupOrphanedVolumesReturnsOnCall == nil {
+		fake.cleanupOrphanedVolumesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.cleanupOrphanedVolumesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeRepository) CreateVolume(arg1 context.Context, arg2 string, arg3 volume.Strategy, arg4 volume.Properties, arg5 bool) (volume.Volume, error) {
