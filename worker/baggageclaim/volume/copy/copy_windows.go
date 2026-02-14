@@ -38,8 +38,9 @@ func robocopy(args ...string) error {
 			if exitErr.ExitCode() > 1 {
 				return errors.Join(err, errors.New(string(exitErr.Stderr)))
 			}
+		} else {
+			return err
 		}
-		return err
 	}
 
 	return nil

@@ -95,6 +95,7 @@ func (bcr *BaggageClaimRunner) Start() {
 		Name: "baggageclaim",
 		Command: exec.Command(
 			bcr.path,
+			"--log-level", "debug",
 			"--bind-port", strconv.Itoa(bcr.port),
 			"--debug-bind-port", strconv.Itoa(8099+GinkgoParallelProcess()),
 			"--volumes", bcr.volumeDir,
