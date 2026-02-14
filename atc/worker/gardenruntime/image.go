@@ -63,7 +63,7 @@ func (worker *Worker) fetchImageForContainer(
 		imageMetadataReader, err := worker.streamer.StreamFile(ctx, imageSpec.ImageArtifact, ImageMetadataFile)
 		if err != nil {
 			logger.Error("failed-to-stream-metadata-file", err)
-			return FetchedImage{}, fmt.Errorf("stream image metadata file: %w", err)
+			return FetchedImage{}, fmt.Errorf("stream image metadata file: %w. Is the image in rootfs format?", err)
 		}
 
 		metadata, err := loadMetadata(imageMetadataReader)
