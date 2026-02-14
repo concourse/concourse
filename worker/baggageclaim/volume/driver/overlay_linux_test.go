@@ -14,7 +14,7 @@ import (
 )
 
 var _ = Describe("Overlay", func() {
-	Describe("Driver", func() {
+	Context("Driver", func() {
 		var tmpdir string
 		var fs volume.Filesystem
 
@@ -103,4 +103,76 @@ var _ = Describe("Overlay", func() {
 			}
 		})
 	})
+
+	Context("RemoveOrphanedResources", func() {
+		var (
+			overlaysDir string
+			overlayDrv  volume.Driver
+		)
+
+		BeforeEach(func() {
+			tmpdir, err := os.MkdirTemp("", "overlay-orphan-test")
+			Expect(err).ToNot(HaveOccurred())
+			DeferCleanup(func() { os.RemoveAll(tmpdir) })
+
+			overlaysDir = filepath.Join(tmpdir, "overlays")
+			Expect(os.MkdirAll(filepath.Join(overlaysDir, "work"), 0755)).To(Succeed())
+
+			logger := lagertest.NewTestLogger("overlay-orphan")
+			overlayDrv = driver.NewOverlayDriver(logger, overlaysDir)
+		})
+
+		It("removes orphaned layer and work dirs while preserving known handles", func() {
+			// Create known handles
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "known-vol-1"), 0755)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "work", "known-vol-1"), 0755)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "known-vol-2"), 0755)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "work", "known-vol-2"), 0755)).To(Succeed())
+
+			// Create orphaned handles
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "orphan-vol-1"), 0755)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "work", "orphan-vol-1"), 0755)).To(Succeed())
+			// orphan-vol-2 has no corresponding work dir
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "orphan-vol-2"), 0755)).To(Succeed())
+
+			knownHandles := map[string]struct{}{
+				"known-vol-1": {},
+				"known-vol-2": {},
+			}
+
+			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Known handles should still exist
+			Expect(filepath.Join(overlaysDir, "known-vol-1")).To(BeADirectory())
+			Expect(filepath.Join(overlaysDir, "work", "known-vol-1")).To(BeADirectory())
+			Expect(filepath.Join(overlaysDir, "known-vol-2")).To(BeADirectory())
+			Expect(filepath.Join(overlaysDir, "work", "known-vol-2")).To(BeADirectory())
+
+			// Orphaned layer dirs should be removed
+			Expect(filepath.Join(overlaysDir, "orphan-vol-1")).ToNot(BeADirectory())
+			Expect(filepath.Join(overlaysDir, "orphan-vol-2")).ToNot(BeADirectory())
+
+			// Orphaned work dirs should be removed
+			Expect(filepath.Join(overlaysDir, "work", "orphan-vol-1")).ToNot(BeADirectory())
+		})
+
+		It("removes orphaned work-only dirs (no corresponding layer dir)", func() {
+			// Create a work dir with no layer dir
+			Expect(os.Mkdir(filepath.Join(overlaysDir, "work", "work-only-orphan"), 0755)).To(Succeed())
+
+			knownHandles := map[string]struct{}{}
+			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(filepath.Join(overlaysDir, "work", "work-only-orphan")).ToNot(BeADirectory())
+		})
+
+		It("handles an empty overlays directory", func() {
+			knownHandles := map[string]struct{}{}
+			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
 })

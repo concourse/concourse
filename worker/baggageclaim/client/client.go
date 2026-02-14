@@ -239,6 +239,26 @@ func (c *client) DestroyVolume(ctx context.Context, handle string) error {
 	return nil
 }
 
+func (c *client) CleanupOrphanedVolumes(ctx context.Context) error {
+	request, err := c.generateRequest(ctx, baggageclaim.CleanupOrphanedVolumes, rata.Params{}, nil)
+	if err != nil {
+		return err
+	}
+
+	response, err := c.httpClient(ctx).Do(request)
+	if err != nil {
+		return err
+	}
+
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusNoContent {
+		return getError(response)
+	}
+
+	return nil
+}
+
 func (c *client) newVolume(apiVolume baggageclaim.VolumeResponse) baggageclaim.Volume {
 	volume := &clientVolume{
 		handle: apiVolume.Handle,

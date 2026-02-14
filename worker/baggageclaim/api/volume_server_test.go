@@ -1298,6 +1298,17 @@ var _ = Describe("Volume Server", func() {
 			})
 		})
 	})
+
+	Describe("cleanup orphaned volumes", func() {
+		It("returns 204 on success", func() {
+			recorder := httptest.NewRecorder()
+
+			request, _ := http.NewRequest("POST", "/volumes/cleanup-orphans", nil)
+			handler.ServeHTTP(recorder, request)
+
+			Expect(recorder.Code).To(Equal(http.StatusNoContent))
+		})
+	})
 })
 
 func encStrategy(strategy map[string]string) *json.RawMessage {

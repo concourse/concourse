@@ -1218,6 +1218,37 @@ var _ = Describe("Repository", func() {
 			})
 		})
 	})
+
+	Describe("CleanupOrphanedVolumes", func() {
+		var cleanupErr error
+
+		JustBeforeEach(func() {
+			cleanupErr = repository.CleanupOrphanedVolumes(context.Background())
+		})
+
+		Context("when CleanupOrphanedEntries succeeds", func() {
+			BeforeEach(func() {
+				fakeFilesystem.CleanupOrphanedEntriesReturns(nil)
+			})
+
+			It("delegates to filesystem.CleanupOrphanedEntries", func() {
+				Expect(cleanupErr).ToNot(HaveOccurred())
+				Expect(fakeFilesystem.CleanupOrphanedEntriesCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("when CleanupOrphanedEntries fails", func() {
+			expectedErr := errors.New("cleanup-failed")
+
+			BeforeEach(func() {
+				fakeFilesystem.CleanupOrphanedEntriesReturns(expectedErr)
+			})
+
+			It("returns the error", func() {
+				Expect(cleanupErr).To(Equal(expectedErr))
+			})
+		})
+	})
 })
 
 var _ = Describe("LimitedReader", func() {

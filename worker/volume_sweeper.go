@@ -95,4 +95,9 @@ func (sweeper *volumeSweeper) sweep(logger lager.Logger) {
 		}
 		wg.Wait()
 	}
+
+	err = sweeper.baggageclaimClient.CleanupOrphanedVolumes(ctx)
+	if err != nil {
+		logger.Error("failed-to-cleanup-orphaned-volumes", err)
+	}
 }

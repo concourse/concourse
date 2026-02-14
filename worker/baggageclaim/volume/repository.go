@@ -42,6 +42,11 @@ type Repository interface {
 	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error
 
 	VolumeParent(ctx context.Context, handle string) (Volume, bool, error)
+
+	// CleanupOrphanedVolumes removes stale dead/ directory entries and
+	// orphaned driver-specific resources not associated with any live or
+	// initializing volume.
+	CleanupOrphanedVolumes(ctx context.Context) error
 }
 
 type repository struct {
@@ -157,6 +162,14 @@ func (repo *repository) DestroyVolumeAndDescendants(ctx context.Context, handle 
 	}
 
 	return repo.DestroyVolume(ctx, handle)
+}
+
+func (repo *repository) CleanupOrphanedVolumes(ctx context.Context) error {
+	logger := lagerctx.FromContext(ctx).Session("cleanup-orphaned-volumes")
+	logger.Debug("start")
+	defer logger.Debug("done")
+
+	return repo.filesystem.CleanupOrphanedEntries()
 }
 
 func (repo *repository) CreateVolume(ctx context.Context, handle string, strategy Strategy, properties Properties, isPrivileged bool) (Volume, error) {
