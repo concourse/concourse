@@ -3,7 +3,7 @@ package volume_test
 import (
 	"errors"
 	"os"
-	"path"
+	"path/filepath"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
@@ -37,19 +37,19 @@ var _ = Describe("ImportStrategy", func() {
 
 	It("creates the volume", func() {
 		importPath := GinkgoT().TempDir()
-		_, err := os.Create(path.Join(importPath, "some-file"))
+		_, err := os.Create(filepath.Join(importPath, "some-file"))
 		Expect(err).ToNot(HaveOccurred())
 
 		is := ImportStrategy{Path: importPath}
 		ivol, err := is.Materialize(logger, "new-vol", fs, nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ivol).ToNot(BeNil())
-		Expect(path.Join(ivol.DataPath(), "some-file")).To(BeARegularFile(), "should contain the file from the import path")
+		Expect(filepath.Join(ivol.DataPath(), "some-file")).To(BeARegularFile(), "should contain the file from the import path")
 	})
 
 	It("destroys the volume if it errors", func() {
 		importPath := GinkgoT().TempDir()
-		fakeTar := path.Join(importPath, "some-file.tgz")
+		fakeTar := filepath.Join(importPath, "some-file.tgz")
 		_, err := os.Create(fakeTar)
 		Expect(err).ToNot(HaveOccurred())
 
