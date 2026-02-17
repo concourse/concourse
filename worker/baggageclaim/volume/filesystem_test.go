@@ -47,7 +47,7 @@ var _ = Describe("Filesystem", func() {
 			Expect(vol).ToNot(BeNil())
 
 			Expect(vol.Handle()).To(Equal("some-volume"))
-			Expect(vol.DataPath()).To(Equal(path.Join(parentDir, "init/some-volume/volume")))
+			Expect(vol.DataPath()).To(Equal(path.Join(parentDir, "init", "some-volume", "volume")))
 			Expect(path.Dir(vol.DataPath())).To(BeADirectory())
 
 			Expect(driver.CreateVolumeCallCount()).To(Equal(1))
@@ -81,7 +81,7 @@ var _ = Describe("Filesystem", func() {
 			Expect(lVol).ToNot(BeAssignableToTypeOf(volumefakes.FakeFilesystemLiveVolume{}))
 
 			Expect(lVol.Handle()).To(Equal("some-volume"))
-			Expect(lVol.DataPath()).To(Equal(path.Join(parentDir, "live/some-volume/volume")))
+			Expect(lVol.DataPath()).To(Equal(path.Join(parentDir, "live", "some-volume", "volume")))
 			Expect(path.Dir(lVol.DataPath())).To(BeADirectory())
 		})
 	})
@@ -113,7 +113,7 @@ var _ = Describe("Filesystem", func() {
 		})
 
 		It("returns false if the volume is not a directory", func() {
-			os.Create(path.Join(parentDir, "live/some-volume"))
+			os.Create(path.Join(parentDir, "live", "some-volume"))
 			actual, found, err := fs.LookupVolume("some-volume")
 			Expect(err).To(BeNil())
 			Expect(found).To(BeFalse())
@@ -123,18 +123,18 @@ var _ = Describe("Filesystem", func() {
 
 	Describe("ListVolumes", func() {
 		It("returns all volumes under the live directory", func() {
-			os.Mkdir(path.Join(parentDir, "live/vol1"), 0755)
-			os.Mkdir(path.Join(parentDir, "live/vol2"), 0755)
-			os.Mkdir(path.Join(parentDir, "live/vol3"), 0755)
+			os.Mkdir(path.Join(parentDir, "live", "vol1"), 0755)
+			os.Mkdir(path.Join(parentDir, "live", "vol2"), 0755)
+			os.Mkdir(path.Join(parentDir, "live", "vol3"), 0755)
 			// Should not return volumes in init and dead
-			os.Mkdir(path.Join(parentDir, "init/vol4"), 0755)
-			os.Mkdir(path.Join(parentDir, "dead/vol5"), 0755)
+			os.Mkdir(path.Join(parentDir, "init", "vol4"), 0755)
+			os.Mkdir(path.Join(parentDir, "dead", "vol5"), 0755)
 
 			vols, err := fs.ListVolumes()
 			Expect(err).To(BeNil())
 			Expect(len(vols)).To(Equal(3))
 			for i, v := range vols {
-				p := path.Join(parentDir, fmt.Sprintf("live/vol%d/volume", i+1))
+				p := path.Join(parentDir, "live", fmt.Sprintf("vol%d", i+1), "volume")
 				Expect(v.DataPath()).To(Equal(p))
 			}
 		})
@@ -186,8 +186,8 @@ var _ = Describe("Filesystem", func() {
 			driver.DestroyVolumeReturns(nil)
 			err = lvol.Destroy()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(path.Join(parentDir, "dead/some-volume")).ToNot(BeADirectory(), "volume should not exist")
-			Expect(path.Join(parentDir, "live/some-volume")).ToNot(BeADirectory(), "volume should not exist")
+			Expect(path.Join(parentDir, "dead", "some-volume")).ToNot(BeADirectory(), "volume should not exist")
+			Expect(path.Join(parentDir, "live", "some-volume")).ToNot(BeADirectory(), "volume should not exist")
 			Expect(driver.DestroyVolumeCallCount()).To(Equal(1))
 		})
 
