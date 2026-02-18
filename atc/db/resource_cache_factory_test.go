@@ -226,7 +226,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				done := make(chan struct{})
 
 				wg := new(sync.WaitGroup)
-				for i := 0; i < 5; i++ {
+				for range 5 {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
@@ -251,7 +251,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 					defer close(done)
 					defer wg.Done()
 
-					for i := 0; i < 100; i++ {
+					for range 100 {
 						_, err := resourceCacheFactory.FindOrCreateResourceCache(
 							db.ForBuild(build.ID()),
 							"some-base-resource-type",

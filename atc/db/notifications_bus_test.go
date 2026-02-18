@@ -286,7 +286,7 @@ var _ = Describe("NotificationBus", func() {
 
 			Context("when it receives many upstream notifications", func() {
 				BeforeEach(func() {
-					for i := 0; i < 100; i++ {
+					for range 100 {
 						c <- &pgconn.Notification{Channel: "some-channel"}
 					}
 					Eventually(c).Should(BeEmpty())
@@ -316,19 +316,19 @@ var _ = Describe("NotificationBus", func() {
 
 			Context("when it receives many upstream notifications", func() {
 				BeforeEach(func() {
-					for i := 0; i < 100; i++ {
+					for range 100 {
 						c <- &pgconn.Notification{Channel: "some-channel"}
 					}
 				})
 
 				It("sends a message to the Go channel for every notification", func() {
-					for i := 0; i < 100; i++ {
+					for range 100 {
 						Eventually(a).Should(Receive())
 					}
 				})
 
 				It("should still work after the channel is drained", func() {
-					for i := 0; i < 100; i++ {
+					for range 100 {
 						<-a
 					}
 
@@ -339,7 +339,7 @@ var _ = Describe("NotificationBus", func() {
 
 			Context("when it receives more upstream notifications than fit in the queue", func() {
 				BeforeEach(func() {
-					for i := 0; i < 200; i++ {
+					for range 200 {
 						c <- &pgconn.Notification{Channel: "some-channel"}
 					}
 					// TODO: this is awful, but we need to guarantee the last event has been processed
@@ -347,7 +347,7 @@ var _ = Describe("NotificationBus", func() {
 				})
 
 				It("ignores the overflowing notifications", func() {
-					for i := 0; i < 100; i++ {
+					for range 100 {
 						<-a
 					}
 					Consistently(a).ShouldNot(Receive())

@@ -1419,7 +1419,7 @@ var _ = Describe("Team", func() {
 			var pipelineBuilds [2]db.Build
 
 			BeforeEach(func() {
-				for i := 0; i < 3; i++ {
+				for i := range 3 {
 					build, err := team.CreateOneOffBuild()
 					Expect(err).ToNot(HaveOccurred())
 					allBuilds[i] = build
@@ -1512,7 +1512,7 @@ var _ = Describe("Team", func() {
 					Expect(found).To(BeTrue())
 					Expect(err).ToNot(HaveOccurred())
 
-					for i := 0; i < 3; i++ {
+					for i := range 3 {
 						teamABuilds[i], err = caseInsensitiveTeamA.CreateOneOffBuild()
 						Expect(err).ToNot(HaveOccurred())
 
@@ -1784,7 +1784,7 @@ var _ = Describe("Team", func() {
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				for i := 0; i < 3; i++ {
+				for i := range 3 {
 					teamABuilds[i], err = caseInsensitiveTeamA.CreateOneOffBuild()
 					Expect(err).ToNot(HaveOccurred())
 
