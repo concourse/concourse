@@ -585,7 +585,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				}
 			}
 
-			planIDType := reflect.TypeOf(atc.PlanID(""))
+			planIDType := reflect.TypeFor[atc.PlanID]()
 
 			seen := map[reflect.Type]bool{}
 			var walk func([]string, reflect.Type)
@@ -616,7 +616,7 @@ var _ = Describe("BuildStepDelegate", func() {
 				}
 			}
 
-			walk(nil, reflect.TypeOf(atc.Plan{}))
+			walk(nil, reflect.TypeFor[atc.Plan]())
 		})
 	})
 
