@@ -226,12 +226,12 @@ func (con *Connector) Serialize(redirectURI string) ([]byte, error) {
 func (con *Connector) newTeamConfig() (TeamConfig, error) {
 
 	typeof := reflect.TypeOf(con.teamConfig)
-	if typeof.Kind() == reflect.Ptr {
+	if typeof.Kind() == reflect.Pointer {
 		typeof = typeof.Elem()
 	}
 
 	valueof := reflect.ValueOf(con.teamConfig)
-	if valueof.Kind() == reflect.Ptr {
+	if valueof.Kind() == reflect.Pointer {
 		valueof = valueof.Elem()
 	}
 
