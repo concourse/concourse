@@ -637,7 +637,7 @@ var _ = Describe("Garden Worker", func() {
 
 				By("validating 2 streaming-volume events are emitted", func() {
 					Expect(delegate.StreamingVolumeCallCount()).To(Equal(2))
-					for i := 0; i < 2; i++ {
+					for i := range 2 {
 						_, volume, src, dest := delegate.StreamingVolumeArgsForCall(i)
 						Expect(volume).To(Equal("for image"))
 						Expect(src).To(Equal("worker2"))
@@ -884,7 +884,7 @@ var _ = Describe("Garden Worker", func() {
 
 				By("validating 2 streaming-volume events are emitted", func() {
 					Expect(delegate.StreamingVolumeCallCount()).To(Equal(2))
-					for i := 0; i < 2; i++ {
+					for i := range 2 {
 						_, volume, src, dest := delegate.StreamingVolumeArgsForCall(i)
 						Expect(volume).To(Equal("remote-input"))
 						Expect(src).To(Equal("worker2"))

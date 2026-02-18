@@ -29,7 +29,7 @@ var _ = BeforeEach(func() {
 
 	ignore := func(logger lager.Logger, id lock.LockID) {}
 	var lockConns [lock.FactoryCount]*sql.DB
-	for i := 0; i < lock.FactoryCount; i++ {
+	for i := range lock.FactoryCount {
 		lockConns[i] = postgresRunner.OpenSingleton()
 	}
 	lockFactory = lock.NewLockFactory(lockConns, ignore, ignore)

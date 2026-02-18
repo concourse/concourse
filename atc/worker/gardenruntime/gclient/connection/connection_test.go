@@ -1011,7 +1011,7 @@ var _ = Describe("Connection", func() {
 					),
 					stdoutStream("foo-handle", "process-handle", 123, func(conn net.Conn) {
 						conn.Write([]byte("stdout data"))
-						conn.Write([]byte(fmt.Sprintf("roundtripped %s", <-stdInContent)))
+						conn.Write(fmt.Appendf(nil, "roundtripped %s", <-stdInContent))
 					}),
 					stderrStream("foo-handle", "process-handle", 123, func(conn net.Conn) {
 						conn.Write([]byte("stderr data"))
@@ -1134,7 +1134,7 @@ var _ = Describe("Connection", func() {
 					),
 					stdoutStream("foo-handle", "process-handle", 123, func(conn net.Conn) {
 						conn.Write([]byte("stdout data"))
-						conn.Write([]byte(fmt.Sprintf("roundtripped %s", <-stdInContent)))
+						conn.Write(fmt.Appendf(nil, "roundtripped %s", <-stdInContent))
 					}),
 					emptyStderrStream("foo-handle", "process-handle", 123),
 				)
@@ -1485,7 +1485,7 @@ var _ = Describe("Connection", func() {
 					),
 					stdoutStream("foo-handle", "process-handle", 123, func(conn net.Conn) {
 						conn.Write([]byte("stdout data"))
-						conn.Write([]byte(fmt.Sprintf("roundtripped %s", <-expectedRoundtrip)))
+						conn.Write(fmt.Appendf(nil, "roundtripped %s", <-expectedRoundtrip))
 					}),
 					stderrStream("foo-handle", "process-handle", 123, func(conn net.Conn) {
 						conn.Write([]byte("stderr data"))
