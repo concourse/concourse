@@ -125,7 +125,6 @@ var _ = Describe("StaticVariables", func() {
 				},
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				Expect(tt.expanded.Flatten()).To(ConsistOf(tt.kvPairs))
 			})
@@ -182,7 +181,6 @@ var _ = Describe("StaticVariables", func() {
 				},
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				Expect(tt.kvPairs.Expand()).To(Equal(tt.expanded))
 			})
