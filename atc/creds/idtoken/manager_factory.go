@@ -34,8 +34,8 @@ func (factory *ManagerFactory) SetSigningKeyFactory(signingKeyFactory db.Signing
 	factory.signingKeyFactory = signingKeyFactory
 }
 
-func (factory *ManagerFactory) NewInstance(config interface{}) (creds.Manager, error) {
-	configMap, ok := config.(map[string]interface{})
+func (factory *ManagerFactory) NewInstance(config any) (creds.Manager, error) {
+	configMap, ok := config.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid idtoken provider config: %T", config)
 	}

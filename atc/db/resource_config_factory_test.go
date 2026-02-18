@@ -125,7 +125,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				defer close(done)
 				defer wg.Done()
 
-				for i := 0; i < 100; i++ {
+				for range 100 {
 					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, nil)
 					Expect(err).ToNot(HaveOccurred())
 				}
@@ -170,7 +170,7 @@ var _ = Describe("ResourceConfigFactory", func() {
 				defer close(done)
 				defer wg.Done()
 
-				for i := 0; i < 100; i++ {
+				for range 100 {
 					_, err := resourceConfigFactory.FindOrCreateResourceConfig("some-base-resource-type", atc.Source{"some": "unique-source"}, nil)
 					Expect(err).ToNot(HaveOccurred())
 				}

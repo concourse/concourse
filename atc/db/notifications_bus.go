@@ -185,10 +185,8 @@ func (bus *notificationsBus) cacheNotify() {
 
 func (bus *notificationsBus) asyncNotify() {
 	ticker := time.NewTicker(500 * time.Millisecond)
-	bus.wg.Add(1)
 
-	go func() {
-		defer bus.wg.Done()
+	bus.wg.Go(func() {
 
 		for {
 			select {
@@ -215,7 +213,7 @@ func (bus *notificationsBus) asyncNotify() {
 				return
 			}
 		}
-	}()
+	})
 }
 
 func (bus *notificationsBus) handleNotification(notification *pgconn.Notification) {

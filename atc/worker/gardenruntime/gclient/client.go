@@ -1,6 +1,8 @@
 package gclient
 
 import (
+	"slices"
+
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
 )
@@ -124,10 +126,8 @@ func (client *client) Lookup(handle string) (Container, error) {
 		return nil, err
 	}
 
-	for _, h := range handles {
-		if h == handle {
-			return newContainer(handle, client.connection), nil
-		}
+	if slices.Contains(handles, handle) {
+		return newContainer(handle, client.connection), nil
 	}
 
 	return nil, garden.ContainerNotFoundError{Handle: handle}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -85,13 +86,7 @@ func (f *workerFactory) VisibleWorkers(teamNames []string) ([]Worker, error) {
 			return true
 		}
 
-		for _, team := range teamNames {
-			if worker.TeamName() == team {
-				return true
-			}
-		}
-
-		return false
+		return slices.Contains(teamNames, worker.TeamName())
 	}
 
 	visibleWorkers := []Worker{}

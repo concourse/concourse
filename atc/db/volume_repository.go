@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"maps"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -723,9 +724,7 @@ func (repository *volumeRepository) createVolumeWithHandle(
 		"worker_name": workerName,
 		"handle":      handle,
 	}
-	for name, value := range columns {
-		values[name] = value
-	}
+	maps.Copy(values, columns)
 
 	if teamID != 0 {
 		values["team_id"] = teamID
@@ -762,9 +761,7 @@ func (repository *volumeRepository) findVolume(teamID int, workerName string, co
 		whereClause["v.worker_name"] = workerName
 	}
 
-	for name, value := range columns {
-		whereClause[name] = value
-	}
+	maps.Copy(whereClause, columns)
 
 	return getVolume(repository.conn, whereClause)
 }

@@ -77,7 +77,6 @@ var _ = Describe("JobFlag", func() {
 				err:  "instance vars should be formatted as <key1:value1>(,<key2:value2>)",
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				err := flag.UnmarshalFlag(tt.flag)
 				if tt.err == "" {

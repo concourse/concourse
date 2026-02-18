@@ -853,7 +853,7 @@ var _ = Describe("Resource", func() {
 
 				resourceVersions = make([]atc.ResourceVersion, 0)
 
-				for i := 0; i < 3; i++ {
+				for i := range 3 {
 					rcv := scenario.ResourceVersion("some-resource", atc.Version{
 						"ref":    "v" + strconv.Itoa(i),
 						"commit": "v" + strconv.Itoa(i),
@@ -962,7 +962,7 @@ var _ = Describe("Resource", func() {
 
 				resourceVersions = make([]atc.ResourceVersion, 0)
 
-				for i := 0; i < 10; i++ {
+				for i := range 10 {
 					rcv := scenario.ResourceVersion("some-resource", atc.Version{"ref": "v" + strconv.Itoa(i)})
 
 					var metadata atc.Metadata

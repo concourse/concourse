@@ -426,7 +426,7 @@ var _ = Describe("Job", func() {
 		)
 
 		BeforeEach(func() {
-			for i := 0; i < 10; i++ {
+			for i := range 10 {
 				var found bool
 				var err error
 				someJob, found, err = pipeline.Job("some-job")

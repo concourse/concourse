@@ -74,7 +74,6 @@ var _ = Describe("PipelineRef", func() {
 				out: `some-pipeline/bool:true,float:123.456,int:123,nil:null`,
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				Expect(tt.ref.String()).To(Equal(tt.out))
 			})
@@ -108,7 +107,6 @@ var _ = Describe("PipelineRef", func() {
 				out:  url.Values{`vars."hello.1"."foo:bar"`: []string{`"baz"`}},
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				Expect(tt.ref.QueryParams()).To(Equal(tt.out))
 			})
@@ -206,7 +204,6 @@ var _ = Describe("PipelineRef", func() {
 				err: "unexpected end of JSON input",
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				vars, err := atc.InstanceVarsFromQueryParams(tt.query)
 				if tt.err != "" {

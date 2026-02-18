@@ -35,7 +35,6 @@ var _ = Describe("PipelineFlag", func() {
 				instanceVars: atc.InstanceVars{"branch": "master"},
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				err := pipelineFlag.UnmarshalFlag(tt.flag)
 				Expect(err).ToNot(HaveOccurred())

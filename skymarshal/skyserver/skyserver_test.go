@@ -95,7 +95,7 @@ var _ = Describe("Sky Server API", func() {
 						data, err := base64.RawURLEncoding.DecodeString(stateParam)
 						Expect(err).NotTo(HaveOccurred())
 
-						var state map[string]interface{}
+						var state map[string]any
 						json.Unmarshal(data, &state)
 						Expect(state["redirect_uri"]).To(Equal("/redirect"))
 						Expect(state["sig"]).NotTo(BeEmpty())
@@ -116,7 +116,7 @@ var _ = Describe("Sky Server API", func() {
 						data, err := base64.RawURLEncoding.DecodeString(stateParam)
 						Expect(err).NotTo(HaveOccurred())
 
-						var state map[string]interface{}
+						var state map[string]any
 						json.Unmarshal(data, &state)
 						Expect(state["redirect_uri"]).To(Equal("/"))
 					})

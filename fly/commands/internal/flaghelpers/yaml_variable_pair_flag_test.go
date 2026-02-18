@@ -49,7 +49,6 @@ var _ = Describe("YAMLVariablePair", func() {
 				err:  `error converting YAML to JSON: yaml: line 1: did not find expected ',' or '}'`,
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				err := variable.UnmarshalFlag(tt.flag)
 				if tt.err == "" {

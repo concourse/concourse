@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 )
@@ -19,11 +20,11 @@ type PinnedVersionNotFound struct {
 }
 
 func (p PinnedVersionNotFound) String() ResolutionFailure {
-	var text string
+	var text strings.Builder
 	for k, v := range p.PinnedVersion {
-		text += fmt.Sprintf(" %s:%s", k, v)
+		text.WriteString(fmt.Sprintf(" %s:%s", k, v))
 	}
-	return ResolutionFailure(fmt.Sprintf("pinned version%s not found", text))
+	return ResolutionFailure(fmt.Sprintf("pinned version%s not found", text.String()))
 }
 
 type JobSet map[int]bool

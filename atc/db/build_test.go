@@ -830,7 +830,7 @@ var _ = Describe("Build", func() {
 						childPipelines := []db.Pipeline{childPipeline}
 
 						By("creating a chain of pipelines, previous pipeline setting the next pipeline")
-						for i := 0; i < 5; i++ {
+						for i := range 5 {
 							job, _, _ := childPipeline.Job("some-job")
 							build, _ := job.CreateBuild(defaultBuildCreatedBy)
 							childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline-" + strconv.Itoa(i)}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)

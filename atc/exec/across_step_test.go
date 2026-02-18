@@ -171,7 +171,6 @@ var _ = Describe("AcrossStep", func() {
 		plans := make([]atc.VarScopedPlan, len(allVals))
 		for i, vals := range allVals {
 			// capture the array from the range
-			vals := vals
 			plans[i] = atc.VarScopedPlan{Values: vals[:]}
 		}
 		fakeDelegate.ConstructAcrossSubstepsReturns(plans, nil)
@@ -270,7 +269,7 @@ var _ = Describe("AcrossStep", func() {
 
 			By("running the first stage")
 			var receivedVals []vals
-			for i := 0; i < 6; i++ {
+			for range 6 {
 				receivedVals = append(receivedVals, <-started)
 			}
 			Expect(receivedVals).To(ConsistOf(
@@ -290,7 +289,7 @@ var _ = Describe("AcrossStep", func() {
 
 			By("running the second stage")
 			receivedVals = []vals{}
-			for i := 0; i < 6; i++ {
+			for range 6 {
 				receivedVals = append(receivedVals, <-started)
 			}
 			Expect(receivedVals).To(ConsistOf(
@@ -310,7 +309,7 @@ var _ = Describe("AcrossStep", func() {
 
 			By("running the third stage")
 			receivedVals = []vals{}
-			for i := 0; i < 6; i++ {
+			for range 6 {
 				receivedVals = append(receivedVals, <-started)
 			}
 			Expect(receivedVals).To(ConsistOf(
@@ -330,7 +329,7 @@ var _ = Describe("AcrossStep", func() {
 
 			By("running the forth stage")
 			receivedVals = []vals{}
-			for i := 0; i < 6; i++ {
+			for range 6 {
 				receivedVals = append(receivedVals, <-started)
 			}
 			Expect(receivedVals).To(ConsistOf(

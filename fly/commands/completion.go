@@ -74,7 +74,7 @@ func fishCompletionSnippetHelper(snippet string, prefix string, commandType refl
 			}
 
 			// Handle pointer types
-			if fieldType.Kind() == reflect.Ptr {
+			if fieldType.Kind() == reflect.Pointer {
 				fieldType = fieldType.Elem()
 			}
 
@@ -88,7 +88,7 @@ func fishCompletionSnippetHelper(snippet string, prefix string, commandType refl
 	return snippet
 }
 
-var fishCompletionSnippet = fishCompletionSnippetHelper("", "", reflect.TypeOf(Fly))
+var fishCompletionSnippet = fishCompletionSnippetHelper("", "", reflect.TypeFor[FlyCommand]())
 
 // Initial implementation just using bashcompinit
 const zshCompletionSnippet = `autoload -Uz compinit && compinit

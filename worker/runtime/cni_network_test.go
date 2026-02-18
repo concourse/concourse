@@ -332,7 +332,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		if testCase.expectedRuleSpec == nil {
 			// Test cases to check if correct chain is created
 			numOfCalls := s.iptables.CreateChainOrFlushIfExistsCallCount()
-			for i := 0; i < numOfCalls; i++ {
+			for i := range numOfCalls {
 				tablename, chainName := s.iptables.CreateChainOrFlushIfExistsArgsForCall(i)
 				if tablename == testCase.expectedTableName && chainName == testCase.expectedChainName {
 					foundExpected = true
@@ -342,7 +342,7 @@ func (s *CNINetworkSuite) TestSetupHostNetwork() {
 		} else {
 			// Test cases to check if correct rule is appended
 			numOfCalls := s.iptables.AppendRuleCallCount()
-			for i := 0; i < numOfCalls; i++ {
+			for i := range numOfCalls {
 				tablename, chainName, rulespec := s.iptables.AppendRuleArgsForCall(i)
 				if tablename == testCase.expectedTableName && chainName == testCase.expectedChainName && reflect.DeepEqual(rulespec, testCase.expectedRuleSpec) {
 					foundExpected = true

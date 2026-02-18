@@ -119,7 +119,7 @@ func testExponentialBackoff(t *testing.T) {
 
 	// Make enough login attempts to reach maxRetryInterval
 	var lastRetryInterval time.Duration
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		start := time.Now()
 		select {
 		case li := <-ma.LoginAttempt:

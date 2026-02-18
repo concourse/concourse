@@ -133,7 +133,6 @@ var _ = Describe("Access Tokens", func() {
 				expectStatusCode: 500,
 			},
 		} {
-			t := t
 
 			It(t.it, func() {
 				baseHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -119,7 +119,7 @@ var _ = Describe("ClaimsCacher", func() {
 
 func stringWithLen(l int) string {
 	b := make([]byte, l)
-	for i := 0; i < l; i++ {
+	for i := range l {
 		b[i] = 'a'
 	}
 	return string(b)

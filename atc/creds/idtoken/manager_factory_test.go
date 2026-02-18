@@ -10,15 +10,15 @@ import (
 var _ = Describe("ManagerFactory", func() {
 	var factory *idtoken.ManagerFactory
 	var signingKeyFactory *dbfakes.FakeSigningKeyFactory
-	var config map[string]interface{}
+	var config map[string]any
 
 	BeforeEach(func() {
 		factory = idtoken.NewManagerFactory().(*idtoken.ManagerFactory)
 		signingKeyFactory = &dbfakes.FakeSigningKeyFactory{}
 		factory.SetSigningKeyFactory(signingKeyFactory)
 
-		config = map[string]interface{}{
-			"audience": []interface{}{"sts.amazonaws.com"},
+		config = map[string]any{
+			"audience": []any{"sts.amazonaws.com"},
 		}
 	})
 
