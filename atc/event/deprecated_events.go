@@ -119,7 +119,7 @@ type OriginV30 struct {
 	Name     string            `json:"name"`
 	Type     OriginV30Type     `json:"type"`
 	Source   OriginV30Source   `json:"source"`
-	Location OriginV30Location `json:"location,omitempty"`
+	Location OriginV30Location `json:"location,omitzero"`
 	Hook     string            `json:"hook"`
 }
 
@@ -313,7 +313,7 @@ type OutputV20OutputPlan struct {
 
 type ErrorV10 struct {
 	Message string    `json:"message"`
-	Origin  OriginV20 `json:"origin,omitempty"`
+	Origin  OriginV20 `json:"origin,omitzero"`
 }
 
 func (ErrorV10) EventType() atc.EventType  { return "error" }
@@ -321,7 +321,7 @@ func (ErrorV10) Version() atc.EventVersion { return "1.0" }
 
 type ErrorV20 struct {
 	Message string    `json:"message"`
-	Origin  OriginV30 `json:"origin,omitempty"`
+	Origin  OriginV30 `json:"origin,omitzero"`
 }
 
 func (ErrorV20) EventType() atc.EventType  { return "error" }
@@ -331,7 +331,7 @@ func (ErrorV20) Version() atc.EventVersion { return "2.0" }
 
 type ErrorV30 struct {
 	Message string    `json:"message"`
-	Origin  OriginV40 `json:"origin,omitempty"`
+	Origin  OriginV40 `json:"origin,omitzero"`
 }
 
 func (ErrorV30) EventType() atc.EventType  { return "error" }
@@ -374,7 +374,7 @@ type OriginV40 struct {
 	Name     string            `json:"name"`
 	Type     OriginV40Type     `json:"type"`
 	Source   OriginSource      `json:"source"`
-	Location OriginV40Location `json:"location,omitempty"`
+	Location OriginV40Location `json:"location,omitzero"`
 }
 
 type OriginV40Type string
