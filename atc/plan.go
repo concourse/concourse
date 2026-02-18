@@ -286,7 +286,7 @@ type CheckPlan struct {
 	// was last checked, and the build has not been manually triggered, the check
 	// will be skipped. It will also be set as Never if the user has specified
 	// for it to not be checked periodically.
-	Interval CheckEvery `json:"interval,omitempty"`
+	Interval CheckEvery `json:"interval,omitzero"`
 
 	// If set, the check interval will not be respected, (i.e. a new check will
 	// be run even if the interval has not elapsed).

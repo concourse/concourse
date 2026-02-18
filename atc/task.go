@@ -26,7 +26,7 @@ type TaskConfig struct {
 	Params TaskEnv `json:"params,omitempty"`
 
 	// Script to execute.
-	Run TaskRunConfig `json:"run,omitempty"`
+	Run TaskRunConfig `json:"run,omitzero"`
 
 	// The set of (logical, name-only) inputs required by the task.
 	Inputs []TaskInputConfig `json:"inputs,omitempty"`

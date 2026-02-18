@@ -164,7 +164,7 @@ func (plan AcrossPlan) Public() *json.RawMessage {
 func (plan DoPlan) Public() *json.RawMessage {
 	public := make([]*json.RawMessage, len(plan))
 
-	for i := 0; i < len(plan); i++ {
+	for i := range plan {
 		public[i] = plan[i].Public()
 	}
 
@@ -346,7 +346,7 @@ func (plan TryPlan) Public() *json.RawMessage {
 func (plan RetryPlan) Public() *json.RawMessage {
 	public := make([]*json.RawMessage, len(plan))
 
-	for i := 0; i < len(plan); i++ {
+	for i := range plan {
 		public[i] = plan[i].Public()
 	}
 
