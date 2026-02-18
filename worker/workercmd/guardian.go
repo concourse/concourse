@@ -179,9 +179,9 @@ func getGdnFlagsFromEnv(logger lager.Logger) []string {
 			"flag": flag,
 		})
 
-		vals := strings.Split(val, ",")
+		vals := strings.SplitSeq(val, ",")
 
-		for _, v := range vals {
+		for v := range vals {
 			flags = append(flags, "--"+flag, v)
 		}
 

@@ -5,6 +5,7 @@ package runtime_test
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/garden"
@@ -219,11 +220,8 @@ func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {
 	userEnvVarSet := false
 	expectedEnvVar := "USER=some_user"
 
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedEnvVar {
-			userEnvVarSet = true
-			break
-		}
+	if slices.Contains(procSpec.Env, expectedEnvVar) {
+		userEnvVarSet = true
 	}
 	s.True(userEnvVarSet)
 }
@@ -253,14 +251,7 @@ func (s *ContainerSuite) TestDoesNotOverwriteExistingPathInImage() {
 	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
 	s.Equal(expectedUser, procSpec.User)
 
-	userEnvVarSet := false
-
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedImagePath {
-			userEnvVarSet = true
-			break
-		}
-	}
+	userEnvVarSet := slices.Contains(procSpec.Env, expectedImagePath)
 	s.True(userEnvVarSet)
 }
 
@@ -285,11 +276,8 @@ func (s *ContainerSuite) TestRunWithRootUserHasSuperUserPath() {
 	userEnvVarSet := false
 	expectedEnvVar := runtime.SuperuserPath
 
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedEnvVar {
-			userEnvVarSet = true
-			break
-		}
+	if slices.Contains(procSpec.Env, expectedEnvVar) {
+		userEnvVarSet = true
 	}
 	s.True(userEnvVarSet)
 }
@@ -315,11 +303,8 @@ func (s *ContainerSuite) TestRunWithNonRootUserHasUserPath() {
 	userEnvVarSet := false
 	expectedEnvVar := runtime.Path
 
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedEnvVar {
-			userEnvVarSet = true
-			break
-		}
+	if slices.Contains(procSpec.Env, expectedEnvVar) {
+		userEnvVarSet = true
 	}
 	s.True(userEnvVarSet)
 }
