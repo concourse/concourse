@@ -222,4 +222,61 @@ var _ = Describe("Filesystem", func() {
 			Expect(logs[4].Data["handle"]).To(Equal("sub-volume"))
 		})
 	})
+
+	Describe("CleanupOrphanedEntries", func() {
+		It("destroys stale dead/ volume entries", func() {
+			// Create dead volume directories
+			Expect(os.Mkdir(filepath.Join(parentDir, "dead/dead-vol-1"), 0755)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(parentDir, "dead/dead-vol-2"), 0755)).To(Succeed())
+
+			err := fs.CleanupOrphanedEntries()
+			Expect(err).ToNot(HaveOccurred())
+
+			// Dead dirs should be removed
+			Expect(filepath.Join(parentDir, "dead/dead-vol-1")).ToNot(BeADirectory())
+			Expect(filepath.Join(parentDir, "dead/dead-vol-2")).ToNot(BeADirectory())
+
+			// DestroyVolume called once per dead volume
+			Expect(driver.DestroyVolumeCallCount()).To(Equal(2))
+		})
+
+		It("collects live and init handles and passes them to RemoveOrphanedResources", func() {
+			// Create live and init volume directories
+			Expect(os.Mkdir(filepath.Join(parentDir, "live/live-vol-1"), 0755)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(parentDir, "live/live-vol-2"), 0755)).To(Succeed())
+			Expect(os.Mkdir(filepath.Join(parentDir, "init/init-vol-1"), 0755)).To(Succeed())
+
+			err := fs.CleanupOrphanedEntries()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(driver.RemoveOrphanedResourcesCallCount()).To(Equal(1))
+
+			knownHandles := driver.RemoveOrphanedResourcesArgsForCall(0)
+			Expect(knownHandles).To(HaveKey("live-vol-1"))
+			Expect(knownHandles).To(HaveKey("live-vol-2"))
+			Expect(knownHandles).To(HaveKey("init-vol-1"))
+			Expect(knownHandles).To(HaveLen(3))
+		})
+
+		It("logs errors from dead volume cleanup but continues", func() {
+			driver.DestroyVolumeReturns(errors.New("destroy-failed"))
+
+			Expect(os.Mkdir(filepath.Join(parentDir, "dead/dead-vol"), 0755)).To(Succeed())
+
+			err := fs.CleanupOrphanedEntries()
+			Expect(err).ToNot(HaveOccurred())
+
+			// Dead dir should still be cleaned up (os.RemoveAll after driver call)
+			Expect(filepath.Join(parentDir, "dead/dead-vol")).ToNot(BeADirectory())
+		})
+
+		It("works with empty directories", func() {
+			err := fs.CleanupOrphanedEntries()
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(driver.RemoveOrphanedResourcesCallCount()).To(Equal(1))
+			knownHandles := driver.RemoveOrphanedResourcesArgsForCall(0)
+			Expect(knownHandles).To(BeEmpty())
+		})
+	})
 })

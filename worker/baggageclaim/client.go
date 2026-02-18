@@ -73,6 +73,11 @@ type Client interface {
 	// DestroyVolume returns an error if the volume deletion fails. It does not
 	// return an error if the volume was not found on the server.
 	DestroyVolume(context.Context, string) error
+
+	// CleanupOrphanedVolumes removes stale dead directory entries and
+	// orphaned driver-specific resources (e.g. overlay layers) that are
+	// not associated with any live or initializing volume.
+	CleanupOrphanedVolumes(context.Context) error
 }
 
 //counterfeiter:generate . Volume

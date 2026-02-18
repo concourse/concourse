@@ -46,10 +46,10 @@ var _ = Describe("baggageclaim http client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-volume"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							"some-volume",
-							"/some/path",
-							map[string]string{},
-							false,
+							Handle:     "some-volume",
+							Path:       "/some/path",
+							Properties: map[string]string{},
+							Privileged: false,
 						}),
 					),
 					ghttp.CombineHandlers(
@@ -75,19 +75,61 @@ var _ = Describe("baggageclaim http client", func() {
 				var wg sync.WaitGroup
 				requestCtx, cancelStream := context.WithCancel(context.Background())
 
-				wg.Add(1)
-				go func() {
+				wg.Go(func() {
 					_, err = volume.StreamOut(requestCtx, ".", "gzip")
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("context canceled"))
-
-					wg.Done()
-				}()
+				})
 
 				time.AfterFunc(100*time.Millisecond, cancelStream)
 
 				wg.Wait()
 			})
+		})
+	})
+
+	Context("when calling CleanupOrphanedVolumes", func() {
+		var (
+			gServer *ghttp.Server
+		)
+
+		BeforeEach(func() {
+			gServer = ghttp.NewServer()
+		})
+
+		AfterEach(func() {
+			gServer.Close()
+		})
+
+		It("returns nil on 204 response", func() {
+			gServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/volumes/cleanup-orphans"),
+					ghttp.RespondWith(http.StatusNoContent, nil),
+				),
+			)
+
+			c := client.New(gServer.URL(), http.DefaultTransport)
+
+			err := c.CleanupOrphanedVolumes(context.Background())
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns an error on 500 response", func() {
+			gServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/volumes/cleanup-orphans"),
+					ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, map[string]string{
+						"error": "cleanup-failed",
+					}),
+				),
+			)
+
+			c := client.New(gServer.URL(), http.DefaultTransport)
+
+			err := c.CleanupOrphanedVolumes(context.Background())
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("cleanup-failed"))
 		})
 	})
 })

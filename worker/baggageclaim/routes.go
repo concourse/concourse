@@ -3,11 +3,12 @@ package baggageclaim
 import "github.com/tedsuo/rata"
 
 const (
-	ListVolumes    = "ListVolumes"
-	GetVolume      = "GetVolume"
-	CreateVolume   = "CreateVolume"
-	DestroyVolume  = "DestroyVolume"
-	DestroyVolumes = "DestroyVolumes"
+	ListVolumes            = "ListVolumes"
+	GetVolume              = "GetVolume"
+	CreateVolume           = "CreateVolume"
+	DestroyVolume          = "DestroyVolume"
+	DestroyVolumes         = "DestroyVolumes"
+	CleanupOrphanedVolumes = "CleanupOrphanedVolumes"
 
 	CreateVolumeAsync       = "CreateVolumeAsync"
 	CreateVolumeAsyncCancel = "CreateVolumeAsyncCancel"
@@ -26,6 +27,7 @@ const (
 var Routes = rata.Routes{
 	{Path: "/volumes", Method: "GET", Name: ListVolumes},
 	{Path: "/volumes", Method: "POST", Name: CreateVolume},
+	{Path: "/volumes/cleanup-orphans", Method: "POST", Name: CleanupOrphanedVolumes},
 
 	{Path: "/volumes-async", Method: "POST", Name: CreateVolumeAsync},
 	{Path: "/volumes-async/:handle", Method: "GET", Name: CreateVolumeAsyncCheck},

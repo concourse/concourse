@@ -253,3 +253,60 @@ func (driver *OverlayDriver) layerDir(vol volume.FilesystemVolume) string {
 func (driver *OverlayDriver) workDir(vol volume.FilesystemVolume) string {
 	return filepath.Join(driver.OverlaysDir, "work", vol.Handle())
 }
+
+func (driver *OverlayDriver) RemoveOrphanedResources(knownHandles map[string]struct{}) error {
+	entries, err := os.ReadDir(driver.OverlaysDir)
+	if err != nil {
+		return fmt.Errorf("read overlays dir: %w", err)
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+
+		// skip the "work" meta-directory itself. Its children are handled below
+		if name == "work" {
+			continue
+		}
+
+		if _, known := knownHandles[name]; known {
+			continue
+		}
+
+		driver.logger.Debug("removing-orphaned-overlay-layer", lager.Data{"handle": name})
+
+		layerPath := filepath.Join(driver.OverlaysDir, name)
+		err := os.RemoveAll(layerPath)
+		if err != nil {
+			driver.logger.Error("failed-to-remove-orphaned-layer", err, lager.Data{"handle": name})
+		}
+
+		workPath := filepath.Join(driver.OverlaysDir, "work", name)
+		err = os.RemoveAll(workPath)
+		if err != nil {
+			driver.logger.Error("failed-to-remove-orphaned-work-dir", err, lager.Data{"handle": name})
+		}
+	}
+
+	// scan work/ dir for orphaned entries that may exist without a layer dir
+	workDir := filepath.Join(driver.OverlaysDir, "work")
+	workEntries, err := os.ReadDir(workDir)
+	if err != nil {
+		return fmt.Errorf("read overlays work dir: %w", err)
+	}
+
+	for _, entry := range workEntries {
+		name := entry.Name()
+		if _, known := knownHandles[name]; known {
+			continue
+		}
+
+		driver.logger.Debug("removing-orphaned-overlay-work-dir", lager.Data{"handle": name})
+
+		workPath := filepath.Join(workDir, name)
+		if err := os.RemoveAll(workPath); err != nil {
+			driver.logger.Error("failed-to-remove-orphaned-work-dir", err, lager.Data{"handle": name})
+		}
+	}
+
+	return nil
+}
