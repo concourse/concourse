@@ -16,14 +16,16 @@ import (
 
 var _ = Describe("ImportStrategy", func() {
 	var (
-		driver    volumefakes.FakeDriver
-		parentDir string
-		fs        Filesystem
-		logger    *lagertest.TestLogger
+		driver     volumefakes.FakeDriver
+		parentDir  string
+		importPath string
+		fs         Filesystem
+		logger     *lagertest.TestLogger
 	)
 
 	BeforeEach(func() {
 		parentDir = GinkgoT().TempDir()
+		importPath = GinkgoT().TempDir()
 		logger = lagertest.NewTestLogger("fs")
 		driver = volumefakes.FakeDriver{}
 		f, err := NewFilesystem(logger, &driver, parentDir)
@@ -36,9 +38,9 @@ var _ = Describe("ImportStrategy", func() {
 	})
 
 	It("creates the volume", func() {
-		importPath := GinkgoT().TempDir()
-		_, err := os.Create(filepath.Join(importPath, "some-file"))
+		f, err := os.Create(filepath.Join(importPath, "some-file"))
 		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
 
 		is := ImportStrategy{Path: importPath}
 		ivol, err := is.Materialize(logger, "new-vol", fs, nil)
@@ -48,10 +50,10 @@ var _ = Describe("ImportStrategy", func() {
 	})
 
 	It("destroys the volume if it errors", func() {
-		importPath := GinkgoT().TempDir()
 		fakeTar := filepath.Join(importPath, "some-file.tgz")
-		_, err := os.Create(fakeTar)
+		f, err := os.Create(fakeTar)
 		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
 
 		driver.DestroyVolumeReturns(errors.New("destroy-volume-err"))
 

@@ -113,7 +113,10 @@ var _ = Describe("Filesystem", func() {
 		})
 
 		It("returns false if the volume is not a directory", func() {
-			os.Create(filepath.Join(parentDir, "live", "some-volume"))
+			f, err := os.Create(filepath.Join(parentDir, "live", "some-volume"))
+			Expect(err).To(BeNil())
+			defer f.Close()
+
 			actual, found, err := fs.LookupVolume("some-volume")
 			Expect(err).To(BeNil())
 			Expect(found).To(BeFalse())
