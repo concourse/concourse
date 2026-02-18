@@ -42,7 +42,7 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 	}
 
 	forwards := map[string]ForwardedTCPIP{}
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		select {
 		case forwarded := <-state.ForwardedTCPIPs:
 			logger.Info("forwarded-tcpip", lager.Data{
