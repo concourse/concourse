@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -106,10 +107,8 @@ var errDisappeared = errors.New("internal: build parent disappeared")
 func (h checkBuildReadAccessHandler) allow(build db.BuildForAPI, acc accessor.Access) (bool, error) {
 	if acc.IsAuthenticated() {
 		allTeams := build.AllAssociatedTeamNames()
-		for _, team := range allTeams {
-			if acc.IsAuthorized(team) {
-				return true, nil
-			}
+		if slices.ContainsFunc(allTeams, acc.IsAuthorized) {
+			return true, nil
 		}
 	}
 

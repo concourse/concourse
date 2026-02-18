@@ -3,6 +3,7 @@ package accessor
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -67,10 +68,8 @@ func (v *verifier) verify(rawToken string) (map[string]any, error) {
 		return nil, ErrVerificationTokenExpired
 	}
 
-	for _, aud := range v.audience {
-		if claims.Audience.Contains(aud) {
-			return claims.RawClaims, nil
-		}
+	if slices.ContainsFunc(v.audience, claims.Audience.Contains) {
+		return claims.RawClaims, nil
 	}
 
 	return nil, ErrVerificationInvalidAudience
