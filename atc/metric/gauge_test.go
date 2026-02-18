@@ -33,7 +33,7 @@ var _ = Describe("Gauge", func() {
 		wg := new(sync.WaitGroup)
 		wg.Add(totalIncs)
 
-		for i := 0; i < totalIncs; i++ {
+		for range totalIncs {
 			go func() {
 				gauge.Inc()
 				wg.Done()
