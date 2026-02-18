@@ -16,7 +16,7 @@ func (secrets *IDToken) NewSecretLookupPathsWithParams(params creds.SecretLookup
 	return []creds.SecretLookupPath{}
 }
 
-func (secrets *IDToken) GetWithParams(secretPath string, params creds.SecretLookupParams) (interface{}, *time.Time, bool, error) {
+func (secrets *IDToken) GetWithParams(secretPath string, params creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	if secretPath != "token" {
 		return nil, nil, false, fmt.Errorf("idtoken credential provider only supports the field 'token'")
 	}
@@ -37,6 +37,6 @@ func (secrets *IDToken) NewSecretLookupPaths(teamName string, pipelineName strin
 	return nil
 }
 
-func (secrets *IDToken) Get(secretPath string) (interface{}, *time.Time, bool, error) {
+func (secrets *IDToken) Get(secretPath string) (any, *time.Time, bool, error) {
 	return nil, nil, false, fmt.Errorf("IDToken provider can only be used with params")
 }
