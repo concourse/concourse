@@ -186,7 +186,7 @@ func diff(existingConfig atc.Config, newConfig atc.Config) bool {
 func indent(text, indent string) string {
 	text = strings.TrimRight(text, "\n")
 	var result strings.Builder
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		result.WriteString(indent + line + "\n")
 	}
 	return result.String()[:result.Len()-1]

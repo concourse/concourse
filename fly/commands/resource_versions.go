@@ -19,7 +19,7 @@ type ResourceVersionsCommand struct {
 	Count    int                      `short:"c" long:"count" default:"50" description:"Number of versions you want to limit the return to"`
 	Resource flaghelpers.ResourceFlag `short:"r" long:"resource" required:"true" value-name:"PIPELINE/RESOURCE" description:"Name of a resource to get versions for"`
 	Json     bool                     `long:"json" description:"Print command result as JSON"`
-	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Team     flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *ResourceVersionsCommand) Execute([]string) error {
@@ -40,7 +40,6 @@ func (command *ResourceVersionsCommand) Execute([]string) error {
 	}
 
 	page := concourse.Page{Limit: command.Count}
-
 
 	versions, _, _, err := team.ResourceVersions(command.Resource.PipelineRef, command.Resource.ResourceName, page, atc.Version{})
 	if err != nil {
@@ -64,11 +63,7 @@ func (command *ResourceVersionsCommand) Execute([]string) error {
 	}
 
 	var rangeUntil int
-	if command.Count < len(versions) {
-		rangeUntil = command.Count
-	} else {
-		rangeUntil = len(versions)
-	}
+	rangeUntil = min(command.Count, len(versions))
 
 	for _, version := range versions[:rangeUntil] {
 		var enabledCell ui.TableCell

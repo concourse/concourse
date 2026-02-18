@@ -139,7 +139,6 @@ var _ = Describe("InstanceVarsFlag", func() {
 				err:  `invalid value for key 'hello': error converting YAML to JSON: yaml: line 1: did not find expected ',' or '}'`,
 			},
 		} {
-			tt := tt
 			It(tt.desc, func() {
 				err := instanceVarsFlag.UnmarshalFlag(tt.flag)
 				if tt.err == "" {
