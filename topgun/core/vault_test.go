@@ -102,9 +102,7 @@ var _ = XDescribe("Vault", func() {
 				}()
 
 				renewTicker := time.NewTicker(5 * time.Second)
-				renewing.Add(1)
-				go func() {
-					defer renewing.Done()
+				renewing.Go(func() {
 					defer GinkgoRecover()
 
 					for {
@@ -115,7 +113,7 @@ var _ = XDescribe("Vault", func() {
 							return
 						}
 					}
-				}()
+				})
 
 				By("deploying concourse with the token")
 				Deploy(
