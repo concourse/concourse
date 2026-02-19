@@ -38,11 +38,16 @@ type Checkable interface {
 
 //counterfeiter:generate . CheckFactory
 type CheckFactory interface {
-	TryCreateCheck(context.Context, Checkable, ResourceTypes, atc.Version, bool, bool, bool) (Build, bool, error)
+	TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool, toDb bool) (Build, bool, error)
+
+	// Returns all resources that are triggers for jobs, excluding those with
+	// passed constraints
 	Resources() ([]Resource, error)
 	ResourceTypesByPipeline() (map[int]ResourceTypes, error)
 	Drain()
 }
+
+var _ CheckFactory = (*checkFactory)(nil)
 
 type checkFactory struct {
 	conn        DbConn
@@ -147,7 +152,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
 	rows, err := resourcesQuery.
-		LeftJoin("(select DISTINCT(resource_id) FROM job_inputs) ji ON ji.resource_id = r.id").
+		LeftJoin("(select DISTINCT(resource_id) FROM job_inputs WHERE trigger = true and passed_job_id IS NULL) ji ON ji.resource_id = r.id").
 		LeftJoin("(select DISTINCT(resource_id) FROM job_outputs) jo ON jo.resource_id = r.id").
 		Where(sq.And{
 			sq.Eq{"p.paused": false},
@@ -158,7 +163,7 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 				sq.NotEq{"ji.resource_id": nil},
 			},
 			sq.And{
-				// find put-only resources that have errored
+				// find resources that have errored or never been checked
 				sq.Or{
 					sq.Eq{"rs.last_check_build_id": nil},
 					sq.Eq{"rs.last_check_succeeded": false},

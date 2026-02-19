@@ -34,16 +34,19 @@ type Build interface {
 func NewBuildStarter(
 	planner BuildPlanner,
 	algorithm Algorithm,
+	checkFactory db.CheckFactory,
 ) BuildStarter {
 	return &buildStarter{
-		planner:   planner,
-		algorithm: algorithm,
+		planner:      planner,
+		algorithm:    algorithm,
+		checkFactory: checkFactory,
 	}
 }
 
 type buildStarter struct {
-	planner   BuildPlanner
-	algorithm Algorithm
+	planner      BuildPlanner
+	algorithm    Algorithm
+	checkFactory db.CheckFactory
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -60,6 +63,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 
 	var needsRetry bool
 	for _, nextSchedulableBuild := range buildsToSchedule {
+		// TAYDEV TODO: does this consider any resources with passed constraints?
 		results, err := s.tryStartNextPendingBuild(logger, nextSchedulableBuild, job)
 		if err != nil {
 			return false, err
@@ -69,6 +73,24 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 			// If the build is successfully aborted, errored or started, continue
 			// onto the next pending build
 			continue
+		}
+
+		if !results.readyToDetermineInputs {
+			// TAYDEV: could issues checks for all resources here. Create
+			// in-memory build checks. They will get de-duped by the build
+			// tracker, so don't need to worry about issuing duplicates
+			p, _, _ := job.Pipeline()
+			rs, _ := p.Resources()
+			rst, _ := p.ResourceTypes()
+			ins, _ := job.Inputs()
+			for _, in := range ins {
+				if len(in.Passed) > 0 {
+					// Don't create checks for builds with passed constraints
+					continue
+				}
+				r, _ := rs.Lookup(in.Resource)
+				s.checkFactory.TryCreateCheck(context.Background(), r, rst, r.CurrentPinnedVersion(), true, true, false)
+			}
 		}
 
 		if !results.scheduled || !results.readyToDetermineInputs {
