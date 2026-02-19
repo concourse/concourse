@@ -17,8 +17,8 @@ type Job struct {
 
 	Groups []string `json:"groups,omitempty"`
 
-	FirstLoggedBuildID   int  `json:"first_logged_build_id,omitempty"`
-	DisableManualTrigger bool `json:"disable_manual_trigger,omitempty"`
+	FirstLoggedBuildID     int  `json:"first_logged_build_id,omitempty"`
+	DisableManualTrigger   bool `json:"disable_manual_trigger,omitempty"`
 	DisableRerunJobTrigger bool `json:"disable_rerun_job_trigger,omitempty"`
 
 	NextBuild       *Build `json:"next_build"`

@@ -5,12 +5,12 @@ type JobConfig struct {
 	OldName string `json:"old_name,omitempty"`
 	Public  bool   `json:"public,omitempty"`
 
-	DisableManualTrigger bool     `json:"disable_manual_trigger,omitempty"`
-	DisableRerunJobTrigger bool   `json:"disable_rerun_job_trigger,omitempty"`
-	Serial               bool     `json:"serial,omitempty"`
-	Interruptible        bool     `json:"interruptible,omitempty"`
-	SerialGroups         []string `json:"serial_groups,omitempty"`
-	RawMaxInFlight       int      `json:"max_in_flight,omitempty"`
+	DisableManualTrigger   bool     `json:"disable_manual_trigger,omitempty"`
+	DisableRerunJobTrigger bool     `json:"disable_rerun_job_trigger,omitempty"`
+	Serial                 bool     `json:"serial,omitempty"`
+	Interruptible          bool     `json:"interruptible,omitempty"`
+	SerialGroups           []string `json:"serial_groups,omitempty"`
+	RawMaxInFlight         int      `json:"max_in_flight,omitempty"`
 
 	// Deprecated: users should use BuildLogRetention
 	BuildLogsToRetain int `json:"build_logs_to_retain,omitempty"`
