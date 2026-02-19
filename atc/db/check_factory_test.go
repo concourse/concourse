@@ -375,6 +375,7 @@ var _ = Describe("CheckFactory", func() {
 	Describe("Resources", func() {
 		var (
 			resources                  []db.Resource
+			baseResourceTypeConfig     db.ResourceConfig
 			putOnlyResource            db.Resource
 			putOnlyResourceConfigScope db.ResourceConfigScope
 		)
@@ -387,6 +388,12 @@ var _ = Describe("CheckFactory", func() {
 						PlanSequence: []atc.Step{
 							{
 								Config: &atc.GetStep{
+									Name:    "some-resource-trigger",
+									Trigger: true,
+								},
+							},
+							{
+								Config: &atc.GetStep{
 									Name: "some-resource",
 								},
 							},
@@ -397,8 +404,27 @@ var _ = Describe("CheckFactory", func() {
 							},
 						},
 					},
+					{
+						Name: "some-job-downstream",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:    "some-resource",
+									Trigger: true,
+									Passed:  []string{"some-job"},
+								},
+							},
+						},
+					},
 				},
 				Resources: atc.ResourceConfigs{
+					{
+						Name: "some-resource-trigger",
+						Type: "some-base-resource-type",
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
 					{
 						Name: "some-resource",
 						Type: "some-base-resource-type",
@@ -434,7 +460,7 @@ var _ = Describe("CheckFactory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
+			baseResourceTypeConfig, err = resourceConfigFactory.FindOrCreateResourceConfig(
 				"some-base-resource-type",
 				atc.Source{
 					"some": "source",
@@ -443,7 +469,7 @@ var _ = Describe("CheckFactory", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			putOnlyResourceConfigScope, err = resourceConfig.FindOrCreateScope(intptr(putOnlyResource.ID()))
+			putOnlyResourceConfigScope, err = baseResourceTypeConfig.FindOrCreateScope(intptr(putOnlyResource.ID()))
 			Expect(err).NotTo(HaveOccurred())
 
 			err = putOnlyResource.SetResourceConfigScope(putOnlyResourceConfigScope)
@@ -463,9 +489,57 @@ var _ = Describe("CheckFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("include only resources-in-use in return", func() {
-			Expect(resources).To(HaveLen(1))
-			Expect(resources[0].Name()).To(Equal("some-resource"))
+		Context("pipeline is newly set", func() {
+			It("returns all resources that are inputs to jobs", func() {
+				Expect(resources).To(HaveLen(2))
+				Expect(resources[0].Name()).To(Equal("some-resource"))
+				Expect(resources[1].Name()).To(Equal("some-resource-trigger"))
+			})
+		})
+
+		Context("when all resources have been previously checked successfully", func() {
+			BeforeEach(func() {
+				nonTriggerResource, found, err := defaultPipeline.Resource("some-resource")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				nonTriggerRscScope, err := baseResourceTypeConfig.FindOrCreateScope(intptr(nonTriggerResource.ID()))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = nonTriggerResource.SetResourceConfigScope(nonTriggerRscScope)
+				Expect(err).NotTo(HaveOccurred())
+
+				found, err = nonTriggerRscScope.UpdateLastCheckStartTime(99, nil)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = nonTriggerRscScope.UpdateLastCheckEndTime(true)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				triggerResource, found, err := defaultPipeline.Resource("some-resource-trigger")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				triggerRscScope, err := baseResourceTypeConfig.FindOrCreateScope(intptr(triggerResource.ID()))
+				Expect(err).NotTo(HaveOccurred())
+
+				err = triggerResource.SetResourceConfigScope(triggerRscScope)
+				Expect(err).NotTo(HaveOccurred())
+
+				found, err = triggerRscScope.UpdateLastCheckStartTime(99, nil)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = triggerRscScope.UpdateLastCheckEndTime(true)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("only includes resources that trigger jobs and have no passed constraints", func() {
+				Expect(resources).To(HaveLen(1))
+				Expect(resources[0].Name()).To(Equal("some-resource-trigger"))
+			})
 		})
 
 		Context("when the resource is not active", func() {
@@ -502,7 +576,7 @@ var _ = Describe("CheckFactory", func() {
 					Expect(found).To(BeTrue())
 				})
 				It("returns the resource", func() {
-					Expect(resources).To(HaveLen(2))
+					Expect(resources).To(HaveLen(3))
 				})
 			})
 			Context("has NOT errored", func() {
@@ -516,8 +590,8 @@ var _ = Describe("CheckFactory", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(found).To(BeTrue())
 				})
-				It("returns does not return the resource", func() {
-					Expect(resources).To(HaveLen(1))
+				It("does not return the resource", func() {
+					Expect(resources).To(HaveLen(2))
 				})
 			})
 		})

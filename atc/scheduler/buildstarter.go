@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -34,16 +35,19 @@ type Build interface {
 func NewBuildStarter(
 	planner BuildPlanner,
 	algorithm Algorithm,
+	checkFactory db.CheckFactory,
 ) BuildStarter {
 	return &buildStarter{
-		planner:   planner,
-		algorithm: algorithm,
+		planner:      planner,
+		algorithm:    algorithm,
+		checkFactory: checkFactory,
 	}
 }
 
 type buildStarter struct {
-	planner   BuildPlanner
-	algorithm Algorithm
+	planner      BuildPlanner
+	algorithm    Algorithm
+	checkFactory db.CheckFactory
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -71,10 +75,19 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 			continue
 		}
 
-		if !results.scheduled || !results.readyToDetermineInputs {
-			// If max in flight is reached or a manually triggered build has not
-			// checked all resources, stop scheduling and retry later
+		if !results.scheduled {
+			// If max in flight is reached, stop scheduling and retry later
 			needsRetry = true
+			break
+		}
+
+		if !results.readyToDetermineInputs {
+			// Issue checks, stop scheduling, retry later
+			needsRetry = true
+			err = s.createChecks(job, nextSchedulableBuild.IsManuallyTriggered())
+			if err != nil {
+				return false, err
+			}
 			break
 		}
 
@@ -118,6 +131,64 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, bu
 	}
 
 	return buildsToSchedule
+}
+
+// Creates in-memory check builds for inputs of the given Job. Does not create
+// checks for inputs that have passed constraints or pinned versions.
+func (s *buildStarter) createChecks(job db.Job, manuallyTriggered bool) error {
+	pipeline, found, err := job.Pipeline()
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.New("pipeline not found")
+	}
+
+	resources, err := pipeline.Resources()
+	if err != nil {
+		return err
+	}
+
+	resourceTypes, err := pipeline.ResourceTypes()
+	if err != nil {
+		return err
+	}
+
+	inputs, err := job.Inputs()
+	if err != nil {
+		return err
+	}
+
+	for _, input := range inputs {
+		if len(input.Passed) > 0 {
+			// Don't create checks for inputs that have passed
+			// constraints. Checking these inputs does not change the
+			// list of possible input versions.
+			continue
+		}
+
+		resource, found := resources.Lookup(input.Resource)
+		if !found {
+			continue
+		}
+
+		if resource.CurrentPinnedVersion() != nil {
+			// Don't check resources that are pinned
+			continue
+		}
+
+		_, _, err = s.checkFactory.TryCreateCheck(context.Background(), resource, resourceTypes,
+			nil,
+			manuallyTriggered,
+			manuallyTriggered,
+			false, // Create in-memory checks. BuildTracker will avoid duplicate checks
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 type startResults struct {

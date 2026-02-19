@@ -170,7 +170,17 @@ type Build interface {
 
 	Reload() (bool, error)
 
+	// Returns true if all inputs to the job have been checked after the build
+	// was created. Does not check resources that have passed constraints or are
+	// pinned because checking these inputs will not change the list of possible
+	// input versions.
 	ResourcesChecked() (bool, error)
+
+	// Returns true if all inputs that are triggers to the job have been checked
+	// after the build was created. Does not check resources that have passed
+	// constraints or are pinned because checking these inputs will not change
+	// the list of possible input versions.
+	TriggeringResourcesChecked() (bool, error)
 
 	AcquireTrackingLock(logger lager.Logger, interval time.Duration) (lock.Lock, bool, error)
 
@@ -511,7 +521,30 @@ func (b *build) ResourcesChecked() (bool, error) {
 			FROM resources r
 			JOIN job_inputs ji ON ji.resource_id = r.id
 			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
-			WHERE ji.job_id = $1
+			WHERE ji.job_id = $1 AND ji.passed_job_id IS NULL
+			AND rs.last_check_end_time < $2
+			AND NOT EXISTS (
+				SELECT
+				FROM resource_pins
+				WHERE resource_id = r.id
+			)
+		)`, b.jobID, b.createTime).Scan(&notChecked)
+	if err != nil {
+		return false, err
+	}
+
+	return !notChecked, nil
+}
+
+func (b *build) TriggeringResourcesChecked() (bool, error) {
+	var notChecked bool
+	err := b.conn.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM resources r
+			JOIN job_inputs ji ON ji.resource_id = r.id
+			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
+			WHERE ji.job_id = $1 AND ji.passed_job_id IS NULL AND ji.trigger = true
 			AND rs.last_check_end_time < $2
 			AND NOT EXISTS (
 				SELECT
