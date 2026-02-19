@@ -183,6 +183,11 @@ handleCallback callback ( model, effects ) =
                 []
     in
     case callback of
+        ScreenResized viewport ->
+            ( { model | screenSize = ScreenSize.fromWindowSize viewport.viewport.width }
+            , effects
+            )
+
         PipelineFetched (Ok pipeline) ->
             let
                 locator =
