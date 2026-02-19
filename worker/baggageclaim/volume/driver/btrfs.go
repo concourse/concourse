@@ -12,6 +12,8 @@ import (
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 )
 
+var _ volume.Driver = (*BtrFSDriver)(nil)
+
 type BtrFSDriver struct {
 	logger                lager.Logger
 	btrfsBin              string
@@ -23,11 +25,10 @@ func NewBtrFSDriver(
 	btrfsBin string,
 ) *BtrFSDriver {
 	driver := &BtrFSDriver{
-		logger:   logger,
+		logger:   logger.Session("btrfs-driver"),
 		btrfsBin: btrfsBin,
 	}
 
-	// Check if btrfs supports -R flag for recursive deletion
 	driver.supportsRecursiveFlag = driver.checkRecursiveFlagSupport()
 
 	return driver
@@ -39,10 +40,9 @@ func (driver *BtrFSDriver) CreateVolume(vol volume.FilesystemInitVolume) error {
 }
 
 func (driver *BtrFSDriver) DestroyVolume(vol volume.FilesystemVolume) error {
-	// If btrfs supports -R flag, use it for recursive deletion
 	if driver.supportsRecursiveFlag {
 		driver.logger.Debug("using-recursive-flag", lager.Data{"path": vol.DataPath()})
-		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", "-R", vol.DataPath())
+		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", "--recursive", vol.DataPath())
 		return err
 	}
 
@@ -143,5 +143,10 @@ func (driver *BtrFSDriver) run(command string, args ...string) (string, string, 
 
 func (driver *BtrFSDriver) Recover(volume.Filesystem) error {
 	// nothing to do
+	return nil
+}
+
+func (driver *BtrFSDriver) RemoveOrphanedResources(_ map[string]struct{}) error {
+	// nothing to do. btrfs volumes live under the managed volume/ directory
 	return nil
 }

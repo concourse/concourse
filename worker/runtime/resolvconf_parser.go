@@ -38,7 +38,7 @@ func ParseHostResolveConf(path string) ([]string, error) {
 
 	var entries []string
 
-	for _, resolvEntry := range strings.Split(strings.TrimSpace(resolvContents), "\n") {
+	for resolvEntry := range strings.SplitSeq(strings.TrimSpace(resolvContents), "\n") {
 		if resolvEntry == "" {
 			continue
 		}

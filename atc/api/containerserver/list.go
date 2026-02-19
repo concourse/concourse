@@ -41,8 +41,7 @@ func (s *Server) ListContainers(team db.Team) http.Handler {
 		hLog.Debug("listed", lager.Data{"container-count": len(containers)})
 
 		presentedContainers := make([]atc.Container, len(containers))
-		for i := 0; i < len(containers); i++ {
-			container := containers[i]
+		for i, container := range containers {
 			presentedContainers[i] = present.Container(container, checkContainersExpiresAt[container.ID()])
 		}
 

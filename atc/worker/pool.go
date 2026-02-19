@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -471,12 +472,7 @@ func tagsMatch(worker db.Worker, tags []string) bool {
 	}
 
 	hasTag := func(tag string) bool {
-		for _, wtag := range worker.Tags() {
-			if wtag == tag {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(worker.Tags(), tag)
 	}
 
 	for _, tag := range tags {

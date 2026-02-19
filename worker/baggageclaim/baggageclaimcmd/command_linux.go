@@ -47,9 +47,7 @@ type BaggageclaimCommand struct {
 	PrivilegedMode bespec.PrivilegedMode `hidden:"true"`
 }
 
-func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
-	logger, _ := cmd.constructLogger()
-
+func (cmd *BaggageclaimCommand) Runner(logger lager.Logger, args []string) (ifrit.Runner, error) {
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
 
 	privilegedNamespacer, unprivilegedNamespacer := cmd.SelectNamespacers(logger)
@@ -62,7 +60,7 @@ func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	filesystem, err := volume.NewFilesystem(driver, cmd.VolumesDir.Path())
+	filesystem, err := volume.NewFilesystem(logger, driver, cmd.VolumesDir.Path())
 	if err != nil {
 		logger.Error("failed-to-initialize-filesystem", err)
 		return nil, err

@@ -120,7 +120,7 @@ var _ = Describe("Check Lifecycle", func() {
 
 		It("runs check-deletion query in batches", func() {
 			db.CheckDeleteBatchSize = 10
-			for i := 0; i < 51; i++ {
+			for range 51 {
 				build := createFinishedCheck(defaultResource, scopeOfDefaultResource, plan)
 				scopeOfDefaultResourceType.UpdateLastCheckStartTime(build.ID(), nil)
 			}

@@ -121,7 +121,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 				Fly.Run("unpause-pipeline", "-p", "resource-gc-test")
 
 				By("checking resource excessively")
-				for i := 0; i < 20; i++ {
+				for range 20 {
 					Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 				}
 
@@ -130,7 +130,7 @@ var _ = Describe("Garbage collecting resource containers", func() {
 
 				By("checking resource excessively")
 				Fly.Run("login", "-c", AtcExternalURL, "-n", "main", "-u", AtcUsername, "-p", AtcPassword)
-				for i := 0; i < 20; i++ {
+				for range 20 {
 					Fly.Run("check-resource", "-r", "resource-gc-test/tick-tock")
 				}
 

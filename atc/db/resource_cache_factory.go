@@ -24,7 +24,7 @@ type ResourceCacheFactory interface {
 	// Since we need to pass it recursively in ResourceConfig.
 	// Also, metadata will be available to us before we create resource cache so this
 	// method can be removed at that point. See  https://github.com/concourse/concourse/issues/534
-	UpdateResourceCacheMetadata(ResourceCache, []atc.MetadataField) error
+	UpdateResourceCacheMetadata(ResourceCache, atc.Metadata) error
 	ResourceCacheMetadata(ResourceCache) (ResourceConfigMetadataFields, error)
 
 	FindResourceCacheByID(id int) (ResourceCache, bool, error)
@@ -164,7 +164,7 @@ func (f *resourceCacheFactory) FindOrCreateResourceCache(
 	}, nil
 }
 
-func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache ResourceCache, metadata []atc.MetadataField) error {
+func (f *resourceCacheFactory) UpdateResourceCacheMetadata(resourceCache ResourceCache, metadata atc.Metadata) error {
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return err

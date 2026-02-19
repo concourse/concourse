@@ -19,7 +19,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("Syncing", func() {
+var _ = Describe("sync", func() {
 	var (
 		flyVersion    string
 		copiedFlyDir  string
@@ -159,7 +159,7 @@ var _ = Describe("Syncing", func() {
 })
 
 func readBinary(path string) []byte {
-	expectedBinary, err := os.ReadFile(flyPath)
+	expectedBinary, err := os.ReadFile(path)
 	Expect(err).NotTo(HaveOccurred())
 	return expectedBinary[:8]
 }

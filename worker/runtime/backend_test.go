@@ -239,7 +239,7 @@ func (s *BackendSuite) TestCreateMaxContainersReachedConcurrent() {
 	wg := sync.WaitGroup{}
 	wg.Add(numberOfRequests)
 
-	for i := 0; i < numberOfRequests; i++ {
+	for range numberOfRequests {
 		go func() {
 			_, err := backend.Create(minimumValidGdnSpec)
 			if err != nil {
@@ -286,7 +286,7 @@ func (s *BackendSuite) TestCreateContainerLockTimeout() {
 	wg := sync.WaitGroup{}
 	wg.Add(numberOfRequests)
 
-	for i := 0; i < numberOfRequests; i++ {
+	for range numberOfRequests {
 		go func() {
 			_, err := backend.Create(minimumValidGdnSpec)
 			if err != nil {

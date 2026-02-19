@@ -75,9 +75,7 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 	}()
 
 	for range maxConcurrency {
-		waitGroup.Add(1)
-		go func() {
-			defer waitGroup.Done()
+		waitGroup.Go(func() {
 			for {
 				select {
 				case rs, open := <-resourcesChan:
@@ -105,7 +103,7 @@ func (s *scanner) scanResources(ctx context.Context, resources []db.Resource, re
 					return
 				}
 			}
-		}()
+		})
 	}
 
 	done := make(chan struct{})

@@ -4,7 +4,7 @@ package runtime_test
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 
 	"code.cloudfoundry.org/localip"
 	"github.com/concourse/concourse/worker/runtime"
@@ -27,9 +27,9 @@ search something
 
 	tmpDir, _ := os.MkdirTemp("", "test-resolv")
 	defer os.RemoveAll(tmpDir)
-	os.WriteFile(path.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
 
-	entries, err := runtime.ParseHostResolveConf(path.Join(tmpDir, "resolv.conf"))
+	entries, err := runtime.ParseHostResolveConf(filepath.Join(tmpDir, "resolv.conf"))
 	s.NoError(err)
 
 	s.Equal([]string{"nameserver 8.8.8.8", "search something"}, entries)
@@ -40,9 +40,9 @@ func (s *ResolveconfParserSuite) TestParseHostResolvConfWithLoopback() {
 
 	tmpDir, _ := os.MkdirTemp("", "test-resolv-noloopback")
 	defer os.RemoveAll(tmpDir)
-	os.WriteFile(path.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "resolv.conf"), []byte(file), 0644)
 
-	entries, err := runtime.ParseHostResolveConf(path.Join(tmpDir, "resolv.conf"))
+	entries, err := runtime.ParseHostResolveConf(filepath.Join(tmpDir, "resolv.conf"))
 	s.NoError(err)
 
 	ip, _ := localip.LocalIP()

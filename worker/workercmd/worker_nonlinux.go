@@ -1,5 +1,4 @@
 //go:build !linux
-// +build !linux
 
 package workercmd
 
@@ -62,5 +61,5 @@ func (cmd *WorkerCommand) baggageclaimRunner(logger lager.Logger) (ifrit.Runner,
 
 	cmd.Baggageclaim.OverlaysDir = filepath.Join(cmd.WorkDir.Path(), "overlays")
 
-	return cmd.Baggageclaim.Runner(nil)
+	return cmd.Baggageclaim.Runner(logger, nil)
 }

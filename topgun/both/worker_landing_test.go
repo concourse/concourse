@@ -70,7 +70,7 @@ var _ = Describe("Worker landing", func() {
 
 			Context("while in landing or landed state", func() {
 				It("is not used for new workloads", func() {
-					for i := 0; i < 10; i++ {
+					for range 10 {
 						Fly.Run("execute", "-c", "tasks/tiny.yml")
 						usedWorkers := WorkersWithContainers()
 						Expect(usedWorkers).To(HaveLen(1))

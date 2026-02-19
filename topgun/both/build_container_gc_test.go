@@ -2,6 +2,7 @@ package topgun_test
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -163,13 +164,7 @@ var _ = Describe("Garbage collecting build containers", func() {
 
 				var secondBuildContainerHandles []string
 				for _, handle := range allBuildContainerHandles {
-					alreadyExisted := false
-					for _, preHandle := range firstBuildContainerHandles {
-						if preHandle == handle {
-							alreadyExisted = true
-							break
-						}
-					}
+					alreadyExisted := slices.Contains(firstBuildContainerHandles, handle)
 
 					if !alreadyExisted {
 						secondBuildContainerHandles = append(secondBuildContainerHandles, handle)
@@ -238,13 +233,7 @@ var _ = Describe("Garbage collecting build containers", func() {
 
 				var secondBuildContainerHandles []string
 				for _, handle := range allBuildContainerHandles {
-					alreadyExisted := false
-					for _, preHandle := range firstBuildContainerHandles {
-						if preHandle == handle {
-							alreadyExisted = true
-							break
-						}
-					}
+					alreadyExisted := slices.Contains(firstBuildContainerHandles, handle)
 
 					if !alreadyExisted {
 						secondBuildContainerHandles = append(secondBuildContainerHandles, handle)

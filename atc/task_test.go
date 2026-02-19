@@ -182,7 +182,7 @@ intputs: []
 run: {path: a/file}
 `)
 					_, err := NewTaskConfig(data)
-					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError("unknown fields: [intputs]"))
 				})
 			})
 

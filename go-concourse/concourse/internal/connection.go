@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -228,9 +229,7 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 	}
 
 	if passedResponse.Headers != nil {
-		for k, v := range response.Header {
-			(*passedResponse.Headers)[k] = v
-		}
+		maps.Copy((*passedResponse.Headers), response.Header)
 	}
 
 	if returnResponseBody {

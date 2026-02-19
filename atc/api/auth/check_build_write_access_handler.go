@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/concourse/concourse/atc/api/accessor"
@@ -68,13 +69,7 @@ func (h checkBuildWriteAccessHandler) ServeHTTP(w http.ResponseWriter, r *http.R
 	}
 
 	allTeams := build.AllAssociatedTeamNames()
-	authorized := false
-	for _, team := range allTeams {
-		if acc.IsAuthorized(team) {
-			authorized = true
-			break
-		}
-	}
+	authorized := slices.ContainsFunc(allTeams, acc.IsAuthorized)
 	if !authorized {
 		h.rejector.Forbidden(w, r)
 		return

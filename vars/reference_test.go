@@ -39,7 +39,6 @@ var _ = Describe("Reference", func() {
 				result: "source:hello",
 			},
 		} {
-			tt := tt
 
 			It(tt.desc, func() {
 				Expect(tt.ref.String()).To(Equal(tt.result))
@@ -115,7 +114,6 @@ var _ = Describe("Reference", func() {
 				ref:  vars.Reference{Path: " hello ", Fields: []string{"world "}},
 			},
 		} {
-			tt := tt
 
 			It(tt.desc, func() {
 				ref, err := vars.ParseReference(tt.raw)

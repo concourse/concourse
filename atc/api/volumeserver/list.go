@@ -26,8 +26,7 @@ func (s *Server) ListVolumes(team db.Team) http.Handler {
 		hLog.Debug("listed", lager.Data{"volume-count": len(volumes)})
 
 		presentedVolumes := []atc.Volume{}
-		for i := 0; i < len(volumes); i++ {
-			volume := volumes[i]
+		for _, volume := range volumes {
 			if vol, err := present.Volume(volume); err != nil {
 				hLog.Error("failed-to-present-volume", err)
 			} else {

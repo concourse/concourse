@@ -7,6 +7,8 @@ import (
 	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
 )
 
+var _ volume.Driver = (*NaiveDriver)(nil)
+
 type NaiveDriver struct{}
 
 func (driver *NaiveDriver) CreateVolume(vol volume.FilesystemInitVolume) error {
@@ -26,5 +28,10 @@ func (driver *NaiveDriver) CreateCopyOnWriteLayer(
 
 func (driver *NaiveDriver) Recover(volume.Filesystem) error {
 	// nothing to do
+	return nil
+}
+
+func (driver *NaiveDriver) RemoveOrphanedResources(_ map[string]struct{}) error {
+	// nothing to do. naive volumes live under the managed volume/ directory
 	return nil
 }

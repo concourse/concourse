@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -1156,15 +1157,6 @@ func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
 // this allows us to reuse getCausalityResourceVersions to construct both upstream and downstream trees by passing in a different updater fn
 type resourceVersionUpdater func(*atc.CausalityResourceVersion, *atc.CausalityBuild)
 
-func contains(lst []int, e int) bool {
-	for _, v := range lst {
-		if e == v {
-			return true
-		}
-	}
-	return false
-}
-
 func causalityQuery(direction CausalityDirection) string {
 	switch direction {
 	case CausalityDownstream:
@@ -1250,12 +1242,12 @@ func causalityResourceVersions(tx Tx, resourceID int, versionSHA256 string, dire
 	resourceHasParent[resourceID] = true // the root resource is the only one that is not required to have a parent
 
 	buildAsChild := func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-		if !contains(rv.BuildIDs, build.ID) { // in case the same resource is used multiple times
+		if !slices.Contains(rv.BuildIDs, build.ID) { // in case the same resource is used multiple times
 			rv.BuildIDs = append(rv.BuildIDs, build.ID)
 		}
 	}
 	resourceVersionAsChild := func(rv *atc.CausalityResourceVersion, build *atc.CausalityBuild) {
-		if !contains(build.ResourceVersionIDs, rv.ID) { // in case a build outputs the same resource multiple times
+		if !slices.Contains(build.ResourceVersionIDs, rv.ID) { // in case a build outputs the same resource multiple times
 			build.ResourceVersionIDs = append(build.ResourceVersionIDs, rv.ID)
 		}
 
@@ -1330,7 +1322,7 @@ LIMIT $3
 				Name: rName,
 			}
 		}
-		if !contains(r.VersionIDs, rcvID) {
+		if !slices.Contains(r.VersionIDs, rcvID) {
 			r.VersionIDs = append(r.VersionIDs, rcvID)
 		}
 
@@ -1382,7 +1374,7 @@ LIMIT $3
 		// remove any resource version ids that don't have a parent
 		filteredResourceVersions := make([]int, 0)
 		for _, rvID := range b.ResourceVersionIDs {
-			if !contains(unusedResourceVersions, rvID) {
+			if !slices.Contains(unusedResourceVersions, rvID) {
 				filteredResourceVersions = append(filteredResourceVersions, rvID)
 			}
 		}

@@ -1419,7 +1419,7 @@ var _ = Describe("Team", func() {
 			var pipelineBuilds [2]db.Build
 
 			BeforeEach(func() {
-				for i := 0; i < 3; i++ {
+				for i := range 3 {
 					build, err := team.CreateOneOffBuild()
 					Expect(err).ToNot(HaveOccurred())
 					allBuilds[i] = build
@@ -1512,7 +1512,7 @@ var _ = Describe("Team", func() {
 					Expect(found).To(BeTrue())
 					Expect(err).ToNot(HaveOccurred())
 
-					for i := 0; i < 3; i++ {
+					for i := range 3 {
 						teamABuilds[i], err = caseInsensitiveTeamA.CreateOneOffBuild()
 						Expect(err).ToNot(HaveOccurred())
 
@@ -1784,7 +1784,7 @@ var _ = Describe("Team", func() {
 				Expect(found).To(BeTrue())
 				Expect(err).ToNot(HaveOccurred())
 
-				for i := 0; i < 3; i++ {
+				for i := range 3 {
 					teamABuilds[i], err = caseInsensitiveTeamA.CreateOneOffBuild()
 					Expect(err).ToNot(HaveOccurred())
 
@@ -2457,6 +2457,78 @@ var _ = Describe("Team", func() {
 			_, found, err := savedPipeline.Job("some-job")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeFalse())
+		})
+
+		Context("get steps have passed constraints with glob patterns", func() {
+			var (
+				newConfig atc.Config
+			)
+
+			BeforeEach(func() {
+				newConfig = atc.Config{
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource",
+							Type: "some-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+							Icon: "some-icon",
+						},
+					},
+
+					ResourceTypes: atc.ResourceTypes{
+						{
+							Name: "some-resource-type",
+							Type: "some-type",
+							Source: atc.Source{
+								"source-config": "some-value",
+							},
+						},
+					},
+
+					Jobs: atc.JobConfigs{
+						{
+							Name: "final-tasking",
+
+							Public: true,
+
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "some-input",
+										Resource: "some-resource",
+										Params: atc.Params{
+											"some-param": "some-value",
+										},
+										Passed:  []string{"job-*"},
+										Trigger: true,
+									},
+								},
+							},
+						},
+						{
+							Name: "job-1",
+						},
+						{
+							Name: "job-2",
+						},
+					},
+				}
+			})
+
+			It("resolves appropriately", func() {
+				pipeline, _, err := team.SavePipeline(pipelineRef, newConfig, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				job, found, err := pipeline.Job("final-tasking")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				jobConfig, err := job.Config()
+				getStep := jobConfig.PlanSequence[0].Config.(*atc.GetStep)
+				Expect(getStep.Passed).To(ConsistOf("job-*"))
+			})
 		})
 
 		Context("update job names but keeps history", func() {

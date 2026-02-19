@@ -2,6 +2,7 @@ package atc
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"time"
 )
@@ -97,6 +98,14 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 	if plan.Config != nil {
 		validator.pushContext(".config")
 
+		if len(plan.Config.UnknownFields) > 0 {
+			var fieldNames []string
+			for field := range plan.Config.UnknownFields {
+				fieldNames = append(fieldNames, field)
+			}
+			validator.recordErrorf("unknown fields %+q", fieldNames)
+		}
+
 		if err := plan.Config.Validate(); err != nil {
 			if validationErr, ok := err.(TaskValidationError); ok {
 				for _, msg := range validationErr.Errors {
@@ -140,32 +149,39 @@ func (validator *StepValidator) VisitGet(step *GetStep) error {
 
 	validator.pushContext(".passed")
 
-	for _, job := range step.Passed {
-		jobConfig, found := validator.config.Jobs.Lookup(job)
-		if !found {
-			validator.recordErrorf("unknown job '%s'", job)
-			continue
+	for _, jobGlob := range step.Passed {
+		foundJob := false
+		for _, jobConfig := range validator.config.Jobs {
+			matched, _ := path.Match(jobGlob, jobConfig.Name)
+
+			if matched {
+				foundJob = true
+
+				foundResource := false
+
+				_ = jobConfig.StepConfig().Visit(StepRecursor{
+					OnGet: func(input *GetStep) error {
+						if input.ResourceName() == resourceName {
+							foundResource = true
+						}
+						return nil
+					},
+					OnPut: func(output *PutStep) error {
+						if output.ResourceName() == resourceName {
+							foundResource = true
+						}
+						return nil
+					},
+				})
+
+				if !foundResource {
+					validator.recordErrorf("job '%s' does not interact with resource '%s'", jobConfig.Name, resourceName)
+				}
+			}
 		}
 
-		foundResource := false
-
-		_ = jobConfig.StepConfig().Visit(StepRecursor{
-			OnGet: func(input *GetStep) error {
-				if input.ResourceName() == resourceName {
-					foundResource = true
-				}
-				return nil
-			},
-			OnPut: func(output *PutStep) error {
-				if output.ResourceName() == resourceName {
-					foundResource = true
-				}
-				return nil
-			},
-		})
-
-		if !foundResource {
-			validator.recordErrorf("job '%s' does not interact with resource '%s'", job, resourceName)
+		if !foundJob {
+			validator.recordErrorf("no matching job(s) for '%s'", jobGlob)
 		}
 	}
 

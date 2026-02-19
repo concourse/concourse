@@ -94,14 +94,14 @@ func extractIDtokenFromBuffer(buffer []byte, whichToken string) string {
 	return string(tokenMatches[1])
 }
 
-func getOpenIDConfiguration(atcURL string) (map[string]interface{}, error) {
+func getOpenIDConfiguration(atcURL string) (map[string]any, error) {
 	resp, err := http.Get(atcURL + "/.well-known/openid-configuration")
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var config map[string]interface{}
+	var config map[string]any
 	err = json.NewDecoder(resp.Body).Decode(&config)
 	return config, err
 }

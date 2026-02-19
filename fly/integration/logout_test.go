@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("logout Command", func() {
+var _ = Describe("logout", func() {
 	var (
 		logoutATCServer *ghttp.Server
 	)
@@ -86,16 +86,14 @@ var _ = Describe("logout Command", func() {
 
 	Describe("delete all", func() {
 		It("removes all tokens and all targets remain in flyrc", func() {
-			logoutATCServer.AppendHandlers(
+			logoutATCServer.RouteToHandler("GET", "/test1/sky/logout",
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/test1/sky/logout"),
 					ghttp.RespondWith(200, ""),
-				),
+				))
+			logoutATCServer.RouteToHandler("GET", "/test2/sky/logout",
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/test2/sky/logout"),
 					ghttp.RespondWith(200, ""),
-				),
-			)
+				))
 			flyCmd := exec.Command(flyPath, "logout", "--all")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -164,16 +162,14 @@ var _ = Describe("logout Command", func() {
 
 	Describe("try to delete all, but logout API fails", func() {
 		It("try to logout from all targets, but one fails", func() {
-			logoutATCServer.AppendHandlers(
+			logoutATCServer.RouteToHandler("GET", "/test1/sky/logout",
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/test1/sky/logout"),
 					ghttp.RespondWith(200, ""),
-				),
+				))
+			logoutATCServer.RouteToHandler("GET", "/test2/sky/logout",
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/test2/sky/logout"),
 					ghttp.RespondWith(500, ""),
-				),
-			)
+				))
 			flyCmd := exec.Command(flyPath, "logout", "--all")
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
@@ -183,6 +179,7 @@ var _ = Describe("logout Command", func() {
 			Expect(sess.ExitCode()).To(Equal(1))
 
 			Expect(sess.Out).To(gbytes.Say(`logged out of target: test1`))
+			Expect(sess.Err).To(gbytes.Say(`logout failed with status: 500 Internal Server Error`))
 
 			flyCmd = exec.Command(flyPath, "targets")
 			sess, err = gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)

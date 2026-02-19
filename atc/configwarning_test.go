@@ -91,7 +91,6 @@ var _ = Describe("ValidateIdentifier", func() {
 			warning:     false,
 		},
 	} {
-		test := test
 
 		Context("when an identifier "+test.description, func() {
 			var it string

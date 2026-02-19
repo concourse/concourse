@@ -2,23 +2,24 @@ package commands
 
 import (
 	"fmt"
-	"github.com/concourse/concourse/go-concourse/concourse"
 	"os"
+
+	"github.com/concourse/concourse/go-concourse/concourse"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
 	"github.com/fatih/color"
-	"github.com/vito/go-interact/interact"
 )
 
 type ArchivePipelineCommand struct {
 	Pipeline        *flaghelpers.PipelineFlag `short:"p"  long:"pipeline"        description:"Pipeline to archive"`
 	All             bool                      `short:"a"  long:"all"             description:"Archive all pipelines"`
 	SkipInteractive bool                      `short:"n"  long:"non-interactive" description:"Skips interactions, uses default values"`
-	Team  flaghelpers.TeamFlag  `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Team            flaghelpers.TeamFlag      `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *ArchivePipelineCommand) Validate() error {
@@ -112,8 +113,7 @@ func (command ArchivePipelineCommand) confirmArchive(pipelines []atc.PipelineRef
 
 	fmt.Printf("!!! archiving the pipeline will remove its configuration. Build history will be retained.\n\n")
 
-	var confirm bool
-	err := interact.NewInteraction(command.archivePrompt(pipelines)).Resolve(&confirm)
+	confirm, err := interaction.Confirm(command.archivePrompt(pipelines))
 	if err != nil {
 		return false
 	}

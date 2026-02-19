@@ -29,7 +29,7 @@ type ResourceConfigMetadataField struct {
 
 type ResourceConfigMetadataFields []ResourceConfigMetadataField
 
-func NewResourceConfigMetadataFields(atcm []atc.MetadataField) ResourceConfigMetadataFields {
+func NewResourceConfigMetadataFields(atcm atc.Metadata) ResourceConfigMetadataFields {
 	metadata := make([]ResourceConfigMetadataField, len(atcm))
 	for i, md := range atcm {
 		metadata[i] = ResourceConfigMetadataField{
@@ -41,8 +41,8 @@ func NewResourceConfigMetadataFields(atcm []atc.MetadataField) ResourceConfigMet
 	return metadata
 }
 
-func (rmf ResourceConfigMetadataFields) ToATCMetadata() []atc.MetadataField {
-	metadata := make([]atc.MetadataField, len(rmf))
+func (rmf ResourceConfigMetadataFields) ToATCMetadata() atc.Metadata {
+	metadata := make(atc.Metadata, len(rmf))
 	for i, md := range rmf {
 		metadata[i] = atc.MetadataField{
 			Name:  md.Name,

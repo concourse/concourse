@@ -1,6 +1,8 @@
 package skyserver_test
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -14,6 +16,32 @@ import (
 
 	"github.com/onsi/gomega/ghttp"
 )
+
+// stateToken mirrors the struct in skyserver.go for test signing
+type stateToken struct {
+	RedirectURI string `json:"redirect_uri"`
+	Entropy     string `json:"entropy"`
+	Timestamp   int64  `json:"ts"`
+	Signature   string `json:"sig,omitempty"`
+}
+
+// signStateToken creates a signed state token for testing
+func signStateToken(redirectURI string, ts int64) string {
+	st := stateToken{
+		RedirectURI: redirectURI,
+		Entropy:     "test-entropy",
+		Timestamp:   ts,
+	}
+
+	payload, _ := json.Marshal(st)
+
+	mac := hmac.New(sha256.New, stateSigningKey)
+	mac.Write(payload)
+	st.Signature = base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+
+	signed, _ := json.Marshal(st)
+	return base64.RawURLEncoding.EncodeToString(signed)
+}
 
 var _ = Describe("Sky Server API", func() {
 
@@ -42,15 +70,7 @@ var _ = Describe("Sky Server API", func() {
 
 			ExpectNewLogin := func() {
 
-				It("stores a state cookie", func() {
-					Expect(fakeTokenMiddleware.SetStateTokenCallCount()).To(Equal(1))
-					_, state, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
-					Expect(state).NotTo(BeEmpty())
-				})
-
 				It("redirects the initial request to the oauthConfig.AuthURL", func() {
-					_, state, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
-
 					redirectURL, err := response.Location()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(redirectURL.Path).To(Equal("/auth"))
@@ -58,7 +78,7 @@ var _ = Describe("Sky Server API", func() {
 					redirectValues := redirectURL.Query()
 					Expect(redirectValues.Get("access_type")).To(Equal("offline"))
 					Expect(redirectValues.Get("response_type")).To(Equal("code"))
-					Expect(redirectValues.Get("state")).To(Equal(state))
+					Expect(redirectValues.Get("state")).NotTo(BeEmpty())
 					Expect(redirectValues.Get("scope")).To(Equal("some-scope"))
 				})
 
@@ -67,15 +87,19 @@ var _ = Describe("Sky Server API", func() {
 						request.URL.RawQuery = "redirect_uri=/redirect"
 					})
 
-					It("stores redirect_uri in the state token cookie", func() {
-						_, raw, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
-
-						data, err := base64.StdEncoding.DecodeString(raw)
+					It("stores redirect_uri in the signed state token", func() {
+						redirectURL, err := response.Location()
 						Expect(err).NotTo(HaveOccurred())
 
-						var state map[string]string
+						stateParam := redirectURL.Query().Get("state")
+						data, err := base64.RawURLEncoding.DecodeString(stateParam)
+						Expect(err).NotTo(HaveOccurred())
+
+						var state map[string]any
 						json.Unmarshal(data, &state)
 						Expect(state["redirect_uri"]).To(Equal("/redirect"))
+						Expect(state["sig"]).NotTo(BeEmpty())
+						Expect(state["ts"]).NotTo(BeZero())
 					})
 				})
 
@@ -84,13 +108,15 @@ var _ = Describe("Sky Server API", func() {
 						request.URL.RawQuery = ""
 					})
 
-					It("stores / as the default redirect_uri in the state token cookie", func() {
-						_, raw, _ := fakeTokenMiddleware.SetStateTokenArgsForCall(0)
-
-						data, err := base64.StdEncoding.DecodeString(raw)
+					It("stores / as the default redirect_uri in the signed state token", func() {
+						redirectURL, err := response.Location()
 						Expect(err).NotTo(HaveOccurred())
 
-						var state map[string]string
+						stateParam := redirectURL.Query().Get("state")
+						data, err := base64.RawURLEncoding.DecodeString(stateParam)
+						Expect(err).NotTo(HaveOccurred())
+
+						var state map[string]any
 						json.Unmarshal(data, &state)
 						Expect(state["redirect_uri"]).To(Equal("/"))
 					})
@@ -292,44 +318,70 @@ var _ = Describe("Sky Server API", func() {
 				})
 			})
 
-			Context("when the state cookie doesn't exist", func() {
+			Context("when the state token is missing", func() {
 				BeforeEach(func() {
-					fakeTokenMiddleware.GetStateTokenReturns("")
+					request.URL.RawQuery = ""
 				})
 
 				It("errors", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 
-				It("shows state cookie invalid message", func() {
+				It("shows invalid state message", func() {
 					Expect(string(body)).To(Equal("invalid state token\n"))
 				})
 			})
 
-			Context("when the cookie state doesn't match the form state", func() {
+			Context("when the state token has invalid signature", func() {
 				BeforeEach(func() {
-					fakeTokenMiddleware.GetStateTokenReturns("not-state")
-					request.URL.RawQuery = "state=some-state"
+					// Create unsigned state token
+					st := stateToken{
+						RedirectURI: "/redirect",
+						Entropy:     "test",
+						Timestamp:   time.Now().Unix(),
+						Signature:   "invalid-signature",
+					}
+					data, _ := json.Marshal(st)
+					invalidState := base64.RawURLEncoding.EncodeToString(data)
+					request.URL.RawQuery = "state=" + invalidState
 				})
 
 				It("errors", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 
-				It("shows state cookie unexpected message", func() {
-					Expect(string(body)).To(Equal("unexpected state token\n"))
+				It("shows invalid state message", func() {
+					Expect(string(body)).To(Equal("invalid state token\n"))
 				})
 			})
 
-			Context("when the cookie state matches the form state", func() {
+			Context("when the state token is expired", func() {
 				BeforeEach(func() {
-					fakeTokenMiddleware.GetStateTokenReturns("some-state")
-					request.URL.RawQuery = "state=some-state"
+					// Create state token with old timestamp (2 hours ago)
+					expiredState := signStateToken("/redirect", time.Now().Add(-2*time.Hour).Unix())
+					request.URL.RawQuery = "state=" + expiredState
+				})
+
+				It("errors", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("shows invalid state message", func() {
+					Expect(string(body)).To(Equal("invalid state token\n"))
+				})
+			})
+
+			Context("when the state token is valid", func() {
+				var validState string
+
+				BeforeEach(func() {
+					validState = signStateToken("/some-redirect", time.Now().Unix())
+					request.URL.RawQuery = "state=" + validState
 				})
 
 				Context("when there is an authorization code", func() {
 					BeforeEach(func() {
-						request.URL.RawQuery = "code=some-code&state=some-state"
+						request.URL.RawQuery = "code=some-code&state=" + validState
 					})
 
 					Context("when requesting a token fails", func() {
@@ -396,13 +448,7 @@ var _ = Describe("Sky Server API", func() {
 
 						Context("when redirect URI is http://example.com", func() {
 							BeforeEach(func() {
-								state, _ := json.Marshal(map[string]string{
-									"redirect_uri": "http://example.com",
-								})
-
-								stateToken := base64.StdEncoding.EncodeToString(state)
-								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
-
+								stateToken := signStateToken("http://example.com", time.Now().Unix())
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
@@ -413,13 +459,7 @@ var _ = Describe("Sky Server API", func() {
 
 						Context("when redirect URI is //example.com", func() {
 							BeforeEach(func() {
-								state, _ := json.Marshal(map[string]string{
-									"redirect_uri": "//example.com",
-								})
-
-								stateToken := base64.StdEncoding.EncodeToString(state)
-								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
-
+								stateToken := signStateToken("//example.com", time.Now().Unix())
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
@@ -430,13 +470,7 @@ var _ = Describe("Sky Server API", func() {
 
 						Context("when redirect URI is http:///example.com/path", func() {
 							BeforeEach(func() {
-								state, _ := json.Marshal(map[string]string{
-									"redirect_uri": "http:///example.com/path",
-								})
-
-								stateToken := base64.StdEncoding.EncodeToString(state)
-								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
-
+								stateToken := signStateToken("http:///example.com/path", time.Now().Unix())
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
@@ -447,13 +481,7 @@ var _ = Describe("Sky Server API", func() {
 
 						Context("when redirect URI is https:example.com", func() {
 							BeforeEach(func() {
-								state, _ := json.Marshal(map[string]string{
-									"redirect_uri": "https:example.com",
-								})
-
-								stateToken := base64.StdEncoding.EncodeToString(state)
-								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
-
+								stateToken := signStateToken("https:example.com", time.Now().Unix())
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
@@ -464,13 +492,7 @@ var _ = Describe("Sky Server API", func() {
 
 						Context("when redirect URI is example.com", func() {
 							BeforeEach(func() {
-								state, _ := json.Marshal(map[string]string{
-									"redirect_uri": "example.com",
-								})
-
-								stateToken := base64.StdEncoding.EncodeToString(state)
-								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
-
+								stateToken := signStateToken("example.com", time.Now().Unix())
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
@@ -481,13 +503,7 @@ var _ = Describe("Sky Server API", func() {
 
 						Context("when redirecting to the ATC", func() {
 							BeforeEach(func() {
-								state, _ := json.Marshal(map[string]string{
-									"redirect_uri": "/valid-redirect",
-								})
-
-								stateToken := base64.StdEncoding.EncodeToString(state)
-								fakeTokenMiddleware.GetStateTokenReturns(stateToken)
-
+								stateToken := signStateToken("/valid-redirect", time.Now().Unix())
 								request.URL.RawQuery = "code=some-code&state=" + stateToken
 							})
 
@@ -517,10 +533,6 @@ var _ = Describe("Sky Server API", func() {
 								Context("when setting the csrf token succeeds", func() {
 									BeforeEach(func() {
 										fakeTokenMiddleware.SetCSRFTokenReturns(nil)
-									})
-
-									It("unsets the cookie state", func() {
-										Expect(fakeTokenMiddleware.UnsetStateTokenCallCount()).To(Equal(1))
 									})
 
 									It("saves the access token from the response", func() {

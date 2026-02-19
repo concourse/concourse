@@ -23,7 +23,7 @@ func New(logger lager.Logger, imagePath string, mountPath string, mkfsBin string
 		imagePath: imagePath,
 		mountPath: mountPath,
 		mkfsBin:   mkfsBin,
-		logger:    logger,
+		logger:    logger.Session("btrfs"),
 	}
 }
 

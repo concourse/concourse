@@ -12,6 +12,16 @@ type MetadataField struct {
 	Value string `json:"value"`
 }
 
+type Metadata []MetadataField
+
+func (m Metadata) AsMap() map[string]any {
+	result := make(map[string]any, len(m))
+	for _, v := range m {
+		result[v.Name] = v.Value
+	}
+	return result
+}
+
 type Source map[string]any
 
 func (src Source) MarshalJSON() ([]byte, error) {

@@ -174,12 +174,7 @@ func (a *access) TeamNames() []string {
 }
 
 func (a *access) hasPermission(roles []string) bool {
-	for _, role := range roles {
-		if a.hasRequiredRole(role) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(roles, a.hasRequiredRole)
 }
 
 func (a *access) hasRequiredRole(role string) bool {
@@ -267,10 +262,8 @@ func (a *access) IsAdmin() bool {
 
 func (a *access) IsSystem() bool {
 	if claim := a.claim(a.systemClaimKey); claim != "" {
-		for _, value := range a.systemClaimValues {
-			if value == claim {
-				return true
-			}
+		if slices.Contains(a.systemClaimValues, claim) {
+			return true
 		}
 	}
 	return false

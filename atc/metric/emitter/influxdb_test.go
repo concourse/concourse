@@ -53,14 +53,14 @@ var _ = Describe("InfluxDBEmitter", func() {
 			})
 
 			It("should write 1 batch to InfluxDB", func() {
-				for i := 0; i < 3; i++ {
+				for range 3 {
 					influxDBEmitter.Emit(testLogger, metric.Event{})
 				}
 				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 1))
 			})
 
 			It("should write 2 batches to InfluxDB", func() {
-				for i := 0; i < 4; i++ {
+				for range 4 {
 					influxDBEmitter.Emit(testLogger, metric.Event{})
 				}
 				Eventually(influxDBClient.WriteCallCount).Should(BeNumerically("==", 2))
@@ -127,7 +127,7 @@ var _ = Describe("InfluxDBEmitter", func() {
 			})
 
 			It("should write 2 batches to InfluxDB", func() {
-				for i := 0; i < 2; i++ {
+				for range 2 {
 					influxDBEmitter.Emit(testLogger, metric.Event{})
 					time.Sleep(2 * time.Nanosecond)
 				}

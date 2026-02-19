@@ -1,6 +1,8 @@
 package worker_test
 
 import (
+	"slices"
+
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
@@ -802,12 +804,7 @@ func workerNames(workers []db.Worker) []string {
 
 func filterWorkers(allWorkers []db.Worker, namesToKeep ...string) []db.Worker {
 	keep := func(name string) bool {
-		for _, otherName := range namesToKeep {
-			if name == otherName {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(namesToKeep, name)
 	}
 
 	var workers []db.Worker

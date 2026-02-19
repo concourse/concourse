@@ -12,7 +12,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("status Command", func() {
+var _ = Describe("status", func() {
 	var (
 		flyCmd *exec.Cmd
 	)

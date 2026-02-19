@@ -397,10 +397,7 @@ func (server *server) forwardTCPIP(
 			break
 		}
 
-		connsWg.Add(1)
-
-		go func() {
-			defer connsWg.Done()
+		connsWg.Go(func() {
 
 			forwardLocalConn(
 				lagerctx.NewContext(ctx, logger.Session("forward-conn")),
@@ -409,7 +406,7 @@ func (server *server) forwardTCPIP(
 				forwardIP,
 				forwardPort,
 			)
-		}()
+		})
 	}
 }
 

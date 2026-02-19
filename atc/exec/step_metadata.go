@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"sort"
-	"strings"
 )
 
 type StepMetadata struct {
@@ -18,6 +16,7 @@ type StepMetadata struct {
 	PipelineID           int
 	PipelineName         string
 	PipelineInstanceVars map[string]any
+	InstanceVarsQuery    url.Values
 	ExternalURL          string
 	CreatedBy            string
 }
@@ -77,16 +76,8 @@ func (metadata StepMetadata) Env() []string {
 					metadata.JobName,
 					metadata.BuildName)
 
-				if len(metadata.PipelineInstanceVars) > 0 {
-					var queryParams []string
-					for key, value := range metadata.PipelineInstanceVars {
-						queryParams = append(queryParams,
-							fmt.Sprintf("vars.%s=%s",
-								url.QueryEscape(key),
-								url.QueryEscape(fmt.Sprintf("%v", value))))
-					}
-					sort.Strings(queryParams)
-					buildURL += "?" + strings.Join(queryParams, "&")
+				if len(metadata.InstanceVarsQuery) > 0 {
+					buildURL += "?" + metadata.InstanceVarsQuery.Encode()
 				}
 			}
 

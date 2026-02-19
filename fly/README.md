@@ -40,17 +40,9 @@ Fly is built using [Go](http://golang.org/). Building and testing fly is most ea
 
 ## Installing from the Concourse UI for Project Development
 
-Fly is available for download in the lower right-hand corner of the concourse UI.
-
-![fly download links](images/fly_download_ui.png)
-
-1. Navigate to your Concourse instance in the browser, and click the button corresponding to your OS
-
-1. Move the downloaded file onto your PATH
-
-  ```bash
-  install ~/Downloads/fly /usr/local/bin
-  ```
+Fly is available for download in the lower right-hand corner of the concourse UI
+which will take you to the download page:
+[http://localhost:8080/download-fly](http://localhost:8080/download-fly).
 
 1. Confirm availability with `which fly`
 
@@ -58,4 +50,3 @@ Fly is available for download in the lower right-hand corner of the concourse UI
 Fly is not available for upgrade independently of Concourse. You can download the corresponding upgraded version of Fly via the following: 
 * using the [Concourse UI](#installing-from-the-concourse-ui-for-project-development) 
 * running `fly -t example sync` if you already have fly locally
-

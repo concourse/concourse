@@ -5,6 +5,8 @@ package runtime_test
 import (
 	"errors"
 	"fmt"
+	"slices"
+	"unicode/utf8"
 
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/worker/runtime"
@@ -218,11 +220,8 @@ func (s *ContainerSuite) TestRunWithUserLookupSucceeds() {
 	userEnvVarSet := false
 	expectedEnvVar := "USER=some_user"
 
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedEnvVar {
-			userEnvVarSet = true
-			break
-		}
+	if slices.Contains(procSpec.Env, expectedEnvVar) {
+		userEnvVarSet = true
 	}
 	s.True(userEnvVarSet)
 }
@@ -252,14 +251,7 @@ func (s *ContainerSuite) TestDoesNotOverwriteExistingPathInImage() {
 	_, _, procSpec, _ := s.containerdTask.ExecArgsForCall(0)
 	s.Equal(expectedUser, procSpec.User)
 
-	userEnvVarSet := false
-
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedImagePath {
-			userEnvVarSet = true
-			break
-		}
-	}
+	userEnvVarSet := slices.Contains(procSpec.Env, expectedImagePath)
 	s.True(userEnvVarSet)
 }
 
@@ -284,11 +276,8 @@ func (s *ContainerSuite) TestRunWithRootUserHasSuperUserPath() {
 	userEnvVarSet := false
 	expectedEnvVar := runtime.SuperuserPath
 
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedEnvVar {
-			userEnvVarSet = true
-			break
-		}
+	if slices.Contains(procSpec.Env, expectedEnvVar) {
+		userEnvVarSet = true
 	}
 	s.True(userEnvVarSet)
 }
@@ -314,11 +303,8 @@ func (s *ContainerSuite) TestRunWithNonRootUserHasUserPath() {
 	userEnvVarSet := false
 	expectedEnvVar := runtime.Path
 
-	for _, envVar := range procSpec.Env {
-		if envVar == expectedEnvVar {
-			userEnvVarSet = true
-			break
-		}
+	if slices.Contains(procSpec.Env, expectedEnvVar) {
+		userEnvVarSet = true
 	}
 	s.True(userEnvVarSet)
 }
@@ -487,6 +473,19 @@ func (s *ContainerSuite) TestPropertyReturnsValue() {
 	result, err := s.container.Property("any")
 	s.NoError(err)
 	s.Equal("some-value", result)
+}
+
+func (s *ContainerSuite) TestSetPropertyStripsNonUTF8Runes() {
+	s.containerdContainer.SetLabelsReturns(nil, nil)
+	invalid := string([]byte{0xff, 0xfe, 0xfd})
+	err := s.container.SetProperty("any",
+		"regular"+invalid+"utf8\nchars")
+	s.NoError(err)
+
+	s.Equal(1, s.containerdContainer.SetLabelsCallCount())
+	_, labels := s.containerdContainer.SetLabelsArgsForCall(0)
+	expected := "regular" + string(utf8.RuneError) + "utf8\nchars"
+	s.Equal(expected, labels["any.0"])
 }
 
 func (s *ContainerSuite) TestCurrentCPULimitsGetInfoFails() {

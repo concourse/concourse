@@ -56,7 +56,7 @@ var _ = Describe("Volume Server", func() {
 	JustBeforeEach(func() {
 		logger := lagertest.NewTestLogger("volume-server")
 
-		fs, err := volume.NewFilesystem(&driver.NaiveDriver{}, volumeDir)
+		fs, err := volume.NewFilesystem(logger, &driver.NaiveDriver{}, volumeDir)
 		Expect(err).NotTo(HaveOccurred())
 
 		var privilegedNamespacer, unprivilegedNamespacer uidgid.Namespacer
@@ -1296,6 +1296,17 @@ var _ = Describe("Volume Server", func() {
 					// real tests are in JustBeforeEach
 				})
 			})
+		})
+	})
+
+	Describe("cleanup orphaned volumes", func() {
+		It("returns 204 on success", func() {
+			recorder := httptest.NewRecorder()
+
+			request, _ := http.NewRequest("POST", "/volumes/cleanup-orphans", nil)
+			handler.ServeHTTP(recorder, request)
+
+			Expect(recorder.Code).To(Equal(http.StatusNoContent))
 		})
 	})
 })

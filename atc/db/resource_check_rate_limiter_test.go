@@ -120,7 +120,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			Expect(<-done).To(Succeed())
 
 			By("creating more checkables")
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				createCheckable()
 			}
 
@@ -197,7 +197,7 @@ var _ = Describe("ResourceCheckRateLimiter", func() {
 			Expect(limiter.Limit()).To(Equal(rate.Limit(rate.Inf)))
 
 			By("creating a few (ignored) checkables")
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				createCheckable()
 			}
 

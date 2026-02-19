@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"syscall"
 
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
 )
@@ -32,18 +33,26 @@ func metacopySupported() bool {
 	return true
 }
 
+var _ volume.Driver = (*OverlayDriver)(nil)
+
 type OverlayDriver struct {
 	OverlaysDir string
+	logger      lager.Logger
 }
 
-func NewOverlayDriver(overlaysDir string) volume.Driver {
+func NewOverlayDriver(logger lager.Logger, overlaysDir string) volume.Driver {
+	l := logger.Session("overlay-driver")
+	l.Info("metacopy-support", lager.Data{"supported": metacopySupported()})
 	return &OverlayDriver{
 		OverlaysDir: overlaysDir,
+		logger:      l,
 	}
 }
 
 func (driver *OverlayDriver) CreateVolume(vol volume.FilesystemInitVolume) error {
 	path := vol.DataPath()
+	driver.logger.Debug("create-volume", lager.Data{"path": path})
+
 	err := os.Mkdir(path, 0755)
 	if err != nil {
 		return err
@@ -54,23 +63,26 @@ func (driver *OverlayDriver) CreateVolume(vol volume.FilesystemInitVolume) error
 
 func (driver *OverlayDriver) DestroyVolume(vol volume.FilesystemVolume) error {
 	path := vol.DataPath()
+	driver.logger.Debug("destroy-volume", lager.Data{"path": path})
 
 	err := syscall.Unmount(path, 0)
 	// when a path is already unmounted, and unmount is called
 	// on it, syscall.EINVAL is returned as an error
 	// ignore this error and continue to clean up
 	if err != nil && !errors.Is(err, syscall.EINVAL) {
-		return err
+		driver.logger.Error("unmount", err, lager.Data{"path": path})
 	}
 
-	err = os.RemoveAll(driver.workDir(vol))
+	workDir := driver.workDir((vol))
+	err = os.RemoveAll(workDir)
 	if err != nil {
-		return err
+		driver.logger.Error("rm-work-dir", err, lager.Data{"path": workDir})
 	}
 
-	err = os.RemoveAll(driver.layerDir(vol))
+	layerDir := driver.layerDir(vol)
+	err = os.RemoveAll(layerDir)
 	if err != nil {
-		return err
+		driver.logger.Error("rm-layer-dir", err, lager.Data{"path": layerDir})
 	}
 
 	return os.RemoveAll(path)
@@ -90,6 +102,11 @@ func (driver *OverlayDriver) CreateCopyOnWriteLayer(
 	if err != nil {
 		return err
 	}
+
+	driver.logger.Debug("create-cow", lager.Data{
+		"child-path":  path,
+		"parent-path": rootParent.DataPath(),
+	})
 
 	return driver.overlayMount(child, rootParent)
 }
@@ -125,6 +142,8 @@ func (driver *OverlayDriver) Recover(fs volume.Filesystem) error {
 			return fmt.Errorf("recover bind mount: %w", err)
 		}
 	}
+
+	driver.logger.Debug("recovering-mounts", lager.Data{"volumes-to-recover": len(cows)})
 
 	for _, cow := range cows {
 		rootParent, err := driver.findRootParent(cow.child, cow.parent)
@@ -184,7 +203,13 @@ func (driver *OverlayDriver) bindMount(vol volume.FilesystemVolume) error {
 		return err
 	}
 
-	err = syscall.Mount(layerDir, vol.DataPath(), "", syscall.MS_BIND, "")
+	mountPath := vol.DataPath()
+	driver.logger.Debug("creating-bind-mount", lager.Data{
+		"layer-path": layerDir,
+		"mount-path": mountPath,
+	})
+
+	err = syscall.Mount(layerDir, mountPath, "", syscall.MS_BIND, "")
 	if err != nil {
 		return err
 	}
@@ -212,6 +237,7 @@ func (driver *OverlayDriver) overlayMount(child volume.FilesystemVolume, parent 
 		workDir,           //workdir
 	)
 
+	driver.logger.Debug("creating-overlay-mount", lager.Data{"opts": opts})
 	err = syscall.Mount("overlay", child.DataPath(), "overlay", 0, opts)
 	if err != nil {
 		return err
@@ -226,4 +252,61 @@ func (driver *OverlayDriver) layerDir(vol volume.FilesystemVolume) string {
 
 func (driver *OverlayDriver) workDir(vol volume.FilesystemVolume) string {
 	return filepath.Join(driver.OverlaysDir, "work", vol.Handle())
+}
+
+func (driver *OverlayDriver) RemoveOrphanedResources(knownHandles map[string]struct{}) error {
+	entries, err := os.ReadDir(driver.OverlaysDir)
+	if err != nil {
+		return fmt.Errorf("read overlays dir: %w", err)
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+
+		// skip the "work" meta-directory itself. Its children are handled below
+		if name == "work" {
+			continue
+		}
+
+		if _, known := knownHandles[name]; known {
+			continue
+		}
+
+		driver.logger.Debug("removing-orphaned-overlay-layer", lager.Data{"handle": name})
+
+		layerPath := filepath.Join(driver.OverlaysDir, name)
+		err := os.RemoveAll(layerPath)
+		if err != nil {
+			driver.logger.Error("failed-to-remove-orphaned-layer", err, lager.Data{"handle": name})
+		}
+
+		workPath := filepath.Join(driver.OverlaysDir, "work", name)
+		err = os.RemoveAll(workPath)
+		if err != nil {
+			driver.logger.Error("failed-to-remove-orphaned-work-dir", err, lager.Data{"handle": name})
+		}
+	}
+
+	// scan work/ dir for orphaned entries that may exist without a layer dir
+	workDir := filepath.Join(driver.OverlaysDir, "work")
+	workEntries, err := os.ReadDir(workDir)
+	if err != nil {
+		return fmt.Errorf("read overlays work dir: %w", err)
+	}
+
+	for _, entry := range workEntries {
+		name := entry.Name()
+		if _, known := knownHandles[name]; known {
+			continue
+		}
+
+		driver.logger.Debug("removing-orphaned-overlay-work-dir", lager.Data{"handle": name})
+
+		workPath := filepath.Join(workDir, name)
+		if err := os.RemoveAll(workPath); err != nil {
+			driver.logger.Error("failed-to-remove-orphaned-work-dir", err, lager.Data{"handle": name})
+		}
+	}
+
+	return nil
 }

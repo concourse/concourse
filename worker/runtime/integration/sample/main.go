@@ -63,7 +63,7 @@ func httpGet(url string) {
 }
 
 func writeTenTimes(content string) {
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		fmt.Println(content)
 		time.Sleep(300 * time.Millisecond)
 	}

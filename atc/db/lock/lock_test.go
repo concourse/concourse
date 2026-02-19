@@ -39,7 +39,7 @@ var _ = Describe("Locks", func() {
 
 		logger = lagertest.NewTestLogger("test")
 
-		for i := 0; i < lock.FactoryCount; i++ {
+		for i := range lock.FactoryCount {
 			lockConns[i] = postgresRunner.OpenSingleton()
 		}
 
@@ -91,7 +91,7 @@ var _ = Describe("Locks", func() {
 				var wg sync.WaitGroup
 				wg.Add(connCount)
 
-				for i := 0; i < connCount; i++ {
+				for range connCount {
 					go func() {
 						defer wg.Done()
 
@@ -122,7 +122,7 @@ var _ = Describe("Locks", func() {
 			var lockConns2 [lock.FactoryCount]*sql.DB
 
 			BeforeEach(func() {
-				for i := 0; i < lock.FactoryCount; i++ {
+				for i := range lock.FactoryCount {
 					lockConns2[i] = postgresRunner.OpenSingleton()
 				}
 				lockFactory2 = lock.NewLockFactory(lockConns2, fakeLogFunc, fakeLogFunc)

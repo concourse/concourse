@@ -1,8 +1,7 @@
 //go:build !linux
-// +build !linux
 
 package driver
 
-func isSubvolume(p string) (bool, error) {
+func isSubvolume(_ string) (bool, error) {
 	return false, nil
 }

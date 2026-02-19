@@ -37,9 +37,7 @@ type BaggageclaimCommand struct {
 	Driver string `long:"driver" default:"detect" choice:"detect" choice:"naive" description:"Driver to use for managing volumes."`
 }
 
-func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
-	logger, _ := cmd.constructLogger()
-
+func (cmd *BaggageclaimCommand) Runner(logger lager.Logger, args []string) (ifrit.Runner, error) {
 	listenAddr := fmt.Sprintf("%s:%d", cmd.BindIP.IP, cmd.BindPort)
 
 	locker := volume.NewLockManager()
@@ -50,7 +48,7 @@ func (cmd *BaggageclaimCommand) Runner(args []string) (ifrit.Runner, error) {
 		return nil, err
 	}
 
-	filesystem, err := volume.NewFilesystem(driver, cmd.VolumesDir.Path())
+	filesystem, err := volume.NewFilesystem(logger, driver, cmd.VolumesDir.Path())
 	if err != nil {
 		logger.Error("failed-to-initialize-filesystem", err)
 		return nil, err

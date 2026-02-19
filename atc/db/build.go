@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"strconv"
 	"strings"
@@ -2087,9 +2088,7 @@ func createStartedBuild(tx Tx, build *build, args startedBuildArgs) error {
 	buildVals["schema"] = schema
 	buildVals["needs_v6_migration"] = false
 
-	for name, value := range args.ExtraValues {
-		buildVals[name] = value
-	}
+	maps.Copy(buildVals, args.ExtraValues)
 
 	err = createBuild(tx, build, buildVals)
 	if err != nil {

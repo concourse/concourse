@@ -291,6 +291,24 @@ func (vs *VolumeServer) DestroyVolumes(w http.ResponseWriter, req *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (vs *VolumeServer) CleanupOrphanedVolumes(w http.ResponseWriter, req *http.Request) {
+	hLog := vs.logger.Session("cleanup-orphaned-volumes")
+
+	hLog.Debug("start")
+	defer hLog.Debug("done")
+
+	ctx := lagerctx.NewContext(req.Context(), hLog)
+
+	err := vs.volumeRepo.CleanupOrphanedVolumes(ctx)
+	if err != nil {
+		hLog.Error("failed-to-cleanup-orphaned-volumes", err)
+		RespondWithError(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (vs *VolumeServer) ListVolumes(w http.ResponseWriter, req *http.Request) {
 	hLog := vs.logger.Session("list-volumes")
 
@@ -307,7 +325,7 @@ func (vs *VolumeServer) ListVolumes(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	volumes, _, err := vs.volumeRepo.ListVolumes(ctx, properties)
+	volumes, err := vs.volumeRepo.ListVolumes(ctx, properties)
 	if err != nil {
 		hLog.Error("failed-to-list-volumes", err)
 		RespondWithError(w, ErrListVolumesFailed, http.StatusInternalServerError)
@@ -693,6 +711,7 @@ func (vs *VolumeServer) prepareCreate(w http.ResponseWriter, req *http.Request, 
 
 func (vs *VolumeServer) doCreate(ctx context.Context, w http.ResponseWriter, request baggageclaim.VolumeRequest, handle string, strategy volume.Strategy, hLog lager.Logger, handlers volumeCreationHandler) (volume.Volume, error) {
 	hLog.Debug("creating")
+	ctx = lagerctx.NewContext(ctx, hLog)
 
 	createdVolume, err := vs.volumeRepo.CreateVolume(
 		ctx,

@@ -37,11 +37,9 @@ func (sh *streamHandler) streamIn(processWriter io.WriteCloser, stdin io.Reader)
 }
 
 func (sh *streamHandler) streamOut(streamWriter io.Writer, streamReader io.Reader) {
-	sh.wg.Add(1)
-	go func() {
+	sh.wg.Go(func() {
 		io.Copy(streamWriter, streamReader)
-		sh.wg.Done()
-	}()
+	})
 }
 
 type waitReturn struct {

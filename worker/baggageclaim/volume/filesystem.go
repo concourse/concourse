@@ -1,10 +1,13 @@
 package volume
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"code.cloudfoundry.org/lager/v3"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -15,6 +18,7 @@ type Filesystem interface {
 	NewVolume(string) (FilesystemInitVolume, error)
 	LookupVolume(string) (FilesystemLiveVolume, bool, error)
 	ListVolumes() ([]FilesystemLiveVolume, error)
+	CleanupOrphanedEntries() error
 }
 
 //counterfeiter:generate . FilesystemVolume
@@ -61,7 +65,10 @@ const (
 	deadDirname = "dead" // volumes being torn down
 )
 
+var _ Filesystem = (*filesystem)(nil)
+
 type filesystem struct {
+	log    lager.Logger
 	driver Driver
 
 	initDir string
@@ -69,7 +76,7 @@ type filesystem struct {
 	deadDir string
 }
 
-func NewFilesystem(driver Driver, parentDir string) (Filesystem, error) {
+func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesystem, error) {
 	initDir := filepath.Join(parentDir, initDirname)
 	liveDir := filepath.Join(parentDir, liveDirname)
 	deadDir := filepath.Join(parentDir, deadDirname)
@@ -90,6 +97,7 @@ func NewFilesystem(driver Driver, parentDir string) (Filesystem, error) {
 	}
 
 	return &filesystem{
+		log:    logger.Session("filesystem"),
 		driver: driver,
 
 		initDir: initDir,
@@ -99,6 +107,7 @@ func NewFilesystem(driver Driver, parentDir string) (Filesystem, error) {
 }
 
 func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
+	fs.log.Debug("new-volume", lager.Data{"handle": handle})
 	volume, err := fs.initRawVolume(handle)
 	if err != nil {
 		return nil, err
@@ -106,7 +115,10 @@ func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
 
 	err = fs.driver.CreateVolume(volume)
 	if err != nil {
-		volume.cleanup()
+		e := volume.Destroy()
+		if e != nil {
+			fs.log.Error("error-cleaning-up-volume-after-failed-creation", e)
+		}
 		return nil, err
 	}
 
@@ -160,7 +172,62 @@ func (fs *filesystem) ListVolumes() ([]FilesystemLiveVolume, error) {
 		})
 	}
 
+	fs.log.Debug("list-volumes", lager.Data{"live-volumes": len(response)})
+
 	return response, nil
+}
+
+func (fs *filesystem) CleanupOrphanedEntries() error {
+	// Clean up stale dead/ entries
+	deadDirs, err := os.ReadDir(fs.deadDir)
+	if err != nil {
+		return fmt.Errorf("read dead dir: %w", err)
+	}
+
+	for _, entry := range deadDirs {
+		handle := entry.Name()
+		fs.log.Debug("cleaning-up-dead-volume", lager.Data{"handle": handle})
+
+		deadVol := &deadVolume{
+			baseVolume: baseVolume{
+				fs:     fs,
+				handle: handle,
+				dir:    fs.deadVolumePath(handle),
+			},
+		}
+
+		if err := deadVol.Destroy(); err != nil {
+			fs.log.Error("failed-to-cleanup-dead-volume", err, lager.Data{"handle": handle})
+		}
+	}
+
+	// Collect live and init handles, then ask the driver to remove
+	// any orphaned driver-specific resources.
+	knownHandles := map[string]struct{}{}
+	liveDirs, err := os.ReadDir(fs.liveDir)
+	if err != nil {
+		return fmt.Errorf("read live dir: %w", err)
+	}
+
+	for _, entry := range liveDirs {
+		knownHandles[entry.Name()] = struct{}{}
+	}
+
+	initDirs, err := os.ReadDir(fs.initDir)
+	if err != nil {
+		return fmt.Errorf("read init dir: %w", err)
+	}
+
+	for _, entry := range initDirs {
+		knownHandles[entry.Name()] = struct{}{}
+	}
+
+	err = fs.driver.RemoveOrphanedResources(knownHandles)
+	if err != nil {
+		fs.log.Error("failed-to-remove-orphaned-driver-resources", err)
+	}
+
+	return nil
 }
 
 func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {
@@ -199,6 +266,8 @@ func (fs *filesystem) liveVolumePath(handle string) string {
 func (fs *filesystem) deadVolumePath(handle string) string {
 	return filepath.Join(fs.deadDir, handle)
 }
+
+var _ FilesystemVolume = (*baseVolume)(nil)
 
 type baseVolume struct {
 	fs *filesystem
@@ -252,6 +321,7 @@ func (base *baseVolume) Parent() (FilesystemLiveVolume, bool, error) {
 }
 
 func (base *baseVolume) Destroy() error {
+	base.fs.log.Debug("destroy-volume", lager.Data{"handle": base.Handle()})
 	deadDir := base.fs.deadVolumePath(base.handle)
 
 	err := os.Rename(base.dir, deadDir)
@@ -271,19 +341,18 @@ func (base *baseVolume) Destroy() error {
 	return deadVol.Destroy()
 }
 
-func (base *baseVolume) cleanup() error {
-	return os.RemoveAll(base.dir)
-}
-
 func (base *baseVolume) parentLink() string {
 	return filepath.Join(base.dir, "parent")
 }
+
+var _ FilesystemInitVolume = (*initVolume)(nil)
 
 type initVolume struct {
 	baseVolume
 }
 
 func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
+	vol.fs.log.Debug("init-volume", lager.Data{"handle": vol.Handle()})
 	liveDir := vol.fs.liveVolumePath(vol.handle)
 
 	var err error
@@ -313,11 +382,17 @@ func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
 	}, nil
 }
 
+var _ FilesystemLiveVolume = (*liveVolume)(nil)
+
 type liveVolume struct {
 	baseVolume
 }
 
 func (vol *liveVolume) NewSubvolume(handle string) (FilesystemInitVolume, error) {
+	vol.fs.log.Debug("new-subvolume", lager.Data{
+		"parent": vol.Handle(),
+		"child":  handle,
+	})
 	child, err := vol.fs.initRawVolume(handle)
 	if err != nil {
 		return nil, err
@@ -325,18 +400,26 @@ func (vol *liveVolume) NewSubvolume(handle string) (FilesystemInitVolume, error)
 
 	err = vol.fs.driver.CreateCopyOnWriteLayer(child, vol)
 	if err != nil {
-		child.cleanup()
+		e := child.Destroy()
+		if e != nil {
+			vol.fs.log.Error("error-cleaning-up-volume-after-fail-cow-creation", e)
+		}
 		return nil, err
 	}
 
 	err = os.Symlink(vol.dir, child.parentLink())
 	if err != nil {
-		child.Destroy()
+		e := child.Destroy()
+		if e != nil {
+			vol.fs.log.Error("error-cleaning-up-volume-after-symlink-call", e)
+		}
 		return nil, err
 	}
 
 	return child, nil
 }
+
+var _ FilesystemVolume = (*deadVolume)(nil)
 
 type deadVolume struct {
 	baseVolume
@@ -345,8 +428,7 @@ type deadVolume struct {
 func (vol *deadVolume) Destroy() error {
 	err := vol.fs.driver.DestroyVolume(vol)
 	if err != nil {
-		return err
+		vol.fs.log.Error("driver-destroy-volume", err, lager.Data{"handle": vol.Handle()})
 	}
-
-	return vol.cleanup()
+	return os.RemoveAll(vol.dir)
 }

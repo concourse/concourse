@@ -131,7 +131,7 @@ func NewLockFactory(
 ) LockFactory {
 	factories := lockFactories{}
 
-	for i := 0; i < FactoryCount; i++ {
+	for i := range FactoryCount {
 		factories[i] = &lockFactory{
 			db: &lockDB{
 				conn:  conns[i],

@@ -264,6 +264,7 @@ func spawnOpts(opts ...spawnOpt) func(argc string, argv ...string) *gexec.Sessio
 func spawn(argc string, argv ...string) *gexec.Session {
 	By("running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
+	cmd.StdinPipe()
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 	return session

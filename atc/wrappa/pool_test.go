@@ -64,7 +64,7 @@ func pool(size int) wrappa.Pool {
 func doInParallel(numGoroutines int, thingToDo func()) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			thingToDo()
 			wg.Done()
