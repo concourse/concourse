@@ -60,6 +60,7 @@ func Job(
 		PipelineInstanceVars: job.PipelineInstanceVars(),
 		TeamName:             teamName,
 		DisableManualTrigger: job.DisableManualTrigger(),
+		DisableRerunJobTrigger: job.DisableRerunJobTrigger(),
 		Paused:               job.Paused(),
 		PausedBy:             job.PausedBy(),
 		FirstLoggedBuildID:   job.FirstLoggedBuildID(),

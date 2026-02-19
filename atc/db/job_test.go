@@ -90,6 +90,10 @@ var _ = Describe("Job", func() {
 					Name:                 "non-triggerable-job",
 					DisableManualTrigger: true,
 				},
+				{
+					Name:                  "non-rerunnable-job",
+					DisableRerunJobTrigger: true,
+				},
 			},
 			Resources: atc.ResourceConfigs{
 				{
@@ -153,6 +157,26 @@ var _ = Describe("Job", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(otherJob.DisableManualTrigger()).To(BeFalse())
+			})
+		})
+	})
+
+	Describe("DisableRerunJobTrigger", func() {
+		Context("when the config has disable_rerun_job_trigger set to true", func() {
+			It("returns true", func() {
+				nonRerunnableJob, found, err := pipeline.Job("non-rerunnable-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(nonRerunnableJob.DisableRerunJobTrigger()).To(BeTrue())
+			})
+		})
+
+		Context("when the config does not have disable_rerun_job_trigger set", func() {
+			It("returns false", func() {
+				otherJob, found, err := pipeline.Job("some-other-job")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(otherJob.DisableRerunJobTrigger()).To(BeFalse())
 			})
 		})
 	})

@@ -27,6 +27,7 @@ type alias Model r =
         , createdBy : Concourse.BuildCreatedBy
         , status : BuildStatus.BuildStatus
         , disableManualTrigger : Bool
+        , disableRerunJobTrigger : Bool
         , now : Maybe Time.Posix
         , fetchingHistory : Bool
         , nextPage : Maybe Page

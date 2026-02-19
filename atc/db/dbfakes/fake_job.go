@@ -149,6 +149,16 @@ type FakeJob struct {
 	disableManualTriggerReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	DisableRerunJobTriggerStub        func() bool
+	disableRerunJobTriggerMutex       sync.RWMutex
+	disableRerunJobTriggerArgsForCall []struct {
+	}
+	disableRerunJobTriggerReturns struct {
+		result1 bool
+	}
+	disableRerunJobTriggerReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	EnsurePendingBuildExistsStub        func(context.Context) error
 	ensurePendingBuildExistsMutex       sync.RWMutex
 	ensurePendingBuildExistsArgsForCall []struct {
@@ -1176,6 +1186,59 @@ func (fake *FakeJob) DisableManualTriggerReturnsOnCall(i int, result1 bool) {
 		})
 	}
 	fake.disableManualTriggerReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) DisableRerunJobTrigger() bool {
+	fake.disableRerunJobTriggerMutex.Lock()
+	ret, specificReturn := fake.disableRerunJobTriggerReturnsOnCall[len(fake.disableRerunJobTriggerArgsForCall)]
+	fake.disableRerunJobTriggerArgsForCall = append(fake.disableRerunJobTriggerArgsForCall, struct {
+	}{})
+	stub := fake.DisableRerunJobTriggerStub
+	fakeReturns := fake.disableRerunJobTriggerReturns
+	fake.recordInvocation("DisableRerunJobTrigger", []interface{}{})
+	fake.disableRerunJobTriggerMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) DisableRerunJobTriggerCallCount() int {
+	fake.disableRerunJobTriggerMutex.RLock()
+	defer fake.disableRerunJobTriggerMutex.RUnlock()
+	return len(fake.disableRerunJobTriggerArgsForCall)
+}
+
+func (fake *FakeJob) DisableRerunJobTriggerCalls(stub func() bool) {
+	fake.disableRerunJobTriggerMutex.Lock()
+	defer fake.disableRerunJobTriggerMutex.Unlock()
+	fake.DisableRerunJobTriggerStub = stub
+}
+
+func (fake *FakeJob) DisableRerunJobTriggerReturns(result1 bool) {
+	fake.disableRerunJobTriggerMutex.Lock()
+	defer fake.disableRerunJobTriggerMutex.Unlock()
+	fake.DisableRerunJobTriggerStub = nil
+	fake.disableRerunJobTriggerReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) DisableRerunJobTriggerReturnsOnCall(i int, result1 bool) {
+	fake.disableRerunJobTriggerMutex.Lock()
+	defer fake.disableRerunJobTriggerMutex.Unlock()
+	fake.DisableRerunJobTriggerStub = nil
+	if fake.disableRerunJobTriggerReturnsOnCall == nil {
+		fake.disableRerunJobTriggerReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.disableRerunJobTriggerReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }

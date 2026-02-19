@@ -481,6 +481,7 @@ model =
     , createdBy = Nothing
     , status = BuildStatusPending
     , disableManualTrigger = False
+    , disableRerunJobTrigger = False
     , now = Nothing
     , fetchingHistory = False
     , nextPage = Nothing

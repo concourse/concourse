@@ -69,6 +69,7 @@ type Job interface {
 	ScheduleRequestedTime() time.Time
 	MaxInFlight() int
 	DisableManualTrigger() bool
+	DisableRerunJobTrigger() bool
 
 	Config() (atc.JobConfig, error)
 	Inputs() ([]atc.JobInput, error)
@@ -130,6 +131,7 @@ var jobsQuery = psql.Select(
 	"j.schedule_requested",
 	"j.max_in_flight",
 	"j.disable_manual_trigger",
+	"j.disable_rerun_job_trigger",
 	"j.paused_by",
 	"j.paused_at").
 	From("jobs j").
@@ -163,6 +165,7 @@ type job struct {
 	scheduleRequestedTime time.Time
 	maxInFlight           int
 	disableManualTrigger  bool
+	disableRerunJobTrigger bool
 
 	config    *atc.JobConfig
 	rawConfig *string
@@ -226,6 +229,7 @@ func (j *job) HasNewInputs() bool               { return j.hasNewInputs }
 func (j *job) ScheduleRequestedTime() time.Time { return j.scheduleRequestedTime }
 func (j *job) MaxInFlight() int                 { return j.maxInFlight }
 func (j *job) DisableManualTrigger() bool       { return j.disableManualTrigger }
+func (j *job) DisableRerunJobTrigger() bool     { return j.disableRerunJobTrigger }
 
 func (j *job) LatestCompletedBuildId() (int, error) {
 	var id int
@@ -1412,7 +1416,7 @@ func scanJob(j *job, row scannable) error {
 	)
 
 	m := pgtype.NewMap()
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, m.SQLScanner(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &pausedBy, &pausedAt)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, m.SQLScanner(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &j.disableRerunJobTrigger, &pausedBy, &pausedAt)
 	if err != nil {
 		return err
 	}

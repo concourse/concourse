@@ -30,6 +30,11 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
+		if job.DisableRerunJobTrigger() {
+			w.WriteHeader(http.StatusConflict)
+			return
+		}
+
 		buildToRerun, found, err := job.Build(buildName)
 		if err != nil {
 			logger.Error("failed-to-get-build-to-rerun", err)
