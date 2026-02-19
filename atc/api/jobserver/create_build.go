@@ -66,6 +66,8 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 		}
 
 		for _, input := range inputs {
+			// TAYDEV-TODO: skip resources with passed constraints. Maybe remove
+			// this all together since the scheduler will check now?
 			resource, found := resources.Lookup(input.Resource)
 			if found {
 				version := resource.CurrentPinnedVersion()

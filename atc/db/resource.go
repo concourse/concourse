@@ -166,6 +166,9 @@ var (
 		Where(sq.Eq{"r.active": true})
 )
 
+var _ Resource = (*resource)(nil)
+var _ Checkable = (*resource)(nil)
+
 type resource struct {
 	pipelineRef
 

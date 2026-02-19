@@ -260,12 +260,20 @@ func (example Example) Run() {
 	fakePlanner := new(schedulerfakes.FakeBuildPlanner)
 	fakeAlgorithm := new(schedulerfakes.FakeAlgorithm)
 	fakeAlgorithm.ComputeReturns(nil, true, false, nil)
+	fakeCheckFactory := new(dbfakes.FakeCheckFactory)
 
-	buildStarter := scheduler.NewBuildStarter(fakePlanner, fakeAlgorithm)
+	buildStarter := scheduler.NewBuildStarter(fakePlanner, fakeAlgorithm, fakeCheckFactory)
 
 	fakeJob := new(dbfakes.FakeJob)
 	fakeJob.ConfigReturns(atc.JobConfig{}, nil)
 	fakeJob.SaveNextInputMappingReturns(nil)
+
+	// Skip checking the logic in createChecks()
+	fakePipeline := new(dbfakes.FakePipeline)
+	fakeJob.PipelineReturns(fakePipeline, true, nil)
+	fakePipeline.ResourcesReturns(nil, nil)
+	fakePipeline.ResourceTypesReturns(nil, nil)
+	fakeJob.InputsReturns(nil, nil)
 
 	var expectedScheduledBuilds []*dbfakes.FakeBuild
 	var pendingBuilds []db.Build
@@ -277,37 +285,21 @@ func (example Example) Run() {
 		fakeBuild.RerunOfReturns(build.RerunOfBuildID)
 		fakeBuild.IsManuallyTriggeredReturns(build.ManuallyTriggered)
 		fakeBuild.FinishReturns(nil)
+		fakeJob.ScheduleBuildReturnsOnCall(i, !build.MaxInFlightReached, nil)
+		fakeBuild.AdoptInputsAndPipesReturns(nil, !build.InputsNotDetermined, nil)
+		fakeBuild.AdoptRerunInputsAndPipesReturns(nil, !build.InputsNotDetermined, nil)
+		fakeBuild.StartReturns(!build.UnableToStart, nil)
 
-		if build.MaxInFlightReached {
-			fakeJob.ScheduleBuildReturnsOnCall(i, false, nil)
+		if build.ManuallyTriggered {
+			fakeBuild.ResourcesCheckedReturns(!build.ResourcesNotChecked, nil)
 		} else {
-			fakeJob.ScheduleBuildReturnsOnCall(i, true, nil)
-		}
-
-		if build.ResourcesNotChecked {
-			fakeBuild.ResourcesCheckedReturns(false, nil)
-		} else {
-			fakeBuild.ResourcesCheckedReturns(true, nil)
-		}
-
-		if build.InputsNotDetermined {
-			fakeBuild.AdoptInputsAndPipesReturns(nil, false, nil)
-			fakeBuild.AdoptRerunInputsAndPipesReturns(nil, false, nil)
-		} else {
-			fakeBuild.AdoptInputsAndPipesReturns(nil, true, nil)
-			fakeBuild.AdoptRerunInputsAndPipesReturns(nil, true, nil)
+			fakeBuild.TriggeringResourcesCheckedReturns(!build.ResourcesNotChecked, nil)
 		}
 
 		if build.CreatingBuildPlanFails {
 			fakePlanner.CreateReturns(atc.Plan{}, errors.New("disaster"))
 		} else {
 			fakePlanner.CreateReturns(atc.Plan{}, nil)
-		}
-
-		if build.UnableToStart {
-			fakeBuild.StartReturns(false, nil)
-		} else {
-			fakeBuild.StartReturns(true, nil)
 		}
 
 		expectedScheduledBuilds = append(expectedScheduledBuilds, fakeBuild)

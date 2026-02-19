@@ -8,6 +8,8 @@ import (
 	"github.com/concourse/concourse/atc/db"
 )
 
+var _ Build = (*manualTriggerBuild)(nil)
+
 type manualTriggerBuild struct {
 	db.Build
 
@@ -51,12 +53,14 @@ func (m *manualTriggerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, 
 	return buildInputs, true, nil
 }
 
+var _ Build = (*schedulerBuild)(nil)
+
 type schedulerBuild struct {
 	db.Build
 }
 
 func (s *schedulerBuild) IsReadyToDetermineInputs(logger lager.Logger) (bool, error) {
-	return true, nil
+	return s.TriggeringResourcesChecked()
 }
 
 func (s *schedulerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {
@@ -71,6 +75,8 @@ func (s *schedulerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool
 
 	return buildInputs, true, nil
 }
+
+var _ Build = (*rerunBuild)(nil)
 
 type rerunBuild struct {
 	db.Build
