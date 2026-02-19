@@ -130,7 +130,7 @@ header session model =
                             in
                             Just
                                 { type_ = Views.Rerun
-                                , isClickable = not model.disableRerunJobTrigger
+                                , isClickable = not model.disableReruns
                                 , backgroundShade =
                                     if isHovered then
                                         Views.Dark
@@ -236,7 +236,7 @@ tooltip model session =
         HoverState.Tooltip RerunBuildButton _ ->
             Just
                 (buttonTooltip <|
-                    if model.disableRerunJobTrigger then
+                    if model.disableReruns then
                         "re-run disabled in job config"
 
                     else
@@ -649,7 +649,7 @@ update msg ( model, effects ) =
             ( model, effects ++ scroll ++ checkVisibility )
 
         Click RerunBuildButton ->
-            if model.disableRerunJobTrigger then
+            if model.disableReruns then
                 ( model, effects )
 
             else

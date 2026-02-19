@@ -30,7 +30,7 @@ func (s *Server) RerunJobBuild(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		if job.DisableRerunJobTrigger() {
+		if job.DisableReruns() {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}

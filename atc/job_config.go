@@ -6,7 +6,7 @@ type JobConfig struct {
 	Public  bool   `json:"public,omitempty"`
 
 	DisableManualTrigger   bool     `json:"disable_manual_trigger,omitempty"`
-	DisableRerunJobTrigger bool     `json:"disable_rerun_job_trigger,omitempty"`
+	DisableReruns          bool     `json:"disable_reruns,omitempty"`
 	Serial                 bool     `json:"serial,omitempty"`
 	Interruptible          bool     `json:"interruptible,omitempty"`
 	SerialGroups           []string `json:"serial_groups,omitempty"`

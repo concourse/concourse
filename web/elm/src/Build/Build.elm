@@ -104,7 +104,7 @@ init flags =
           , now = Nothing
           , job = Nothing
           , disableManualTrigger = False
-          , disableRerunJobTrigger = False
+          , disableReruns = False
           , history = []
           , nextPage = Nothing
           , comment = Hidden ""
@@ -301,7 +301,7 @@ handleCallback action ( model, effects ) =
         BuildJobDetailsFetched (Ok job) ->
                         ( { model
                                 | disableManualTrigger = job.disableManualTrigger
-                                , disableRerunJobTrigger = job.disableRerunJobTrigger
+                                , disableReruns = job.disableReruns
                             }
             , effects
             )

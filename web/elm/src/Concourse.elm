@@ -992,7 +992,7 @@ type alias Job =
     , pausedBy : Maybe String
     , pausedAt : Maybe Time.Posix
     , disableManualTrigger : Bool
-    , disableRerunJobTrigger : Bool
+    , disableReruns : Bool
     , inputs : List JobInput
     , outputs : List JobOutput
     , groups : List String
@@ -1026,7 +1026,7 @@ encodeJob job =
         , ( "transition_build", job.transitionBuild |> encodeMaybeBuild )
         , ( "paused", job.paused |> Json.Encode.bool )
         , ( "disable_manual_trigger", job.disableManualTrigger |> Json.Encode.bool )
-        , ( "disable_rerun_job_trigger", job.disableRerunJobTrigger |> Json.Encode.bool )
+        , ( "disable_reruns", job.disableReruns |> Json.Encode.bool )
         , ( "inputs", job.inputs |> Json.Encode.list encodeJobInput )
         , ( "outputs", job.outputs |> Json.Encode.list encodeJobOutput )
         , ( "groups", job.groups |> Json.Encode.list Json.Encode.string )
@@ -1048,7 +1048,13 @@ decodeJob =
         |> andMap (Json.Decode.maybe (Json.Decode.field "paused_by" Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.field "paused_at" (Json.Decode.map dateFromSeconds Json.Decode.int)))
         |> andMap (defaultTo False <| Json.Decode.field "disable_manual_trigger" Json.Decode.bool)
-        |> andMap (defaultTo False <| Json.Decode.field "disable_rerun_job_trigger" Json.Decode.bool)
+        |> andMap
+            (defaultTo False <|
+                Json.Decode.oneOf
+                    [ Json.Decode.field "disable_reruns" Json.Decode.bool
+                    , Json.Decode.field "disable_rerun_job_trigger" Json.Decode.bool
+                    ]
+            )
         |> andMap (defaultTo [] <| Json.Decode.field "inputs" <| Json.Decode.list decodeJobInput)
         |> andMap (defaultTo [] <| Json.Decode.field "outputs" <| Json.Decode.list decodeJobOutput)
         |> andMap (defaultTo [] <| Json.Decode.field "groups" <| Json.Decode.list Json.Decode.string)

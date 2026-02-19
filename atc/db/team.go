@@ -1222,9 +1222,9 @@ func saveJob(tx Tx, job atc.JobConfig, pipelineID int, groups []string) (int, er
 
 	var jobID int
 	err = psql.Insert("jobs").
-		Columns("name", "pipeline_id", "config", "public", "max_in_flight", "disable_manual_trigger", "disable_rerun_job_trigger", "interruptible", "active", "nonce", "tags").
-		Values(job.Name, pipelineID, encryptedPayload, job.Public, job.MaxInFlight(), job.DisableManualTrigger, job.DisableRerunJobTrigger, job.Interruptible, true, nonce, groups).
-		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, public = EXCLUDED.public, max_in_flight = EXCLUDED.max_in_flight, disable_manual_trigger = EXCLUDED.disable_manual_trigger, disable_rerun_job_trigger = EXCLUDED.disable_rerun_job_trigger, interruptible = EXCLUDED.interruptible, active = EXCLUDED.active, nonce = EXCLUDED.nonce, tags = EXCLUDED.tags").
+		Columns("name", "pipeline_id", "config", "public", "max_in_flight", "disable_manual_trigger", "disable_reruns", "interruptible", "active", "nonce", "tags").
+		Values(job.Name, pipelineID, encryptedPayload, job.Public, job.MaxInFlight(), job.DisableManualTrigger, job.DisableReruns, job.Interruptible, true, nonce, groups).
+		Suffix("ON CONFLICT (name, pipeline_id) DO UPDATE SET config = EXCLUDED.config, public = EXCLUDED.public, max_in_flight = EXCLUDED.max_in_flight, disable_manual_trigger = EXCLUDED.disable_manual_trigger, disable_reruns = EXCLUDED.disable_reruns, interruptible = EXCLUDED.interruptible, active = EXCLUDED.active, nonce = EXCLUDED.nonce, tags = EXCLUDED.tags").
 		Suffix("RETURNING id").
 		RunWith(tx).
 		QueryRow().

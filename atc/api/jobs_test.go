@@ -1998,7 +1998,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when rerun is disabled for the job", func() {
 					BeforeEach(func() {
-						fakeJob.DisableRerunJobTriggerReturns(true)
+						fakeJob.DisableRerunsReturns(true)
 					})
 
 					It("returns a 409", func() {
@@ -2012,7 +2012,7 @@ var _ = Describe("Jobs API", func() {
 
 				Context("when rerun is enabled for the job", func() {
 					BeforeEach(func() {
-						fakeJob.DisableRerunJobTriggerReturns(false)
+						fakeJob.DisableRerunsReturns(false)
 					})
 
 					It("tries to get the build to rerun", func() {
