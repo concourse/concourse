@@ -130,7 +130,7 @@ header session model =
                             in
                             Just
                                 { type_ = Views.Rerun
-                                , isClickable = True
+                                , isClickable = not model.disableReruns
                                 , backgroundShade =
                                     if isHovered then
                                         Views.Dark
@@ -234,7 +234,14 @@ tooltip model session =
                 )
 
         HoverState.Tooltip RerunBuildButton _ ->
-            Just (buttonTooltip "re-run with the same inputs")
+            Just
+                (buttonTooltip <|
+                    if model.disableReruns then
+                        "re-run disabled in job config"
+
+                    else
+                        "re-run with the same inputs"
+                )
 
         HoverState.Tooltip AbortBuildButton _ ->
             Just (buttonTooltip "abort the current build")
@@ -642,22 +649,26 @@ update msg ( model, effects ) =
             ( model, effects ++ scroll ++ checkVisibility )
 
         Click RerunBuildButton ->
-            ( model
-            , effects
-                ++ (model.job
-                        |> Maybe.map
-                            (\j ->
-                                RerunJobBuild
-                                    { teamName = j.teamName
-                                    , pipelineName = j.pipelineName
-                                    , pipelineInstanceVars = j.pipelineInstanceVars
-                                    , jobName = j.jobName
-                                    , buildName = model.name
-                                    }
-                            )
-                        |> Maybe.Extra.toList
-                   )
-            )
+            if model.disableReruns then
+                ( model, effects )
+
+            else
+                ( model
+                , effects
+                    ++ (model.job
+                            |> Maybe.map
+                                (\j ->
+                                    RerunJobBuild
+                                        { teamName = j.teamName
+                                        , pipelineName = j.pipelineName
+                                        , pipelineInstanceVars = j.pipelineInstanceVars
+                                        , jobName = j.jobName
+                                        , buildName = model.name
+                                        }
+                                )
+                            |> Maybe.Extra.toList
+                       )
+                )
 
         Click ToggleBuildCommentButton ->
             case model.comment of

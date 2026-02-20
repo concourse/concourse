@@ -149,6 +149,16 @@ type FakeJob struct {
 	disableManualTriggerReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	DisableRerunsStub        func() bool
+	disableRerunsMutex       sync.RWMutex
+	disableRerunsArgsForCall []struct {
+	}
+	disableRerunsReturns struct {
+		result1 bool
+	}
+	disableRerunsReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	EnsurePendingBuildExistsStub        func(context.Context) error
 	ensurePendingBuildExistsMutex       sync.RWMutex
 	ensurePendingBuildExistsArgsForCall []struct {
@@ -1176,6 +1186,60 @@ func (fake *FakeJob) DisableManualTriggerReturnsOnCall(i int, result1 bool) {
 		})
 	}
 	fake.disableManualTriggerReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+
+func (fake *FakeJob) DisableReruns() bool {
+	fake.disableRerunsMutex.Lock()
+	ret, specificReturn := fake.disableRerunsReturnsOnCall[len(fake.disableRerunsArgsForCall)]
+	fake.disableRerunsArgsForCall = append(fake.disableRerunsArgsForCall, struct {
+	}{})
+	stub := fake.DisableRerunsStub
+	fakeReturns := fake.disableRerunsReturns
+	fake.recordInvocation("DisableReruns", []interface{}{})
+	fake.disableRerunsMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) DisableRerunsCallCount() int {
+	fake.disableRerunsMutex.RLock()
+	defer fake.disableRerunsMutex.RUnlock()
+	return len(fake.disableRerunsArgsForCall)
+}
+
+func (fake *FakeJob) DisableRerunsCalls(stub func() bool) {
+	fake.disableRerunsMutex.Lock()
+	defer fake.disableRerunsMutex.Unlock()
+	fake.DisableRerunsStub = stub
+}
+
+func (fake *FakeJob) DisableRerunsReturns(result1 bool) {
+	fake.disableRerunsMutex.Lock()
+	defer fake.disableRerunsMutex.Unlock()
+	fake.DisableRerunsStub = nil
+	fake.disableRerunsReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) DisableRerunsReturnsOnCall(i int, result1 bool) {
+	fake.disableRerunsMutex.Lock()
+	defer fake.disableRerunsMutex.Unlock()
+	fake.DisableRerunsStub = nil
+	if fake.disableRerunsReturnsOnCall == nil {
+		fake.disableRerunsReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.disableRerunsReturnsOnCall[i] = struct {
 		result1 bool
 	}{result1}
 }

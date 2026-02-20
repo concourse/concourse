@@ -19,6 +19,7 @@ type Job struct {
 
 	FirstLoggedBuildID   int  `json:"first_logged_build_id,omitempty"`
 	DisableManualTrigger bool `json:"disable_manual_trigger,omitempty"`
+	DisableReruns        bool `json:"disable_reruns,omitempty"`
 
 	NextBuild       *Build `json:"next_build"`
 	FinishedBuild   *Build `json:"finished_build"`

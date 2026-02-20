@@ -115,6 +115,19 @@ all =
                                 |> Data.withDisableManualTrigger True
                             )
 
+            fetchJobDetailsNoReruns :
+                Application.Model
+                -> ( Application.Model, List Effects.Effect )
+            fetchJobDetailsNoReruns =
+                Application.handleCallback <|
+                    Callback.BuildJobDetailsFetched <|
+                        Ok
+                            (Data.job 0
+                                |> Data.withShortPipelineId
+                                |> Data.withName "j"
+                                |> Data.withDisableReruns True
+                            )
+
             fetchHistory :
                 Application.Model
                 -> ( Application.Model, List Effects.Effect )
@@ -2305,6 +2318,39 @@ all =
                     givenHistoryAndDetailsFetched
                         >> Tuple.first
                         >> expectTooltip TriggerBuildButton "manual triggering disabled in job config"
+                ]
+
+            , describe "when history and details fetched with reruns disabled" <|
+                let
+                    givenHistoryAndDetailsFetched =
+                        givenBuildFetched
+                            >> Tuple.first
+                            >> fetchHistory
+                            >> Tuple.first
+                            >> fetchJobDetailsNoReruns
+                in
+                [ test "when reruns are disabled, rerun build button has default cursor" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Common.queryView
+                        >> Query.find
+                            [ attribute <|
+                                Attr.attribute "aria-label" "Rerun Build"
+                            ]
+                        >> Query.has [ style "cursor" "default" ]
+                , test "hovering displays a tooltip" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> expectTooltip RerunBuildButton "re-run disabled in job config"
+                , test "clicking rerun build does nothing" <|
+                    givenHistoryAndDetailsFetched
+                        >> Tuple.first
+                        >> Application.update
+                            (Msgs.Update <|
+                                Message.Message.Click RerunBuildButton
+                            )
+                        >> Tuple.second
+                        >> Expect.equal []
                 ]
             ]
         , describe "given build started and history and details fetched" <|

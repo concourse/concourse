@@ -37,6 +37,7 @@ module Data exposing
     , withBuildName
     , withCheckError
     , withDisableManualTrigger
+    , withDisableReruns
     , withDuration
     , withFailingToCheck
     , withFinishedBuild
@@ -275,6 +276,7 @@ job pipelineID =
     , pausedBy = Nothing
     , pausedAt = Nothing
     , disableManualTrigger = False
+    , disableReruns = False
     , inputs = []
     , outputs = []
     , groups = []
@@ -284,6 +286,11 @@ job pipelineID =
 withDisableManualTrigger : Bool -> { r | disableManualTrigger : Bool } -> { r | disableManualTrigger : Bool }
 withDisableManualTrigger disableManualTrigger p =
     { p | disableManualTrigger = disableManualTrigger }
+
+
+withDisableReruns : Bool -> { r | disableReruns : Bool } -> { r | disableReruns : Bool }
+withDisableReruns disableReruns p =
+    { p | disableReruns = disableReruns }
 
 
 withTeamName : String -> { r | teamName : String } -> { r | teamName : String }

@@ -60,6 +60,7 @@ type alias Model =
         { page : BuildPageType
         , now : Maybe Time.Posix
         , disableManualTrigger : Bool
+        , disableReruns : Bool
         , history : List Concourse.Build
         , nextPage : Maybe Page
         , currentBuild : WebData CurrentBuild
@@ -714,6 +715,7 @@ sampleOldModel =
     { page = OneOffBuildPage 0
     , now = Nothing
     , disableManualTrigger = False
+    , disableReruns = False
     , history = []
     , nextPage = Nothing
     , currentBuild =
@@ -765,6 +767,7 @@ sampleModel =
     , now = Nothing
     , job = Nothing
     , disableManualTrigger = False
+    , disableReruns = False
     , history = []
     , nextPage = Nothing
     , prep = Nothing
@@ -887,6 +890,7 @@ sampleJob name passed =
     , pausedBy = Nothing
     , pausedAt = Nothing
     , disableManualTrigger = False
+    , disableReruns = False
     , inputs =
         [ { name = "input"
           , resource = "resource"
@@ -1014,6 +1018,7 @@ jobByName jobs job =
             , pausedBy = Nothing
             , pausedAt = Nothing
             , disableManualTrigger = False
+            , disableReruns = False
             , inputs = []
             , outputs = []
             , groups = []
