@@ -34,7 +34,6 @@ import Dashboard.Models as Models
     exposing
         ( DragState(..)
         , DropState(..)
-        , Dropdown(..)
         , FetchError(..)
         , Model
         )
@@ -88,6 +87,7 @@ import StrictEvents exposing (onScroll)
 import Time
 import Tooltip
 import UserState
+import Views.SearchBar exposing (Dropdown(..))
 import Views.Spinner as Spinner
 import Views.Styles
 import Views.Toggle as Toggle
