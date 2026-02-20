@@ -57,7 +57,7 @@ func swapLimitEnabled() bool {
 }
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
-func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, hooks specs.Hooks, privilegedMode PrivilegedMode, gdn garden.ContainerSpec, maxUid, maxGid uint32) (oci *specs.Spec, err error) {
+func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, hooks specs.Hooks, privilegedMode PrivilegedMode, gdn garden.ContainerSpec, maxUid, maxGid uint32, extraDevices ...[]specs.LinuxDeviceCgroup) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -82,8 +82,13 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 	resources := OciResources(gdn.Limits, isSwapLimitEnabled)
 	cgroupsPath := OciCgroupsPath(baseCgroupsPath, gdn.Handle, privilegedMode, gdn.Privileged)
 
+	var additionalDevices []specs.LinuxDeviceCgroup
+	for _, d := range extraDevices {
+		additionalDevices = append(additionalDevices, d...)
+	}
+
 	oci = merge(
-		defaultGardenOciSpec(initBinPath, seccomp, seccompFuse, privilegedMode, gdn.Privileged, maxUid, maxGid),
+		defaultGardenOciSpec(initBinPath, seccomp, seccompFuse, privilegedMode, gdn.Privileged, maxUid, maxGid, additionalDevices),
 		&specs.Spec{
 			Version:  specs.Version,
 			Hostname: gdn.Handle,
@@ -220,11 +225,15 @@ func OciCgroupsPath(basePath, handle string, privilegedMode PrivilegedMode, priv
 //
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
-func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, privilegedMode PrivilegedMode, privileged bool, maxUid, maxGid uint32) *specs.Spec {
+func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, privilegedMode PrivilegedMode, privileged bool, maxUid, maxGid uint32, additionalDevices []specs.LinuxDeviceCgroup) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privilegedMode, privileged)
 		capabilities = OciCapabilities(privilegedMode, privileged)
 	)
+
+	deviceRules := make([]specs.LinuxDeviceCgroup, 0, len(DefaultContainerDevices)+len(additionalDevices))
+	deviceRules = append(deviceRules, DefaultContainerDevices...)
+	deviceRules = append(deviceRules, additionalDevices...)
 
 	spec := &specs.Spec{
 		Process: &specs.Process{
@@ -235,7 +244,7 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccom
 		Linux: &specs.Linux{
 			Namespaces: namespaces,
 			Resources: &specs.LinuxResources{
-				Devices: AnyContainerDevices,
+				Devices: deviceRules,
 			},
 			Devices:     Devices(privilegedMode, privileged),
 			UIDMappings: OciIDMappings(privilegedMode, privileged, maxUid),
