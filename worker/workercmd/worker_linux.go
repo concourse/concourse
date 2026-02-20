@@ -44,6 +44,7 @@ type ContainerdRuntime struct {
 	RequestTimeout     time.Duration         `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 	MaxContainers      int                   `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
 	PrivilegedMode     bespec.PrivilegedMode `long:"privileged-mode" default:"full" choice:"full" choice:"fuse-only" choice:"ignore" description:"How many privileges privileged containers get. full is equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
+	AllowedDevices     []string              `long:"allowed-device" description:"Device cgroup rule to allow in containers, in the format 'type major:minor access' (e.g. 'b 7:* rwm' for loop devices). Can be specified multiple times."`
 
 	Network struct {
 		ExternalIP flag.IP `long:"external-ip" description:"IP address to use to reach container's mapped ports. Autodetected if not specified."`

@@ -3,7 +3,10 @@
 package spec
 
 import (
+	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -27,7 +30,7 @@ var (
 	// be overriden.
 	// Linux docs about how cgroup device rules work:
 	// https://github.com/torvalds/linux/blob/master/Documentation/admin-guide/cgroup-v1/devices.rst
-	AnyContainerDevices = []specs.LinuxDeviceCgroup{
+	DefaultContainerDevices = []specs.LinuxDeviceCgroup{
 		// This allows use of the FUSE filesystem
 		{Access: "rwm", Type: fuseDevice.Type, Major: intRef(fuseDevice.Major), Minor: intRef(fuseDevice.Minor), Allow: true}, // /dev/fuse
 	}
@@ -42,4 +45,70 @@ func Devices(privilegedMode PrivilegedMode, privileged bool) []specs.LinuxDevice
 	return []specs.LinuxDevice{
 		fuseDevice,
 	}
+}
+
+// ParseAllowedDevices parses a list of device rule strings into LinuxDeviceCgroup entries.
+func ParseAllowedDevices(rules []string) ([]specs.LinuxDeviceCgroup, error) {
+	devices := make([]specs.LinuxDeviceCgroup, 0, len(rules))
+	for _, rule := range rules {
+		d, err := ParseDeviceRule(rule)
+		if err != nil {
+			return nil, err
+		}
+		devices = append(devices, d)
+	}
+	return devices, nil
+}
+
+// ParseDeviceRule parses a device rule string in the format "type major:minor access".
+func ParseDeviceRule(s string) (specs.LinuxDeviceCgroup, error) {
+	parts := strings.Fields(s)
+	if len(parts) != 3 {
+		return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid device rule %q: expected format 'type major:minor access'", s)
+	}
+
+	devType := parts[0]
+	switch devType {
+	case "a", "b", "c":
+	default:
+		return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid device type %q: must be a, b, or c", devType)
+	}
+
+	majorMinor := strings.SplitN(parts[1], ":", 2)
+	if len(majorMinor) != 2 {
+		return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid major:minor %q: expected format 'major:minor'", parts[1])
+	}
+
+	var major, minor *int64
+	if majorMinor[0] != "*" {
+		v, err := strconv.ParseInt(majorMinor[0], 10, 64)
+		if err != nil {
+			return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid major number %q: %w", majorMinor[0], err)
+		}
+		major = &v
+	}
+	if majorMinor[1] != "*" {
+		v, err := strconv.ParseInt(majorMinor[1], 10, 64)
+		if err != nil {
+			return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid minor number %q: %w", majorMinor[1], err)
+		}
+		minor = &v
+	}
+
+	access := parts[2]
+	for _, c := range access {
+		switch c {
+		case 'r', 'w', 'm':
+		default:
+			return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid access character %q in %q: must be r, w, or m", string(c), access)
+		}
+	}
+
+	return specs.LinuxDeviceCgroup{
+		Allow:  true,
+		Type:   devType,
+		Major:  major,
+		Minor:  minor,
+		Access: access,
+	}, nil
 }

@@ -443,7 +443,7 @@ func (s *SpecSuite) TestContainerSpec() {
 					"gdn-init mount should be mounted after all the other default mounts")
 
 				s.Equal(minimalContainerSpec.Handle, oci.Hostname)
-				s.Equal(spec.AnyContainerDevices, oci.Linux.Resources.Devices)
+				s.Equal(spec.DefaultContainerDevices, oci.Linux.Resources.Devices)
 			},
 		},
 		{
@@ -641,4 +641,30 @@ func (s *SpecSuite) TestContainerSpec() {
 			tc.check(actual)
 		})
 	}
+}
+
+func (s *SpecSuite) TestOciSpecWithExtraDevices() {
+	extraDevices := []specs.LinuxDeviceCgroup{
+		{Allow: true, Type: "b", Major: int64Ptr(7), Access: "rwm"},
+		{Allow: true, Type: "c", Major: int64Ptr(10), Minor: int64Ptr(237), Access: "rwm"},
+	}
+
+	gdn := garden.ContainerSpec{
+		Handle: "handle", RootFSPath: "raw:///rootfs",
+	}
+
+	oci, err := spec.OciSpec(
+		spec.DefaultInitBinPath,
+		spec.GetDefaultSeccompProfile(),
+		spec.GetDefaultSeccompProfileFuse(),
+		specs.Hooks{},
+		spec.FullPrivilegedMode,
+		gdn,
+		dummyMaxUid, dummyMaxGid,
+		extraDevices,
+	)
+	s.NoError(err)
+
+	expected := append(spec.DefaultContainerDevices, extraDevices...)
+	s.Equal(expected, oci.Linux.Resources.Devices)
 }
