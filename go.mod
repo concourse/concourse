@@ -17,8 +17,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.9
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.9
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.1
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.8
-	github.com/aws/smithy-go v1.24.0
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.0
+	github.com/aws/smithy-go v1.24.1
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
@@ -44,7 +44,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/gobwas/glob v0.2.3
-	github.com/goccy/go-yaml v1.19.1
+	github.com/goccy/go-yaml v1.19.2
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
 	github.com/google/jsonapi v1.0.0
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
