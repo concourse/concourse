@@ -148,6 +148,8 @@ func (e FirstLoggedBuildIDDecreasedError) Error() string {
 	return fmt.Sprintf("first logged build id for job '%s' decreased from %d to %d", e.Job, e.OldID, e.NewID)
 }
 
+var _ Job = (*job)(nil)
+
 type job struct {
 	pipelineRef
 
