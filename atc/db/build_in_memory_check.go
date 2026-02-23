@@ -250,6 +250,8 @@ func (b *inMemoryCheckBuildForApi) SetComment(string) error {
 	return errors.New("not implemented for in memory build")
 }
 
+var _ Build = (*inMemoryCheckBuild)(nil)
+
 // inMemoryCheckBuild implements db.Build. It handles in-memory check builds
 // only, thus it just implement the necessary function of interface Build.
 type inMemoryCheckBuild struct {

@@ -232,6 +232,8 @@ type Build interface {
 	OnCheckBuildStart() error
 }
 
+var _ Build = (*build)(nil)
+
 type build struct {
 	pipelineRef
 
