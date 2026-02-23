@@ -165,7 +165,6 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 
 	rows, err := resourcesQuery.
 		LeftJoin("(select DISTINCT(resource_id) FROM job_inputs WHERE trigger = true and passed_job_id IS NULL) ji ON ji.resource_id = r.id").
-		LeftJoin("(select DISTINCT(resource_id) FROM job_outputs) jo ON jo.resource_id = r.id").
 		Where(sq.And{
 			sq.Eq{"p.paused": false},
 		}).
