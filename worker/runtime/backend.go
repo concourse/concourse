@@ -50,6 +50,7 @@ type GardenBackend struct {
 	requestTimeout time.Duration
 	createLock     TimeoutWithByPassLock
 	privilegedMode bespec.PrivilegedMode
+	allowedDevices []specs.LinuxDeviceCgroup
 }
 
 //counterfeiter:generate . UserNamespace
@@ -133,6 +134,12 @@ func WithPrivilegedMode(privilegedMode bespec.PrivilegedMode) GardenBackendOpt {
 func WithIOManager(ioManager IOManager) GardenBackendOpt {
 	return func(b *GardenBackend) {
 		b.ioManager = ioManager
+	}
+}
+
+func WithAllowedDevices(devices []specs.LinuxDeviceCgroup) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.allowedDevices = devices
 	}
 }
 
@@ -346,7 +353,7 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 		return nil, fmt.Errorf("getting uid and gid maps: %w", err)
 	}
 
-	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, b.seccompProfileFuse, b.ociHooks, b.privilegedMode, gdnSpec, maxUid, maxGid)
+	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, b.seccompProfileFuse, b.ociHooks, b.privilegedMode, gdnSpec, maxUid, maxGid, b.allowedDevices)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}

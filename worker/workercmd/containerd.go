@@ -17,6 +17,7 @@ import (
 	"github.com/concourse/concourse/worker/network"
 	"github.com/concourse/concourse/worker/runtime"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
+	bespec "github.com/concourse/concourse/worker/runtime/spec"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -153,7 +154,7 @@ func (cmd *WorkerCommand) buildUpBackendOpts(logger lager.Logger, cniNetwork run
 		cmd.Containerd.InitBin = initBin
 	}
 
-	return []runtime.GardenBackendOpt{
+	opts := []runtime.GardenBackendOpt{
 		runtime.WithNetwork(cniNetwork),
 		runtime.WithRequestTimeout(cmd.Containerd.RequestTimeout),
 		runtime.WithMaxContainers(cmd.Containerd.MaxContainers),
@@ -161,7 +162,17 @@ func (cmd *WorkerCommand) buildUpBackendOpts(logger lager.Logger, cniNetwork run
 		runtime.WithSeccompProfilePath(cmd.Containerd.SeccompProfilePath),
 		runtime.WithOciHooksDir(cmd.Containerd.OCIHooksDir),
 		runtime.WithPrivilegedMode(cmd.Containerd.PrivilegedMode),
-	}, nil
+	}
+
+	if len(cmd.Containerd.AllowedDevices) > 0 {
+		devices, err := bespec.ParseAllowedDevices(cmd.Containerd.AllowedDevices)
+		if err != nil {
+			return nil, fmt.Errorf("parsing allowed devices: %w", err)
+		}
+		opts = append(opts, runtime.WithAllowedDevices(devices))
+	}
+
+	return opts, nil
 }
 
 // containerdRunner spawns a containerd and a Garden server process for use as the container
