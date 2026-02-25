@@ -1248,24 +1248,27 @@ viewStepHeader step =
             simpleHeader "task:" Nothing name
 
         Concourse.BuildStepSetPipeline name team instanceVars ->
-            headerWithContent "set_pipeline:" (Just "pipeline config changed")
+            headerWithContent "set_pipeline:"
+                (Just "pipeline config changed")
                 (Html.span [] [ Html.text name ]
-                 :: (case team of
-                        Just teamName ->
-                            [ Html.span [ style "color" Colors.pending, style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "team:" ]
-                            , Html.text teamName
-                            ]
+                    :: (case team of
+                            Just teamName ->
+                                [ Html.span [ style "color" Colors.pending, style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "team:" ]
+                                , Html.text teamName
+                                ]
 
-                        Nothing ->
+                            Nothing ->
+                                []
+                       )
+                    ++ (if Dict.isEmpty instanceVars then
                             []
-                    )
-                ++ (if Dict.isEmpty instanceVars then
-                    []
-                 else
-                    [ Html.span [ style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "/" ]
-                    , viewKeyValuePairHeaderLabels (Dict.toList instanceVars)
-                    ]
-                ))
+
+                        else
+                            [ Html.span [ style "margin-left" "10px", style "margin-right" "4px" ] [ Html.text "/" ]
+                            , viewKeyValuePairHeaderLabels (Dict.toList instanceVars)
+                            ]
+                       )
+                )
 
         Concourse.BuildStepLoadVar name ->
             simpleHeader "load_var:" Nothing name
