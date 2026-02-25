@@ -49,6 +49,7 @@ import (
 	"github.com/concourse/concourse/atc/scheduler"
 	"github.com/concourse/concourse/atc/scheduler/algorithm"
 	"github.com/concourse/concourse/atc/syslog"
+	atctls "github.com/concourse/concourse/atc/tls"
 	"github.com/concourse/concourse/atc/util"
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
@@ -1055,11 +1056,12 @@ func (cmd *RunCommand) constructAPIMembers(
 		if err != nil {
 			return nil, err
 		}
-		members = append(members, grouper.Member{Name: "web-tls", Runner: http_server.NewTLSServer(
-			cmd.tlsBindAddr(),
-			httpsHandler,
-			tlsConfig,
-		)})
+		members = append(members, grouper.Member{
+			Name: "web-tls",
+			Runner: atctls.NewReloadableListener(
+				cmd.tlsBindAddr(), httpsHandler, tlsConfig, cmd.reloadTLSEnv(logger, dbConn), logger,
+			),
+		})
 	}
 
 	return members, nil
@@ -2193,6 +2195,16 @@ type RunnableComponent struct {
 
 func (cmd *RunCommand) isMTLSEnabled() bool {
 	return string(cmd.TLSCaCert) != ""
+}
+
+func (cmd *RunCommand) reloadTLSEnv(logger lager.Logger, dbConn db.DbConn) atctls.ConfigReloader {
+	return func() (*tls.Config, error) {
+		if cmd.isTLSEnabled() && !cmd.LetsEncrypt.Enable {
+			return cmd.tlsConfig(logger, dbConn)
+		}
+
+		return nil, nil
+	}
 }
 
 type rander struct{}
