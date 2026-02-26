@@ -4,6 +4,7 @@ package dbfakes
 import (
 	"encoding/json"
 	"sync"
+	"time"
 
 	lager "code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
@@ -110,10 +111,11 @@ type FakeResourceConfigScope struct {
 	saveVersionsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	UpdateLastCheckEndTimeStub        func(bool) (bool, error)
+	UpdateLastCheckEndTimeStub        func(bool, time.Duration) (bool, error)
 	updateLastCheckEndTimeMutex       sync.RWMutex
 	updateLastCheckEndTimeArgsForCall []struct {
 		arg1 bool
+		arg2 time.Duration
 	}
 	updateLastCheckEndTimeReturns struct {
 		result1 bool
@@ -616,18 +618,19 @@ func (fake *FakeResourceConfigScope) SaveVersionsReturnsOnCall(i int, result1 er
 	}{result1}
 }
 
-func (fake *FakeResourceConfigScope) UpdateLastCheckEndTime(arg1 bool) (bool, error) {
+func (fake *FakeResourceConfigScope) UpdateLastCheckEndTime(arg1 bool, arg2 time.Duration) (bool, error) {
 	fake.updateLastCheckEndTimeMutex.Lock()
 	ret, specificReturn := fake.updateLastCheckEndTimeReturnsOnCall[len(fake.updateLastCheckEndTimeArgsForCall)]
 	fake.updateLastCheckEndTimeArgsForCall = append(fake.updateLastCheckEndTimeArgsForCall, struct {
 		arg1 bool
-	}{arg1})
+		arg2 time.Duration
+	}{arg1, arg2})
 	stub := fake.UpdateLastCheckEndTimeStub
 	fakeReturns := fake.updateLastCheckEndTimeReturns
-	fake.recordInvocation("UpdateLastCheckEndTime", []interface{}{arg1})
+	fake.recordInvocation("UpdateLastCheckEndTime", []interface{}{arg1, arg2})
 	fake.updateLastCheckEndTimeMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -641,17 +644,17 @@ func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeCallCount() int {
 	return len(fake.updateLastCheckEndTimeArgsForCall)
 }
 
-func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeCalls(stub func(bool) (bool, error)) {
+func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeCalls(stub func(bool, time.Duration) (bool, error)) {
 	fake.updateLastCheckEndTimeMutex.Lock()
 	defer fake.updateLastCheckEndTimeMutex.Unlock()
 	fake.UpdateLastCheckEndTimeStub = stub
 }
 
-func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeArgsForCall(i int) bool {
+func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeArgsForCall(i int) (bool, time.Duration) {
 	fake.updateLastCheckEndTimeMutex.RLock()
 	defer fake.updateLastCheckEndTimeMutex.RUnlock()
 	argsForCall := fake.updateLastCheckEndTimeArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeResourceConfigScope) UpdateLastCheckEndTimeReturns(result1 bool, result2 error) {

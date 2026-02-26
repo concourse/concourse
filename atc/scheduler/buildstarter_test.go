@@ -75,7 +75,7 @@ var _ = Describe("BuildStarter", func() {
 				createdBuild = new(dbfakes.FakeBuild)
 				createdBuild.IDReturns(66)
 				createdBuild.NameReturns("some-build")
-				createdBuild.TriggeringResourcesCheckedReturns(true, nil)
+				createdBuild.NonTriggeringResourcesCheckedReturns(true, nil)
 
 				pendingBuilds = []db.Build{createdBuild}
 
@@ -89,13 +89,14 @@ var _ = Describe("BuildStarter", func() {
 						{
 							Config: &atc.GetStep{
 								Name:     "input-1",
-								Trigger:  true,
+								Trigger:  false,
 								Resource: "some-resource",
 							},
 						},
 						{
 							Config: &atc.GetStep{
 								Name:     "input-2",
+								Trigger:  true,
 								Resource: "some-resource",
 							},
 						},
@@ -103,6 +104,7 @@ var _ = Describe("BuildStarter", func() {
 							Config: &atc.GetStep{
 								// This resource has a pinned version
 								Name:     "input-3",
+								Trigger:  true,
 								Resource: "some-resource",
 							},
 						},
@@ -110,6 +112,7 @@ var _ = Describe("BuildStarter", func() {
 							Config: &atc.GetStep{
 								Name:     "input-4",
 								Resource: "some-resource",
+								Trigger:  false,
 								Passed:   []string{"upstream-job"},
 							},
 						},
@@ -117,6 +120,7 @@ var _ = Describe("BuildStarter", func() {
 							Config: &atc.GetStep{
 								Name:     "input-4",
 								Resource: "some-resource",
+								Trigger:  true,
 								Passed:   []string{"upstream-job"},
 							},
 						},
@@ -597,7 +601,7 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, false, disaster)
-							pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.GetPendingBuildsReturns([]db.Build{pendingBuild1}, nil)
 						})
 
@@ -612,7 +616,7 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, false, nil)
-							pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.GetPendingBuildsReturns([]db.Build{pendingBuild1}, nil)
 						})
 
@@ -627,12 +631,12 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
-							pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.ScheduleBuildReturnsOnCall(0, true, nil)
 							pendingBuild2 = new(dbfakes.FakeBuild)
 							pendingBuild2.IDReturns(999)
 							pendingBuild2.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
-							pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.ScheduleBuildReturnsOnCall(1, true, nil)
 							rerunBuild = new(dbfakes.FakeBuild)
 							rerunBuild.IDReturns(555)
@@ -690,7 +694,7 @@ var _ = Describe("BuildStarter", func() {
 
 									Context("when marking the build as errored fails", func() {
 										BeforeEach(func() {
-											pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+											pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 											pendingBuild1.FinishReturns(disaster)
 										})
 
@@ -935,8 +939,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, errors.New("error"))
 								job.ScheduleBuildReturnsOnCall(1, true, nil)
-								pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
-								pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -955,8 +959,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, nil)
 								job.ScheduleBuildReturnsOnCall(1, true, nil)
-								pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
-								pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -975,8 +979,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.IDReturns(555)
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								job.ScheduleBuildReturnsOnCall(1, false, nil)
-								pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
-								pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -992,10 +996,10 @@ var _ = Describe("BuildStarter", func() {
 				})
 			})
 
-			FContext("when inputs are not ready to be deteremined", func() {
+			Context("when inputs are not ready to be deteremined", func() {
 				BeforeEach(func() {
 					job.ScheduleBuildReturns(true, nil)
-					createdBuild.TriggeringResourcesCheckedReturns(false, nil)
+					createdBuild.NonTriggeringResourcesCheckedReturns(false, nil)
 				})
 
 				JustBeforeEach(func() {
@@ -1055,19 +1059,13 @@ var _ = Describe("BuildStarter", func() {
 						Expect(tryStartErr).To(MatchError("some inputs error"))
 					})
 				})
+
 				Context("creates check builds", func() {
-					It("skips resources with passed constraints and pinned versions", func() {
-						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+					It("skips resources with passed constraints, pinned versions, or trigger true", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
 
 						_, givenResource, _, version, skipInterval, skipIntervalRecurv, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 						Expect(givenResource).To(Equal(input1))
-						Expect(version).To(BeNil())
-						Expect(skipInterval).To(BeFalse())
-						Expect(skipIntervalRecurv).To(BeFalse())
-						Expect(toDb).To(BeFalse())
-
-						_, givenResource, _, version, skipInterval, skipIntervalRecurv, toDb = fakeCheckFactory.TryCreateCheckArgsForCall(1)
-						Expect(givenResource).To(Equal(input2))
 						Expect(version).To(BeNil())
 						Expect(skipInterval).To(BeFalse())
 						Expect(skipIntervalRecurv).To(BeFalse())
@@ -1078,14 +1076,16 @@ var _ = Describe("BuildStarter", func() {
 						BeforeEach(func() {
 							createdBuild.IsManuallyTriggeredReturns(true)
 						})
-						It("creates check builds that skip the check interval", func() {
+						It("creates check builds for all inputs with no passed constraints or pins, overriding the check interval", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-							_, _, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							_, givenResource, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(givenResource).To(Equal(input1))
 							Expect(skipInterval).To(BeTrue())
 							Expect(skipIntervalRecurv).To(BeTrue())
 
-							_, _, _, _, skipInterval, skipIntervalRecurv, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+							_, givenResource, _, _, skipInterval, skipIntervalRecurv, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
+							Expect(givenResource).To(Equal(input2))
 							Expect(skipInterval).To(BeTrue())
 							Expect(skipIntervalRecurv).To(BeTrue())
 						})

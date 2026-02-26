@@ -60,7 +60,7 @@ type schedulerBuild struct {
 }
 
 func (s *schedulerBuild) IsReadyToDetermineInputs(logger lager.Logger) (bool, error) {
-	return s.TriggeringResourcesChecked()
+	return s.NonTriggeringResourcesChecked()
 }
 
 func (s *schedulerBuild) BuildInputs(ctx context.Context) ([]db.BuildInput, bool, error) {

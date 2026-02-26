@@ -53,7 +53,8 @@ type CheckFactory interface {
 	TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool, toDb bool) (Build, bool, error)
 
 	// Returns all resources that are triggers for jobs, excluding those with
-	// passed constraints
+	// passed constraints. Will also return resources that have errored or never
+	// been checked.
 	Resources() ([]Resource, error)
 	ResourceTypesByPipeline() (map[int]ResourceTypes, error)
 	Drain()

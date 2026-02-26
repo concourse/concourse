@@ -42,8 +42,10 @@ type ResourceConfigScope interface {
 
 	LastCheck() (LastCheck, error)
 	UpdateLastCheckStartTime(int, *json.RawMessage) (bool, error)
-	UpdateLastCheckEndTime(bool) (bool, error)
+	UpdateLastCheckEndTime(succeeded bool, interval time.Duration) (bool, error)
 }
+
+var _ ResourceConfigScope = (*resourceConfigScope)(nil)
 
 type resourceConfigScope struct {
 	id             int
@@ -230,19 +232,20 @@ func (r *resourceConfigScope) UpdateLastCheckStartTime(buildId int, publicPlan *
 	return true, nil
 }
 
-func (r *resourceConfigScope) UpdateLastCheckEndTime(succeeded bool) (bool, error) {
+func (r *resourceConfigScope) UpdateLastCheckEndTime(succeeded bool, interval time.Duration) (bool, error) {
 	tx, err := r.conn.Begin()
 	if err != nil {
 		return false, err
 	}
 
 	defer Rollback(tx)
+	interval.Seconds()
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_config_scopes
-		SET last_check_end_time = now(), last_check_succeeded = $1
-		WHERE id = $2
-	`, succeeded, r.id)
+		SET last_check_end_time = now(), last_check_succeeded = $1, next_check_time = now() + make_interval(secs => $2)
+		WHERE id = $3
+	`, succeeded, interval.Seconds(), r.id)
 	if err != nil {
 		return false, err
 	}

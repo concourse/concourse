@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -751,7 +752,7 @@ var _ = Describe("VersionsDB", func() {
 				dbVersion = atc.Version{"tag": "v1", "commit": "v2"}
 
 				scenario = dbtest.Setup(
-					builder.WithResourceVersions("some-resource", dbVersion),
+					builder.WithResourceVersions("some-resource", time.Minute, dbVersion),
 				)
 
 				queryVersion = atc.Version{"tag": "v1"}
