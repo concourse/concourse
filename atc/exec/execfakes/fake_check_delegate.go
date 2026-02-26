@@ -178,11 +178,12 @@ type FakeCheckDelegate struct {
 		arg3 string
 		arg4 string
 	}
-	UpdateScopeLastCheckEndTimeStub        func(db.ResourceConfigScope, bool) (bool, error)
+	UpdateScopeLastCheckEndTimeStub        func(db.ResourceConfigScope, bool, time.Duration) (bool, error)
 	updateScopeLastCheckEndTimeMutex       sync.RWMutex
 	updateScopeLastCheckEndTimeArgsForCall []struct {
 		arg1 db.ResourceConfigScope
 		arg2 bool
+		arg3 time.Duration
 	}
 	updateScopeLastCheckEndTimeReturns struct {
 		result1 bool
@@ -1061,19 +1062,20 @@ func (fake *FakeCheckDelegate) StreamingVolumeArgsForCall(i int) (lager.Logger, 
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTime(arg1 db.ResourceConfigScope, arg2 bool) (bool, error) {
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTime(arg1 db.ResourceConfigScope, arg2 bool, arg3 time.Duration) (bool, error) {
 	fake.updateScopeLastCheckEndTimeMutex.Lock()
 	ret, specificReturn := fake.updateScopeLastCheckEndTimeReturnsOnCall[len(fake.updateScopeLastCheckEndTimeArgsForCall)]
 	fake.updateScopeLastCheckEndTimeArgsForCall = append(fake.updateScopeLastCheckEndTimeArgsForCall, struct {
 		arg1 db.ResourceConfigScope
 		arg2 bool
-	}{arg1, arg2})
+		arg3 time.Duration
+	}{arg1, arg2, arg3})
 	stub := fake.UpdateScopeLastCheckEndTimeStub
 	fakeReturns := fake.updateScopeLastCheckEndTimeReturns
-	fake.recordInvocation("UpdateScopeLastCheckEndTime", []interface{}{arg1, arg2})
+	fake.recordInvocation("UpdateScopeLastCheckEndTime", []interface{}{arg1, arg2, arg3})
 	fake.updateScopeLastCheckEndTimeMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1087,17 +1089,17 @@ func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeCallCount() int {
 	return len(fake.updateScopeLastCheckEndTimeArgsForCall)
 }
 
-func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeCalls(stub func(db.ResourceConfigScope, bool) (bool, error)) {
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeCalls(stub func(db.ResourceConfigScope, bool, time.Duration) (bool, error)) {
 	fake.updateScopeLastCheckEndTimeMutex.Lock()
 	defer fake.updateScopeLastCheckEndTimeMutex.Unlock()
 	fake.UpdateScopeLastCheckEndTimeStub = stub
 }
 
-func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeArgsForCall(i int) (db.ResourceConfigScope, bool) {
+func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeArgsForCall(i int) (db.ResourceConfigScope, bool, time.Duration) {
 	fake.updateScopeLastCheckEndTimeMutex.RLock()
 	defer fake.updateScopeLastCheckEndTimeMutex.RUnlock()
 	argsForCall := fake.updateScopeLastCheckEndTimeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeCheckDelegate) UpdateScopeLastCheckEndTimeReturns(result1 bool, result2 error) {

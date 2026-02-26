@@ -180,7 +180,7 @@ var _ = Describe("Resource", func() {
 					bytes, err := json.Marshal(publicPlan)
 					jr := json.RawMessage(bytes)
 					resourceConfigScope.UpdateLastCheckStartTime(99, &jr)
-					resourceConfigScope.UpdateLastCheckEndTime(false)
+					resourceConfigScope.UpdateLastCheckEndTime(false, time.Minute)
 				})
 
 				It("return check build info", func() {
@@ -267,7 +267,7 @@ var _ = Describe("Resource", func() {
 						},
 					},
 				}),
-				builder.WithResourceVersions("some-other-resource", atc.Version{"disabled": "version"}),
+				builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"disabled": "version"}),
 			)
 		})
 
@@ -705,6 +705,7 @@ var _ = Describe("Resource", func() {
 					}),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"ref": "v0"},
 						atc.Version{"ref": "v1"},
 						atc.Version{"ref": "v2"},
@@ -742,6 +743,7 @@ var _ = Describe("Resource", func() {
 
 					scenario.Run(builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"ref": "v0"},
 						atc.Version{"ref": "v1"},
 						atc.Version{"ref": "v2"},
@@ -791,12 +793,14 @@ var _ = Describe("Resource", func() {
 					}),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"ref": "v0"},
 						atc.Version{"ref": "v1"},
 						atc.Version{"ref": "v2"},
 					),
 					builder.WithResourceVersions(
 						"some-other-resource",
+						time.Minute,
 						atc.Version{"ref": "v0"},
 						atc.Version{"ref": "v1"},
 						atc.Version{"ref": "v2"},
@@ -845,6 +849,7 @@ var _ = Describe("Resource", func() {
 					}),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"ref": "v0", "commit": "v0"},
 						atc.Version{"ref": "v1", "commit": "v1"},
 						atc.Version{"ref": "v2", "commit": "v2"},
@@ -947,6 +952,7 @@ var _ = Describe("Resource", func() {
 					}),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"ref": "v0"},
 						atc.Version{"ref": "v1"},
 						atc.Version{"ref": "v2"},
@@ -1064,7 +1070,7 @@ var _ = Describe("Resource", func() {
 				})
 
 				It("maintains existing metadata after same version is saved with no metadata", func() {
-					scenario.Run(builder.WithResourceVersions("some-resource", atc.Version(resourceVersions[9].Version)))
+					scenario.Run(builder.WithResourceVersions("some-resource", time.Minute, atc.Version(resourceVersions[9].Version)))
 
 					historyPage, _, found, err := scenario.Resource("some-resource").Versions(db.Page{Limit: 1}, atc.Version{})
 					Expect(err).ToNot(HaveOccurred())
@@ -1138,12 +1144,14 @@ var _ = Describe("Resource", func() {
 					}),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"ref": "v1"}, // id: 1, check_order: 1
 						atc.Version{"ref": "v3"}, // id: 2, check_order: 2
 						atc.Version{"ref": "v4"}, // id: 3, check_order: 3
 					),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"ref": "v2"}, // id: 4, check_order: 4
 						atc.Version{"ref": "v3"}, // id: 2, check_order: 5
 						atc.Version{"ref": "v4"}, // id: 3, check_order: 6
@@ -1248,6 +1256,7 @@ var _ = Describe("Resource", func() {
 				}),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 					atc.Version{"version": "v3"},
@@ -1390,6 +1399,7 @@ var _ = Describe("Resource", func() {
 					}),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"version": "v1"},
 						atc.Version{"version": "v2"},
 						atc.Version{"version": "v3"},
@@ -1985,6 +1995,7 @@ var _ = Describe("Resource", func() {
 					}),
 					builder.WithResourceVersions(
 						"some-resource",
+						time.Minute,
 						atc.Version{"version": "v1"},
 						atc.Version{"version": "v2"},
 						atc.Version{"version": "v3"},
@@ -2165,7 +2176,7 @@ var _ = Describe("Resource", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					resourceConfigScope.UpdateLastCheckStartTime(build.ID(), build.PublicPlan())
-					resourceConfigScope.UpdateLastCheckEndTime(false)
+					resourceConfigScope.UpdateLastCheckEndTime(false, time.Minute)
 				})
 
 				It("has build summary", func() {
@@ -2181,7 +2192,7 @@ var _ = Describe("Resource", func() {
 				Context("when other resource ran a check build for the scope", func() {
 					BeforeEach(func() {
 						resourceConfigScope.UpdateLastCheckStartTime(999999, build.PublicPlan())
-						resourceConfigScope.UpdateLastCheckEndTime(true)
+						resourceConfigScope.UpdateLastCheckEndTime(true, time.Minute)
 					})
 
 					It("has build summary", func() {
@@ -2265,6 +2276,7 @@ var _ = Describe("Resource", func() {
 			BeforeEach(func() {
 				scenario.Run(builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"ref": "v0"},
 					atc.Version{"ref": "v1"},
 					atc.Version{"ref": "v2"},
@@ -2294,8 +2306,8 @@ var _ = Describe("Resource", func() {
 							},
 						},
 					}),
-						builder.WithResourceVersions("some-resource", atc.Version{"ref": "v0"}),
-						builder.WithResourceVersions("other-resource", atc.Version{"ref": "v0"}),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"ref": "v0"}),
+						builder.WithResourceVersions("other-resource", time.Minute, atc.Version{"ref": "v0"}),
 						builder.WithResourceTypeVersions("some-resource-type", atc.Version{"ref": "v0"}),
 					)
 				})
@@ -2421,7 +2433,7 @@ var _ = Describe("Resource", func() {
 							},
 						},
 					}),
-						builder.WithResourceVersions("some-resource", atc.Version{"ref": "v0"}),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"ref": "v0"}),
 						builder.WithResourceTypeVersions("other-resource-type", atc.Version{"ref": "v0"}),
 						builder.WithResourceTypeVersions("some-resource-type", atc.Version{"ref": "v0"}),
 					)

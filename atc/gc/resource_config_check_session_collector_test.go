@@ -50,7 +50,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 						},
 					},
 				}),
-				builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
+				builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
 			)
 
 			resource := scenario.Resource("some-resource")
@@ -124,7 +124,7 @@ var _ = Describe("ResourceConfigCheckSessionCollector", func() {
 							},
 						},
 					}),
-					builder.WithResourceVersions("some-resource", atc.Version{"some": "different-version"}),
+					builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "different-version"}),
 				)
 			})
 

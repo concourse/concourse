@@ -469,9 +469,9 @@ var _ = Describe("CheckFactory", func() {
 		Context("when all resources have been previously checked successfully", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource"),
-					builder.WithResourceVersions("some-resource-trigger"),
-					builder.WithResourceVersions("some-put-only-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-resource-trigger", time.Minute),
+					builder.WithResourceVersions("some-put-only-resource", time.Minute),
 				)
 			})
 
@@ -507,9 +507,9 @@ var _ = Describe("CheckFactory", func() {
 			Context("has failed its last check", func() {
 				BeforeEach(func() {
 					scenario.Run(
-						builder.WithResourceVersions("some-resource"),
-						builder.WithResourceVersions("some-resource-trigger"),
-						builder.WithFailingResourceCheck("some-put-only-resource"),
+						builder.WithResourceVersions("some-resource", time.Minute),
+						builder.WithResourceVersions("some-resource-trigger", time.Minute),
+						builder.WithFailingResourceCheck("some-put-only-resource", time.Minute),
 					)
 				})
 				It("returns the resource", func() {
@@ -522,9 +522,9 @@ var _ = Describe("CheckFactory", func() {
 				BeforeEach(func() {
 					By("creating successful builds for all resources")
 					scenario.Run(
-						builder.WithResourceVersions("some-resource"),
-						builder.WithResourceVersions("some-resource-trigger"),
-						builder.WithResourceVersions("some-put-only-resource"),
+						builder.WithResourceVersions("some-resource", time.Minute),
+						builder.WithResourceVersions("some-resource-trigger", time.Minute),
+						builder.WithResourceVersions("some-put-only-resource", time.Minute),
 					)
 				})
 				It("does not return the put-only resource", func() {

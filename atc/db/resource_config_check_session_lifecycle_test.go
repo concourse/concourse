@@ -94,7 +94,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 
 			BeforeEach(func() {
 				By("creating the session")
-				scenario.Run(builder.WithResourceVersions("some-resource"))
+				scenario.Run(builder.WithResourceVersions("some-resource", time.Minute))
 				oldRccsID = findOrCreateSession(scenario.Resource("some-resource").ResourceConfigID())
 			})
 
@@ -123,7 +123,7 @@ var _ = Describe("ResourceConfigCheckSessionLifecycle", func() {
 				pipelineConfig.Resources = resources
 				scenario.Run(
 					builder.WithPipeline(pipelineConfig),
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 				)
 				rccsID := findOrCreateSession(scenario.Resource("some-resource").ResourceConfigID())
 

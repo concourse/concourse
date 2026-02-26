@@ -108,7 +108,7 @@ var _ = Describe("WorkerCache", func() {
 
 		By("adding a check container")
 		scenario.Run(
-			builder.WithResourceVersions("some-resource"),
+			builder.WithResourceVersions("some-resource", time.Minute),
 			builder.WithCheckContainer("some-resource", "some-worker"),
 		)
 		// Only counts build containers

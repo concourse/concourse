@@ -293,7 +293,7 @@ func (example Example) Run() {
 		if build.ManuallyTriggered {
 			fakeBuild.ResourcesCheckedReturns(!build.ResourcesNotChecked, nil)
 		} else {
-			fakeBuild.TriggeringResourcesCheckedReturns(!build.ResourcesNotChecked, nil)
+			fakeBuild.NonTriggeringResourcesCheckedReturns(!build.ResourcesNotChecked, nil)
 		}
 
 		if build.CreatingBuildPlanFails {

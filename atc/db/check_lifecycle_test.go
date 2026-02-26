@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"context"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -66,7 +67,7 @@ var _ = Describe("Check Lifecycle", func() {
 		finish := func(build db.Build, scope db.ResourceConfigScope) {
 			err := build.Finish(db.BuildStatusSucceeded)
 			Expect(err).ToNot(HaveOccurred())
-			_, err = scope.UpdateLastCheckEndTime(true)
+			_, err = scope.UpdateLastCheckEndTime(true, time.Second)
 			Expect(err).ToNot(HaveOccurred())
 		}
 

@@ -362,6 +362,18 @@ type FakeBuild struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	NonTriggeringResourcesCheckedStub        func() (bool, error)
+	nonTriggeringResourcesCheckedMutex       sync.RWMutex
+	nonTriggeringResourcesCheckedArgsForCall []struct {
+	}
+	nonTriggeringResourcesCheckedReturns struct {
+		result1 bool
+		result2 error
+	}
+	nonTriggeringResourcesCheckedReturnsOnCall map[int]struct {
+		result1 bool
+		result2 error
+	}
 	OnCheckBuildStartStub        func() error
 	onCheckBuildStartMutex       sync.RWMutex
 	onCheckBuildStartArgsForCall []struct {
@@ -772,18 +784,6 @@ type FakeBuild struct {
 	}
 	tracingAttrsReturnsOnCall map[int]struct {
 		result1 tracing.Attrs
-	}
-	TriggeringResourcesCheckedStub        func() (bool, error)
-	triggeringResourcesCheckedMutex       sync.RWMutex
-	triggeringResourcesCheckedArgsForCall []struct {
-	}
-	triggeringResourcesCheckedReturns struct {
-		result1 bool
-		result2 error
-	}
-	triggeringResourcesCheckedReturnsOnCall map[int]struct {
-		result1 bool
-		result2 error
 	}
 	VariablesStub        func(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 	variablesMutex       sync.RWMutex
@@ -2528,6 +2528,62 @@ func (fake *FakeBuild) NameReturnsOnCall(i int, result1 string) {
 	fake.nameReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
+}
+
+func (fake *FakeBuild) NonTriggeringResourcesChecked() (bool, error) {
+	fake.nonTriggeringResourcesCheckedMutex.Lock()
+	ret, specificReturn := fake.nonTriggeringResourcesCheckedReturnsOnCall[len(fake.nonTriggeringResourcesCheckedArgsForCall)]
+	fake.nonTriggeringResourcesCheckedArgsForCall = append(fake.nonTriggeringResourcesCheckedArgsForCall, struct {
+	}{})
+	stub := fake.NonTriggeringResourcesCheckedStub
+	fakeReturns := fake.nonTriggeringResourcesCheckedReturns
+	fake.recordInvocation("NonTriggeringResourcesChecked", []interface{}{})
+	fake.nonTriggeringResourcesCheckedMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBuild) NonTriggeringResourcesCheckedCallCount() int {
+	fake.nonTriggeringResourcesCheckedMutex.RLock()
+	defer fake.nonTriggeringResourcesCheckedMutex.RUnlock()
+	return len(fake.nonTriggeringResourcesCheckedArgsForCall)
+}
+
+func (fake *FakeBuild) NonTriggeringResourcesCheckedCalls(stub func() (bool, error)) {
+	fake.nonTriggeringResourcesCheckedMutex.Lock()
+	defer fake.nonTriggeringResourcesCheckedMutex.Unlock()
+	fake.NonTriggeringResourcesCheckedStub = stub
+}
+
+func (fake *FakeBuild) NonTriggeringResourcesCheckedReturns(result1 bool, result2 error) {
+	fake.nonTriggeringResourcesCheckedMutex.Lock()
+	defer fake.nonTriggeringResourcesCheckedMutex.Unlock()
+	fake.NonTriggeringResourcesCheckedStub = nil
+	fake.nonTriggeringResourcesCheckedReturns = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBuild) NonTriggeringResourcesCheckedReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.nonTriggeringResourcesCheckedMutex.Lock()
+	defer fake.nonTriggeringResourcesCheckedMutex.Unlock()
+	fake.NonTriggeringResourcesCheckedStub = nil
+	if fake.nonTriggeringResourcesCheckedReturnsOnCall == nil {
+		fake.nonTriggeringResourcesCheckedReturnsOnCall = make(map[int]struct {
+			result1 bool
+			result2 error
+		})
+	}
+	fake.nonTriggeringResourcesCheckedReturnsOnCall[i] = struct {
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeBuild) OnCheckBuildStart() error {
@@ -4604,62 +4660,6 @@ func (fake *FakeBuild) TracingAttrsReturnsOnCall(i int, result1 tracing.Attrs) {
 	fake.tracingAttrsReturnsOnCall[i] = struct {
 		result1 tracing.Attrs
 	}{result1}
-}
-
-func (fake *FakeBuild) TriggeringResourcesChecked() (bool, error) {
-	fake.triggeringResourcesCheckedMutex.Lock()
-	ret, specificReturn := fake.triggeringResourcesCheckedReturnsOnCall[len(fake.triggeringResourcesCheckedArgsForCall)]
-	fake.triggeringResourcesCheckedArgsForCall = append(fake.triggeringResourcesCheckedArgsForCall, struct {
-	}{})
-	stub := fake.TriggeringResourcesCheckedStub
-	fakeReturns := fake.triggeringResourcesCheckedReturns
-	fake.recordInvocation("TriggeringResourcesChecked", []interface{}{})
-	fake.triggeringResourcesCheckedMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeBuild) TriggeringResourcesCheckedCallCount() int {
-	fake.triggeringResourcesCheckedMutex.RLock()
-	defer fake.triggeringResourcesCheckedMutex.RUnlock()
-	return len(fake.triggeringResourcesCheckedArgsForCall)
-}
-
-func (fake *FakeBuild) TriggeringResourcesCheckedCalls(stub func() (bool, error)) {
-	fake.triggeringResourcesCheckedMutex.Lock()
-	defer fake.triggeringResourcesCheckedMutex.Unlock()
-	fake.TriggeringResourcesCheckedStub = stub
-}
-
-func (fake *FakeBuild) TriggeringResourcesCheckedReturns(result1 bool, result2 error) {
-	fake.triggeringResourcesCheckedMutex.Lock()
-	defer fake.triggeringResourcesCheckedMutex.Unlock()
-	fake.TriggeringResourcesCheckedStub = nil
-	fake.triggeringResourcesCheckedReturns = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeBuild) TriggeringResourcesCheckedReturnsOnCall(i int, result1 bool, result2 error) {
-	fake.triggeringResourcesCheckedMutex.Lock()
-	defer fake.triggeringResourcesCheckedMutex.Unlock()
-	fake.TriggeringResourcesCheckedStub = nil
-	if fake.triggeringResourcesCheckedReturnsOnCall == nil {
-		fake.triggeringResourcesCheckedReturnsOnCall = make(map[int]struct {
-			result1 bool
-			result2 error
-		})
-	}
-	fake.triggeringResourcesCheckedReturnsOnCall[i] = struct {
-		result1 bool
-		result2 error
-	}{result1, result2}
 }
 
 func (fake *FakeBuild) Variables(arg1 lager.Logger, arg2 creds.Secrets, arg3 creds.VarSourcePool) (vars.Variables, error) {

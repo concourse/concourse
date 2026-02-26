@@ -3,6 +3,7 @@ package gc_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/atc"
@@ -56,7 +57,7 @@ var _ = Describe("ResourceCacheCollector", func() {
 							},
 						},
 					}),
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 				)
 
 				oneOffBuild, err = scenario.Team.CreateOneOffBuild()

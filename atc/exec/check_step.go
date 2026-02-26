@@ -45,7 +45,7 @@ type CheckDelegate interface {
 	WaitToRun(context.Context, db.ResourceConfigScope) (lock.Lock, bool, error)
 	PointToCheckedConfig(db.ResourceConfigScope) error
 	UpdateScopeLastCheckStartTime(db.ResourceConfigScope, bool) (bool, int, error)
-	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool) (bool, error)
+	UpdateScopeLastCheckEndTime(db.ResourceConfigScope, bool, time.Duration) (bool, error)
 
 	StreamingVolume(lager.Logger, string, string, string)
 }
@@ -161,6 +161,15 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			}
 		}()
 
+		interval := step.plan.Interval.Interval
+		if interval == 0 {
+			if step.plan.IsResourceCheck() {
+				interval = atc.DefaultCheckInterval
+			} else {
+				interval = atc.DefaultResourceTypeInterval
+			}
+		}
+
 		fromVersion := step.plan.FromVersion
 		if fromVersion == nil {
 			latestVersion, found, err := scope.LatestVersion()
@@ -190,7 +199,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		if runErr != nil || processResult.ExitStatus != 0 {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
-			if _, err := delegate.UpdateScopeLastCheckEndTime(scope, false); err != nil {
+			if _, err := delegate.UpdateScopeLastCheckEndTime(scope, false, interval); err != nil {
 				return false, fmt.Errorf("update check end time: %w", err)
 			}
 
@@ -218,7 +227,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			state.StoreResult(step.planID, versions[len(versions)-1])
 		}
 
-		_, err = delegate.UpdateScopeLastCheckEndTime(scope, true)
+		_, err = delegate.UpdateScopeLastCheckEndTime(scope, true, interval)
 		if err != nil {
 			return false, fmt.Errorf("update check end time: %w", err)
 		}

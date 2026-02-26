@@ -91,7 +91,7 @@ var _ = Describe("Job", func() {
 					DisableManualTrigger: true,
 				},
 				{
-					Name:                  "non-rerunnable-job",
+					Name:          "non-rerunnable-job",
 					DisableReruns: true,
 				},
 			},
@@ -1451,6 +1451,7 @@ var _ = Describe("Job", func() {
 				builder.WithSpanContext(spanContext),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 					atc.Version{"version": "v3"},
@@ -1589,6 +1590,7 @@ var _ = Describe("Job", func() {
 				}),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 					atc.Version{"version": "v3"},

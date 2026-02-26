@@ -234,7 +234,7 @@ func (builder Builder) WithBaseWorker() SetupFunc {
 
 // WithResourceVersions imitates running a check build and stores the provided
 // versions in the database.
-func (builder Builder) WithResourceVersions(resourceName string, versions ...atc.Version) SetupFunc {
+func (builder Builder) WithResourceVersions(resourceName string, checkInterval time.Duration, versions ...atc.Version) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
 			err := builder.WithPipeline(atc.Config{
@@ -321,7 +321,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("update last check start time: %w", err)
 		}
 
-		_, err = scope.UpdateLastCheckEndTime(true)
+		_, err = scope.UpdateLastCheckEndTime(true, checkInterval)
 		if err != nil {
 			return fmt.Errorf("update last check end time: %w", err)
 		}
@@ -335,7 +335,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 	}
 }
 
-func (builder Builder) WithFailingResourceCheck(resourceName string) SetupFunc {
+func (builder Builder) WithFailingResourceCheck(resourceName string, checkInterval time.Duration) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
 			err := builder.WithPipeline(atc.Config{
@@ -402,7 +402,7 @@ func (builder Builder) WithFailingResourceCheck(resourceName string) SetupFunc {
 			return fmt.Errorf("update last check start time: %w", err)
 		}
 
-		_, err = scope.UpdateLastCheckEndTime(false)
+		_, err = scope.UpdateLastCheckEndTime(false, checkInterval)
 		if err != nil {
 			return fmt.Errorf("update last check end time: %w", err)
 		}
@@ -948,7 +948,7 @@ func (builder Builder) WithPinnedVersion(resourceName string, pinnedVersion atc.
 		}
 
 		if !found {
-			scenario.Run(builder.WithResourceVersions(resourceName, pinnedVersion))
+			scenario.Run(builder.WithResourceVersions(resourceName, time.Second, pinnedVersion))
 
 			reloaded, err := resource.Reload()
 			if err != nil {
@@ -999,7 +999,7 @@ func (builder Builder) WithDisabledVersion(resourceName string, disabledVersion 
 		}
 
 		if !found {
-			scenario.Run(builder.WithResourceVersions(resourceName, disabledVersion))
+			scenario.Run(builder.WithResourceVersions(resourceName, time.Second, disabledVersion))
 
 			reloaded, err := resource.Reload()
 			if err != nil {
@@ -1051,7 +1051,7 @@ func (builder Builder) WithEnabledVersion(resourceName string, enabledVersion at
 				return err
 			}
 		} else {
-			scenario.Run(builder.WithResourceVersions(resourceName, enabledVersion))
+			scenario.Run(builder.WithResourceVersions(resourceName, time.Second, enabledVersion))
 		}
 
 		return nil

@@ -475,7 +475,7 @@ var _ = Describe("Team", func() {
 						GardenAddr:      "3.4.5.6:7777",
 						BaggageclaimURL: "7.8.9.10:7878",
 					}),
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 					builder.WithResourceTypeVersions("some-type"),
 					builder.WithPrototypeVersions("some-prototype"),
 				)
@@ -543,7 +543,7 @@ var _ = Describe("Team", func() {
 						GardenAddr:      "3.4.5.6:7777",
 						BaggageclaimURL: "7.8.9.10:7878",
 					}),
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 				)
 
 				expiries := db.ContainerOwnerExpiries{
@@ -617,7 +617,7 @@ var _ = Describe("Team", func() {
 							GardenAddr:      "4.5.6.7:7777",
 							BaggageclaimURL: "8.9.10.11:7878",
 						}),
-						builder.WithResourceVersions("some-resource"),
+						builder.WithResourceVersions("some-resource", time.Minute),
 					)
 
 					resource2Container = resourceConfigCheckContainer(otherScenario.Workers[0], otherScenario.Resource("some-resource").ResourceConfigID())
@@ -2125,6 +2125,7 @@ var _ = Describe("Team", func() {
 				builder.WithBaseResourceType(dbConn, "some-type"),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 				),
@@ -2153,6 +2154,7 @@ var _ = Describe("Team", func() {
 				builder.WithBaseResourceType(dbConn, "some-type"),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 				),
@@ -2177,6 +2179,7 @@ var _ = Describe("Team", func() {
 				builder.WithBaseResourceType(dbConn, "some-type"),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 				),
@@ -2202,6 +2205,7 @@ var _ = Describe("Team", func() {
 				builder.WithBaseResourceType(dbConn, "some-type"),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 				),
@@ -2254,6 +2258,7 @@ var _ = Describe("Team", func() {
 				builder.WithBaseResourceType(dbConn, "some-type"),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 				),
@@ -2808,7 +2813,7 @@ var _ = Describe("Team", func() {
 					scenario.Run(
 						builder.WithPipeline(config),
 						// Imitate a check run that found no new versions
-						builder.WithResourceVersions("disabled-resource"),
+						builder.WithResourceVersions("disabled-resource", time.Minute),
 					)
 
 					updatedResource := scenario.Resource("disabled-resource")
@@ -2833,6 +2838,7 @@ var _ = Describe("Team", func() {
 						builder.WithBaseResourceType(dbConn, "some-type"),
 						builder.WithResourceVersions(
 							"some-resource",
+							time.Minute,
 							atc.Version{"version": "v1"},
 							atc.Version{"version": "v2"},
 							atc.Version{"version": "v3"},
@@ -3785,7 +3791,7 @@ var _ = Describe("Team", func() {
 			resource := scenario.Resource("some-resource")
 			go loopUntilTimeoutOrPanic("check resource", func(i int) {
 				scenario.Run(
-					builder.WithResourceVersions(resource.Name(), atc.Version{"v": strconv.Itoa(i / 10)}),
+					builder.WithResourceVersions(resource.Name(), time.Minute, atc.Version{"v": strconv.Itoa(i / 10)}),
 				)
 			})()
 
@@ -4083,7 +4089,7 @@ var _ = Describe("Team", func() {
 						GardenAddr:      "3.4.5.6:7777",
 						BaggageclaimURL: "7.8.9.10:7878",
 					}),
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 				)
 
 				rc, found, err := resourceConfigFactory.FindResourceConfigByID(scenario.Resource("some-resource").ResourceConfigID())
@@ -4183,7 +4189,7 @@ var _ = Describe("Team", func() {
 						GardenAddr:      "3.4.5.6:7777",
 						BaggageclaimURL: "7.8.9.10:7878",
 					}),
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 				)
 
 				rc, found, err := resourceConfigFactory.FindResourceConfigByID(scenario.Resource("some-resource").ResourceConfigID())

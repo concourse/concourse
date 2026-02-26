@@ -86,6 +86,7 @@ type Resource interface {
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
+	NextCheckTime() time.Time
 	Tags() atc.Tags
 	WebhookToken() string
 	Config() atc.ResourceConfig
@@ -139,6 +140,7 @@ var (
 		"r.config",
 		"rs.last_check_start_time",
 		"rs.last_check_end_time",
+		"rs.next_check_time",
 		"rs.last_check_build_id",
 		"rs.last_check_succeeded",
 		"rs.last_check_build_plan",
@@ -179,6 +181,7 @@ type resource struct {
 	type_                 string
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
+	nextCheckTime         time.Time
 	config                atc.ResourceConfig
 	configPinnedVersion   atc.Version
 	apiPinnedVersion      atc.Version
@@ -231,6 +234,7 @@ func (r *resource) CheckEvery() *atc.CheckEvery      { return r.config.CheckEver
 func (r *resource) CheckTimeout() string             { return r.config.CheckTimeout }
 func (r *resource) LastCheckStartTime() time.Time    { return r.lastCheckStartTime }
 func (r *resource) LastCheckEndTime() time.Time      { return r.lastCheckEndTime }
+func (r *resource) NextCheckTime() time.Time         { return r.nextCheckTime }
 func (r *resource) Tags() atc.Tags                   { return r.config.Tags }
 func (r *resource) WebhookToken() string             { return r.config.WebhookToken }
 func (r *resource) Config() atc.ResourceConfig       { return r.config }
@@ -944,7 +948,7 @@ func scanResource(r *resource, row scannable) error {
 	)
 
 	err := row.Scan(&r.id, &r.name, &r.type_, &configBlob, &buildData.lastCheckStartTime,
-		&buildData.lastCheckEndTime, &buildData.lastCheckBuildId, &buildData.lastCheckSucceeded, &buildData.lastCheckBuildPlan,
+		&buildData.lastCheckEndTime, &r.nextCheckTime, &buildData.lastCheckBuildId, &buildData.lastCheckSucceeded, &buildData.lastCheckBuildPlan,
 		&r.pipelineID, &nonce, &rcID, &rcScopeID,
 		&r.pipelineName, &pipelineInstanceVars, &r.teamID, &r.teamName,
 		&pinnedVersion, &pinComment, &pinnedThroughConfig,

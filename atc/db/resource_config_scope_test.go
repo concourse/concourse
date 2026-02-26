@@ -55,7 +55,7 @@ var _ = Describe("Resource Config Scope", func() {
 					},
 				},
 			}),
-			builder.WithResourceVersions("some-resource"),
+			builder.WithResourceVersions("some-resource", time.Minute),
 		)
 
 		rc, found, err := resourceConfigFactory.FindResourceConfigByID(scenario.Resource("some-resource").ResourceConfigID())
@@ -350,7 +350,7 @@ var _ = Describe("Resource Config Scope", func() {
 		})
 		It("updates last check end time", func() {
 			lastTime := scenario.Resource("some-resource").LastCheckEndTime()
-			updated, err := resourceScope.UpdateLastCheckEndTime(true)
+			updated, err := resourceScope.UpdateLastCheckEndTime(true, time.Minute)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(updated).To(BeTrue())
 			Expect(scenario.Resource("some-resource").LastCheckEndTime()).To(BeTemporally(">", lastTime))

@@ -121,8 +121,8 @@ var _ = Describe("CheckStep", func() {
 			found, err := scope.UpdateLastCheckStartTime(int(time.Now().Unix()), nil)
 			return found, 678, err
 		}
-		fakeDelegate.UpdateScopeLastCheckEndTimeStub = func(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
-			return scope.UpdateLastCheckEndTime(succeeded)
+		fakeDelegate.UpdateScopeLastCheckEndTimeStub = func(scope db.ResourceConfigScope, succeeded bool, interval time.Duration) (bool, error) {
+			return scope.UpdateLastCheckEndTime(succeeded, interval)
 		}
 
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)

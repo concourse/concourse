@@ -149,7 +149,7 @@ var _ = Describe("ResourceConfigCollector", func() {
 								},
 							},
 						}),
-						builder.WithResourceVersions("some-resource"),
+						builder.WithResourceVersions("some-resource", time.Minute),
 					)
 				})
 

@@ -75,7 +75,7 @@ var _ = Describe("BuildStarter", func() {
 				createdBuild = new(dbfakes.FakeBuild)
 				createdBuild.IDReturns(66)
 				createdBuild.NameReturns("some-build")
-				createdBuild.TriggeringResourcesCheckedReturns(true, nil)
+				createdBuild.NonTriggeringResourcesCheckedReturns(true, nil)
 
 				pendingBuilds = []db.Build{createdBuild}
 
@@ -597,7 +597,7 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, false, disaster)
-							pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.GetPendingBuildsReturns([]db.Build{pendingBuild1}, nil)
 						})
 
@@ -612,7 +612,7 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, false, nil)
-							pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.GetPendingBuildsReturns([]db.Build{pendingBuild1}, nil)
 						})
 
@@ -627,12 +627,12 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
-							pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.ScheduleBuildReturnsOnCall(0, true, nil)
 							pendingBuild2 = new(dbfakes.FakeBuild)
 							pendingBuild2.IDReturns(999)
 							pendingBuild2.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
-							pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+							pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.ScheduleBuildReturnsOnCall(1, true, nil)
 							rerunBuild = new(dbfakes.FakeBuild)
 							rerunBuild.IDReturns(555)
@@ -690,7 +690,7 @@ var _ = Describe("BuildStarter", func() {
 
 									Context("when marking the build as errored fails", func() {
 										BeforeEach(func() {
-											pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
+											pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 											pendingBuild1.FinishReturns(disaster)
 										})
 
@@ -935,8 +935,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, errors.New("error"))
 								job.ScheduleBuildReturnsOnCall(1, true, nil)
-								pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
-								pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -955,8 +955,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, nil)
 								job.ScheduleBuildReturnsOnCall(1, true, nil)
-								pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
-								pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -975,8 +975,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.IDReturns(555)
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								job.ScheduleBuildReturnsOnCall(1, false, nil)
-								pendingBuild1.TriggeringResourcesCheckedReturns(true, nil)
-								pendingBuild2.TriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -995,7 +995,7 @@ var _ = Describe("BuildStarter", func() {
 			FContext("when inputs are not ready to be deteremined", func() {
 				BeforeEach(func() {
 					job.ScheduleBuildReturns(true, nil)
-					createdBuild.TriggeringResourcesCheckedReturns(false, nil)
+					createdBuild.NonTriggeringResourcesCheckedReturns(false, nil)
 				})
 
 				JustBeforeEach(func() {
