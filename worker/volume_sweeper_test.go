@@ -22,7 +22,7 @@ var _ = Describe("Volume Sweeper", func() {
 	)
 
 	var (
-		testLogger = lagertest.NewTestLogger("volume-sweeper")
+		testLogger *lagertest.TestLogger
 
 		fakeTSAClient *workerfakes.FakeTSAClient
 		fakeBcClient  *baggageclaimfakes.FakeClient
@@ -32,6 +32,7 @@ var _ = Describe("Volume Sweeper", func() {
 	)
 
 	BeforeEach(func() {
+		testLogger = lagertest.NewTestLogger("volume-sweeper")
 		osSignal = make(chan os.Signal)
 		exited = make(chan struct{})
 
