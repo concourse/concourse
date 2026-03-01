@@ -11,7 +11,7 @@
     "uuid": "13.0.0"
   },
   "devDependencies": {
-    "ava": "6.4.1"
+    "ava": "7.0.0"
   },
   "scripts": {
     "test": "ava --serial"
