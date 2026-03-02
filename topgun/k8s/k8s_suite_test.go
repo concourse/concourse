@@ -187,7 +187,7 @@ func (p AddressEndpoint) Close() error {
 	return nil
 }
 
-// PortForwardingFactory deals with creating endpoints that reach the targets
+// PortForwardingEndpointFactory deals with creating endpoints that reach the targets
 // through port-forwarding.
 type PortForwardingEndpointFactory struct{}
 
@@ -209,7 +209,7 @@ func (f PortForwardingEndpointFactory) NewPodEndpoint(namespace, pod, port strin
 	}
 }
 
-// AddressFactory deals with creating endpoints that reach the targets
+// AddressEndpointFactory deals with creating endpoints that reach the targets
 // through port-forwarding.
 type AddressEndpointFactory struct{}
 
