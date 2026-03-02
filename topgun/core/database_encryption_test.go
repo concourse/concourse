@@ -1,7 +1,6 @@
 package topgun_test
 
 import (
-	"bytes"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -19,9 +18,9 @@ var _ = Describe("Database secrets encryption", func() {
 		Fly.Run("unpause-pipeline", "-p", "pipeline-secrets-test")
 
 		By("creating a team with auth")
-		setTeamSession := Fly.SpawnInteractive(
-			bytes.NewBufferString("y\n"),
+		setTeamSession := Fly.Start(
 			"set-team",
+			"--non-interactive",
 			"--team-name", "victoria",
 			"--github-user", "victorias_id",
 			"--github-org", "victorias_secret_org",
