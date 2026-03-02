@@ -53,9 +53,9 @@ var _ = Describe("Hijacked containers", func() {
 		By("hijacking into the build container")
 		hijackSession := Fly.Start(
 			"hijack",
-			"-j", "hijacked-containers-test/simple-job",
-			"-b", "1",
-			"-s", "simple-task",
+			"--job", "hijacked-containers-test/simple-job",
+			"--build", "1",
+			"--step", "simple-task",
 			"sleep", "120",
 		)
 
@@ -63,8 +63,8 @@ var _ = Describe("Hijacked containers", func() {
 		Eventually(func() int {
 			hS := Fly.Start(
 				"hijack",
-				"-j", "hijacked-containers-test/simple-job",
-				"-s", "simple-task",
+				"--job", "hijacked-containers-test/simple-job",
+				"--step", "simple-task",
 				"touch", "/tmp/stop-waiting",
 			)
 			<-hS.Exited
@@ -83,9 +83,9 @@ var _ = Describe("Hijacked containers", func() {
 		Eventually(func() int {
 			hS := Fly.Start(
 				"hijack",
-				"-j", "hijacked-containers-test/simple-job",
-				"-b", "2",
-				"-s", "simple-task",
+				"--job", "hijacked-containers-test/simple-job",
+				"--build", "2",
+				"--step", "simple-task",
 				"touch", "/tmp/stop-waiting",
 			)
 			<-hS.Exited
