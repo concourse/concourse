@@ -1,7 +1,6 @@
 module Dashboard.Models exposing
     ( DragState(..)
     , DropState(..)
-    , Dropdown(..)
     , FetchError(..)
     , FooterModel
     , Model
@@ -17,6 +16,7 @@ import Message.Message exposing (DropTarget)
 import Routes
 import Set exposing (Set)
 import Time
+import Views.SearchBar exposing (Dropdown)
 
 
 type alias Model =
@@ -74,8 +74,3 @@ type alias FooterModel r =
         , dashboardView : Routes.DashboardView
         , query : String
     }
-
-
-type Dropdown
-    = Hidden
-    | Shown (Maybe Int)

@@ -46,10 +46,13 @@ import Message.Subscription
         , Subscription(..)
         )
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
+import Pipeline.Filter as Filter
 import Pipeline.PinMenu.PinMenu as PinMenu
+import Pipeline.SearchBar as PipelineSearchBar
 import Pipeline.Styles as Styles
 import RemoteData exposing (WebData)
 import Routes
+import ScreenSize exposing (ScreenSize)
 import SideBar.SideBar as SideBar
 import StrictEvents exposing (onShiftLeftClick)
 import Svg
@@ -59,6 +62,7 @@ import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.FavoritedIcon as FavoritedIcon
 import Views.PauseToggle as PauseToggle
+import Views.SearchBar as SearchBar
 import Views.Styles
 import Views.TopBar as TopBar
 
@@ -78,6 +82,9 @@ type alias Model =
         , hideLegendCounter : Float
         , isToggleLoading : Bool
         , pinMenuExpanded : Bool
+        , query : String
+        , dropdown : SearchBar.Dropdown
+        , screenSize : ScreenSize
         }
 
 
@@ -106,6 +113,9 @@ init flags =
             , selectedGroups = flags.selectedGroups
             , isUserMenuExpanded = False
             , pinMenuExpanded = False
+            , query = ""
+            , dropdown = SearchBar.Hidden
+            , screenSize = ScreenSize.Desktop
             }
     in
     ( model
@@ -173,6 +183,11 @@ handleCallback callback ( model, effects ) =
                 []
     in
     case callback of
+        ScreenResized viewport ->
+            ( { model | screenSize = ScreenSize.fromWindowSize viewport.viewport.width }
+            , effects
+            )
+
         PipelineFetched (Ok pipeline) ->
             let
                 locator =
@@ -286,41 +301,65 @@ handleCallback callback ( model, effects ) =
 
 handleDelivery : Delivery -> ET Model
 handleDelivery delivery ( model, effects ) =
-    case delivery of
-        KeyDown keyEvent ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }
-            , if keyEvent.code == Keyboard.F then
-                effects ++ [ ResetPipelineFocus ]
+    let
+        ( searchModel, searchEffects ) =
+            PipelineSearchBar.handleDelivery delivery ( model, [] )
 
-              else
-                effects
+        withLegendReset m =
+            { m | hideLegend = False, hideLegendCounter = 0 }
+    in
+    case delivery of
+        WindowResized _ _ ->
+            ( searchModel, effects ++ searchEffects )
+
+        KeyDown keyEvent ->
+            let
+                ( postSearchModel, postSearchEffects ) =
+                    case ( model.dropdown, searchModel.dropdown ) of
+                        ( SearchBar.Shown _, SearchBar.Shown _ ) ->
+                            renderIfNeeded ( searchModel, [] )
+
+                        _ ->
+                            ( searchModel, [] )
+            in
+            ( withLegendReset postSearchModel
+            , effects
+                ++ searchEffects
+                ++ postSearchEffects
+                ++ (if keyEvent.code == Keyboard.F then
+                        [ ResetPipelineFocus ]
+
+                    else
+                        []
+                   )
             )
 
         Moused _ ->
-            ( { model | hideLegend = False, hideLegendCounter = 0 }, effects )
+            ( withLegendReset searchModel, effects ++ searchEffects )
 
         ClockTicked OneSecond _ ->
             if model.hideLegendCounter + timeUntilHiddenCheckInterval > timeUntilHidden then
-                ( { model | hideLegend = True }, effects )
+                ( { searchModel | hideLegend = True }, effects ++ searchEffects )
 
             else
-                ( { model | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
-                , effects
+                ( { searchModel | hideLegendCounter = model.hideLegendCounter + timeUntilHiddenCheckInterval }
+                , effects ++ searchEffects
                 )
 
         ClockTicked FiveSeconds _ ->
-            ( model
+            ( searchModel
             , effects
+                ++ searchEffects
                 ++ [ FetchPipeline model.pipelineLocator
                    , FetchAllPipelines
                    ]
             )
 
         ClockTicked OneMinute _ ->
-            ( model, effects ++ [ FetchClusterInfo ] )
+            ( searchModel, effects ++ searchEffects ++ [ FetchClusterInfo ] )
 
         _ ->
-            ( model, effects )
+            ( searchModel, effects ++ searchEffects )
 
 
 update : Message -> ET Model
@@ -350,6 +389,23 @@ update msg ( model, effects ) =
 
                 _ ->
                     ( model, effects )
+
+        Click ShowSearchButton ->
+            PipelineSearchBar.update msg ( model, effects )
+
+        Click ClearSearchButton ->
+            renderIfNeeded <|
+                PipelineSearchBar.update msg ( model, effects )
+
+        FilterMsg _ ->
+            renderIfNeeded <|
+                PipelineSearchBar.update msg ( model, effects )
+
+        FocusMsg ->
+            PipelineSearchBar.update msg ( model, effects )
+
+        BlurMsg ->
+            PipelineSearchBar.update msg ( model, effects )
 
         _ ->
             ( model, effects )
@@ -391,55 +447,69 @@ view session model =
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
-                (SideBar.sideBarIcon session
-                    :: TopBar.breadcrumbs session route
-                    ++ [ if isArchived model.pipeline then
-                            Html.text ""
+                [ Html.div
+                    [ style "display" "flex" ]
+                    [ SideBar.sideBarIcon session
+                    , Html.div [ style "display" "flex" ] (TopBar.breadcrumbs session route)
+                    ]
+                , Html.div
+                    [ style "flex-grow" "1"
+                    , style "display" "flex"
+                    , style "justify-content" "center"
+                    , style "align-items" "center"
+                    ]
+                    [ PipelineSearchBar.view session model ]
+                , Html.div
+                    [ style "display" "flex"
+                    , style "align-items" "center"
+                    ]
+                    [ if isArchived model.pipeline then
+                        Html.text ""
 
-                         else
-                            TopBar.paused
-                                { paused = displayPaused
-                                , pausedBy = pausedBy model.pipeline
-                                , pausedAt = pausedAt model.pipeline
-                                , timeZone = session.timeZone
+                      else
+                        TopBar.paused
+                            { paused = displayPaused
+                            , pausedBy = pausedBy model.pipeline
+                            , pausedAt = pausedAt model.pipeline
+                            , timeZone = session.timeZone
+                            }
+                    , PinMenu.viewPinMenu session model
+                    , Html.div
+                        Styles.favoritedIcon
+                        [ FavoritedIcon.view
+                            { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
+                            , isFavorited =
+                                model.pipeline
+                                    |> RemoteData.map (Favorites.isPipelineFavorited session)
+                                    |> RemoteData.withDefault False
+                            , isSideBar = False
+                            , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
+                            }
+                            [ style "margin" "17px" ]
+                        ]
+                    , if isArchived model.pipeline then
+                        Html.text ""
+
+                      else
+                        Html.div
+                            Styles.pauseToggle
+                            [ PauseToggle.view
+                                { pipeline = model.pipelineLocator
+                                , isPaused = isPaused model.pipeline
+                                , isToggleHovered =
+                                    HoverState.isHovered
+                                        (TopBarPauseToggle model.pipelineLocator)
+                                        session.hovered
+                                , isToggleLoading = model.isToggleLoading
+                                , tooltipPosition = Views.Styles.Below
+                                , margin = "17px"
+                                , userState = session.userState
+                                , domID = TopBarPauseToggle model.pipelineLocator
                                 }
-                       , PinMenu.viewPinMenu session model
-                       , Html.div
-                            Styles.favoritedIcon
-                            [ FavoritedIcon.view
-                                { isHovered = HoverState.isHovered (TopBarFavoritedIcon <| getPipelineId model.pipeline) session.hovered
-                                , isFavorited =
-                                    model.pipeline
-                                        |> RemoteData.map (Favorites.isPipelineFavorited session)
-                                        |> RemoteData.withDefault False
-                                , isSideBar = False
-                                , domID = TopBarFavoritedIcon <| getPipelineId model.pipeline
-                                }
-                                [ style "margin" "17px" ]
                             ]
-                       , if isArchived model.pipeline then
-                            Html.text ""
-
-                         else
-                            Html.div
-                                Styles.pauseToggle
-                                [ PauseToggle.view
-                                    { pipeline = model.pipelineLocator
-                                    , isPaused = isPaused model.pipeline
-                                    , isToggleHovered =
-                                        HoverState.isHovered
-                                            (TopBarPauseToggle model.pipelineLocator)
-                                            session.hovered
-                                    , isToggleLoading = model.isToggleLoading
-                                    , tooltipPosition = Views.Styles.Below
-                                    , margin = "17px"
-                                    , userState = session.userState
-                                    , domID = TopBarPauseToggle model.pipelineLocator
-                                    }
-                                ]
-                       , Login.view session.userState model
-                       ]
-                )
+                    , Login.view session.userState model
+                    ]
+                ]
             , Html.div
                 (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
               <|
@@ -573,7 +643,7 @@ backgroundImage pipeline =
 
 
 viewSubPage :
-    { a | hovered : HoverState.HoverState, version : String }
+    { a | hovered : HoverState.HoverState, version : String, screenSize : ScreenSize }
     -> Model
     -> Html Message
 viewSubPage session model =
@@ -801,18 +871,21 @@ renderIfNeeded ( model, effects ) =
 
                     else
                         filterJobs model fetchedJobs
+
+                queryFilteredJobs =
+                    Filter.filterJobs model.query filteredFetchedJobs
             in
             case ( model.renderedResources, model.renderedJobs ) of
                 ( Just renderedResources, Just renderedJobs ) ->
                     if
-                        (renderedJobs /= filteredFetchedJobs)
+                        (renderedJobs /= queryFilteredJobs)
                             || (renderedResources /= fetchedResources)
                     then
                         ( { model
-                            | renderedJobs = Just filteredFetchedJobs
+                            | renderedJobs = Just queryFilteredJobs
                             , renderedResources = Just fetchedResources
                           }
-                        , effects ++ [ RenderPipeline filteredFetchedJobs fetchedResources ]
+                        , effects ++ [ RenderPipeline queryFilteredJobs fetchedResources ]
                         )
 
                     else
@@ -820,10 +893,10 @@ renderIfNeeded ( model, effects ) =
 
                 _ ->
                     ( { model
-                        | renderedJobs = Just filteredFetchedJobs
+                        | renderedJobs = Just queryFilteredJobs
                         , renderedResources = Just fetchedResources
                       }
-                    , effects ++ [ RenderPipeline filteredFetchedJobs fetchedResources ]
+                    , effects ++ [ RenderPipeline queryFilteredJobs fetchedResources ]
                     )
 
         _ ->

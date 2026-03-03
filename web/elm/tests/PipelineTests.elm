@@ -605,8 +605,11 @@ all =
                 , it "top bar has a square concourse logo on the left" <|
                     Common.queryView
                         >> Query.find [ id "top-bar-app" ]
-                        >> Query.children []
-                        >> Query.index 1
+                        >> Query.find
+                            [ style "background-image" <|
+                                Assets.backgroundImage <|
+                                    Just Assets.ConcourseLogoWhite
+                            ]
                         >> Query.has
                             [ style "background-image" <|
                                 Assets.backgroundImage <|
