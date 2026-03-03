@@ -448,20 +448,25 @@ view session model =
             [ Html.div
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
                 [ Html.div
-                    [ style "display" "flex" ]
+                    [ style "display" "flex"
+                    , style "flex" "1"
+                    , style "min-width" "0"
+                    ]
                     [ SideBar.sideBarIcon session
                     , Html.div [ style "display" "flex" ] (TopBar.breadcrumbs session route)
                     ]
                 , Html.div
-                    [ style "flex-grow" "1"
-                    , style "display" "flex"
+                    [ style "display" "flex"
                     , style "justify-content" "center"
                     , style "align-items" "center"
                     ]
                     [ PipelineSearchBar.view session model ]
                 , Html.div
                     [ style "display" "flex"
+                    , style "flex" "1"
+                    , style "min-width" "0"
                     , style "align-items" "center"
+                    , style "justify-content" "flex-end"
                     ]
                     [ if isArchived model.pipeline then
                         Html.text ""
