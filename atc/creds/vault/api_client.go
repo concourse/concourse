@@ -104,6 +104,12 @@ func (ac *APIClient) loginParams() map[string]any {
 	return loginParams
 }
 
+// isBatchToken checks if a token is a batch token based on its prefix.
+// Batch tokens start with "hvb." (current) or "b." (legacy) and cannot be renewed.
+func isBatchToken(token string) bool {
+	return strings.HasPrefix(token, "hvb.") || strings.HasPrefix(token, "b.")
+}
+
 // setClientToken Create a client with the given token and trigger an immediate renewal.
 func (ac *APIClient) setClientToken(token string, logger lager.Logger) (time.Duration, error) {
 	newClient, err := ac.clientWithToken(token)
@@ -185,26 +191,8 @@ func (ac *APIClient) Renew() (time.Duration, error) {
 
 	client := ac.client()
 
-	// Retrieve token information to determine if it is renewable before attempting renewal.
-	tokenInfo, err := client.Auth().Token().LookupSelf()
-	if err != nil {
-		logger.Error("failed-to-lookup-token", err)
-		return time.Second, err
-	}
-
-	if tokenInfo == nil {
-		err := fmt.Errorf("unexpected nil response from Vault during token lookup")
-		logger.Error("vault-token-info-missing", err)
-		return time.Second, err
-	}
-
-	isRenewable, err := tokenInfo.TokenIsRenewable()
-	if err != nil {
-		logger.Error("token-renewable-check-failed", err)
-		return time.Second, err
-	}
-
-	if !isRenewable {
+	// Check if current token is a batch token - they cannot be renewed
+	if isBatchToken(client.Token()) {
 		ac.renewable = false
 		logger.Info("token-not-renewable")
 		return time.Second, nil
@@ -383,3 +371,4 @@ func (ac *APIClient) health() (*vaultapi.HealthResponse, error) {
 	healthResponse, err := client.Sys().Health()
 	return healthResponse, err
 }
+
