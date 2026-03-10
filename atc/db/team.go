@@ -464,6 +464,14 @@ func savePipeline(
 		return 0, false, err
 	}
 
+	var userDataPayload []byte
+	if config.UserData != nil {
+		userDataPayload, err = json.Marshal(config.UserData)
+		if err != nil {
+			return 0, false, err
+		}
+	}
+
 	var pipelineID int
 	if !existingConfig {
 		values := map[string]any{
@@ -471,6 +479,7 @@ func savePipeline(
 			"groups":          groupsPayload,
 			"var_sources":     encryptedVarSourcesPayload,
 			"display":         displayPayload,
+			"user_data":       userDataPayload,
 			"nonce":           nonce,
 			"version":         sq.Expr("nextval('config_version_seq')"),
 			"paused":          initiallyPaused,
@@ -516,6 +525,7 @@ func savePipeline(
 			Set("groups", groupsPayload).
 			Set("var_sources", encryptedVarSourcesPayload).
 			Set("display", displayPayload).
+			Set("user_data", userDataPayload).
 			Set("nonce", nonce).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
 			Set("last_updated", sq.Expr("now()")).
@@ -1334,6 +1344,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		groups        sql.NullString
 		varSources    sql.NullString
 		display       sql.NullString
+		userData      sql.NullString
 		nonce         sql.NullString
 		nonceStr      *string
 		lastUpdated   sql.NullTime
@@ -1343,7 +1354,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		pausedBy      sql.NullString
 		pausedAt      sql.NullTime
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &pausedBy, &pausedAt)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &userData, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &pausedBy, &pausedAt)
 	if err != nil {
 		return err
 	}
@@ -1374,6 +1385,16 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		}
 
 		p.display = displayConfig
+	}
+
+	if userData.Valid {
+		var userDataObj any
+		err = json.Unmarshal([]byte(userData.String), &userDataObj)
+		if err != nil {
+			return err
+		}
+
+		p.userData = userDataObj
 	}
 
 	if varSources.Valid {

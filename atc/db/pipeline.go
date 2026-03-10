@@ -138,6 +138,7 @@ type pipeline struct {
 	groups        atc.GroupConfigs
 	varSources    atc.VarSourceConfigs
 	display       *atc.DisplayConfig
+	userData      any
 	configVersion ConfigVersion
 	paused        bool
 	pausedBy      string
@@ -159,6 +160,7 @@ var pipelinesQuery = psql.Select(`
 		p.groups,
 		p.var_sources,
 		p.display,
+		p.user_data,
 		p.nonce,
 		p.version,
 		p.team_id,
@@ -266,6 +268,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		Prototypes:    prototypes.Configs(),
 		Jobs:          jobConfigs,
 		Display:       p.Display(),
+		UserData:      p.userData,
 	}
 
 	return config, nil
