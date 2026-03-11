@@ -2271,6 +2271,101 @@ var _ = Describe("Pipeline", func() {
 			Expect(pipeline.Config()).To(Equal(pipelineConfig))
 		})
 	})
+
+	Describe("UserData", func() {
+		Context("when pipeline is created with user_data", func() {
+			It("preserves user_data as a map", func() {
+				userData := map[string]any{
+					"organization": "Platform Team",
+					"contact":      "platform@example.com",
+					"labels":       []any{"prod", "critical"},
+				}
+
+				configWithUserData := pipelineConfig
+				configWithUserData.UserData = userData
+
+				pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "pipeline-with-userdata"}, configWithUserData, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				config, err := pipeline.Config()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(config.UserData).NotTo(BeNil())
+
+				retrievedUserData, ok := config.UserData.(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(retrievedUserData["organization"]).To(Equal("Platform Team"))
+				Expect(retrievedUserData["contact"]).To(Equal("platform@example.com"))
+			})
+
+			It("preserves user_data as a string", func() {
+				configWithUserData := pipelineConfig
+				configWithUserData.UserData = "simple metadata"
+
+				pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "pipeline-with-string-userdata"}, configWithUserData, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				config, err := pipeline.Config()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(config.UserData).To(Equal("simple metadata"))
+			})
+
+			It("preserves user_data as an array", func() {
+				configWithUserData := pipelineConfig
+				configWithUserData.UserData = []any{"tag1", "tag2", "tag3"}
+
+				pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "pipeline-with-array-userdata"}, configWithUserData, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				config, err := pipeline.Config()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(config.UserData).NotTo(BeNil())
+
+				retrievedUserData, ok := config.UserData.([]any)
+				Expect(ok).To(BeTrue())
+				Expect(retrievedUserData).To(ConsistOf("tag1", "tag2", "tag3"))
+			})
+		})
+
+		Context("when pipeline is created without user_data", func() {
+			It("returns nil for user_data", func() {
+				pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "pipeline-without-userdata"}, pipelineConfig, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				config, err := pipeline.Config()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(config.UserData).To(BeNil())
+			})
+		})
+
+		Context("when updating pipeline user_data", func() {
+			It("replaces user_data with new value", func() {
+				initialUserData := map[string]any{"version": "1.0"}
+				configWithUserData := pipelineConfig
+				configWithUserData.UserData = initialUserData
+
+				pipeline, _, err := team.SavePipeline(atc.PipelineRef{Name: "pipeline-update-userdata"}, configWithUserData, 0, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				// Update with new user_data
+				updatedUserData := map[string]any{
+					"version":    "2.0",
+					"updated_by": "test",
+				}
+				configWithUserData.UserData = updatedUserData
+
+				pipeline, _, err = team.SavePipeline(atc.PipelineRef{Name: "pipeline-update-userdata"}, configWithUserData, pipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				config, err := pipeline.Config()
+				Expect(err).ToNot(HaveOccurred())
+
+				retrievedUserData, ok := config.UserData.(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(retrievedUserData["version"]).To(Equal("2.0"))
+				Expect(retrievedUserData["updated_by"]).To(Equal("test"))
+			})
+		})
+	})
 })
 
 func intptr(i int) *int {
