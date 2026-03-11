@@ -94,10 +94,6 @@ func (fake *FakeRejector) UnauthorizedArgsForCall(i int) (http.ResponseWriter, *
 func (fake *FakeRejector) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.forbiddenMutex.RLock()
-	defer fake.forbiddenMutex.RUnlock()
-	fake.unauthorizedMutex.RLock()
-	defer fake.unauthorizedMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

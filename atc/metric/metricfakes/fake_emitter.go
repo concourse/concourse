@@ -55,8 +55,6 @@ func (fake *FakeEmitter) EmitArgsForCall(i int) (lager.Logger, metric.Event) {
 func (fake *FakeEmitter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.emitMutex.RLock()
-	defer fake.emitMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

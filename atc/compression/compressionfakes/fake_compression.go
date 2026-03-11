@@ -157,10 +157,6 @@ func (fake *FakeCompression) NewReaderReturnsOnCall(i int, result1 io.ReadCloser
 func (fake *FakeCompression) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.encodingMutex.RLock()
-	defer fake.encodingMutex.RUnlock()
-	fake.newReaderMutex.RLock()
-	defer fake.newReaderMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

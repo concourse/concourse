@@ -57,8 +57,6 @@ func (fake *FakeAuditor) AuditArgsForCall(i int) (string, string, *http.Request)
 func (fake *FakeAuditor) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.auditMutex.RLock()
-	defer fake.auditMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

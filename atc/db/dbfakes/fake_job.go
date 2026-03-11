@@ -1190,7 +1190,6 @@ func (fake *FakeJob) DisableManualTriggerReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
-
 func (fake *FakeJob) DisableReruns() bool {
 	fake.disableRerunsMutex.Lock()
 	ret, specificReturn := fake.disableRerunsReturnsOnCall[len(fake.disableRerunsArgsForCall)]

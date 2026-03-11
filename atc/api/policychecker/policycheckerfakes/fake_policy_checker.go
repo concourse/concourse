@@ -99,8 +99,6 @@ func (fake *FakePolicyChecker) CheckReturnsOnCall(i int, result1 policy.PolicyCh
 func (fake *FakePolicyChecker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkMutex.RLock()
-	defer fake.checkMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

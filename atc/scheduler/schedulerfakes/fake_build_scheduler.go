@@ -99,8 +99,6 @@ func (fake *FakeBuildScheduler) ScheduleReturnsOnCall(i int, result1 bool, resul
 func (fake *FakeBuildScheduler) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.scheduleMutex.RLock()
-	defer fake.scheduleMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

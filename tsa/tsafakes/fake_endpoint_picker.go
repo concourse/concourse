@@ -79,8 +79,6 @@ func (fake *FakeEndpointPicker) PickReturnsOnCall(i int, result1 *rata.RequestGe
 func (fake *FakeEndpointPicker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.pickMutex.RLock()
-	defer fake.pickMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

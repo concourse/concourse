@@ -179,10 +179,6 @@ func (fake *FakeSsmAPI) GetParametersByPathReturnsOnCall(i int, result1 *ssma.Ge
 func (fake *FakeSsmAPI) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getParameterMutex.RLock()
-	defer fake.getParameterMutex.RUnlock()
-	fake.getParametersByPathMutex.RLock()
-	defer fake.getParametersByPathMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
