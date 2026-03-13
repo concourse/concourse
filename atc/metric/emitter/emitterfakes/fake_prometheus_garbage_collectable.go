@@ -394,18 +394,6 @@ func (fake *FakePrometheusGarbageCollectable) WorkerVolumesLabelsReturnsOnCall(i
 func (fake *FakePrometheusGarbageCollectable) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.workerContainersMutex.RLock()
-	defer fake.workerContainersMutex.RUnlock()
-	fake.workerContainersLabelsMutex.RLock()
-	defer fake.workerContainersLabelsMutex.RUnlock()
-	fake.workerTasksMutex.RLock()
-	defer fake.workerTasksMutex.RUnlock()
-	fake.workerTasksLabelsMutex.RLock()
-	defer fake.workerTasksLabelsMutex.RUnlock()
-	fake.workerVolumesMutex.RLock()
-	defer fake.workerVolumesMutex.RUnlock()
-	fake.workerVolumesLabelsMutex.RLock()
-	defer fake.workerVolumesLabelsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

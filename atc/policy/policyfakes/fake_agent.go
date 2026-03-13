@@ -92,8 +92,6 @@ func (fake *FakeAgent) CheckReturnsOnCall(i int, result1 policy.PolicyCheckResul
 func (fake *FakeAgent) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkMutex.RLock()
-	defer fake.checkMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

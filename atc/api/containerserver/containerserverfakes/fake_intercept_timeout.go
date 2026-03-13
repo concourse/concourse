@@ -170,12 +170,6 @@ func (fake *FakeInterceptTimeout) ResetCalls(stub func()) {
 func (fake *FakeInterceptTimeout) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.channelMutex.RLock()
-	defer fake.channelMutex.RUnlock()
-	fake.errorMutex.RLock()
-	defer fake.errorMutex.RUnlock()
-	fake.resetMutex.RLock()
-	defer fake.resetMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

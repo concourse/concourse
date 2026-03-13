@@ -93,8 +93,6 @@ func (fake *FakeClaimsParser) ParseClaimsReturnsOnCall(i int, result1 db.Claims,
 func (fake *FakeClaimsParser) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.parseClaimsMutex.RLock()
-	defer fake.parseClaimsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

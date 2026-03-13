@@ -84,8 +84,6 @@ func (fake *FakeTeamFetcher) GetTeamsReturnsOnCall(i int, result1 []db.Team, res
 func (fake *FakeTeamFetcher) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getTeamsMutex.RLock()
-	defer fake.getTeamsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -98,8 +98,6 @@ func (fake *FakeSecretsManagerAPI) GetSecretValueReturnsOnCall(i int, result1 *s
 func (fake *FakeSecretsManagerAPI) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getSecretValueMutex.RLock()
-	defer fake.getSecretValueMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

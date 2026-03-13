@@ -342,14 +342,6 @@ func (fake *FakeSecretsWithParams) NewSecretLookupPathsWithParamsReturnsOnCall(i
 func (fake *FakeSecretsWithParams) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getMutex.RLock()
-	defer fake.getMutex.RUnlock()
-	fake.getWithParamsMutex.RLock()
-	defer fake.getWithParamsMutex.RUnlock()
-	fake.newSecretLookupPathsMutex.RLock()
-	defer fake.newSecretLookupPathsMutex.RUnlock()
-	fake.newSecretLookupPathsWithParamsMutex.RLock()
-	defer fake.newSecretLookupPathsWithParamsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
