@@ -51,6 +51,7 @@ type Asset
     | UpArrow
     | DownArrow
     | RefreshIcon
+    | BullhornIcon
     | MessageIcon
     | SideBarIconClosedGrey
     | SideBarIconOpenedGrey
@@ -297,6 +298,9 @@ toPath asset =
 
         RefreshIcon ->
             basePath ++ [ "baseline-refresh.svg" ]
+
+        BullhornIcon ->
+            basePath ++ [ "bullhorn-variant.svg" ]
 
         MessageIcon ->
             basePath ++ [ "baseline-message.svg" ]

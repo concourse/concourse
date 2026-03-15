@@ -1,4 +1,4 @@
-module UserState exposing (UserState(..), isAnonymous, isMember)
+module UserState exposing (UserState(..), isAdmin, isAnonymous, isMember)
 
 import Concourse
 import Dict
@@ -8,6 +8,16 @@ type UserState
     = UserStateLoggedIn Concourse.User
     | UserStateLoggedOut
     | UserStateUnknown
+
+
+isAdmin : UserState -> Bool
+isAdmin userState =
+    case userState of
+        UserStateLoggedIn user ->
+            user.isAdmin
+
+        _ ->
+            False
 
 
 isAnonymous : UserState -> Bool

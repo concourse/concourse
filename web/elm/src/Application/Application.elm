@@ -12,12 +12,15 @@ module Application.Application exposing
 
 import Application.Models exposing (Session)
 import Application.Styles as Styles
+import Assets
 import Browser
+import Colors
 import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
 import Html
-import Html.Attributes exposing (href, id, rel, style, target)
+import Html.Attributes exposing (class, disabled, href, id, placeholder, rel, style, target, value)
+import Html.Events exposing (onClick, onInput, onMouseEnter, onMouseLeave)
 import Http
 import Message.Callback exposing (Callback(..))
 import Message.Effects as Effects exposing (Effect(..))
@@ -39,6 +42,8 @@ import Time
 import Tooltip
 import Url
 import UserState exposing (UserState(..))
+import Views.Icon as Icon
+import Views.Styles
 
 
 type alias Flags =
@@ -51,10 +56,17 @@ type alias Flags =
     }
 
 
+type alias WallEditor =
+    { isOpen : Bool
+    , message : String
+    }
+
+
 type alias Model =
     { subModel : SubPage.Model
     , session : Session
     , wallMessage : Maybe String
+    , wallEditor : WallEditor
     }
 
 
@@ -103,6 +115,10 @@ init flags url =
             { subModel = subModel
             , session = session
             , wallMessage = Nothing
+            , wallEditor =
+                { isOpen = False
+                , message = ""
+                }
             }
 
         handleTokenEffect =
@@ -176,8 +192,11 @@ handleCallback callback model =
 
                 newSession =
                     { session | userState = UserStateLoggedOut }
+
+                wallEditor =
+                    model.wallEditor
             in
-            subpageHandleCallback callback ( { model | session = newSession }, [] )
+            subpageHandleCallback callback ( { model | session = newSession, wallEditor = { wallEditor | isOpen = False } }, [] )
 
         AllTeamsFetched (Err err) ->
             let
@@ -186,8 +205,11 @@ handleCallback callback model =
 
                 newSession =
                     { session | userState = UserStateLoggedOut }
+
+                wallEditor =
+                    model.wallEditor
             in
-            subpageHandleCallback callback ( { model | session = newSession }, [] )
+            subpageHandleCallback callback ( { model | session = newSession, wallEditor = { wallEditor | isOpen = False } }, [] )
                 |> redirectToLoginIfNecessary err
 
         UserFetched (Ok user) ->
@@ -207,8 +229,11 @@ handleCallback callback model =
 
                 newSession =
                     { session | userState = UserStateLoggedOut }
+
+                wallEditor =
+                    model.wallEditor
             in
-            subpageHandleCallback callback ( { model | session = newSession }, [] )
+            subpageHandleCallback callback ( { model | session = newSession, wallEditor = { wallEditor | isOpen = False } }, [] )
 
         ClusterInfoFetched (Ok { clusterName, version }) ->
             let
@@ -258,6 +283,24 @@ handleCallback callback model =
             ( { model | wallMessage = newMsg }, [] )
 
         WallFetched (Err _) ->
+            ( model, [] )
+
+        WallSet (Ok ()) ->
+            let
+                wallEditor =
+                    model.wallEditor
+            in
+            ( { model | wallEditor = { wallEditor | isOpen = False } }
+            , [ FetchWall ]
+            )
+
+        WallSet (Err _) ->
+            ( model, [] )
+
+        WallCleared (Ok ()) ->
+            ( { model | wallMessage = Nothing }, [] )
+
+        WallCleared (Err _) ->
             ( model, [] )
 
         _ ->
@@ -314,6 +357,56 @@ update msg model =
             ( { model | subModel = subModel, session = newSession }
             , subEffects ++ sideBarEffects
             )
+
+        Update (Message.Click Message.SetWallButton) ->
+            let
+                wallEditor =
+                    model.wallEditor
+            in
+            ( { model
+                | wallEditor =
+                    if wallEditor.isOpen then
+                        { wallEditor | isOpen = False }
+
+                    else
+                        { wallEditor
+                            | isOpen = True
+                            , message = Maybe.withDefault "" model.wallMessage
+                        }
+              }
+            , []
+            )
+
+        Update (Message.Click Message.CloseWallEditorButton) ->
+            let
+                wallEditor =
+                    model.wallEditor
+            in
+            ( { model | wallEditor = { wallEditor | isOpen = False } }, [] )
+
+        Update (Message.EditWallMessage text) ->
+            let
+                wallEditor =
+                    model.wallEditor
+            in
+            ( { model | wallEditor = { wallEditor | message = text } }, [] )
+
+        Update (Message.Click Message.SaveWallButton) ->
+            let
+                wallEditor =
+                    model.wallEditor
+
+                wall =
+                    { message = wallEditor.message
+                    , ttl = 0
+                    }
+            in
+            ( { model | wallEditor = { wallEditor | isOpen = False } }
+            , [ Effects.DoSetWall wall ]
+            )
+
+        Update (Message.Click Message.ClearWallButton) ->
+            ( model, [ Effects.DoClearWall ] )
 
         Update m ->
             let
@@ -457,7 +550,17 @@ urlUpdate route model =
         newSession =
             { oldSession | route = newRoute, hovered = HoverState.NoHover }
     in
-    ( { model | subModel = newSubmodel, session = newSession }
+    ( { model
+        | subModel = newSubmodel
+        , session = newSession
+        , wallEditor =
+            case newRoute of
+                Routes.Dashboard _ ->
+                    model.wallEditor
+
+                _ ->
+                    { isOpen = False, message = "" }
+      }
     , subEffects ++ [ SetFavIcon Nothing ]
     )
 
@@ -479,11 +582,20 @@ view model =
                 |> Maybe.withDefault (Html.text "")
             , case model.wallMessage of
                 Just msg ->
-                    Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
-                        wallLinks msg
+                    if model.wallEditor.isOpen then
+                        Html.text ""
+
+                    else
+                        Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
+                            wallLinks msg
 
                 Nothing ->
                     Html.text ""
+            , if model.wallEditor.isOpen then
+                wallEditorView model.wallEditor model.wallMessage model.session.hovered
+
+              else
+                Html.text ""
             , Html.div
                 ([ id "page-wrapper", style "height" "100%" ]
                     ++ (if model.session.draggingSideBar then
@@ -540,6 +652,131 @@ routeMatchesModel route model =
 
         _ ->
             False
+
+
+wallEditorTextarea : WallEditor -> Html.Html Message.Message
+wallEditorTextarea editor =
+    Html.textarea
+        ([ id "wall-editor-message"
+         , value editor.message
+         , onInput Message.EditWallMessage
+         , placeholder "Enter broadcast message…"
+         , style "background-color" Colors.sectionHeader
+         , style "line-height" "1.6"
+         ]
+            ++ Views.Styles.commentBarTextarea
+        )
+        []
+
+
+clearWallButton : HoverState.HoverState -> Html.Html Message.Message
+clearWallButton hovered =
+    Html.button
+        ([ id (Effects.toHtmlID Message.ClearWallButton)
+         , onMouseEnter (Message.Hover (Just Message.ClearWallButton))
+         , onMouseLeave (Message.Hover Nothing)
+         , onClick (Message.Click Message.ClearWallButton)
+         , style "color" Colors.text
+         , style "cursor" "pointer"
+         , if HoverState.isHovered Message.ClearWallButton hovered then
+            style "background-color" Colors.pinTools
+
+           else
+            style "background-color" "transparent"
+         ]
+            ++ Views.Styles.commentBarTextButton
+        )
+        [ Html.text "clear" ]
+
+
+setWallButton : WallEditor -> HoverState.HoverState -> Html.Html Message.Message
+setWallButton editor hovered =
+    Html.button
+        ([ id (Effects.toHtmlID Message.SaveWallButton)
+         , onMouseEnter (Message.Hover (Just Message.SaveWallButton))
+         , onMouseLeave (Message.Hover Nothing)
+         , onClick (Message.Click Message.SaveWallButton)
+         , disabled (String.trim editor.message == "")
+         , style "color" Colors.text
+         , style "cursor"
+            (if String.trim editor.message == "" then
+                "not-allowed"
+
+             else
+                "pointer"
+            )
+         , style "opacity"
+            (if String.trim editor.message == "" then
+                "0.5"
+
+             else
+                "1"
+            )
+         , if HoverState.isHovered Message.SaveWallButton hovered then
+            style "background-color" Colors.pinTools
+
+           else
+            style "background-color" "transparent"
+         ]
+            ++ Views.Styles.commentBarTextButton
+        )
+        [ Html.text "set" ]
+
+
+closeWallEditorButton : HoverState.HoverState -> Html.Html Message.Message
+closeWallEditorButton hovered =
+    Html.button
+        ([ id (Effects.toHtmlID Message.CloseWallEditorButton)
+         , onMouseEnter (Message.Hover (Just Message.CloseWallEditorButton))
+         , onMouseLeave (Message.Hover Nothing)
+         , onClick (Message.Click Message.CloseWallEditorButton)
+         , style "color" Colors.text
+         , style "cursor" "pointer"
+         , if HoverState.isHovered Message.CloseWallEditorButton hovered then
+            style "background-color" Colors.pinTools
+
+           else
+            style "background-color" "transparent"
+         ]
+            ++ Views.Styles.commentBarTextButton
+        )
+        [ Html.text "×" ]
+
+
+wallEditorView : WallEditor -> Maybe String -> HoverState.HoverState -> Html.Html Message.Message
+wallEditorView editor currentWallMessage hovered =
+    Html.div
+        [ class "wall-editor-bar"
+        , style "display" "flex"
+        , style "align-items" "flex-start"
+        , style "color" Colors.text
+        , style "background-color" Colors.sectionHeader
+        , style "border" ("1px solid " ++ Colors.text)
+        ]
+        [ Icon.icon
+            { sizePx = 16
+            , image = Assets.BullhornIcon
+            }
+            [ style "margin" "10px"
+            , style "flex-shrink" "0"
+            , style "background-size" "contain"
+            , style "background-origin" "content-box"
+            ]
+        , wallEditorTextarea editor
+        , Html.div
+            [ style "display" "flex"
+            , style "align-items" "center"
+            , style "flex-shrink" "0"
+            ]
+            [ if currentWallMessage /= Nothing then
+                clearWallButton hovered
+
+              else
+                Html.text ""
+            , setWallButton editor hovered
+            , closeWallEditorButton hovered
+            ]
+        ]
 
 
 wallLinks : String -> List (Html.Html msg)

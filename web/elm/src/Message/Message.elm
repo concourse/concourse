@@ -40,6 +40,8 @@ type Message
     | EditCommentBar DomID String
     | FocusCommentBar DomID
     | BlurCommentBar DomID
+      -- Wall Editor
+    | EditWallMessage String
       -- Download Fly Page
     | PlatformSelected String
     | GetHostname
@@ -123,6 +125,10 @@ type DomID
     | DashboardGroup String
     | InputsTo VersionId
     | OutputsOf VersionId
+    | SetWallButton
+    | SaveWallButton
+    | ClearWallButton
+    | CloseWallEditorButton
 
 
 type PipelinesSection

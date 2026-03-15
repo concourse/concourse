@@ -11,6 +11,7 @@ module Dashboard.Dashboard exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Colors
 import Concourse exposing (hyphenNotation)
 import Concourse.BuildStatus
@@ -57,7 +58,8 @@ import Html.Attributes
         )
 import Html.Events
     exposing
-        ( onMouseEnter
+        ( onClick
+        , onMouseEnter
         , onMouseLeave
         )
 import Http
@@ -87,6 +89,7 @@ import StrictEvents exposing (onScroll)
 import Time
 import Tooltip
 import UserState
+import Views.Icon as Icon
 import Views.SearchBar exposing (Dropdown(..))
 import Views.Spinner as Spinner
 import Views.Styles
@@ -1093,12 +1096,14 @@ topBar session model =
 
                 else if not model.highDensity then
                     [ topBarContent [ SearchBar.view session model ]
+                    , setWallButtonView session
                     , showArchivedToggleView model
                     , Login.view session.userState model
                     ]
 
                 else
                     [ topBarContent []
+                    , setWallButtonView session
                     , showArchivedToggleView model
                     , Login.view session.userState model
                     ]
@@ -1110,6 +1115,19 @@ topBarContent content =
     Html.div
         (id "top-bar-content" :: Styles.topBarContent)
         content
+
+
+setWallButtonView : Session -> Html Message
+setWallButtonView session =
+    if UserState.isAdmin session.userState then
+        Html.button
+            [ id "set-wall-button"
+            , Html.Events.onClick (Click SetWallButton)
+            ]
+            [ Icon.icon { sizePx = 20, image = Assets.BullhornIcon } [] ]
+
+    else
+        Html.text ""
 
 
 showArchivedToggleView : Model -> Html Message
