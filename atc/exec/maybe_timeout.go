@@ -7,7 +7,7 @@ import (
 )
 
 func MaybeTimeout(ctx context.Context, timeoutStr string, defaultTimeout time.Duration, maxTimeout time.Duration) (context.Context, func(), error) {
-	if timeoutStr == "" && defaultTimeout == 0 {
+	if timeoutStr == "" && defaultTimeout == 0 && maxTimeout == 0 {
 		return ctx, func() {}, nil
 	}
 
@@ -20,8 +20,12 @@ func MaybeTimeout(ctx context.Context, timeoutStr string, defaultTimeout time.Du
 		}
 	}
 
-	if maxTimeout > 0 && timeout > maxTimeout {
+	if maxTimeout > 0 && (timeout == 0 || timeout > maxTimeout) {
 		timeout = maxTimeout
+	}
+
+	if timeout == 0 {
+		return ctx, func() {}, nil
 	}
 
 	processCtx, cancel := context.WithTimeout(ctx, timeout)
