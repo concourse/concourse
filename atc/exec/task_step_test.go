@@ -71,6 +71,7 @@ var _ = Describe("TaskStep", func() {
 		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
 
 		defaultTaskTimeout time.Duration = 0
+		maxTaskTimeout     time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -125,6 +126,7 @@ var _ = Describe("TaskStep", func() {
 			fakeStreamer,
 			fakeDelegateFactory,
 			defaultTaskTimeout,
+			maxTaskTimeout,
 		)
 
 		stepOk, stepErr = taskStep.Run(ctx, state)
@@ -354,6 +356,44 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
+		Context("when there is a max task timeout", func() {
+			BeforeEach(func() {
+				maxTaskTimeout = time.Minute * 30
+			})
+
+			It("enforces it on the task", func() {
+				t, ok := chosenContainer.ContextOfRun().Deadline()
+				Expect(ok).To(BeTrue())
+				Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+			})
+		})
+
+		Context("when the plan specifies a timeout exceeding the max task timeout", func() {
+			BeforeEach(func() {
+				maxTaskTimeout = time.Minute * 30
+				taskPlan.Timeout = "1h"
+			})
+
+			It("caps the timeout to the max task timeout", func() {
+				t, ok := chosenContainer.ContextOfRun().Deadline()
+				Expect(ok).To(BeTrue())
+				Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+			})
+		})
+
+		Context("when the plan specifies a timeout within the max task timeout", func() {
+			BeforeEach(func() {
+				maxTaskTimeout = time.Hour
+				taskPlan.Timeout = "30m"
+			})
+
+			It("enforces the plan's timeout on the task step", func() {
+				t, ok := chosenContainer.ContextOfRun().Deadline()
+				Expect(ok).To(BeTrue())
+				Expect(t).To(BeTemporally("~", time.Now().Add(time.Minute*30), time.Minute))
+			})
+		})
+
 		Context("when rootfs uri is set instead of image resource", func() {
 			BeforeEach(func() {
 				taskPlan.Config.RootfsURI = "some-image"
@@ -370,6 +410,7 @@ var _ = Describe("TaskStep", func() {
 		Context("when tracing is enabled", func() {
 			BeforeEach(func() {
 				defaultTaskTimeout = 0
+				maxTaskTimeout = 0
 				exporter := tracetest.NewInMemoryExporter()
 				tp := trace.NewTracerProvider(trace.WithSyncer(exporter))
 				tracing.ConfigureTraceProvider(tp)

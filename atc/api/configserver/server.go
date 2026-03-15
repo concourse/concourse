@@ -1,25 +1,30 @@
 package configserver
 
 import (
+	"time"
+
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
 )
 
 type Server struct {
-	logger        lager.Logger
-	teamFactory   db.TeamFactory
-	secretManager creds.Secrets
+	logger         lager.Logger
+	teamFactory    db.TeamFactory
+	secretManager  creds.Secrets
+	maxTaskTimeout time.Duration
 }
 
 func NewServer(
 	logger lager.Logger,
 	teamFactory db.TeamFactory,
 	secretManager creds.Secrets,
+	maxTaskTimeout time.Duration,
 ) *Server {
 	return &Server{
-		logger:        logger,
-		teamFactory:   teamFactory,
-		secretManager: secretManager,
+		logger:         logger,
+		teamFactory:    teamFactory,
+		secretManager:  secretManager,
+		maxTaskTimeout: maxTaskTimeout,
 	}
 }

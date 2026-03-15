@@ -96,6 +96,7 @@ type TaskStep struct {
 	streamer           Streamer
 	delegateFactory    TaskDelegateFactory
 	defaultTaskTimeout time.Duration
+	maxTaskTimeout     time.Duration
 }
 
 func NewTaskStep(
@@ -109,6 +110,7 @@ func NewTaskStep(
 	streamer Streamer,
 	delegateFactory TaskDelegateFactory,
 	defaultTaskTimeout time.Duration,
+	maxTaskTimeout time.Duration,
 ) Step {
 	return &TaskStep{
 		planID:             planID,
@@ -121,6 +123,7 @@ func NewTaskStep(
 		streamer:           streamer,
 		delegateFactory:    delegateFactory,
 		defaultTaskTimeout: defaultTaskTimeout,
+		maxTaskTimeout:     maxTaskTimeout,
 	}
 }
 
@@ -286,7 +289,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		)
 	}()
 
-	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultTaskTimeout)
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultTaskTimeout, step.maxTaskTimeout)
 	if err != nil {
 		return false, err
 	}

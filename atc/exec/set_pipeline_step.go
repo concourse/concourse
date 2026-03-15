@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
@@ -33,6 +34,7 @@ type SetPipelineStep struct {
 	teamFactory     db.TeamFactory
 	buildFactory    db.BuildFactory
 	streamer        Streamer
+	maxTaskTimeout  time.Duration
 }
 
 func NewSetPipelineStep(
@@ -43,6 +45,7 @@ func NewSetPipelineStep(
 	teamFactory db.TeamFactory,
 	buildFactory db.BuildFactory,
 	streamer Streamer,
+	maxTaskTimeout time.Duration,
 ) Step {
 	return &SetPipelineStep{
 		planID:          planID,
@@ -52,6 +55,7 @@ func NewSetPipelineStep(
 		teamFactory:     teamFactory,
 		buildFactory:    buildFactory,
 		streamer:        streamer,
+		maxTaskTimeout:  maxTaskTimeout,
 	}
 }
 
@@ -120,7 +124,7 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		return false, nil
 	}
 
-	warnings, errors := configvalidate.Validate(atcConfig)
+	warnings, errors := configvalidate.Validate(atcConfig, step.maxTaskTimeout)
 	for _, warning := range warnings {
 		fmt.Fprintf(stderr, "WARNING: %s\n", warning.Message)
 	}

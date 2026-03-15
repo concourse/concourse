@@ -23,8 +23,9 @@ type StepValidator struct {
 	// This field will be populated after visiting the step.
 	Errors []string
 
-	config  Config
-	context []string
+	config         Config
+	context        []string
+	maxTaskTimeout time.Duration
 
 	seenGetName    scope
 	localVarScopes []scope
@@ -40,10 +41,11 @@ type scope map[string]bool
 // The context argument contains the initial context used to annotate error and
 // warning messages. For example, []string{"jobs(foo)", ".plan"} will result in
 // errors like 'jobs(foo).plan.task(bar): blah blah'.
-func NewStepValidator(config Config, context []string) *StepValidator {
+func NewStepValidator(config Config, context []string, maxTaskTimeout time.Duration) *StepValidator {
 	return &StepValidator{
 		config:         config,
 		context:        context,
+		maxTaskTimeout: maxTaskTimeout,
 		seenGetName:    scope{},
 		localVarScopes: []scope{{}},
 	}
@@ -93,6 +95,15 @@ func (validator *StepValidator) VisitTask(plan *TaskStep) error {
 			Type:    "pipeline",
 			Message: validator.annotate("specifies `hermetic:` only works against worker containerd runtime"),
 		})
+	}
+
+	if plan.Timeout != "" && validator.maxTaskTimeout != 0 {
+		timeout, err := time.ParseDuration(plan.Timeout)
+		if err != nil {
+			validator.recordErrorf("invalid timeout '%s'", plan.Timeout)
+		} else if timeout > validator.maxTaskTimeout {
+			validator.recordErrorf("timeout '%s' exceeds maximum allowed task timeout '%s'", plan.Timeout, validator.maxTaskTimeout)
+		}
 	}
 
 	if plan.Config != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -244,6 +245,7 @@ jobs:
 			fakeTeamFactory,
 			fakeBuildFactory,
 			fakeStreamer,
+			time.Duration(0),
 		)
 
 		stepOk, stepErr = spStep.Run(ctx, state)

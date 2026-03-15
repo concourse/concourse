@@ -3,6 +3,7 @@ package configvalidate_test
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/configvalidate"
@@ -16,9 +17,10 @@ import (
 
 var _ = Describe("ValidateConfig", func() {
 	var (
-		config        atc.Config
-		warnings      []atc.ConfigWarning
-		errorMessages []string
+		config         atc.Config
+		warnings       []atc.ConfigWarning
+		errorMessages  []string
+		maxTaskTimeout time.Duration
 	)
 
 	BeforeEach(func() {
@@ -128,7 +130,11 @@ var _ = Describe("ValidateConfig", func() {
 	})
 
 	JustBeforeEach(func() {
-		warnings, errorMessages = configvalidate.Validate(config)
+		warnings, errorMessages = configvalidate.Validate(config, maxTaskTimeout)
+	})
+
+	BeforeEach(func() {
+		maxTaskTimeout = time.Duration(0)
 	})
 
 	Context("when the config is valid", func() {
@@ -1773,6 +1779,45 @@ var _ = Describe("ValidateConfig", func() {
 				It("throws a validation error", func() {
 					Expect(errorMessages).To(HaveLen(1))
 					Expect(errorMessages[0]).To(ContainSubstring("jobs.some-other-job.plan.do[0].timeout: invalid duration 'nope'"))
+				})
+			})
+
+			Context("when a task has a timeout that exceeds the max task timeout", func() {
+				BeforeEach(func() {
+					maxTaskTimeout = time.Hour
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name:       "some-task",
+							ConfigPath: "some/config/path.yml",
+							Timeout:    "2h",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("throws a validation error", func() {
+					Expect(errorMessages).To(HaveLen(1))
+					Expect(errorMessages[0]).To(ContainSubstring("timeout '2h' exceeds maximum allowed task timeout '1h0m0s'"))
+				})
+			})
+
+			Context("when a task has a timeout within the max task timeout", func() {
+				BeforeEach(func() {
+					maxTaskTimeout = time.Hour
+					job.PlanSequence = append(job.PlanSequence, atc.Step{
+						Config: &atc.TaskStep{
+							Name:       "some-task",
+							ConfigPath: "some/config/path.yml",
+							Timeout:    "30m",
+						},
+					})
+
+					config.Jobs = append(config.Jobs, job)
+				})
+
+				It("does not return an error", func() {
+					Expect(errorMessages).To(HaveLen(0))
 				})
 			})
 

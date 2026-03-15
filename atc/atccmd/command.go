@@ -278,6 +278,7 @@ type RunCommand struct {
 	DefaultGetTimeout  time.Duration `long:"default-get-timeout" description:"Default timeout of get steps"`
 	DefaultPutTimeout  time.Duration `long:"default-put-timeout" description:"Default timeout of put steps"`
 	DefaultTaskTimeout time.Duration `long:"default-task-timeout" description:"Default timeout of task steps"`
+	MaxTaskTimeout     time.Duration `long:"max-task-timeout" description:"Maximum allowed timeout for task steps"`
 
 	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
 
@@ -1856,6 +1857,7 @@ func (cmd *RunCommand) constructEngine(
 				cmd.DefaultGetTimeout,
 				cmd.DefaultPutTimeout,
 				cmd.DefaultTaskTimeout,
+				cmd.MaxTaskTimeout,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,
@@ -2143,6 +2145,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		credsManagers,
 		containerserver.NewInterceptTimeoutFactory(cmd.InterceptIdleTimeout),
 		time.Minute,
+		cmd.MaxTaskTimeout,
 		dbWall,
 		clock.NewClock(),
 		dbSigningKeyFactory,

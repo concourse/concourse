@@ -296,7 +296,7 @@ func (step *CheckStep) runCheck(
 		)
 	}()
 
-	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultCheckTimeout)
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultCheckTimeout, time.Duration(0))
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
 	}

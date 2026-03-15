@@ -61,7 +61,7 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	warnings, errorMessages := configvalidate.Validate(config)
+	warnings, errorMessages := configvalidate.Validate(config, s.maxTaskTimeout)
 	if len(errorMessages) > 0 {
 		session.Info("ignoring-invalid-config", lager.Data{"errors": errorMessages})
 		HandleBadRequest(w, errorMessages...)

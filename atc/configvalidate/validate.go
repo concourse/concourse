@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -39,7 +40,7 @@ func (l location) Identifier(name string) string {
 	return fmt.Sprintf("%s.%s", l.section, name)
 }
 
-func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
+func Validate(c atc.Config, maxTaskTimeout time.Duration) ([]atc.ConfigWarning, []string) {
 	warnings := []atc.ConfigWarning{}
 	errorMessages := []string{}
 
@@ -75,7 +76,7 @@ func Validate(c atc.Config) ([]atc.ConfigWarning, []string) {
 	}
 	warnings = append(warnings, varSourcesWarnings...)
 
-	jobWarnings, jobsErr := validateJobs(c)
+	jobWarnings, jobsErr := validateJobs(c, maxTaskTimeout)
 	if jobsErr != nil {
 		errorMessages = append(errorMessages, formatErr("jobs", jobsErr))
 	}
@@ -321,7 +322,7 @@ func usedResources(c atc.Config) map[string]bool {
 	return usedResources
 }
 
-func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
+func validateJobs(c atc.Config, maxTaskTimeout time.Duration) ([]atc.ConfigWarning, error) {
 	var errorMessages []string
 	var warnings []atc.ConfigWarning
 
@@ -405,7 +406,7 @@ func validateJobs(c atc.Config) ([]atc.ConfigWarning, error) {
 
 		step := job.Step()
 
-		validator := atc.NewStepValidator(c, []string{identifier, ".plan"})
+		validator := atc.NewStepValidator(c, []string{identifier, ".plan"}, maxTaskTimeout)
 
 		_ = validator.Validate(step)
 

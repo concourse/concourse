@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"sigs.k8s.io/yaml"
 
@@ -61,7 +62,7 @@ func (atcConfig ATCConfig) Set(yamlTemplateWithParams templatehelpers.YamlTempla
 		return err
 	}
 
-	configWarnings, _ := configvalidate.Validate(newConfig)
+	configWarnings, _ := configvalidate.Validate(newConfig, time.Duration(0))
 	for _, w := range configWarnings {
 		atcConfig.CommandWarnings = append(atcConfig.CommandWarnings, concourse.ConfigWarning{
 			Type:    w.Type,

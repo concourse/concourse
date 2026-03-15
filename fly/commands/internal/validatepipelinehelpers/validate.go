@@ -3,6 +3,7 @@ package validatepipelinehelpers
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 
@@ -30,7 +31,7 @@ func Validate(yamlTemplate templatehelpers.YamlTemplateWithParams, strict bool, 
 		return err
 	}
 
-	warnings, errorMessages := configvalidate.Validate(unmarshalledTemplate)
+	warnings, errorMessages := configvalidate.Validate(unmarshalledTemplate, time.Duration(0))
 
 	if len(warnings) > 0 {
 		configWarnings := make([]concourse.ConfigWarning, len(warnings))

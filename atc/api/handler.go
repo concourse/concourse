@@ -81,6 +81,7 @@ func NewHandler(
 	credsManagers creds.Managers,
 	interceptTimeoutFactory containerserver.InterceptTimeoutFactory,
 	interceptUpdateInterval time.Duration,
+	maxTaskTimeout time.Duration,
 	dbWall db.Wall,
 	clock clock.Clock,
 	dbSigningKeyFactory db.SigningKeyFactory,
@@ -101,7 +102,7 @@ func NewHandler(
 
 	versionServer := versionserver.NewServer(logger, externalURL)
 	pipelineServer := pipelineserver.NewServer(logger, dbTeamFactory, dbPipelineFactory, externalURL)
-	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager)
+	configServer := configserver.NewServer(logger, dbTeamFactory, secretManager, maxTaskTimeout)
 	ccServer := ccserver.NewServer(logger, dbTeamFactory, externalURL)
 	workerServer := workerserver.NewServer(logger, workerTeamFactory, dbWorkerFactory)
 	logLevelServer := loglevelserver.NewServer(logger, sink)

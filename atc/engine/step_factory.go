@@ -30,6 +30,7 @@ type coreStepFactory struct {
 	defaultGetTimeout     time.Duration
 	defaultPutTimeout     time.Duration
 	defaultTaskTimeout    time.Duration
+	maxTaskTimeout        time.Duration
 }
 
 func NewCoreStepFactory(
@@ -48,6 +49,7 @@ func NewCoreStepFactory(
 	defaultGetTimeout time.Duration,
 	defaultPutTimeout time.Duration,
 	defaultTaskTimeout time.Duration,
+	maxTaskTimeout time.Duration,
 ) CoreStepFactory {
 	return &coreStepFactory{
 		pool:                  pool,
@@ -65,6 +67,7 @@ func NewCoreStepFactory(
 		defaultGetTimeout:     defaultGetTimeout,
 		defaultPutTimeout:     defaultPutTimeout,
 		defaultTaskTimeout:    defaultTaskTimeout,
+		maxTaskTimeout:        maxTaskTimeout,
 	}
 }
 
@@ -191,6 +194,7 @@ func (factory *coreStepFactory) TaskStep(
 		factory.streamer,
 		delegateFactory,
 		factory.defaultTaskTimeout,
+		factory.maxTaskTimeout,
 	)
 
 	taskStep = exec.LogError(taskStep, delegateFactory)
@@ -213,6 +217,7 @@ func (factory *coreStepFactory) SetPipelineStep(
 		factory.teamFactory,
 		factory.buildFactory,
 		factory.streamer,
+		factory.maxTaskTimeout,
 	)
 
 	spStep = exec.LogError(spStep, delegateFactory)

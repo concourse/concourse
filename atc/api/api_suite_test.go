@@ -223,6 +223,7 @@ var _ = BeforeEach(func() {
 		credsManagers,
 		interceptTimeoutFactory,
 		time.Second,
+		time.Duration(0),
 		dbWall,
 		fakeClock,
 		dbSigningKeyFactory,

@@ -481,7 +481,7 @@ func (step *GetStep) performGetAndInitCache(
 		}()
 	}
 
-	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultGetTimeout)
+	ctx, cancel, err := MaybeTimeout(ctx, step.plan.Timeout, step.defaultGetTimeout, time.Duration(0))
 	if err != nil {
 		return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
 	}
