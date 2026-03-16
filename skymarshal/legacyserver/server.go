@@ -18,6 +18,9 @@ const (
 	CallbackRoute = "CallbackRoute"
 )
 
+// LegacyServer does HTTP redirects from the old auth paths to the new /sky
+// paths. We relegate any security/validation checks to the newer paths, so
+// don't expect any security/validation checks here.
 func NewLegacyServer(config *LegacyConfig) (http.Handler, error) {
 
 	routes := rata.Routes([]rata.Route{
