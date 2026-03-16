@@ -170,10 +170,6 @@ func (fake *FakeAccessTokenFetcher) GetAccessTokenReturnsOnCall(i int, result1 d
 func (fake *FakeAccessTokenFetcher) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.deleteAccessTokenMutex.RLock()
-	defer fake.deleteAccessTokenMutex.RUnlock()
-	fake.getAccessTokenMutex.RLock()
-	defer fake.getAccessTokenMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

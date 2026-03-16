@@ -93,8 +93,6 @@ func (fake *FakeParser) ParseExpiryReturnsOnCall(i int, result1 time.Time, resul
 func (fake *FakeParser) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.parseExpiryMutex.RLock()
-	defer fake.parseExpiryMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

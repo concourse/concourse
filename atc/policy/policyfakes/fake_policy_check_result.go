@@ -204,12 +204,6 @@ func (fake *FakePolicyCheckResult) ShouldBlockReturnsOnCall(i int, result1 bool)
 func (fake *FakePolicyCheckResult) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.allowedMutex.RLock()
-	defer fake.allowedMutex.RUnlock()
-	fake.messagesMutex.RLock()
-	defer fake.messagesMutex.RUnlock()
-	fake.shouldBlockMutex.RLock()
-	defer fake.shouldBlockMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

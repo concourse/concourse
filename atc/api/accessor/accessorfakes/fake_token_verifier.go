@@ -93,8 +93,6 @@ func (fake *FakeTokenVerifier) VerifyReturnsOnCall(i int, result1 map[string]any
 func (fake *FakeTokenVerifier) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.verifyMutex.RLock()
-	defer fake.verifyMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

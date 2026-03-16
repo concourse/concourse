@@ -614,22 +614,6 @@ func (fake *FakeClient) PingReturnsOnCall(i int, result1 error) {
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.bulkInfoMutex.RLock()
-	defer fake.bulkInfoMutex.RUnlock()
-	fake.bulkMetricsMutex.RLock()
-	defer fake.bulkMetricsMutex.RUnlock()
-	fake.capacityMutex.RLock()
-	defer fake.capacityMutex.RUnlock()
-	fake.containersMutex.RLock()
-	defer fake.containersMutex.RUnlock()
-	fake.createMutex.RLock()
-	defer fake.createMutex.RUnlock()
-	fake.destroyMutex.RLock()
-	defer fake.destroyMutex.RUnlock()
-	fake.lookupMutex.RLock()
-	defer fake.lookupMutex.RUnlock()
-	fake.pingMutex.RLock()
-	defer fake.pingMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

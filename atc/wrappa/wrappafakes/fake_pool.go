@@ -169,12 +169,6 @@ func (fake *FakePool) TryAcquireReturnsOnCall(i int, result1 bool) {
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
-	fake.sizeMutex.RLock()
-	defer fake.sizeMutex.RUnlock()
-	fake.tryAcquireMutex.RLock()
-	defer fake.tryAcquireMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

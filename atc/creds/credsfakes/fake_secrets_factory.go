@@ -78,8 +78,6 @@ func (fake *FakeSecretsFactory) NewSecretsReturnsOnCall(i int, result1 creds.Sec
 func (fake *FakeSecretsFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.newSecretsMutex.RLock()
-	defer fake.newSecretsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
