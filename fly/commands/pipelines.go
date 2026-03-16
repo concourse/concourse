@@ -1,14 +1,17 @@
 package commands
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/go-concourse/concourse"
 	"github.com/fatih/color"
 )
 
@@ -16,6 +19,7 @@ type PipelinesCommand struct {
 	All             bool `short:"a"  long:"all" description:"Show pipelines across all teams"`
 	IncludeArchived bool `long:"include-archived" description:"Show archived pipelines"`
 	Json            bool `long:"json" description:"Print command result as JSON"`
+	Team            flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the pipelines belong, if different from the target default"`
 }
 
 func (command *PipelinesCommand) Execute([]string) error {
@@ -29,12 +33,21 @@ func (command *PipelinesCommand) Execute([]string) error {
 		return err
 	}
 
+	if command.All && command.Team.Name() != "" {
+		return errors.New("Cannot specify both --all and --team")
+	}
+
 	var unfilteredPipelines []atc.Pipeline
 
 	if command.All {
 		unfilteredPipelines, err = target.Client().ListPipelines()
 	} else {
-		unfilteredPipelines, err = target.Team().ListPipelines()
+		var team concourse.Team
+		team, err = command.Team.LoadTeam(target)
+		if err != nil {
+			return err
+		}
+		unfilteredPipelines, err = team.ListPipelines()
 	}
 	if err != nil {
 		return err
