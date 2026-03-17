@@ -35,10 +35,11 @@ func NewVersionsDB(conn DbConn, limitRows int, cache *gocache.Cache) VersionsDB 
 }
 
 func (versions VersionsDB) IsFirstOccurrence(ctx context.Context, jobID int, inputName string, versionDigest ResourceVersion, resourceID int) (bool, error) {
+	// Shortcut: check if previous non-pending build used the same resource version
 	var lastBuildID sql.NullInt64
 	err := versions.conn.QueryRowContext(ctx, `
 		SELECT id FROM builds
-		WHERE job_id = $1 AND status = 'succeeded'
+		WHERE job_id = $1 AND status <> 'pending'
 		ORDER BY id DESC
 		LIMIT 1`, jobID).Scan(&lastBuildID)
 	if err != nil && err != sql.ErrNoRows {
