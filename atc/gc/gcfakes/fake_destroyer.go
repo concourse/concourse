@@ -250,12 +250,6 @@ func (fake *FakeDestroyer) FindDestroyingVolumesForGcReturnsOnCall(i int, result
 func (fake *FakeDestroyer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.destroyContainersMutex.RLock()
-	defer fake.destroyContainersMutex.RUnlock()
-	fake.destroyVolumesMutex.RLock()
-	defer fake.destroyVolumesMutex.RUnlock()
-	fake.findDestroyingVolumesForGcMutex.RLock()
-	defer fake.findDestroyingVolumesForGcMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -169,10 +169,6 @@ func (fake *FakeLockDB) ReleaseReturnsOnCall(i int, result1 bool, result2 error)
 func (fake *FakeLockDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireMutex.RLock()
-	defer fake.acquireMutex.RUnlock()
-	fake.releaseMutex.RLock()
-	defer fake.releaseMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

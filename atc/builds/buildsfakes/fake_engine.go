@@ -126,10 +126,6 @@ func (fake *FakeEngine) NewBuildReturnsOnCall(i int, result1 builds.Runnable) {
 func (fake *FakeEngine) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.drainMutex.RLock()
-	defer fake.drainMutex.RUnlock()
-	fake.newBuildMutex.RLock()
-	defer fake.newBuildMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

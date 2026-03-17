@@ -388,16 +388,6 @@ func (fake *FakeInfluxDBClient) WriteReturnsOnCall(i int, result1 error) {
 func (fake *FakeInfluxDBClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	fake.pingMutex.RLock()
-	defer fake.pingMutex.RUnlock()
-	fake.queryMutex.RLock()
-	defer fake.queryMutex.RUnlock()
-	fake.queryAsChunkMutex.RLock()
-	defer fake.queryAsChunkMutex.RUnlock()
-	fake.writeMutex.RLock()
-	defer fake.writeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

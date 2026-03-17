@@ -308,14 +308,6 @@ func (fake *FakeChecker) ShouldSkipActionReturnsOnCall(i int, result1 bool) {
 func (fake *FakeChecker) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.checkMutex.RLock()
-	defer fake.checkMutex.RUnlock()
-	fake.shouldCheckActionMutex.RLock()
-	defer fake.shouldCheckActionMutex.RUnlock()
-	fake.shouldCheckHttpMethodMutex.RLock()
-	defer fake.shouldCheckHttpMethodMutex.RUnlock()
-	fake.shouldSkipActionMutex.RLock()
-	defer fake.shouldSkipActionMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

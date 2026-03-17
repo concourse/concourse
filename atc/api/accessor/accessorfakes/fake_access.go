@@ -592,24 +592,6 @@ func (fake *FakeAccess) UserInfoReturnsOnCall(i int, result1 atc.UserInfo) {
 func (fake *FakeAccess) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.claimsMutex.RLock()
-	defer fake.claimsMutex.RUnlock()
-	fake.hasTokenMutex.RLock()
-	defer fake.hasTokenMutex.RUnlock()
-	fake.isAdminMutex.RLock()
-	defer fake.isAdminMutex.RUnlock()
-	fake.isAuthenticatedMutex.RLock()
-	defer fake.isAuthenticatedMutex.RUnlock()
-	fake.isAuthorizedMutex.RLock()
-	defer fake.isAuthorizedMutex.RUnlock()
-	fake.isSystemMutex.RLock()
-	defer fake.isSystemMutex.RUnlock()
-	fake.teamNamesMutex.RLock()
-	defer fake.teamNamesMutex.RUnlock()
-	fake.teamRolesMutex.RLock()
-	defer fake.teamRolesMutex.RUnlock()
-	fake.userInfoMutex.RLock()
-	defer fake.userInfoMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

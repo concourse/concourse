@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -114,7 +115,31 @@ var _ = Describe("pipelines", func() {
 				Expect(sess.Out).ToNot(gbytes.Say("archived-pipeline"))
 			})
 		})
+		Context("when --team is specified", func() {
+			BeforeEach(func() {
+				flyCmd.Args = append(flyCmd.Args, "--team", "other-team")
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, []atc.Pipeline{
+							{ID: 10, Name: "other-team-pipeline", Paused: false, Public: false, LastUpdated: 2},
+						}),
+					),
+				)
+			})
 
+			It("prints the pipelines for the specified team", func() {
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(sess).Should(gexec.Exit(0))
+
+				Expect(sess.Out).To(gbytes.Say("other-team-pipeline"))
+			})
+		})
 		Context("when --all is specified", func() {
 			BeforeEach(func() {
 				flyCmd.Args = append(flyCmd.Args, "--all")

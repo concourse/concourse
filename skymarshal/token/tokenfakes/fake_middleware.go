@@ -387,18 +387,6 @@ func (fake *FakeMiddleware) UnsetCSRFTokenArgsForCall(i int) http.ResponseWriter
 func (fake *FakeMiddleware) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getAuthTokenMutex.RLock()
-	defer fake.getAuthTokenMutex.RUnlock()
-	fake.getCSRFTokenMutex.RLock()
-	defer fake.getCSRFTokenMutex.RUnlock()
-	fake.setAuthTokenMutex.RLock()
-	defer fake.setAuthTokenMutex.RUnlock()
-	fake.setCSRFTokenMutex.RLock()
-	defer fake.setCSRFTokenMutex.RUnlock()
-	fake.unsetAuthTokenMutex.RLock()
-	defer fake.unsetAuthTokenMutex.RUnlock()
-	fake.unsetCSRFTokenMutex.RLock()
-	defer fake.unsetCSRFTokenMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

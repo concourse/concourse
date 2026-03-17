@@ -108,8 +108,6 @@ func (fake *FakeAlgorithm) ComputeReturnsOnCall(i int, result1 db.InputMapping, 
 func (fake *FakeAlgorithm) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.computeMutex.RLock()
-	defer fake.computeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -218,12 +218,6 @@ func (fake *FakeEmitterFactory) NewEmitterReturnsOnCall(i int, result1 metric.Em
 func (fake *FakeEmitterFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.descriptionMutex.RLock()
-	defer fake.descriptionMutex.RUnlock()
-	fake.isConfiguredMutex.RLock()
-	defer fake.isConfiguredMutex.RUnlock()
-	fake.newEmitterMutex.RLock()
-	defer fake.newEmitterMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

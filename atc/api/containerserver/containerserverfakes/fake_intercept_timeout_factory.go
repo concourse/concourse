@@ -78,8 +78,6 @@ func (fake *FakeInterceptTimeoutFactory) NewInterceptTimeoutReturnsOnCall(i int,
 func (fake *FakeInterceptTimeoutFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.newInterceptTimeoutMutex.RLock()
-	defer fake.newInterceptTimeoutMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

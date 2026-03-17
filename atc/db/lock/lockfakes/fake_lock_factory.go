@@ -100,8 +100,6 @@ func (fake *FakeLockFactory) AcquireReturnsOnCall(i int, result1 lock.Lock, resu
 func (fake *FakeLockFactory) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.acquireMutex.RLock()
-	defer fake.acquireMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
