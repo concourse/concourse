@@ -351,6 +351,117 @@ run:
 			Expect(sess.ExitCode()).To(Equal(0))
 		})
 
+		Context("when --team is specified with --inputs-from", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/some-pipeline/jobs/some-job/inputs"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, []atc.BuildInput{{Name: "fixture", Type: "resource-type"}}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/other-team/pipelines/some-pipeline/resource-types"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ResourceTypes{
+							{
+								Name:   "resource-type",
+								Type:   "s3",
+								Source: atc.Source{},
+							},
+						}),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/api/v1/teams/other-team/pipelines/some-pipeline/builds"),
+						testhelpers.VerifyPlan(expectedPlan),
+						func(w http.ResponseWriter, r *http.Request) {
+							http.SetCookie(w, &http.Cookie{
+								Name:    "Some-Cookie",
+								Value:   "some-cookie-data",
+								Path:    "/",
+								Expires: time.Now().Add(1 * time.Minute),
+							})
+						},
+						ghttp.RespondWith(http.StatusCreated, `{"id":128}`),
+					),
+				)
+			})
+
+			It("uses the specified team for job inputs and build creation", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "-j", "some-pipeline/some-job", "--team", "other-team")
+				flyCmd.Dir = buildDir
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(streaming).Should(BeClosed())
+
+				buildURL, _ := url.Parse(atcServer.URL())
+				buildURL.Path = path.Join(buildURL.Path, "builds/128")
+				Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
+
+				events <- event.Log{Payload: "sup"}
+				Eventually(sess.Out).Should(gbytes.Say("sup"))
+				close(events)
+
+				<-sess.Exited
+				Expect(sess.ExitCode()).To(Equal(0))
+			})
+		})
+	})
+
+	Context("when --team is specified", func() {
+		BeforeEach(func() {
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/api/v1/teams/other-team/artifacts"),
+					func(w http.ResponseWriter, req *http.Request) {
+						uploadedBits <- struct{}{}
+					},
+					ghttp.RespondWith(http.StatusCreated, `{"id":125}`),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/api/v1/teams/other-team/builds"),
+					VerifyPlan(expectedPlan),
+					func(w http.ResponseWriter, r *http.Request) {
+						http.SetCookie(w, &http.Cookie{
+							Name:    "Some-Cookie",
+							Value:   "some-cookie-data",
+							Path:    "/",
+							Expires: time.Now().Add(1 * time.Minute),
+						})
+					},
+					ghttp.RespondWith(201, `{"id":128}`),
+				),
+			)
+		})
+
+		It("uses the specified team for uploads and build creation", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "e", "-c", taskConfigPath, "--team", "other-team")
+			flyCmd.Dir = buildDir
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(streaming).Should(BeClosed())
+
+			buildURL, _ := url.Parse(atcServer.URL())
+			buildURL.Path = path.Join(buildURL.Path, "builds/128")
+			Eventually(sess.Out).Should(gbytes.Say("executing build 128 at %s", buildURL.String()))
+
+			events <- event.Log{Payload: "sup"}
+			Eventually(sess.Out).Should(gbytes.Say("sup"))
+			close(events)
+
+			<-sess.Exited
+			Expect(sess.ExitCode()).To(Equal(0))
+			Expect(uploadedBits).To(HaveLen(1))
+		})
 	})
 
 	Context("when the build config is invalid", func() {
