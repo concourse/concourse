@@ -76,22 +76,6 @@ var _ = Describe("CheckStep", func() {
 			TeamID:  345,
 			BuildID: 678,
 		}
-		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
-
-		chosenWorker = runtimetest.NewWorker("worker").
-			WithContainer(
-				expectedOwner,
-				runtimetest.NewContainer().WithProcess(
-					runtime.ProcessSpec{
-						Path: "/opt/resource/check",
-					},
-					runtimetest.ProcessStub{},
-				),
-				nil,
-			)
-		chosenContainer = chosenWorker.Containers[0]
-		fakePool = new(execfakes.FakePool)
-		fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
 
 		spanCtx = context.Background()
 		fakeDelegate.StartSpanReturns(spanCtx, tracing.NoopSpan)
@@ -128,9 +112,10 @@ var _ = Describe("CheckStep", func() {
 		fakeDelegateFactory.CheckDelegateReturns(fakeDelegate)
 
 		checkPlan = atc.CheckPlan{
-			Name:   "some-name",
-			Type:   "some-base-type",
-			Source: atc.Source{"some": "((source-var))"},
+			Name:     "some-name",
+			Resource: "some-name",
+			Type:     "some-base-type",
+			Source:   atc.Source{"some": "((source-var))"},
 			TypeImage: atc.TypeImage{
 				BaseType: "some-base-type",
 			},
@@ -146,6 +131,33 @@ var _ = Describe("CheckStep", func() {
 			CheckStrategies:   []string{},
 		})
 		Expect(err).ToNot(HaveOccurred())
+
+		expires := db.ContainerOwnerExpiries{
+			Min: 5 * time.Minute,
+			Max: 1 * time.Hour,
+		}
+
+		expectedOwner = db.NewResourceConfigCheckSessionContainerOwner(
+			fakeResourceConfig.ID(),
+			fakeResourceConfig.OriginBaseResourceType().ID,
+			expires,
+		)
+
+		chosenWorker = runtimetest.NewWorker("worker").
+			WithContainer(
+				expectedOwner,
+				runtimetest.NewContainer().WithProcess(
+					runtime.ProcessSpec{
+						Path: "/opt/resource/check",
+					},
+					runtimetest.ProcessStub{},
+				),
+				nil,
+			)
+		chosenContainer = chosenWorker.Containers[0]
+		fakePool = new(execfakes.FakePool)
+		fakePool.FindOrSelectWorkerReturns(chosenWorker, nil)
+
 	})
 
 	AfterEach(func() {
@@ -270,8 +282,8 @@ var _ = Describe("CheckStep", func() {
 					ctx, _, _, workerSpec, _, _ = fakePool.FindOrSelectWorkerArgsForCall(0)
 				})
 
-				It("get container owner from delegate", func() {
-					Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(1))
+				It("does not get container owner from delegate", func() {
+					Expect(fakeDelegate.ContainerOwnerCallCount()).To(Equal(0))
 				})
 
 				It("doesn't enforce a timeout", func() {
@@ -699,8 +711,33 @@ var _ = Describe("CheckStep", func() {
 						}
 					})
 
-					It("updates the scope's last check end time", func() {
-						Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+					Context("updates the scope's last check end time", func() {
+						Context("when the resource has no interval defined", func() {
+							BeforeEach(func() {
+								atc.DefaultCheckInterval = 6 * time.Minute
+								checkPlan.Resource = "some-name"
+							})
+
+							It("uses the default check interval", func() {
+								Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+								succeeded, interval := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
+								Expect(succeeded).To(BeTrue())
+								Expect(interval).To(Equal(6 * time.Minute))
+							})
+						})
+
+						Context("when the resource has an interval defined", func() {
+							BeforeEach(func() {
+								checkPlan.Interval.Interval = 2 * time.Minute
+							})
+
+							It("uses the resource's interval", func() {
+								Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+								succeeded, interval := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
+								Expect(succeeded).To(BeTrue())
+								Expect(interval).To(Equal(2 * time.Minute))
+							})
+						})
 					})
 
 					It("releases the lock", func() {
@@ -719,8 +756,33 @@ var _ = Describe("CheckStep", func() {
 					Expect(stepErr).To(MatchError(ContainSubstring("run-check-step-err")))
 				})
 
-				It("updates the scope's last check end time", func() {
-					Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+				Context("updates the scope's last check end time", func() {
+					Context("when the resource has no interval defined", func() {
+						BeforeEach(func() {
+							atc.DefaultCheckInterval = 6 * time.Minute
+							checkPlan.Resource = "some-name"
+						})
+
+						It("uses the default check interval", func() {
+							Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+							succeeded, interval := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
+							Expect(succeeded).To(BeFalse())
+							Expect(interval).To(Equal(6 * time.Minute))
+						})
+					})
+
+					Context("when the resource has an interval defined", func() {
+						BeforeEach(func() {
+							checkPlan.Interval.Interval = 2 * time.Minute
+						})
+
+						It("uses the resource's interval", func() {
+							Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
+							succeeded, interval := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
+							Expect(succeeded).To(BeFalse())
+							Expect(interval).To(Equal(2 * time.Minute))
+						})
+					})
 				})
 
 				// Finished is for script success/failure, whereas this is an error
