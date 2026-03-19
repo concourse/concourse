@@ -19,13 +19,14 @@ func NewSetPipelineStepDelegate(
 ) *setPipelineStepDelegate {
 	return &setPipelineStepDelegate{
 		buildStepDelegate{
-			build:         build,
-			planID:        planID,
-			clock:         clock,
-			state:         state,
-			stdout:        nil,
-			stderr:        nil,
-			policyChecker: policyChecker,
+			build:                build,
+			planID:               planID,
+			clock:                clock,
+			state:                state,
+			stdout:               nil,
+			stderr:               nil,
+			policyChecker:        policyChecker,
+			disableRedactSecrets: atc.DisableRedactSecrets,
 		},
 	}
 }
