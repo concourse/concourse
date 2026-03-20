@@ -279,16 +279,6 @@ type FakeResource struct {
 	nextCheckTimeReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
-	NotifyScanStub        func() error
-	notifyScanMutex       sync.RWMutex
-	notifyScanArgsForCall []struct {
-	}
-	notifyScanReturns struct {
-		result1 error
-	}
-	notifyScanReturnsOnCall map[int]struct {
-		result1 error
-	}
 	PinCommentStub        func() string
 	pinCommentMutex       sync.RWMutex
 	pinCommentArgsForCall []struct {
@@ -1866,59 +1856,6 @@ func (fake *FakeResource) NextCheckTimeReturnsOnCall(i int, result1 time.Time) {
 	}
 	fake.nextCheckTimeReturnsOnCall[i] = struct {
 		result1 time.Time
-	}{result1}
-}
-
-func (fake *FakeResource) NotifyScan() error {
-	fake.notifyScanMutex.Lock()
-	ret, specificReturn := fake.notifyScanReturnsOnCall[len(fake.notifyScanArgsForCall)]
-	fake.notifyScanArgsForCall = append(fake.notifyScanArgsForCall, struct {
-	}{})
-	stub := fake.NotifyScanStub
-	fakeReturns := fake.notifyScanReturns
-	fake.recordInvocation("NotifyScan", []interface{}{})
-	fake.notifyScanMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeResource) NotifyScanCallCount() int {
-	fake.notifyScanMutex.RLock()
-	defer fake.notifyScanMutex.RUnlock()
-	return len(fake.notifyScanArgsForCall)
-}
-
-func (fake *FakeResource) NotifyScanCalls(stub func() error) {
-	fake.notifyScanMutex.Lock()
-	defer fake.notifyScanMutex.Unlock()
-	fake.NotifyScanStub = stub
-}
-
-func (fake *FakeResource) NotifyScanReturns(result1 error) {
-	fake.notifyScanMutex.Lock()
-	defer fake.notifyScanMutex.Unlock()
-	fake.NotifyScanStub = nil
-	fake.notifyScanReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeResource) NotifyScanReturnsOnCall(i int, result1 error) {
-	fake.notifyScanMutex.Lock()
-	defer fake.notifyScanMutex.Unlock()
-	fake.NotifyScanStub = nil
-	if fake.notifyScanReturnsOnCall == nil {
-		fake.notifyScanReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.notifyScanReturnsOnCall[i] = struct {
-		result1 error
 	}{result1}
 }
 

@@ -123,8 +123,6 @@ type Resource interface {
 	CreateBuild(context.Context, bool, atc.Plan) (Build, bool, error)
 	CreateInMemoryBuild(context.Context, atc.Plan, util.SequenceGenerator) (Build, error)
 
-	NotifyScan() error
-
 	ClearResourceCache(atc.Version) (int64, error)
 
 	SharedResourcesAndTypes() (atc.ResourcesAndTypes, error)
@@ -820,10 +818,6 @@ func (r *resource) toggleVersion(rcvID int, enable bool) error {
 	}
 
 	return tx.Commit()
-}
-
-func (r *resource) NotifyScan() error {
-	return r.conn.Bus().Notify(fmt.Sprintf("resource_scan_%d", r.id))
 }
 
 func (r *resource) ClearResourceCache(version atc.Version) (int64, error) {
