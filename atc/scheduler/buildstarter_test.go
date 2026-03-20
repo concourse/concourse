@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -13,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("BuildStarter", func() {
@@ -22,6 +24,7 @@ var _ = Describe("BuildStarter", func() {
 		pendingBuilds    []db.Build
 		fakeAlgorithm    *schedulerfakes.FakeAlgorithm
 		fakeCheckFactory *dbfakes.FakeCheckFactory
+		testLogger       *lagertest.TestLogger
 
 		buildStarter scheduler.BuildStarter
 
@@ -37,6 +40,7 @@ var _ = Describe("BuildStarter", func() {
 		fakePlanner = new(schedulerfakes.FakeBuildPlanner)
 		fakeAlgorithm = new(schedulerfakes.FakeAlgorithm)
 		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
+		testLogger = lagertest.NewTestLogger("buildstarter")
 
 		buildStarter = scheduler.NewBuildStarter(fakePlanner, fakeAlgorithm, fakeCheckFactory)
 
@@ -192,7 +196,7 @@ var _ = Describe("BuildStarter", func() {
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
-						lagertest.NewTestLogger("test"),
+						testLogger,
 						db.SchedulerJob{
 							Job:           job,
 							Resources:     resources,
@@ -258,7 +262,7 @@ var _ = Describe("BuildStarter", func() {
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
-						lagertest.NewTestLogger("test"),
+						testLogger,
 						db.SchedulerJob{
 							Job:       job,
 							Resources: resources,
@@ -526,7 +530,7 @@ var _ = Describe("BuildStarter", func() {
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
-						lagertest.NewTestLogger("test"),
+						testLogger,
 						db.SchedulerJob{
 							Job:       job,
 							Resources: resources,
@@ -1004,7 +1008,7 @@ var _ = Describe("BuildStarter", func() {
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
-						lagertest.NewTestLogger("test"),
+						testLogger,
 						db.SchedulerJob{
 							Job:       job,
 							Resources: resources,
@@ -1079,15 +1083,29 @@ var _ = Describe("BuildStarter", func() {
 						It("creates check builds for all inputs with no passed constraints or pins, overriding the check interval", func() {
 							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
 
-							_, givenResource, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
-							Expect(givenResource).To(Equal(input1))
+							_, givenResource1, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
 							Expect(skipInterval).To(BeTrue())
 							Expect(skipIntervalRecurv).To(BeTrue())
 
-							_, givenResource, _, _, skipInterval, skipIntervalRecurv, _ = fakeCheckFactory.TryCreateCheckArgsForCall(1)
-							Expect(givenResource).To(Equal(input2))
+							_, givenResource2, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(1)
 							Expect(skipInterval).To(BeTrue())
 							Expect(skipIntervalRecurv).To(BeTrue())
+
+							Expect([]db.Checkable{givenResource1, givenResource2}).To(ConsistOf(input1, input2))
+						})
+					})
+
+					Context("TryCreateCheck panics", func() {
+						BeforeEach(func() {
+							fakeCheckFactory.TryCreateCheckStub = func(_ context.Context, _ db.Checkable, _ db.ResourceTypes, _ atc.Version, _, _, _ bool) (db.Build, bool, error) {
+								panic("TryCreateCheck panics")
+							}
+						})
+
+						It("catches the panic and logs the panic", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							Expect(testLogger).To(gbytes.Say("panic-in-buildstarter-checking-resource"))
+							Expect(testLogger).To(gbytes.Say("panic in buildstarter checking resource 0: TryCreateCheck panics"))
 						})
 					})
 				})

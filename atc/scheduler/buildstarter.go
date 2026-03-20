@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 )
 
 //counterfeiter:generate . BuildStarter
@@ -84,7 +86,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		if !results.readyToDetermineInputs {
 			// Issue checks, stop scheduling, retry later
 			needsRetry = true
-			err = s.createChecks(job, nextSchedulableBuild)
+			err = s.createChecks(logger, job, nextSchedulableBuild)
 			if err != nil {
 				return false, err
 			}
@@ -135,7 +137,7 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, bu
 
 // Creates in-memory check builds for inputs of the given Job. Does not create
 // checks for inputs that have passed constraints or pinned versions.
-func (s *buildStarter) createChecks(job db.Job, build Build) error {
+func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build) error {
 	pipeline, found, err := job.Pipeline()
 	if err != nil {
 		return err
@@ -159,6 +161,7 @@ func (s *buildStarter) createChecks(job db.Job, build Build) error {
 		return err
 	}
 
+	waitGroup := sync.WaitGroup{}
 	for _, input := range inputs {
 		if len(input.Passed) > 0 {
 			// Don't create checks for resources that have passed constraints.
@@ -183,16 +186,35 @@ func (s *buildStarter) createChecks(job db.Job, build Build) error {
 			continue
 		}
 
-		_, _, err = s.checkFactory.TryCreateCheck(context.Background(), resource, resourceTypes,
-			nil,
-			build.IsManuallyTriggered(),
-			build.IsManuallyTriggered(),
-			false, // Create in-memory checks. BuildTracker will avoid duplicate checks
-		)
-		if err != nil {
-			return err
-		}
+		waitGroup.Go(func() {
+			func() {
+				// Catch any panics to avoid getting stuck waiting
+				defer func() {
+					err := util.DumpPanic(recover(), "buildstarter checking resource %d", resource.ID())
+					if err != nil {
+						logger.Error("panic-in-buildstarter-checking-resource", err, lager.Data{
+							"job_id":      job.ID(),
+							"resource_id": resource.ID(),
+						})
+					}
+				}()
+
+				_, _, err := s.checkFactory.TryCreateCheck(context.Background(), resource, resourceTypes,
+					nil,
+					build.IsManuallyTriggered(),
+					build.IsManuallyTriggered(),
+					false, // Create in-memory checks. BuildTracker will avoid duplicate checks
+				)
+				if err != nil {
+					logger.Error("buildstarter-checking-resource", err, lager.Data{
+						"job_id":      job.ID(),
+						"resource_id": resource.ID(),
+					})
+				}
+			}()
+		})
 	}
+	waitGroup.Wait()
 
 	return nil
 }
