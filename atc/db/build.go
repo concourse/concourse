@@ -548,7 +548,7 @@ func (b *build) NonTriggeringResourcesChecked() (bool, error) {
 			JOIN job_inputs ji ON ji.resource_id = r.id
 			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
 			WHERE ji.job_id = $1 AND ji.passed_job_id IS NULL AND ji.trigger = false
-			AND rs.last_check_end_time < $2 AND rs.next_check_time < $2
+			AND rs.next_check_time < $2
 			AND NOT EXISTS (
 				SELECT
 				FROM resource_pins
