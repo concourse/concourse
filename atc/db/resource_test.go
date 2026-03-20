@@ -173,20 +173,21 @@ var _ = Describe("Resource", func() {
 					publicPlan = atc.Plan{
 						ID: atc.PlanID("1234"),
 						Check: &atc.CheckPlan{
-							Name: "some-resource",
-							Type: "some-resource-type",
+							Name:     "some-resource",
+							Type:     "some-resource-type",
+							Interval: atc.CheckEvery{Interval: 3 * time.Minute},
 						},
 					}
 					bytes, err := json.Marshal(publicPlan)
 					jr := json.RawMessage(bytes)
 					resourceConfigScope.UpdateLastCheckStartTime(99, &jr)
-					resourceConfigScope.UpdateLastCheckEndTime(false, time.Minute)
+					resourceConfigScope.UpdateLastCheckEndTime(false, publicPlan.Check.Interval.Interval)
 				})
 
 				It("return check build info", func() {
 					Expect(scenario.Resource("some-resource").LastCheckStartTime()).Should(BeTemporally("~", time.Now(), time.Second))
 					Expect(scenario.Resource("some-resource").LastCheckEndTime()).Should(BeTemporally("~", time.Now(), time.Second))
-
+					Expect(scenario.Resource("some-resource").NextCheckTime()).Should(BeTemporally("~", time.Now().Add(3*time.Minute), time.Second))
 				})
 
 				It("return build summary", func() {

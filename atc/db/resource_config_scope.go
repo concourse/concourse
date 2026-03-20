@@ -239,7 +239,6 @@ func (r *resourceConfigScope) UpdateLastCheckEndTime(succeeded bool, interval ti
 	}
 
 	defer Rollback(tx)
-	interval.Seconds()
 
 	updated, err := checkIfRowsUpdated(tx, `
 		UPDATE resource_config_scopes

@@ -1060,7 +1060,7 @@ type buildData struct {
 
 func (d buildData) populate(buildSummary *atc.BuildSummary, lastCheckStart *time.Time, lastCheckEnd *time.Time, nextCheckTime *time.Time) error {
 	if d.nextCheckTime.Valid {
-		nextCheckTime = &d.nextCheckTime.Time
+		*nextCheckTime = d.nextCheckTime.Time
 	}
 	if d.inMemoryBuildId.Valid && d.lastCheckBuildId.Valid {
 		// If both ids are valid, and they are same, then we should use info
