@@ -118,7 +118,7 @@ var _ = Describe("BuildStarter", func() {
 						},
 						{
 							Config: &atc.GetStep{
-								Name:     "input-4",
+								Name:     "input-5",
 								Resource: "some-resource",
 								Trigger:  true,
 								Passed:   []string{"upstream-job"},
@@ -166,7 +166,7 @@ var _ = Describe("BuildStarter", func() {
 				input4.NameReturns("input-4")
 				input5 = new(dbfakes.FakeResource)
 				input5.NameReturns("input-5")
-				fakePipeline.ResourcesReturns(db.Resources{input1, input2, input3, input4}, nil)
+				fakePipeline.ResourcesReturns(db.Resources{input1, input2, input3, input4, input5}, nil)
 
 				jobInputs = db.InputConfigs{
 					{
