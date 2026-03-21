@@ -963,6 +963,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 			).Observe(event.Value)
 	case "build finished":
 		emitter.buildFinishedMetrics(logger, event)
+	case "check build finished":
+		emitter.checkBuildFinishedMetrics(logger, event)
 	case "worker containers":
 		// update last seen counters, used to gc stale timeseries
 		emitter.updateLastSeen(event)
