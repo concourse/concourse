@@ -2199,11 +2199,7 @@ func (cmd *RunCommand) isMTLSEnabled() bool {
 
 func (cmd *RunCommand) reloadTLSEnv(logger lager.Logger, dbConn db.DbConn) atctls.ConfigReloader {
 	return func() (*tls.Config, error) {
-		if cmd.isTLSEnabled() && !cmd.LetsEncrypt.Enable {
-			return cmd.tlsConfig(logger, dbConn)
-		}
-
-		return nil, nil
+		return cmd.tlsConfig(logger, dbConn)
 	}
 }
 
