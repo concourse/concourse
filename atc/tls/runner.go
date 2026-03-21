@@ -68,17 +68,15 @@ func (r *ReloadableHTTPSListener) Start() error {
 	}
 }
 
-func (r *ReloadableHTTPSListener) Stop() error {
-	var err error
+func (r *ReloadableHTTPSListener) Stop() {
 	r.activeMu.Lock()
 	defer r.activeMu.Unlock()
 	if r.active != nil {
 		r.active.Signal(os.Interrupt)
-		err = <-r.active.Wait()
+		<-r.active.Wait()
 	}
 
 	r.active = nil
-	return err
 }
 
 func (r *ReloadableHTTPSListener) Restart() error {

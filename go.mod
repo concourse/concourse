@@ -59,6 +59,7 @@ require (
 	github.com/jackpal/gateway v1.1.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.18.4
+	github.com/madflojo/testcerts v1.5.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.1
@@ -259,7 +260,6 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/lib/pq v1.11.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
-	github.com/madflojo/testcerts v1.5.0 // indirect
 	github.com/mattermost/xml-roundtrip-validator v0.1.0 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
 	github.com/mattn/go-runewidth v0.0.20 // indirect
