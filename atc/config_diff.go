@@ -242,6 +242,40 @@ func diffDisplay(oldDisplay, newDisplay *DisplayConfig) (DisplayDiff, bool) {
 	}, practicallyDifferent(oldDisplay, newDisplay)
 }
 
+type UserDataDiff struct {
+	Before any
+	After  any
+}
+
+func (diff UserDataDiff) Render(to io.Writer) {
+	label := "user_data"
+	if diff.Before != nil && diff.After != nil {
+		fmt.Fprintf(to, ansi.Color("%s has changed:", "yellow")+"\n", label)
+		payloadA, _ := yaml.Marshal(diff.Before)
+		payloadB, _ := yaml.Marshal(diff.After)
+		renderDiff(to, string(payloadA), string(payloadB))
+	} else if diff.Before != nil {
+		fmt.Fprintf(to, ansi.Color("%s has been removed:", "yellow")+"\n", label)
+		payloadA, _ := yaml.Marshal(diff.Before)
+		renderDiff(to, string(payloadA), "")
+	} else {
+		fmt.Fprintf(to, ansi.Color("%s has been added:", "yellow")+"\n", label)
+		payloadB, _ := yaml.Marshal(diff.After)
+		renderDiff(to, "", string(payloadB))
+	}
+}
+
+func diffUserData(oldUserData, newUserData any) (UserDataDiff, bool) {
+	if oldUserData == nil && newUserData == nil {
+		return UserDataDiff{}, false
+	}
+
+	return UserDataDiff{
+		Before: oldUserData,
+		After:  newUserData,
+	}, practicallyDifferent(oldUserData, newUserData)
+}
+
 func renderDiff(to io.Writer, a, b string) {
 	diffs := difflib.Diff(strings.Split(a, "\n"), strings.Split(b, "\n"))
 	indent := gexec.NewPrefixedWriter("\b\b", to)
@@ -337,6 +371,12 @@ func (c Config) Diff(out io.Writer, newConfig Config) bool {
 	if diff {
 		diffExists = true
 		displayDiff.Render(indent)
+	}
+
+	userDataDiff, udDiff := diffUserData(c.UserData, newConfig.UserData)
+	if udDiff {
+		diffExists = true
+		userDataDiff.Render(indent)
 	}
 
 	return diffExists
