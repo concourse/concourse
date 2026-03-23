@@ -78,7 +78,8 @@ type PrometheusEmitter struct {
 
 	checksEnqueued prometheus.Counter
 
-	volumesStreamed prometheus.Counter
+	volumesStreamed            prometheus.Counter
+	volumesStreamedViaFallback prometheus.Counter
 
 	getStepCacheHits       prometheus.Counter
 	streamedResourceCaches prometheus.Counter
@@ -576,6 +577,17 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 	)
 	prometheus.MustRegister(volumesStreamed)
 
+	volumesStreamedViaFallback := prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace:   "concourse",
+			Subsystem:   "volumes",
+			Name:        "volumes_streamed_via_fallback",
+			Help:        "Total number of volumes streamed via fallback (through ATC)",
+			ConstLabels: attributes,
+		},
+	)
+	prometheus.MustRegister(volumesStreamedViaFallback)
+
 	workerOrphanedVolumesToBeCollected := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace:   "concourse",
@@ -890,7 +902,8 @@ func (config *PrometheusConfig) NewEmitter(attributes map[string]string) (metric
 		workerUnknownVolumes:               workerUnknownVolumes,
 		workerOrphanedVolumesToBeCollected: workerOrphanedVolumesToBeCollected,
 
-		volumesStreamed: volumesStreamed,
+		volumesStreamed:            volumesStreamed,
+		volumesStreamedViaFallback: volumesStreamedViaFallback,
 
 		getStepCacheHits:       getStepCacheHits,
 		streamedResourceCaches: streamedResourceCaches,
@@ -1033,6 +1046,8 @@ func (emitter *PrometheusEmitter) Emit(logger lager.Logger, event metric.Event) 
 		emitter.checksEnqueued.Add(event.Value)
 	case "volumes streamed":
 		emitter.volumesStreamed.Add(event.Value)
+	case "volumes streamed via fallback":
+		emitter.volumesStreamedViaFallback.Add(event.Value)
 	case "get step cache hits":
 		emitter.getStepCacheHits.Add(event.Value)
 	case "streamed resource caches":
