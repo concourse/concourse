@@ -2295,6 +2295,7 @@ var _ = Describe("Pipeline", func() {
 				Expect(ok).To(BeTrue())
 				Expect(retrievedUserData["organization"]).To(Equal("Platform Team"))
 				Expect(retrievedUserData["contact"]).To(Equal("platform@example.com"))
+				Expect(retrievedUserData["labels"]).To(ConsistOf("prod", "critical"))
 			})
 
 			It("preserves user_data as a string", func() {
