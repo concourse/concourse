@@ -187,7 +187,7 @@ func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build
 		}
 
 		waitGroup.Go(func() {
-			func() {
+			func(resource db.Resource) {
 				// Catch any panics to avoid getting stuck waiting
 				defer func() {
 					err := util.DumpPanic(recover(), "buildstarter checking resource %d", resource.ID())
@@ -211,7 +211,7 @@ func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build
 						"resource_id": resource.ID(),
 					})
 				}
-			}()
+			}(resource)
 		})
 	}
 	waitGroup.Wait()

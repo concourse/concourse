@@ -714,11 +714,14 @@ var _ = Describe("CheckStep", func() {
 					Context("updates the scope's last check end time", func() {
 						Context("when the resource has no interval defined", func() {
 							BeforeEach(func() {
+								DeferCleanup(func() {
+									atc.DefaultCheckInterval = 0
+								})
 								atc.DefaultCheckInterval = 6 * time.Minute
 								checkPlan.Resource = "some-name"
 							})
 
-							It("uses the default check interval", func() {
+							It("uses the default check interval", Serial, func() {
 								Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
 								succeeded, interval := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
 								Expect(succeeded).To(BeTrue())

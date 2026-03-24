@@ -1000,7 +1000,7 @@ var _ = Describe("BuildStarter", func() {
 				})
 			})
 
-			Context("when inputs are not ready to be deteremined", func() {
+			Context("when inputs are not ready to be determined", func() {
 				BeforeEach(func() {
 					job.ScheduleBuildReturns(true, nil)
 					createdBuild.NonTriggeringResourcesCheckedReturns(false, nil)
