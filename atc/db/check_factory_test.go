@@ -509,7 +509,9 @@ var _ = Describe("CheckFactory", func() {
 					)
 				})
 
-				It("returns the triggering, and errored put-only resource", func() {
+				// Marked serial because this test kept flaking in a way that
+				// suggested the BeforeEach() was not being run
+				It("returns the triggering, and errored put-only resource", Serial, func() {
 					Expect(resources).To(HaveLen(2))
 					Expect(resources[0].Name()).To(Equal("some-resource-trigger"))
 					Expect(resources[1].Name()).To(Equal("some-put-only-resource"))
