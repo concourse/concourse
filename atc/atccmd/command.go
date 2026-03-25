@@ -1206,7 +1206,8 @@ func (cmd *RunCommand) backendComponents(
 					Algorithm: alg,
 					BuildStarter: scheduler.NewBuildStarter(
 						builds.NewPlanner(atc.NewPlanFactory(time.Now().Unix())),
-						alg),
+						alg,
+						dbCheckFactory),
 				},
 				cmd.JobSchedulingMaxInFlight,
 			),

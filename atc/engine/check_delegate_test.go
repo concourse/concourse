@@ -775,7 +775,7 @@ var _ = Describe("CheckDelegate", func() {
 		})
 
 		JustBeforeEach(func() {
-			found, err = delegate.UpdateScopeLastCheckEndTime(fakeResourceConfigScope, true)
+			found, err = delegate.UpdateScopeLastCheckEndTime(fakeResourceConfigScope, true, time.Second)
 		})
 
 		It("should succeeded", func() {
@@ -786,8 +786,9 @@ var _ = Describe("CheckDelegate", func() {
 
 		It("should delegate to scope", func() {
 			Expect(fakeResourceConfigScope.UpdateLastCheckEndTimeCallCount()).To(Equal(1))
-			s := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
+			s, d := fakeResourceConfigScope.UpdateLastCheckEndTimeArgsForCall(0)
 			Expect(s).To(BeTrue())
+			Expect(d).To(Equal(time.Second))
 		})
 
 		Context("when update fails", func() {

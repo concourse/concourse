@@ -2,12 +2,15 @@ package scheduler
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"sync"
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/atc/util"
 )
 
 //counterfeiter:generate . BuildStarter
@@ -34,16 +37,19 @@ type Build interface {
 func NewBuildStarter(
 	planner BuildPlanner,
 	algorithm Algorithm,
+	checkFactory db.CheckFactory,
 ) BuildStarter {
 	return &buildStarter{
-		planner:   planner,
-		algorithm: algorithm,
+		planner:      planner,
+		algorithm:    algorithm,
+		checkFactory: checkFactory,
 	}
 }
 
 type buildStarter struct {
-	planner   BuildPlanner
-	algorithm Algorithm
+	planner      BuildPlanner
+	algorithm    Algorithm
+	checkFactory db.CheckFactory
 }
 
 func (s *buildStarter) TryStartPendingBuildsForJob(
@@ -71,10 +77,19 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 			continue
 		}
 
-		if !results.scheduled || !results.readyToDetermineInputs {
-			// If max in flight is reached or a manually triggered build has not
-			// checked all resources, stop scheduling and retry later
+		if !results.scheduled {
+			// If max in flight is reached, stop scheduling and retry later
 			needsRetry = true
+			break
+		}
+
+		if !results.readyToDetermineInputs {
+			// Issue checks, stop scheduling, retry later
+			needsRetry = true
+			err = s.createChecks(logger, job, nextSchedulableBuild)
+			if err != nil {
+				return false, err
+			}
 			break
 		}
 
@@ -118,6 +133,90 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, bu
 	}
 
 	return buildsToSchedule
+}
+
+// Creates in-memory check builds for inputs of the given Job. Does not create
+// checks for inputs that have passed constraints or pinned versions.
+func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build) error {
+	pipeline, found, err := job.Pipeline()
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.New("pipeline not found")
+	}
+
+	resources, err := pipeline.Resources()
+	if err != nil {
+		return err
+	}
+
+	resourceTypes, err := pipeline.ResourceTypes()
+	if err != nil {
+		return err
+	}
+
+	inputs, err := job.Inputs()
+	if err != nil {
+		return err
+	}
+
+	waitGroup := sync.WaitGroup{}
+	for _, input := range inputs {
+		if len(input.Passed) > 0 {
+			// Don't create checks for resources that have passed constraints.
+			// Checking these resources does not change the list of possible
+			// input versions.
+			continue
+		}
+
+		if input.Trigger && !build.IsManuallyTriggered() {
+			// Don't check resources that are triggers for the job, unless the
+			// job is manually triggered. For manually triggered jobs we want to
+			// check all input resources.
+			continue
+		}
+
+		resource, found := resources.Lookup(input.Resource)
+		if !found {
+			continue
+		}
+
+		if resource.CurrentPinnedVersion() != nil {
+			continue
+		}
+
+		waitGroup.Go(func() {
+			func(resource db.Resource) {
+				// Catch any panics to avoid getting stuck waiting
+				defer func() {
+					err := util.DumpPanic(recover(), "buildstarter checking resource %d", resource.ID())
+					if err != nil {
+						logger.Error("panic-in-buildstarter-checking-resource", err, lager.Data{
+							"job_id":      job.ID(),
+							"resource_id": resource.ID(),
+						})
+					}
+				}()
+
+				_, _, err := s.checkFactory.TryCreateCheck(context.Background(), resource, resourceTypes,
+					nil,
+					build.IsManuallyTriggered(),
+					build.IsManuallyTriggered(),
+					false, // Create in-memory checks. BuildTracker will avoid duplicate checks
+				)
+				if err != nil {
+					logger.Error("buildstarter-checking-resource", err, lager.Data{
+						"job_id":      job.ID(),
+						"resource_id": resource.ID(),
+					})
+				}
+			}(resource)
+		})
+	}
+	waitGroup.Wait()
+
+	return nil
 }
 
 type startResults struct {

@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -13,28 +14,35 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("BuildStarter", func() {
 	var (
-		fakePipeline  *dbfakes.FakePipeline
-		fakePlanner   *schedulerfakes.FakeBuildPlanner
-		pendingBuilds []db.Build
-		fakeAlgorithm *schedulerfakes.FakeAlgorithm
+		fakePipeline     *dbfakes.FakePipeline
+		fakePlanner      *schedulerfakes.FakeBuildPlanner
+		pendingBuilds    []db.Build
+		fakeAlgorithm    *schedulerfakes.FakeAlgorithm
+		fakeCheckFactory *dbfakes.FakeCheckFactory
+		testLogger       *lagertest.TestLogger
 
 		buildStarter scheduler.BuildStarter
 
 		jobInputs db.InputConfigs
 
 		disaster error
+
+		input1, input2, input3, input4, input5 *dbfakes.FakeResource
 	)
 
 	BeforeEach(func() {
 		fakePipeline = new(dbfakes.FakePipeline)
 		fakePlanner = new(schedulerfakes.FakeBuildPlanner)
 		fakeAlgorithm = new(schedulerfakes.FakeAlgorithm)
+		fakeCheckFactory = new(dbfakes.FakeCheckFactory)
+		testLogger = lagertest.NewTestLogger("buildstarter")
 
-		buildStarter = scheduler.NewBuildStarter(fakePlanner, fakeAlgorithm)
+		buildStarter = scheduler.NewBuildStarter(fakePlanner, fakeAlgorithm, fakeCheckFactory)
 
 		disaster = errors.New("bad thing")
 	})
@@ -71,6 +79,7 @@ var _ = Describe("BuildStarter", func() {
 				createdBuild = new(dbfakes.FakeBuild)
 				createdBuild.IDReturns(66)
 				createdBuild.NameReturns("some-build")
+				createdBuild.NonTriggeringResourcesCheckedReturns(true, nil)
 
 				pendingBuilds = []db.Build{createdBuild}
 
@@ -78,21 +87,90 @@ var _ = Describe("BuildStarter", func() {
 				job.GetPendingBuildsReturns(pendingBuilds, nil)
 				job.NameReturns("some-job")
 				job.IDReturns(1)
+				job.PipelineReturns(fakePipeline, true, nil)
 				job.ConfigReturns(atc.JobConfig{
 					PlanSequence: []atc.Step{
 						{
 							Config: &atc.GetStep{
 								Name:     "input-1",
+								Trigger:  false,
 								Resource: "some-resource",
 							},
-						}, {
+						},
+						{
 							Config: &atc.GetStep{
 								Name:     "input-2",
+								Trigger:  true,
 								Resource: "some-resource",
+							},
+						},
+						{
+							Config: &atc.GetStep{
+								// This resource has a pinned version
+								Name:     "input-3",
+								Trigger:  true,
+								Resource: "some-resource",
+							},
+						},
+						{
+							Config: &atc.GetStep{
+								Name:     "input-4",
+								Resource: "some-resource",
+								Trigger:  false,
+								Passed:   []string{"upstream-job"},
+							},
+						},
+						{
+							Config: &atc.GetStep{
+								Name:     "input-5",
+								Resource: "some-resource",
+								Trigger:  true,
+								Passed:   []string{"upstream-job"},
 							},
 						},
 					},
 				}, nil)
+
+				job.InputsReturns([]atc.JobInput{
+					{
+						Resource: "input-1",
+						Trigger:  false,
+						Passed:   []string{},
+					},
+					{
+						Resource: "input-2",
+						Trigger:  true,
+						Passed:   []string{},
+					},
+					{
+						Resource: "input-3",
+						Trigger:  true,
+						Passed:   []string{},
+					},
+					{
+						Resource: "input-4",
+						Trigger:  false,
+						Passed:   []string{"upstream-job"},
+					},
+					{
+						Resource: "input-5",
+						Trigger:  true,
+						Passed:   []string{"upstream-job"},
+					},
+				}, nil)
+
+				input1 = new(dbfakes.FakeResource)
+				input1.NameReturns("input-1")
+				input2 = new(dbfakes.FakeResource)
+				input2.NameReturns("input-2")
+				input3 = new(dbfakes.FakeResource)
+				input3.NameReturns("input-3")
+				input3.CurrentPinnedVersionReturns(atc.Version{"version": "1"})
+				input4 = new(dbfakes.FakeResource)
+				input4.NameReturns("input-4")
+				input5 = new(dbfakes.FakeResource)
+				input5.NameReturns("input-5")
+				fakePipeline.ResourcesReturns(db.Resources{input1, input2, input3, input4, input5}, nil)
 
 				jobInputs = db.InputConfigs{
 					{
@@ -118,7 +196,7 @@ var _ = Describe("BuildStarter", func() {
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
-						lagertest.NewTestLogger("test"),
+						testLogger,
 						db.SchedulerJob{
 							Job:           job,
 							Resources:     resources,
@@ -184,7 +262,7 @@ var _ = Describe("BuildStarter", func() {
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
-						lagertest.NewTestLogger("test"),
+						testLogger,
 						db.SchedulerJob{
 							Job:       job,
 							Resources: resources,
@@ -199,7 +277,7 @@ var _ = Describe("BuildStarter", func() {
 					Expect(actualBuild.Name()).To(Equal(createdBuild.Name()))
 				})
 
-				Context("when the build not scheduled", func() {
+				Context("when the build is not scheduled", func() {
 					BeforeEach(func() {
 						job.ScheduleBuildReturns(false, nil)
 					})
@@ -267,6 +345,10 @@ var _ = Describe("BuildStarter", func() {
 
 						It("computes a new set of versions for inputs to the build", func() {
 							Expect(fakeAlgorithm.ComputeCallCount()).To(Equal(1))
+						})
+
+						It("does not create check builds", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
 						})
 
 						Context("when computing the next inputs fails", func() {
@@ -448,7 +530,7 @@ var _ = Describe("BuildStarter", func() {
 
 				JustBeforeEach(func() {
 					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
-						lagertest.NewTestLogger("test"),
+						testLogger,
 						db.SchedulerJob{
 							Job:       job,
 							Resources: resources,
@@ -523,6 +605,7 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, false, disaster)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.GetPendingBuildsReturns([]db.Build{pendingBuild1}, nil)
 						})
 
@@ -537,6 +620,7 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, false, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.GetPendingBuildsReturns([]db.Build{pendingBuild1}, nil)
 						})
 
@@ -551,10 +635,12 @@ var _ = Describe("BuildStarter", func() {
 							pendingBuild1 = new(dbfakes.FakeBuild)
 							pendingBuild1.IDReturns(99)
 							pendingBuild1.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
+							pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.ScheduleBuildReturnsOnCall(0, true, nil)
 							pendingBuild2 = new(dbfakes.FakeBuild)
 							pendingBuild2.IDReturns(999)
 							pendingBuild2.AdoptInputsAndPipesReturns([]db.BuildInput{{Name: "some-input"}}, true, nil)
+							pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 							job.ScheduleBuildReturnsOnCall(1, true, nil)
 							rerunBuild = new(dbfakes.FakeBuild)
 							rerunBuild.IDReturns(555)
@@ -612,6 +698,7 @@ var _ = Describe("BuildStarter", func() {
 
 									Context("when marking the build as errored fails", func() {
 										BeforeEach(func() {
+											pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
 											pendingBuild1.FinishReturns(disaster)
 										})
 
@@ -856,6 +943,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, errors.New("error"))
 								job.ScheduleBuildReturnsOnCall(1, true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -874,6 +963,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								rerunBuild.AdoptRerunInputsAndPipesReturns(nil, false, nil)
 								job.ScheduleBuildReturnsOnCall(1, true, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -892,6 +983,8 @@ var _ = Describe("BuildStarter", func() {
 								rerunBuild.IDReturns(555)
 								rerunBuild.RerunOfReturns(pendingBuild1.ID())
 								job.ScheduleBuildReturnsOnCall(1, false, nil)
+								pendingBuild1.NonTriggeringResourcesCheckedReturns(true, nil)
+								pendingBuild2.NonTriggeringResourcesCheckedReturns(true, nil)
 								pendingBuilds = []db.Build{pendingBuild1, rerunBuild, pendingBuild2}
 								job.GetPendingBuildsReturns(pendingBuilds, nil)
 							})
@@ -902,6 +995,117 @@ var _ = Describe("BuildStarter", func() {
 								Expect(pendingBuild1.StartCallCount()).To(Equal(1))
 								Expect(pendingBuild2.StartCallCount()).To(Equal(0))
 							})
+						})
+					})
+				})
+			})
+
+			Context("when inputs are not ready to be determined", func() {
+				BeforeEach(func() {
+					job.ScheduleBuildReturns(true, nil)
+					createdBuild.NonTriggeringResourcesCheckedReturns(false, nil)
+				})
+
+				JustBeforeEach(func() {
+					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
+						testLogger,
+						db.SchedulerJob{
+							Job:       job,
+							Resources: resources,
+						},
+						jobInputs,
+					)
+				})
+
+				Context("job.Pipeline()", func() {
+					Context("is not found", func() {
+						BeforeEach(func() {
+							job.PipelineReturns(nil, false, nil)
+						})
+						It("return pipeline not found error", func() {
+							Expect(tryStartErr).To(MatchError("pipeline not found"))
+						})
+					})
+
+					Context("errors", func() {
+						BeforeEach(func() {
+							job.PipelineReturns(nil, false, errors.New("some job db error"))
+						})
+						It("returns the error", func() {
+							Expect(tryStartErr).To(MatchError("some job db error"))
+						})
+					})
+				})
+
+				Context("pipeline.Resources() errors", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourcesReturns(nil, errors.New("some resources db error"))
+					})
+					It("returns the error", func() {
+						Expect(tryStartErr).To(MatchError("some resources db error"))
+					})
+				})
+
+				Context("pipeline.ResourceTypes() errors", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceTypesReturns(nil, errors.New("some resources types db error"))
+					})
+					It("returns the error", func() {
+						Expect(tryStartErr).To(MatchError("some resources types db error"))
+					})
+				})
+
+				Context("job.Inputs() errors", func() {
+					BeforeEach(func() {
+						job.InputsReturns(nil, errors.New("some inputs error"))
+					})
+					It("returns the error", func() {
+						Expect(tryStartErr).To(MatchError("some inputs error"))
+					})
+				})
+
+				Context("creates check builds", func() {
+					It("skips resources with passed constraints, pinned versions, or trigger true", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+
+						_, givenResource, _, version, skipInterval, skipIntervalRecurv, toDb := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+						Expect(givenResource).To(Equal(input1))
+						Expect(version).To(BeNil())
+						Expect(skipInterval).To(BeFalse())
+						Expect(skipIntervalRecurv).To(BeFalse())
+						Expect(toDb).To(BeFalse())
+					})
+
+					Context("build is manually created", func() {
+						BeforeEach(func() {
+							createdBuild.IsManuallyTriggeredReturns(true)
+						})
+						It("creates check builds for all inputs with no passed constraints or pins, overriding the check interval", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+
+							_, givenResource1, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(skipInterval).To(BeTrue())
+							Expect(skipIntervalRecurv).To(BeTrue())
+
+							_, givenResource2, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(1)
+							Expect(skipInterval).To(BeTrue())
+							Expect(skipIntervalRecurv).To(BeTrue())
+
+							Expect([]db.Checkable{givenResource1, givenResource2}).To(ConsistOf(input1, input2))
+						})
+					})
+
+					Context("TryCreateCheck panics", func() {
+						BeforeEach(func() {
+							fakeCheckFactory.TryCreateCheckStub = func(_ context.Context, _ db.Checkable, _ db.ResourceTypes, _ atc.Version, _, _, _ bool) (db.Build, bool, error) {
+								panic("TryCreateCheck panics")
+							}
+						})
+
+						It("catches the panic and logs the panic", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+							Expect(testLogger).To(gbytes.Say("panic-in-buildstarter-checking-resource"))
+							Expect(testLogger).To(gbytes.Say("panic in buildstarter checking resource 0: TryCreateCheck panics"))
 						})
 					})
 				})
