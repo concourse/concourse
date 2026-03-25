@@ -25,6 +25,7 @@ type Config struct {
 	Prototypes    Prototypes       `json:"prototypes,omitempty"`
 	Jobs          JobConfigs       `json:"jobs,omitempty"`
 	Display       *DisplayConfig   `json:"display,omitempty"`
+	UserData      any              `json:"user_data,omitempty"`
 }
 
 func UnmarshalConfig(payload []byte, config any) error {
@@ -37,6 +38,7 @@ func UnmarshalConfig(payload []byte, config any) error {
 		Prototypes    any `json:"prototypes,omitempty"`
 		Jobs          any `json:"jobs,omitempty"`
 		Display       any `json:"display,omitempty"`
+		UserData      any `json:"user_data,omitempty"`
 	}
 
 	var stripped skeletonConfig
