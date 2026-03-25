@@ -23,6 +23,7 @@ type Pipeline struct {
 	Groups        GroupConfigs   `json:"groups,omitempty"`
 	TeamName      string         `json:"team_name"`
 	Display       *DisplayConfig `json:"display,omitempty"`
+	UserData      any            `json:"user_data,omitempty"`
 	ParentBuildID int            `json:"parent_build_id,omitempty"`
 	ParentJobID   int            `json:"parent_job_id,omitempty"`
 	LastUpdated   int64          `json:"last_updated,omitempty"`

@@ -589,6 +589,16 @@ type FakePipeline struct {
 	unpauseReturnsOnCall map[int]struct {
 		result1 error
 	}
+	UserDataStub        func() any
+	userDataMutex       sync.RWMutex
+	userDataArgsForCall []struct {
+	}
+	userDataReturns struct {
+		result1 any
+	}
+	userDataReturnsOnCall map[int]struct {
+		result1 any
+	}
 	VarSourcesStub        func() atc.VarSourceConfigs
 	varSourcesMutex       sync.RWMutex
 	varSourcesArgsForCall []struct {
@@ -3461,6 +3471,59 @@ func (fake *FakePipeline) UnpauseReturnsOnCall(i int, result1 error) {
 	}
 	fake.unpauseReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) UserData() any {
+	fake.userDataMutex.Lock()
+	ret, specificReturn := fake.userDataReturnsOnCall[len(fake.userDataArgsForCall)]
+	fake.userDataArgsForCall = append(fake.userDataArgsForCall, struct {
+	}{})
+	stub := fake.UserDataStub
+	fakeReturns := fake.userDataReturns
+	fake.recordInvocation("UserData", []interface{}{})
+	fake.userDataMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) UserDataCallCount() int {
+	fake.userDataMutex.RLock()
+	defer fake.userDataMutex.RUnlock()
+	return len(fake.userDataArgsForCall)
+}
+
+func (fake *FakePipeline) UserDataCalls(stub func() any) {
+	fake.userDataMutex.Lock()
+	defer fake.userDataMutex.Unlock()
+	fake.UserDataStub = stub
+}
+
+func (fake *FakePipeline) UserDataReturns(result1 any) {
+	fake.userDataMutex.Lock()
+	defer fake.userDataMutex.Unlock()
+	fake.UserDataStub = nil
+	fake.userDataReturns = struct {
+		result1 any
+	}{result1}
+}
+
+func (fake *FakePipeline) UserDataReturnsOnCall(i int, result1 any) {
+	fake.userDataMutex.Lock()
+	defer fake.userDataMutex.Unlock()
+	fake.UserDataStub = nil
+	if fake.userDataReturnsOnCall == nil {
+		fake.userDataReturnsOnCall = make(map[int]struct {
+			result1 any
+		})
+	}
+	fake.userDataReturnsOnCall[i] = struct {
+		result1 any
 	}{result1}
 }
 

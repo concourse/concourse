@@ -17,6 +17,7 @@ func Pipeline(savedPipeline db.Pipeline) atc.Pipeline {
 		Archived:      savedPipeline.Archived(),
 		Groups:        savedPipeline.Groups(),
 		Display:       savedPipeline.Display(),
+		UserData:      savedPipeline.UserData(),
 		ParentBuildID: savedPipeline.ParentBuildID(),
 		ParentJobID:   savedPipeline.ParentJobID(),
 		LastUpdated:   savedPipeline.LastUpdated().Unix(),
