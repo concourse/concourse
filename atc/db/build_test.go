@@ -1181,7 +1181,7 @@ var _ = Describe("Build", func() {
 		})
 	})
 
-	Describe("SaveOutput", func() {
+	Describe("SaveOutput", Serial, func() {
 		var pipelineConfig atc.Config
 
 		var scenario *dbtest.Scenario
@@ -1191,6 +1191,9 @@ var _ = Describe("Build", func() {
 
 		BeforeEach(func() {
 			atc.EnableGlobalResources = true
+			DeferCleanup(func() {
+				atc.EnableGlobalResources = false
+			})
 
 			pipelineConfig = atc.Config{
 				Jobs: atc.JobConfigs{
@@ -1260,10 +1263,6 @@ var _ = Describe("Build", func() {
 				"some-resource",
 			)
 			Expect(err).ToNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			atc.EnableGlobalResources = false
 		})
 
 		It("should set the resource's config scope", func() {

@@ -771,11 +771,14 @@ var _ = Describe("Resource", func() {
 			})
 		})
 
-		Context("with global resources, when there are multiple resources sharing the same version history", func() {
+		Context("with global resources, when there are multiple resources sharing the same version history", Serial, func() {
 			var someOtherResource db.Resource
 
 			BeforeEach(func() {
 				atc.EnableGlobalResources = true
+				DeferCleanup(func() {
+					atc.EnableGlobalResources = false
+				})
 
 				scenario = dbtest.Setup(
 					builder.WithPipeline(atc.Config{
@@ -2231,7 +2234,7 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
-	Describe("SharedResourcesAndTypes", func() {
+	Describe("SharedResourcesAndTypes", Serial, func() {
 		var (
 			scenario, scenario2 *dbtest.Scenario
 			resource            db.Resource
@@ -2241,6 +2244,9 @@ var _ = Describe("Resource", func() {
 
 		BeforeEach(func() {
 			atc.EnableGlobalResources = true
+			DeferCleanup(func() {
+				atc.EnableGlobalResources = false
+			})
 
 			scenario = dbtest.Setup(
 				builder.WithPipeline(atc.Config{
@@ -2359,7 +2365,7 @@ var _ = Describe("Resource", func() {
 		})
 	})
 
-	Describe("SharedResourcesAndTypes", func() {
+	Describe("SharedResourcesAndTypes", Serial, func() {
 		var (
 			scenario, scenario2 *dbtest.Scenario
 			resourceType        db.ResourceType
@@ -2369,6 +2375,9 @@ var _ = Describe("Resource", func() {
 
 		BeforeEach(func() {
 			atc.EnableGlobalResources = true
+			DeferCleanup(func() {
+				atc.EnableGlobalResources = false
+			})
 
 			scenario = dbtest.Setup(
 				builder.WithPipeline(atc.Config{

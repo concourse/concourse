@@ -93,7 +93,6 @@ var _ = Describe("ResourceConfig", func() {
 			Context("given a resource", func() {
 				Context("with global resources disabled", func() {
 					BeforeEach(func() {
-						// XXX(check-refactor): make this non-global
 						atc.EnableGlobalResources = false
 					})
 
@@ -125,9 +124,12 @@ var _ = Describe("ResourceConfig", func() {
 					})
 				})
 
-				Context("with global resources enabled", func() {
+				Context("with global resources enabled", Serial, func() {
 					BeforeEach(func() {
 						atc.EnableGlobalResources = true
+						DeferCleanup(func() {
+							atc.EnableGlobalResources = false
+						})
 					})
 
 					It("finds or creates a global scope", func() {

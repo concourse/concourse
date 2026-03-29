@@ -1096,11 +1096,14 @@ var _ = Describe("ResourceType", func() {
 			})
 		})
 
-		Context("with global resources, when there are multiple resource types sharing the same version history", func() {
+		Context("with global resources, when there are multiple resource types sharing the same version history", Serial, func() {
 			var someOtherResourceType db.ResourceType
 
 			BeforeEach(func() {
 				atc.EnableGlobalResources = true
+				DeferCleanup(func() {
+					atc.EnableGlobalResources = false
+				})
 
 				scenario = dbtest.Setup(
 					builder.WithPipeline(atc.Config{
