@@ -1,5 +1,6 @@
 module Api exposing
     ( Request
+    , delete
     , expectJson
     , get
     , ignoreResponse
@@ -103,6 +104,17 @@ expectJson decoder r =
 withJsonBody : Json.Encode.Value -> Request a -> Request a
 withJsonBody value r =
     { r | body = Http.jsonBody value }
+
+
+delete : Endpoint -> Concourse.CSRFToken -> Request ()
+delete endpoint csrfToken =
+    { method = "DELETE"
+    , headers = [ Http.header Concourse.csrfTokenHeaderName csrfToken ]
+    , endpoint = endpoint
+    , query = []
+    , body = Http.emptyBody
+    , expect = ignoreResponse
+    }
 
 
 ignoreResponse : Http.Expect ()
