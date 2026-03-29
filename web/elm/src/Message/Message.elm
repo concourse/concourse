@@ -129,6 +129,7 @@ type DomID
     | SaveWallButton
     | ClearWallButton
     | CloseWallEditorButton
+    | WallEditorTextarea
 
 
 type PipelinesSection

@@ -19,7 +19,7 @@ import Concourse
 import EffectTransformer exposing (ET)
 import HoverState
 import Html
-import Html.Attributes exposing (class, disabled, href, id, placeholder, rel, style, target, value)
+import Html.Attributes exposing (class, disabled, href, id, placeholder, rel, style, target, type_, value)
 import Html.Events exposing (onClick, onInput, onMouseEnter, onMouseLeave)
 import Http
 import Message.Callback exposing (Callback(..))
@@ -363,19 +363,19 @@ update msg model =
                 wallEditor =
                     model.wallEditor
             in
-            ( { model
-                | wallEditor =
-                    if wallEditor.isOpen then
-                        { wallEditor | isOpen = False }
+            if wallEditor.isOpen then
+                ( { model | wallEditor = { wallEditor | isOpen = False } }, [] )
 
-                    else
+            else
+                ( { model
+                    | wallEditor =
                         { wallEditor
                             | isOpen = True
                             , message = Maybe.withDefault "" model.wallMessage
                         }
-              }
-            , []
-            )
+                  }
+                , [ Focus (Effects.toHtmlID Message.WallEditorTextarea) ]
+                )
 
         Update (Message.Click Message.CloseWallEditorButton) ->
             let
@@ -406,7 +406,9 @@ update msg model =
             )
 
         Update (Message.Click Message.ClearWallButton) ->
-            ( model, [ Effects.DoClearWall ] )
+            ( { model | wallEditor = { isOpen = False, message = "" } }
+            , [ Effects.DoClearWall ]
+            )
 
         Update m ->
             let
@@ -656,13 +658,13 @@ routeMatchesModel route model =
 
 wallEditorTextarea : WallEditor -> Html.Html Message.Message
 wallEditorTextarea editor =
-    Html.textarea
-        ([ id "wall-editor-message"
+    Html.input
+        ([ id (Effects.toHtmlID Message.WallEditorTextarea)
+         , type_ "text"
          , value editor.message
          , onInput Message.EditWallMessage
          , placeholder "Enter broadcast message…"
          , style "background-color" Colors.sectionHeader
-         , style "line-height" "1.6"
          ]
             ++ Views.Styles.commentBarTextarea
         )

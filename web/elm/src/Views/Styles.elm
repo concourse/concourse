@@ -351,7 +351,7 @@ commentBarTextarea =
     , style "color" Colors.text
     , style "background-color" "transparent"
     , style "max-height" "150px"
-    , style "margin" "8px 0"
+    , style "margin" "10px 0"
     , rows 1
     ]
         ++ defaultFont

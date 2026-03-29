@@ -397,6 +397,16 @@ all =
                         |> Application.update (Msgs.Update (Click ClearWallButton))
                         |> Tuple.second
                         |> Common.contains Effects.DoClearWall
+            , test "clicking the clear button closes the editor" <|
+                \_ ->
+                    Common.init "/"
+                        |> Application.update (Msgs.Update (Click SetWallButton))
+                        |> Tuple.first
+                        |> Application.update (Msgs.Update (Click ClearWallButton))
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.findAll [ id "wall-editor-message" ]
+                        |> Query.count (Expect.equal 0)
             , test "WallSet success closes the editor" <|
                 \_ ->
                     Common.init "/"

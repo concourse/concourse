@@ -880,6 +880,14 @@ view session model =
 tooltip : Session -> Maybe Tooltip.Tooltip
 tooltip session =
     case session.hovered of
+        HoverState.Tooltip Message.SetWallButton _ ->
+            Just
+                { body = Html.text "broadcast a message to all users"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         HoverState.Tooltip (Message.PipelineStatusIcon _ _) _ ->
             Just
                 { body = Html.text "automatic job monitoring disabled"
@@ -1121,9 +1129,9 @@ setWallButtonView : Session -> Html Message
 setWallButtonView session =
     if UserState.isAdmin session.userState then
         Html.button
-            [ id "set-wall-button"
-            , Html.Events.onClick (Click SetWallButton)
-            ]
+            (Html.Events.onClick (Click SetWallButton)
+                :: Tooltip.hoverAttrs SetWallButton
+            )
             [ Icon.icon { sizePx = 20, image = Assets.BullhornIcon } [] ]
 
     else

@@ -1009,6 +1009,9 @@ toHtmlID domId =
         CloseWallEditorButton ->
             "close-wall-editor-button"
 
+        WallEditorTextarea ->
+            "wall-editor-message"
+
         _ ->
             ""
 
