@@ -223,4 +223,227 @@ var _ = Describe("Config", func() {
 			})
 		})
 	})
+
+	Describe("UnmarshalConfig with UserData", func() {
+		Context("when config has user_data as a map", func() {
+			It("preserves the user_data field", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+user_data:
+  organization: Platform Team
+  contact: platform@example.com
+  labels:
+    - production
+    - critical
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.UserData).NotTo(BeNil())
+				userData, ok := config.UserData.(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(userData["organization"]).To(Equal("Platform Team"))
+				Expect(userData["contact"]).To(Equal("platform@example.com"))
+				labels, ok := userData["labels"].([]any)
+				Expect(ok).To(BeTrue())
+				Expect(labels).To(HaveLen(2))
+				Expect(labels[0]).To(Equal("production"))
+				Expect(labels[1]).To(Equal("critical"))
+			})
+		})
+
+		Context("when config has user_data as a string", func() {
+			It("preserves the user_data field", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+user_data: "simple string metadata"
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.UserData).To(Equal("simple string metadata"))
+			})
+		})
+
+		Context("when config has user_data as an array", func() {
+			It("preserves the user_data field", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+user_data:
+  - item1
+  - item2
+  - item3
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.UserData).NotTo(BeNil())
+				userData, ok := config.UserData.([]any)
+				Expect(ok).To(BeTrue())
+				Expect(userData).To(HaveLen(3))
+				Expect(userData[0]).To(Equal("item1"))
+				Expect(userData[1]).To(Equal("item2"))
+				Expect(userData[2]).To(Equal("item3"))
+			})
+		})
+
+		Context("when config has user_data as a number", func() {
+			It("preserves the user_data field", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+user_data: 12345
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				// YAML unmarshals numbers as float64
+				Expect(config.UserData).To(Equal(float64(12345)))
+			})
+		})
+
+		Context("when config has nested user_data structures", func() {
+			It("preserves the nested structure", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+user_data:
+  metadata:
+    owner:
+      team: platform
+      contact: user@example.com
+    tags:
+      - key: env
+        value: production
+      - key: region
+        value: us-west-2
+  version: 1.0
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.UserData).NotTo(BeNil())
+				userData, ok := config.UserData.(map[string]any)
+				Expect(ok).To(BeTrue())
+
+				metadata, ok := userData["metadata"].(map[string]any)
+				Expect(ok).To(BeTrue())
+
+				owner, ok := metadata["owner"].(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(owner["team"]).To(Equal("platform"))
+				Expect(owner["contact"]).To(Equal("user@example.com"))
+
+				tags, ok := metadata["tags"].([]any)
+				Expect(ok).To(BeTrue())
+				Expect(tags).To(HaveLen(2))
+			})
+		})
+
+		Context("when config has no user_data field", func() {
+			It("user_data should be nil", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.UserData).To(BeNil())
+			})
+		})
+
+		Context("when config has user_data as null", func() {
+			It("user_data should be nil", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+user_data: null
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.UserData).To(BeNil())
+			})
+		})
+
+		Context("when config has unknown fields along with user_data", func() {
+			It("strips unknown fields but preserves user_data", func() {
+				configYAML := []byte(`
+jobs:
+  - name: test-job
+    plan:
+      - task: test
+        config:
+          platform: linux
+          run:
+            path: echo
+user_data:
+  preserved: data
+unknown_field: should_be_stripped
+another_unknown: also_stripped
+`)
+				var config Config
+				err := UnmarshalConfig(configYAML, &config)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(config.UserData).NotTo(BeNil())
+				userData, ok := config.UserData.(map[string]any)
+				Expect(ok).To(BeTrue())
+				Expect(userData["preserved"]).To(Equal("data"))
+			})
+		})
+	})
 })

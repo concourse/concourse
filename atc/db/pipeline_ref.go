@@ -16,9 +16,14 @@ type PipelineRef interface {
 	PipelineID() int
 	PipelineName() string
 	PipelineInstanceVars() atc.InstanceVars
+
+	// Returns a PipelineRef that is the pipeline name and any instance vars
 	PipelineRef() atc.PipelineRef
-	Pipeline() (Pipeline, bool, error)
+
+	Pipeline() (pipeline Pipeline, found bool, error error)
 }
+
+var _ PipelineRef = (*pipelineRef)(nil)
 
 type pipelineRef struct {
 	pipelineID           int

@@ -53,8 +53,6 @@ func (fake *FakeHandler) ServeHTTPArgsForCall(i int) (http.ResponseWriter, *http
 func (fake *FakeHandler) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.serveHTTPMutex.RLock()
-	defer fake.serveHTTPMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

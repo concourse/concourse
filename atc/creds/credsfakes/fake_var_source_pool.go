@@ -188,12 +188,6 @@ func (fake *FakeVarSourcePool) SizeReturnsOnCall(i int, result1 int) {
 func (fake *FakeVarSourcePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.closeMutex.RLock()
-	defer fake.closeMutex.RUnlock()
-	fake.findOrCreateMutex.RLock()
-	defer fake.findOrCreateMutex.RUnlock()
-	fake.sizeMutex.RLock()
-	defer fake.sizeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

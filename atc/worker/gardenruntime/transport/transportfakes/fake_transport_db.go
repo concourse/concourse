@@ -98,8 +98,6 @@ func (fake *FakeTransportDB) GetWorkerReturnsOnCall(i int, result1 db.Worker, re
 func (fake *FakeTransportDB) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getWorkerMutex.RLock()
-	defer fake.getWorkerMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

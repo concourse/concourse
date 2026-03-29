@@ -597,6 +597,7 @@ var _ = Describe("WorkerFactory", func() {
 						}),
 						builder.WithResourceVersions(
 							"some-resource",
+							time.Minute,
 						),
 						builder.WithCheckContainer(
 							"some-resource",

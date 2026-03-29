@@ -95,8 +95,6 @@ func (fake *FakeDisplayUserIdGenerator) DisplayUserIdReturnsOnCall(i int, result
 func (fake *FakeDisplayUserIdGenerator) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.displayUserIdMutex.RLock()
-	defer fake.displayUserIdMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

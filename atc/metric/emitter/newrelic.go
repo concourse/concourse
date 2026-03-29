@@ -99,6 +99,7 @@ func (emitter *NewRelicEmitter) Emit(logger lager.Logger, event metric.Event) {
 	// These are the simple ones that only need a small name transformation
 	case "build started",
 		"build finished",
+		"check build finished",
 		"checks finished",
 		"checks started",
 		"checks enqueued",

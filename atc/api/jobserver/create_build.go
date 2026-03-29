@@ -1,11 +1,8 @@
 package jobserver
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
-
-	"code.cloudfoundry.org/lager/v3/lagerctx"
 
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
@@ -42,46 +39,6 @@ func (s *Server) CreateJobBuild(pipeline db.Pipeline) http.Handler {
 			logger.Error("failed-to-create-job-build", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
-		}
-
-		resources, err := pipeline.Resources()
-		if err != nil {
-			logger.Error("failed-to-get-resources", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		resourceTypes, err := pipeline.ResourceTypes()
-		if err != nil {
-			logger.Error("failed-to-get-resource-types", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		inputs, err := job.Inputs()
-		if err != nil {
-			logger.Error("failed-to-get-job-inputs", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		for _, input := range inputs {
-			resource, found := resources.Lookup(input.Resource)
-			if found {
-				version := resource.CurrentPinnedVersion()
-				_, _, err := s.checkFactory.TryCreateCheck(
-					lagerctx.NewContext(context.Background(), logger),
-					resource,
-					resourceTypes,
-					version,
-					true,
-					true,
-					true,
-				)
-				if err != nil {
-					logger.Error("failed-to-create-check", err)
-				}
-			}
 		}
 
 		err = json.NewEncoder(w).Encode(present.Build(build, nil, nil))

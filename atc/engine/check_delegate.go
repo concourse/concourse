@@ -42,6 +42,8 @@ func NewCheckDelegate(
 	}
 }
 
+var _ exec.CheckDelegate = (*checkDelegate)(nil)
+
 type checkDelegate struct {
 	exec.BuildStepDelegate
 
@@ -267,8 +269,8 @@ func (d *checkDelegate) UpdateScopeLastCheckStartTime(scope db.ResourceConfigSco
 	return found, buildId, err
 }
 
-func (d *checkDelegate) UpdateScopeLastCheckEndTime(scope db.ResourceConfigScope, succeeded bool) (bool, error) {
-	return scope.UpdateLastCheckEndTime(succeeded)
+func (d *checkDelegate) UpdateScopeLastCheckEndTime(scope db.ResourceConfigScope, succeeded bool, interval time.Duration) (bool, error) {
+	return scope.UpdateLastCheckEndTime(succeeded, interval)
 }
 
 func (d *checkDelegate) pipeline() (db.Pipeline, error) {

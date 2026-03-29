@@ -285,12 +285,6 @@ func (fake *FakePool) LocateVolumeReturnsOnCall(i int, result1 runtime.Volume, r
 func (fake *FakePool) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createVolumeForArtifactMutex.RLock()
-	defer fake.createVolumeForArtifactMutex.RUnlock()
-	fake.locateContainerMutex.RLock()
-	defer fake.locateContainerMutex.RUnlock()
-	fake.locateVolumeMutex.RLock()
-	defer fake.locateVolumeMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -216,4 +216,87 @@ var _ = Describe("Config diff", func() {
 			})
 		})
 	})
+
+	Describe("user_data config", func() {
+		var userData any
+		BeforeEach(func() {
+			userData = map[string]any{
+				"organization": "Platform Team",
+				"contact":      "platform@example.com",
+			}
+		})
+
+		Context("when there is no user_data", func() {
+			It("does not print anything about user_data", func() {
+				buffer := NewBuffer()
+				diff := Config{}.Diff(buffer, Config{})
+				Expect(diff).To(BeFalse())
+				Consistently(buffer).ShouldNot(Say("user_data"))
+			})
+		})
+
+		Context("when user_data is added", func() {
+			It("says user_data has been added", func() {
+				buffer := NewBuffer()
+				newConfig := Config{
+					UserData: userData,
+				}
+				diff := Config{}.Diff(buffer, newConfig)
+				Expect(diff).To(BeTrue())
+				Eventually(buffer).Should(Say("user_data has been added:"))
+				Eventually(buffer).Should(Say(`\+.*organization: Platform Team`))
+			})
+		})
+
+		Context("when user_data is removed", func() {
+			It("says user_data has been removed", func() {
+				buffer := NewBuffer()
+				oldConfig := Config{
+					UserData: userData,
+				}
+				diff := oldConfig.Diff(buffer, Config{})
+				Expect(diff).To(BeTrue())
+				Eventually(buffer).Should(Say("user_data has been removed:"))
+				Eventually(buffer).Should(Say(`-.*organization: Platform Team`))
+			})
+		})
+
+		Context("when user_data has not changed", func() {
+			It("reports no changes", func() {
+				oldConfig := Config{
+					UserData: userData,
+				}
+				newConfig := Config{
+					UserData: map[string]any{
+						"organization": "Platform Team",
+						"contact":      "platform@example.com",
+					},
+				}
+
+				diff := oldConfig.Diff(GinkgoWriter, newConfig)
+				Expect(diff).To(BeFalse())
+			})
+		})
+
+		Context("when user_data has changed", func() {
+			It("shows the diff", func() {
+				oldConfig := Config{
+					UserData: userData,
+				}
+				newConfig := Config{
+					UserData: map[string]any{
+						"organization": "New Team",
+						"contact":      "new-team@example.com",
+					},
+				}
+
+				buffer := NewBuffer()
+				diff := oldConfig.Diff(buffer, newConfig)
+				Expect(diff).To(BeTrue())
+				Eventually(buffer).Should(Say("user_data has changed:"))
+				Eventually(buffer).Should(Say(`-.*organization: Platform Team`))
+				Eventually(buffer).Should(Say(`\+.*organization: New Team`))
+			})
+		})
+	})
 })

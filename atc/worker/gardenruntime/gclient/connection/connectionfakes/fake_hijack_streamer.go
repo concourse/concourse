@@ -198,10 +198,6 @@ func (fake *FakeHijackStreamer) StreamReturnsOnCall(i int, result1 io.ReadCloser
 func (fake *FakeHijackStreamer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.hijackMutex.RLock()
-	defer fake.hijackMutex.RUnlock()
-	fake.streamMutex.RLock()
-	defer fake.streamMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

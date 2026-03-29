@@ -1,11 +1,13 @@
 package tarfs_test
 
 import (
+	"archive/tar"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/go-archive/archivetest"
@@ -146,5 +148,55 @@ var _ = Describe("Extract", func() {
 		})
 
 		It("extracts the TGZ's files, generating directories, and honoring file permissions and symlinks", extractionTest)
+	})
+})
+
+var _ = Describe("ExtractEntry", func() {
+	var dest string
+
+	BeforeEach(func() {
+		var err error
+		dest, err = os.MkdirTemp("", "extract-entry")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(dest)
+	})
+
+	It("returns a BreakoutError when a hard link points outside the destination", func() {
+		header := &tar.Header{
+			Typeflag: tar.TypeLink,
+			Name:     "malicious-link",
+			Linkname: "../outside-file",
+		}
+
+		err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
+		Expect(err).To(HaveOccurred())
+
+		var breakoutErr tarfs.BreakoutError
+		Expect(err).To(BeAssignableToTypeOf(breakoutErr))
+
+		breakoutErr = err.(tarfs.BreakoutError)
+		Expect(breakoutErr.HeaderName).To(Equal("malicious-link"))
+		Expect(breakoutErr.LinkName).To(Equal("../outside-file"))
+	})
+
+	It("returns a BreakoutError when a symlink points outside the destination", func() {
+		header := &tar.Header{
+			Typeflag: tar.TypeSymlink,
+			Name:     "malicious-link",
+			Linkname: "../outside-file",
+		}
+
+		err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
+		Expect(err).To(HaveOccurred())
+
+		var breakoutErr tarfs.BreakoutError
+		Expect(err).To(BeAssignableToTypeOf(breakoutErr))
+
+		breakoutErr = err.(tarfs.BreakoutError)
+		Expect(breakoutErr.HeaderName).To(Equal("malicious-link"))
+		Expect(breakoutErr.LinkName).To(Equal("../outside-file"))
 	})
 })

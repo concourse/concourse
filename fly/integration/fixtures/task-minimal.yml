@@ -1,0 +1,7 @@
+platform: linux
+image_resource:
+  type: registry-image
+  source: {repository: ubuntu}
+run:
+  path: echo
+  args: [hello]

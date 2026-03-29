@@ -10,6 +10,7 @@ import (
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/atc/db/dbtest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -374,17 +375,22 @@ var _ = Describe("CheckFactory", func() {
 
 	Describe("Resources", func() {
 		var (
-			resources                  []db.Resource
-			putOnlyResource            db.Resource
-			putOnlyResourceConfigScope db.ResourceConfigScope
+			resources []db.Resource
+			scenario  *dbtest.Scenario
 		)
 
 		BeforeEach(func() {
-			defaultPipelineConfig = atc.Config{
+			pipelineConfig := atc.Config{
 				Jobs: atc.JobConfigs{
 					{
 						Name: "some-job",
 						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:    "some-resource-trigger",
+									Trigger: true,
+								},
+							},
 							{
 								Config: &atc.GetStep{
 									Name: "some-resource",
@@ -397,65 +403,49 @@ var _ = Describe("CheckFactory", func() {
 							},
 						},
 					},
+					{
+						Name: "some-job-downstream",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:    "some-resource",
+									Trigger: true,
+									Passed:  []string{"some-job"},
+								},
+							},
+						},
+					},
 				},
 				Resources: atc.ResourceConfigs{
 					{
+						Name: "some-resource-trigger",
+						Type: dbtest.BaseResourceType,
+						Source: atc.Source{
+							"some": "source",
+						},
+					},
+					{
 						Name: "some-resource",
-						Type: "some-base-resource-type",
+						Type: dbtest.BaseResourceType,
 						Source: atc.Source{
 							"some": "source",
 						},
 					},
 					{
 						Name: "some-put-only-resource",
-						Type: "some-base-resource-type",
+						Type: dbtest.BaseResourceType,
 						Source: atc.Source{
 							"some": "source",
 						},
 					},
 				},
-				ResourceTypes: atc.ResourceTypes{
-					{
-						Name: "some-type",
-						Type: "some-base-resource-type",
-						Source: atc.Source{
-							"some-type": "source",
-						},
-					},
-				},
 			}
 
-			defaultPipelineRef = atc.PipelineRef{Name: "default-pipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
-			defaultPipeline, _, err = defaultTeam.SavePipeline(defaultPipelineRef, defaultPipelineConfig, db.ConfigVersion(1), false)
+			err = defaultPipeline.Destroy()
 			Expect(err).NotTo(HaveOccurred())
-
-			var found bool
-			putOnlyResource, found, err = defaultPipeline.Resource("some-put-only-resource")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			resourceConfig, err := resourceConfigFactory.FindOrCreateResourceConfig(
-				"some-base-resource-type",
-				atc.Source{
-					"some": "source",
-				},
-				nil,
+			scenario = dbtest.Setup(
+				builder.WithPipeline(pipelineConfig),
 			)
-			Expect(err).NotTo(HaveOccurred())
-
-			putOnlyResourceConfigScope, err = resourceConfig.FindOrCreateScope(intptr(putOnlyResource.ID()))
-			Expect(err).NotTo(HaveOccurred())
-
-			err = putOnlyResource.SetResourceConfigScope(putOnlyResourceConfigScope)
-			Expect(err).NotTo(HaveOccurred())
-
-			found, err = putOnlyResourceConfigScope.UpdateLastCheckStartTime(99, nil)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
-
-			found, err = putOnlyResourceConfigScope.UpdateLastCheckEndTime(true)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(found).To(BeTrue())
 		})
 
 		JustBeforeEach(func() {
@@ -463,9 +453,28 @@ var _ = Describe("CheckFactory", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("include only resources-in-use in return", func() {
-			Expect(resources).To(HaveLen(1))
-			Expect(resources[0].Name()).To(Equal("some-resource"))
+		Context("pipeline is newly set", func() {
+			It("returns all resources for the pipeline", func() {
+				Expect(resources).To(HaveLen(3))
+				Expect(resources[0].Name()).To(Equal("some-resource-trigger"))
+				Expect(resources[1].Name()).To(Equal("some-resource"))
+				Expect(resources[2].Name()).To(Equal("some-put-only-resource"))
+			})
+		})
+
+		Context("when all resources have been previously checked successfully", func() {
+			BeforeEach(func() {
+				scenario.Run(
+					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-resource-trigger", time.Minute),
+					builder.WithResourceVersions("some-put-only-resource", time.Minute),
+				)
+			})
+
+			It("only includes resources that trigger jobs and have no passed constraints", func() {
+				Expect(resources).To(HaveLen(1))
+				Expect(resources[0].Name()).To(Equal("some-resource-trigger"))
+			})
 		})
 
 		Context("when the resource is not active", func() {
@@ -491,33 +500,37 @@ var _ = Describe("CheckFactory", func() {
 		})
 
 		Context("when a put-only resource", func() {
-			Context("has failed to check last time", func() {
+			Context("has failed its last check", func() {
 				BeforeEach(func() {
-					found, err := putOnlyResourceConfigScope.UpdateLastCheckStartTime(99, nil)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					found, err = putOnlyResourceConfigScope.UpdateLastCheckEndTime(false)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
+					scenario.Run(
+						builder.WithResourceVersions("some-resource", time.Minute),
+						builder.WithResourceVersions("some-resource-trigger", time.Minute),
+						builder.WithFailingResourceCheck("some-put-only-resource", time.Minute),
+					)
 				})
-				It("returns the resource", func() {
+
+				// Marked serial because this test kept flaking in a way that
+				// suggested the BeforeEach() was not being run
+				It("returns the triggering, and errored put-only resource", Serial, func() {
 					Expect(resources).To(HaveLen(2))
+					Expect(resources[0].Name()).To(Equal("some-resource-trigger"))
+					Expect(resources[1].Name()).To(Equal("some-put-only-resource"))
 				})
 			})
+
 			Context("has NOT errored", func() {
 				BeforeEach(func() {
-					By("creating a successful build for the put-only resource")
-					found, err := putOnlyResourceConfigScope.UpdateLastCheckStartTime(99, nil)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
-
-					found, err = putOnlyResourceConfigScope.UpdateLastCheckEndTime(true)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(found).To(BeTrue())
+					By("creating successful builds for all resources")
+					scenario.Run(
+						builder.WithResourceVersions("some-resource", time.Minute),
+						builder.WithResourceVersions("some-resource-trigger", time.Minute),
+						builder.WithResourceVersions("some-put-only-resource", time.Minute),
+					)
 				})
-				It("returns does not return the resource", func() {
+
+				It("does not return the put-only resource", func() {
 					Expect(resources).To(HaveLen(1))
+					Expect(resources[0].Name()).To(Equal("some-resource-trigger"))
 				})
 			})
 		})

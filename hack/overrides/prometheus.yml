@@ -5,8 +5,6 @@
 # ref: https://prometheus.io/
 # ref: https://docs.docker.com/compose/extends/
 #
-version: '3'
-
 services:
   web:
     environment:

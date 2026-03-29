@@ -509,11 +509,13 @@ var _ = Describe("Build", func() {
 				builder.WithPipeline(pipelineConfig),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"ver": "1"},
 					atc.Version{"ver": "2"},
 				),
 				builder.WithResourceVersions(
 					"some-other-resource",
+					time.Minute,
 					atc.Version{"ver": "1"},
 					atc.Version{"ver": "2"},
 					atc.Version{"ver": "3"},
@@ -1229,8 +1231,8 @@ var _ = Describe("Build", func() {
 
 			scenario = dbtest.Setup(
 				builder.WithPipeline(pipelineConfig),
-				builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
-				builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
+				builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
+				builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
 				builder.WithJobBuild(&build, "some-job", dbtest.JobInputs{
 					{
 						Name:    "some-resource",
@@ -1293,8 +1295,8 @@ var _ = Describe("Build", func() {
 					otherScenario = dbtest.Setup(
 						builder.WithTeam("other-team"),
 						builder.WithPipeline(pipelineConfig),
-						builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
-						builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
+						builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
 					)
 
 					beforeTime = scenario.Job("some-job").ScheduleRequestedTime()
@@ -1319,7 +1321,7 @@ var _ = Describe("Build", func() {
 
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource", outputVersion),
+					builder.WithResourceVersions("some-resource", time.Minute, outputVersion),
 				)
 
 				rcv = scenario.ResourceVersion("some-resource", outputVersion)
@@ -1340,8 +1342,8 @@ var _ = Describe("Build", func() {
 					otherScenario = dbtest.Setup(
 						builder.WithTeam("other-team"),
 						builder.WithPipeline(pipelineConfig),
-						builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
-						builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
+						builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
 					)
 
 					beforeTime = scenario.Job("some-job").ScheduleRequestedTime()
@@ -1417,6 +1419,7 @@ var _ = Describe("Build", func() {
 				builder.WithPipeline(pipelineConfig),
 				builder.WithResourceVersions(
 					"some-resource",
+					time.Minute,
 					atc.Version{"ver": "1"},
 					atc.Version{"ver": "2"},
 				),
@@ -1615,7 +1618,7 @@ var _ = Describe("Build", func() {
 						},
 					},
 				}),
-				builder.WithResourceVersions("some-resource", atc.Version{"version": "some-version"}),
+				builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"version": "some-version"}),
 				builder.WithPendingJobBuild(&build, "some-job"),
 			)
 
@@ -1648,7 +1651,7 @@ var _ = Describe("Build", func() {
 				BeforeEach(func() {
 					scenario.Run(
 						// don't save any versions, just bump the last check timestamp
-						builder.WithResourceVersions("some-resource"),
+						builder.WithResourceVersions("some-resource", time.Minute),
 					)
 
 					expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
@@ -1716,7 +1719,7 @@ var _ = Describe("Build", func() {
 						scenario.Run(
 							builder.WithPendingJobBuild(&secondBuild, "some-job"),
 							// don't save any versions, just bump the last check timestamp
-							builder.WithResourceVersions("some-resource"),
+							builder.WithResourceVersions("some-resource", time.Minute),
 						)
 
 						scheduled, err := job.ScheduleBuild(build)
@@ -1834,7 +1837,7 @@ var _ = Describe("Build", func() {
 					}),
 
 					// checked after build creation
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 
 					// add another input
 					builder.WithPipeline(atc.Config{
@@ -1868,7 +1871,7 @@ var _ = Describe("Build", func() {
 							},
 						},
 					}),
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 				)
 
 				expectedBuildPrep.Inputs = map[string]db.BuildPreparationStatus{
@@ -1940,12 +1943,12 @@ var _ = Describe("Build", func() {
 						},
 					},
 				}),
-				builder.WithResourceVersions("some-resource",
+				builder.WithResourceVersions("some-resource", time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 					atc.Version{"version": "v3"},
 				),
-				builder.WithResourceVersions("some-other-resource",
+				builder.WithResourceVersions("some-other-resource", time.Minute,
 					atc.Version{"version": "v1"},
 				),
 			)
@@ -2168,12 +2171,12 @@ var _ = Describe("Build", func() {
 
 			scenario = dbtest.Setup(
 				builder.WithPipeline(pipelineConfig),
-				builder.WithResourceVersions("some-resource",
+				builder.WithResourceVersions("some-resource", time.Minute,
 					atc.Version{"version": "v1"},
 					atc.Version{"version": "v2"},
 					atc.Version{"version": "v3"},
 				),
-				builder.WithResourceVersions("some-other-resource",
+				builder.WithResourceVersions("some-other-resource", time.Minute,
 					atc.Version{"version": "v1"},
 				),
 				builder.WithJobBuild(&upstreamBuild, "upstream-job", dbtest.JobInputs{
@@ -2260,7 +2263,7 @@ var _ = Describe("Build", func() {
 
 					scenario.Run(
 						builder.WithPipeline(pipelineConfig),
-						builder.WithResourceVersions("some-resource", atc.Version{"some": "new-version"}),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "new-version"}),
 					)
 				})
 
@@ -2297,9 +2300,7 @@ var _ = Describe("Build", func() {
 
 	Describe("ResourcesChecked", func() {
 		var scenario *dbtest.Scenario
-
 		var build db.Build
-		var checked bool
 
 		BeforeEach(func() {
 			pipelineConfig := atc.Config{
@@ -2336,33 +2337,37 @@ var _ = Describe("Build", func() {
 
 			scenario = dbtest.Setup(
 				builder.WithPipeline(pipelineConfig),
-				builder.WithResourceVersions("some-resource", atc.Version{"some": "version"}),
-				builder.WithResourceVersions("some-other-resource", atc.Version{"some": "other-version"}),
+				builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
+				builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
 				builder.WithPendingJobBuild(&build, "some-job"),
 			)
 		})
 
-		JustBeforeEach(func() {
-			var err error
-			checked, err = build.ResourcesChecked()
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		Context("when all the resources in the build has been checked", func() {
+		Context("when all the resources in the build have been checked", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource"),
-					builder.WithResourceVersions("some-other-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-other-resource", time.Minute),
 				)
 			})
 
 			It("returns true", func() {
+				checked, err := build.ResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
 				Expect(checked).To(BeTrue())
 			})
 		})
 
-		Context("when a the resource in the build has not been checked", func() {
+		Context("when a resource in the build has not been checked", func() {
+			BeforeEach(func() {
+				By("not checking some-other-resource")
+				scenario.Run(
+					builder.WithResourceVersions("some-resource", time.Minute),
+				)
+			})
 			It("returns false", func() {
+				checked, err := build.ResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
 				Expect(checked).To(BeFalse())
 			})
 		})
@@ -2370,7 +2375,7 @@ var _ = Describe("Build", func() {
 		Context("when a pinned resource in the build has not been checked", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource"),
+					builder.WithResourceVersions("some-resource", time.Minute),
 				)
 
 				rcv := scenario.ResourceVersion("some-other-resource", atc.Version{"some": "other-version"})
@@ -2381,6 +2386,172 @@ var _ = Describe("Build", func() {
 			})
 
 			It("returns true", func() {
+				checked, err := build.ResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(checked).To(BeTrue())
+			})
+		})
+	})
+
+	Describe("NonTriggeringResourcesChecked", func() {
+		var scenario *dbtest.Scenario
+		var build, downstreamBuild, mixedBuild db.Build
+
+		BeforeEach(func() {
+			pipelineConfig := atc.Config{
+				Jobs: atc.JobConfigs{
+					{
+						Name: "some-job",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:    "some-resource",
+									Trigger: true,
+								},
+							},
+							{
+								Config: &atc.GetStep{
+									Name: "some-other-resource",
+								},
+							},
+							{
+								Config: &atc.PutStep{
+									Name: "some-put-resource",
+								},
+							},
+						},
+					},
+					{
+						Name: "some-job-downstream",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:    "some-resource",
+									Trigger: true,
+									Passed:  []string{"some-job"},
+								},
+							},
+							{
+								Config: &atc.GetStep{
+									Name:   "some-other-resource",
+									Passed: []string{"some-job"},
+								},
+							},
+						},
+					},
+					{
+						Name: "some-job-mixed",
+						PlanSequence: []atc.Step{
+							{
+								Config: &atc.GetStep{
+									Name:    "some-resource",
+									Trigger: true,
+								},
+							},
+							{
+								Config: &atc.GetStep{
+									Name:   "some-other-resource",
+									Passed: []string{"some-job"},
+								},
+							},
+						},
+					},
+				},
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   "some-resource",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "source"},
+					},
+					{
+						Name:   "some-other-resource",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "other-source"},
+					},
+					{
+						Name:   "some-put-resource",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "put-source"},
+					},
+				},
+			}
+
+			scenario = dbtest.Setup(
+				builder.WithPipeline(pipelineConfig),
+				builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
+				builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
+				builder.WithResourceVersions("some-put-resource", time.Minute),
+				builder.WithPendingJobBuild(&build, "some-job"),
+				builder.WithPendingJobBuild(&downstreamBuild, "some-job-downstream"),
+				builder.WithPendingJobBuild(&mixedBuild, "some-job-mixed"),
+			)
+		})
+
+		Context("when all the resources in the build have been checked", func() {
+			BeforeEach(func() {
+				scenario.Run(
+					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-other-resource", time.Minute),
+				)
+			})
+
+			It("returns true", func() {
+				checked, err := build.NonTriggeringResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(checked).To(BeTrue())
+			})
+		})
+
+		Context("when the triggering resources in the build have NOT been checked", func() {
+			BeforeEach(func() {
+				scenario.Run(
+					builder.WithResourceVersions("some-other-resource", time.Minute), //non-triggering resource
+				)
+			})
+
+			It("returns true", func() {
+				checked, err := build.NonTriggeringResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(checked).To(BeTrue())
+			})
+		})
+
+		Context("when all of the jobs inputs have passed constraints", func() {
+			BeforeEach(func() {
+				By("not checking any of the input resources")
+			})
+
+			It("returns true", func() {
+				checked, err := downstreamBuild.NonTriggeringResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(checked).To(BeTrue())
+			})
+		})
+
+		Context("when the job has a mix of triggering and passed inputs", func() {
+			It("returns true", func() {
+				checked, err := mixedBuild.NonTriggeringResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(checked).To(BeTrue(), "none of the input resources need to be checked")
+			})
+		})
+
+		Context("when a pinned resource in the build has not been checked", func() {
+			BeforeEach(func() {
+				scenario.Run(
+					builder.WithResourceVersions("some-resource", time.Minute),
+				)
+
+				rcv := scenario.ResourceVersion("some-other-resource", atc.Version{"some": "other-version"})
+
+				found, err := scenario.Resource("some-other-resource").PinVersion(rcv.ID())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			It("returns true", func() {
+				checked, err := build.NonTriggeringResourcesChecked()
+				Expect(err).ToNot(HaveOccurred())
 				Expect(checked).To(BeTrue())
 			})
 		})

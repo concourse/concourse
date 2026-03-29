@@ -234,7 +234,7 @@ func (builder Builder) WithBaseWorker() SetupFunc {
 
 // WithResourceVersions imitates running a check build and stores the provided
 // versions in the database.
-func (builder Builder) WithResourceVersions(resourceName string, versions ...atc.Version) SetupFunc {
+func (builder Builder) WithResourceVersions(resourceName string, checkInterval time.Duration, versions ...atc.Version) SetupFunc {
 	return func(scenario *Scenario) error {
 		if scenario.Pipeline == nil {
 			err := builder.WithPipeline(atc.Config{
@@ -321,7 +321,7 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 			return fmt.Errorf("update last check start time: %w", err)
 		}
 
-		_, err = scope.UpdateLastCheckEndTime(true)
+		_, err = scope.UpdateLastCheckEndTime(true, checkInterval)
 		if err != nil {
 			return fmt.Errorf("update last check end time: %w", err)
 		}
@@ -332,6 +332,87 @@ func (builder Builder) WithResourceVersions(resourceName string, versions ...atc
 		}
 
 		return build.Finish(db.BuildStatusSucceeded)
+	}
+}
+
+func (builder Builder) WithFailingResourceCheck(resourceName string, checkInterval time.Duration) SetupFunc {
+	return func(scenario *Scenario) error {
+		if scenario.Pipeline == nil {
+			err := builder.WithPipeline(atc.Config{
+				Resources: atc.ResourceConfigs{
+					{
+						Name:   resourceName,
+						Type:   BaseResourceType,
+						Source: atc.Source{"some": "source"},
+					},
+				},
+			})(scenario)
+			if err != nil {
+				return fmt.Errorf("bootstrap pipeline: %w", err)
+			}
+		}
+
+		if len(scenario.Workers) == 0 {
+			err := builder.WithBaseWorker()(scenario)
+			if err != nil {
+				return fmt.Errorf("bootstrap workers: %w", err)
+			}
+		}
+
+		resource, found, err := scenario.Pipeline.Resource(resourceName)
+		if err != nil {
+			return err
+		}
+
+		if !found {
+			return fmt.Errorf("resource '%s' not configured in pipeline", resourceName)
+		}
+
+		build, success, err := resource.CreateBuild(context.TODO(), false, atc.Plan{
+			ID: "check-resource",
+			Check: &atc.CheckPlan{
+				Name:   resource.Name(),
+				Type:   resource.Type(),
+				Source: resource.Source(),
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("create check build: %w", err)
+		}
+		if !success {
+			return fmt.Errorf("failed to create check build")
+		}
+
+		resourceConfig, err := builder.ResourceConfigFactory.FindOrCreateResourceConfig(
+			resource.Type(),
+			resource.Source(),
+			nil,
+		)
+		if err != nil {
+			return fmt.Errorf("find or create resource config: %w", err)
+		}
+
+		scope, err := resourceConfig.FindOrCreateScope(intptr(resource.ID()))
+		if err != nil {
+			return fmt.Errorf("find or create scope: %w", err)
+		}
+
+		_, err = scope.UpdateLastCheckStartTime(build.ID(), build.PublicPlan())
+		if err != nil {
+			return fmt.Errorf("update last check start time: %w", err)
+		}
+
+		_, err = scope.UpdateLastCheckEndTime(false, checkInterval)
+		if err != nil {
+			return fmt.Errorf("update last check end time: %w", err)
+		}
+
+		err = resource.SetResourceConfigScope(scope)
+		if err != nil {
+			return fmt.Errorf("set resource scope: %w", err)
+		}
+
+		return build.Finish(db.BuildStatusFailed)
 	}
 }
 
@@ -867,7 +948,7 @@ func (builder Builder) WithPinnedVersion(resourceName string, pinnedVersion atc.
 		}
 
 		if !found {
-			scenario.Run(builder.WithResourceVersions(resourceName, pinnedVersion))
+			scenario.Run(builder.WithResourceVersions(resourceName, time.Second, pinnedVersion))
 
 			reloaded, err := resource.Reload()
 			if err != nil {
@@ -918,7 +999,7 @@ func (builder Builder) WithDisabledVersion(resourceName string, disabledVersion 
 		}
 
 		if !found {
-			scenario.Run(builder.WithResourceVersions(resourceName, disabledVersion))
+			scenario.Run(builder.WithResourceVersions(resourceName, time.Second, disabledVersion))
 
 			reloaded, err := resource.Reload()
 			if err != nil {
@@ -970,7 +1051,7 @@ func (builder Builder) WithEnabledVersion(resourceName string, enabledVersion at
 				return err
 			}
 		} else {
-			scenario.Run(builder.WithResourceVersions(resourceName, enabledVersion))
+			scenario.Run(builder.WithResourceVersions(resourceName, time.Second, enabledVersion))
 		}
 
 		return nil

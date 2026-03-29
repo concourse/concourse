@@ -324,6 +324,10 @@ func (b *engineBuild) trackFinished(logger lager.Logger) {
 			metric.BuildFinished{
 				Build: b.build,
 			}.Emit(logger)
+		} else {
+			metric.CheckBuildFinished{
+				Build: b.build,
+			}.Emit(logger)
 		}
 	}
 }
