@@ -179,6 +179,8 @@ type Effect
     | SendOrderPipelinesWithinGroupRequest Concourse.InstanceGroupIdentifier (List Concourse.InstanceVars)
     | SendLogOutRequest
     | GetScreenSize
+    | DoSetWall Concourse.Wall
+    | DoClearWall
     | PinTeamNames StickyHeaderConfig
     | Scroll ScrollDirection String
     | SetFavIcon (Maybe BuildStatus)
@@ -550,6 +552,20 @@ runEffect effect key csrfToken =
 
         GetScreenSize ->
             Task.perform ScreenResized getViewport
+
+        DoSetWall wall ->
+            Api.put Endpoints.Wall csrfToken
+                |> Api.withJsonBody
+                    (Json.Encode.object
+                        [ ( "message", Json.Encode.string wall.message ) ]
+                    )
+                |> Api.request
+                |> Task.attempt WallSet
+
+        DoClearWall ->
+            Api.delete Endpoints.Wall csrfToken
+                |> Api.request
+                |> Task.attempt WallCleared
 
         PinTeamNames shc ->
             pinTeamNames shc
@@ -980,6 +996,21 @@ toHtmlID domId =
 
         OutputsOf id ->
             "view-all-outputs" ++ String.fromInt id.versionID
+
+        SetWallButton ->
+            "set-wall-button"
+
+        SaveWallButton ->
+            "save-wall-button"
+
+        ClearWallButton ->
+            "clear-wall-button"
+
+        CloseWallEditorButton ->
+            "close-wall-editor-button"
+
+        WallEditorTextarea ->
+            "wall-editor-message"
 
         _ ->
             ""
