@@ -62,6 +62,7 @@ type Pipeline interface {
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
 	Display() *atc.DisplayConfig
+	UserData() any
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
 	Public() bool
@@ -194,6 +195,7 @@ func (p *pipeline) InstanceVars() atc.InstanceVars   { return p.instanceVars }
 func (p *pipeline) Groups() atc.GroupConfigs         { return p.groups }
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
+func (p *pipeline) UserData() any                    { return p.userData }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
 func (p *pipeline) Paused() bool                     { return p.paused }
