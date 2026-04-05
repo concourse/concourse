@@ -121,10 +121,18 @@ func (c *client) NewContainer(
 	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
-	return c.containerd.NewContainer(ctx, id,
+	cont, err := c.containerd.NewContainer(ctx, id,
 		containerd.WithSpec(oci),
 		containerd.WithContainerLabels(labels),
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &container{
+		requestTimeout: c.requestTimeout,
+		container:      cont,
+	}, nil
 }
 
 func (c *client) Containers(
@@ -135,7 +143,20 @@ func (c *client) Containers(
 	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
 
-	return c.containerd.Containers(ctx, labels...)
+	containers, err := c.containerd.Containers(ctx, labels...)
+	if err != nil {
+		return nil, err
+	}
+
+	wrapped := make([]containerd.Container, len(containers))
+	for i, cont := range containers {
+		wrapped[i] = &container{
+			requestTimeout: c.requestTimeout,
+			container:      cont,
+		}
+	}
+
+	return wrapped, nil
 }
 
 func (c *client) GetContainer(ctx context.Context, handle string) (containerd.Container, error) {
