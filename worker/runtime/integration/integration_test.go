@@ -1223,3 +1223,80 @@ func (s *IntegrationSuite) TestNetworkMountsAreRemoved() {
 	s.NoError(err)
 	s.Len(networkFiles, 0)
 }
+
+// TestNewContainerEnforcesTimeoutOnTask is a regression test verifying that
+// containers returned by client.NewContainer enforce the requestTimeout on
+// follow-on operations (Task, NewTask, Spec).
+
+// How this test works:
+//  1. Create a libcontainerd client with a 1s requestTimeout
+//  2. Create a container directly via client.NewContainer with a minimal
+//     OCI runtime spec (no init binary or running task needed)
+//  3. Freeze containerd with SIGSTOP (making all gRPC calls hang)
+//  4. Call Task() on the container from NewContainer with context.Background()
+//     (no deadline from the caller — the wrapper must add it)
+//  5. Expect a "deadline exceeded" error within ~1s
+//  6. Also verify GetContainer returns a container that behaves identically
+//  7. Unfreeze containerd and verify recovery
+//
+// Step 4 will blocks indefinitely and the test times out without the fix
+func (s *IntegrationSuite) TestNewContainerEnforcesTimeoutOnTask() {
+	requestTimeout := 1 * time.Second
+
+	client := libcontainerd.New(
+		s.containerdSocket(),
+		"test-timeout-enforcement",
+		requestTimeout,
+	)
+	err := client.Init()
+	s.NoError(err)
+	defer client.Stop()
+
+	handle := uuid()
+	minimalSpec := &specs.Spec{
+		Version: specs.Version,
+		Process: &specs.Process{
+			Args: []string{"/bin/sh"},
+		},
+		Root: &specs.Root{
+			Path: s.rootfs,
+		},
+	}
+
+	contViaNew, err := client.NewContainer(
+		context.Background(), handle, map[string]string{}, minimalSpec,
+	)
+	s.NoError(err, "NewContainer should succeed")
+	defer func() {
+		_ = s.containerdProcess.Process.Signal(syscall.SIGCONT)
+		contViaNew.Delete(context.Background())
+	}()
+
+	_, err = contViaNew.Task(context.Background(), nil)
+	s.Error(err, "Task should return 'not found' error (no task started)")
+
+	contViaGet, err := client.GetContainer(context.Background(), handle)
+	s.NoError(err, "GetContainer should succeed while containerd is responsive")
+
+	_, err = contViaGet.Task(context.Background(), nil)
+	s.Error(err, "Task via GetContainer should also return 'not found'")
+
+	s.NoError(s.containerdProcess.Process.Signal(syscall.SIGSTOP))
+
+	start := time.Now()
+	_, err = contViaNew.Task(context.Background(), nil)
+	elapsed := time.Since(start)
+
+	s.Error(err, "Task must fail when containerd is frozen")
+	s.Contains(err.Error(), "deadline exceeded",
+		"Expected 'context deadline exceeded', got: %v", err)
+	s.Less(elapsed.Seconds(), 3.0,
+		"Task should timeout in ~1s (requestTimeout), but took %v", elapsed)
+
+	s.NoError(s.containerdProcess.Process.Signal(syscall.SIGCONT))
+
+	_, err = contViaNew.Task(context.Background(), nil)
+	s.Error(err)
+	s.NotContains(err.Error(), "deadline exceeded",
+		"After unfreeze, Task should not timeout")
+}
