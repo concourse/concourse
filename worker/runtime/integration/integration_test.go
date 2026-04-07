@@ -25,6 +25,7 @@ import (
 	"github.com/concourse/concourse/worker/workercmd"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/jackpal/gateway"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
