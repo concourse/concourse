@@ -44,15 +44,6 @@ func (s *sessionTeam) AuthorizeTeam(sessionID, team string) {
 	s.sessionTeams[sessionID] = team
 }
 
-func (s *sessionTeam) IsNotAuthorized(sessionID, team string) bool {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	t, found := s.sessionTeams[sessionID]
-
-	return found && t != team
-}
-
 func (s *sessionTeam) AuthorizedTeamFor(sessionID string) string {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
