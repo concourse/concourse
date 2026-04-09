@@ -122,14 +122,11 @@ func (bt *Tracker) trackInMemoryBuilds(logger lager.Logger) {
 	logger.Info("start")
 	defer logger.Info("end")
 
-	for {
-		select {
-		case b := <-bt.checkBuildsChan:
-			if b == nil {
-				return
-			}
-			logger.Debug("received-in-memory-build", b.LagerData())
-			bt.trackBuild(logger, b)
+	for b := range bt.checkBuildsChan {
+		if b == nil {
+			return
 		}
+		logger.Debug("received-in-memory-build", b.LagerData())
+		bt.trackBuild(logger, b)
 	}
 }
