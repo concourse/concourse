@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -374,12 +375,12 @@ func (server *server) forwardTCPIP(
 	done := make(chan struct{})
 	defer close(done)
 
-	interrupted := false
+	interrupted := atomic.Bool{}
 	go func() {
 		select {
 		case <-drain:
 			logger.Debug("draining")
-			interrupted = true
+			interrupted.Store(true)
 			listener.Close()
 		case <-done:
 			logger.Debug("done")
@@ -389,7 +390,7 @@ func (server *server) forwardTCPIP(
 	for {
 		localConn, err := listener.Accept()
 		if err != nil {
-			if !interrupted {
+			if !interrupted.Load() {
 				logger.Error("failed-to-accept", err)
 			}
 
