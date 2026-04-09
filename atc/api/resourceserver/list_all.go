@@ -30,8 +30,7 @@ func (s *Server) ListAllResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resources := []atc.Resource{}
-
+	resources := make([]atc.Resource, 0, len(dbResources))
 	for _, resource := range dbResources {
 		resources = append(
 			resources,

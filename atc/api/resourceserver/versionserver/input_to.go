@@ -38,7 +38,7 @@ func (s *Server) ListBuildsWithVersionAsInput(pipeline db.Pipeline) http.Handler
 			return
 		}
 
-		presentedBuilds := []atc.Build{}
+		presentedBuilds := make([]atc.Build, 0, len(builds))
 		for _, build := range builds {
 			presentedBuilds = append(presentedBuilds, present.Build(build, nil, nil))
 		}
