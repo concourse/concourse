@@ -51,6 +51,13 @@ func (s *sessionTeam) AuthorizedTeamFor(sessionID string) string {
 	return s.sessionTeams[sessionID]
 }
 
+func (s *sessionTeam) RemoveSession(sessionID string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	delete(s.sessionTeams, sessionID)
+}
+
 type ConnState struct {
 	Team string
 
@@ -106,6 +113,7 @@ func (server *server) handshake(logger lager.Logger, netConn net.Conn) {
 	defer cancel()
 
 	sessionID := string(conn.SessionID())
+	defer server.sessionTeam.RemoveSession(sessionID)
 
 	forwardedTCPIPs := make(chan ForwardedTCPIP, maxForwards)
 	go server.handleForwardRequests(ctx, conn, reqs, forwardedTCPIPs)
