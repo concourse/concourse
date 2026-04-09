@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -44,20 +45,18 @@ func (s *sessionTeam) AuthorizeTeam(sessionID, team string) {
 	s.sessionTeams[sessionID] = team
 }
 
-func (s *sessionTeam) IsNotAuthorized(sessionID, team string) bool {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	t, found := s.sessionTeams[sessionID]
-
-	return found && t != team
-}
-
 func (s *sessionTeam) AuthorizedTeamFor(sessionID string) string {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	return s.sessionTeams[sessionID]
+}
+
+func (s *sessionTeam) RemoveSession(sessionID string) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	delete(s.sessionTeams, sessionID)
 }
 
 type ConnState struct {
@@ -115,6 +114,7 @@ func (server *server) handshake(logger lager.Logger, netConn net.Conn) {
 	defer cancel()
 
 	sessionID := string(conn.SessionID())
+	defer server.sessionTeam.RemoveSession(sessionID)
 
 	forwardedTCPIPs := make(chan ForwardedTCPIP, maxForwards)
 	go server.handleForwardRequests(ctx, conn, reqs, forwardedTCPIPs)
@@ -375,12 +375,12 @@ func (server *server) forwardTCPIP(
 	done := make(chan struct{})
 	defer close(done)
 
-	interrupted := false
+	interrupted := atomic.Bool{}
 	go func() {
 		select {
 		case <-drain:
 			logger.Debug("draining")
-			interrupted = true
+			interrupted.Store(true)
 			listener.Close()
 		case <-done:
 			logger.Debug("done")
@@ -390,7 +390,7 @@ func (server *server) forwardTCPIP(
 	for {
 		localConn, err := listener.Accept()
 		if err != nil {
-			if !interrupted {
+			if !interrupted.Load() {
 				logger.Error("failed-to-accept", err)
 			}
 

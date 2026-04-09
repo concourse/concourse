@@ -13,6 +13,7 @@ import (
 func KeepAlive(ctx context.Context, sshClient *ssh.Client, tcpConn *net.TCPConn, interval time.Duration, timeout time.Duration) {
 	logger := lagerctx.WithSession(ctx, "keepalive")
 	keepAliveTicker := time.NewTicker(interval)
+	defer keepAliveTicker.Stop()
 
 	for {
 
