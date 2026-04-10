@@ -249,6 +249,46 @@ var _ = Describe("BuildStarter", func() {
 				})
 			})
 
+			Context("when the pipeline is archived", func() {
+				BeforeEach(func() {
+					job.PipelineIsArchivedReturns(true)
+				})
+
+				JustBeforeEach(func() {
+					needsReschedule, tryStartErr = buildStarter.TryStartPendingBuildsForJob(
+						testLogger,
+						db.SchedulerJob{
+							Job:           job,
+							Resources:     resources,
+							ResourceTypes: resourceTypes,
+							Prototypes:    prototypes,
+						},
+						jobInputs,
+					)
+				})
+
+				It("aborts the pending build", func() {
+					Expect(createdBuild.FinishCallCount()).To(Equal(1))
+					Expect(createdBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+				})
+
+				It("returns without error", func() {
+					Expect(tryStartErr).NotTo(HaveOccurred())
+					Expect(needsReschedule).To(BeFalse())
+				})
+
+				Context("when finishing the build fails", func() {
+					BeforeEach(func() {
+						createdBuild.FinishReturns(disaster)
+					})
+
+					It("returns an error", func() {
+						Expect(tryStartErr).To(Equal(fmt.Errorf("finish aborted build: %w", disaster)))
+						Expect(needsReschedule).To(BeFalse())
+					})
+				})
+			})
+
 			Context("when manually triggered", func() {
 				BeforeEach(func() {
 					createdBuild.IsManuallyTriggeredReturns(true)

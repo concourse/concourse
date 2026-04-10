@@ -83,6 +83,7 @@ type Job interface {
 	PausedAt() time.Time
 	// Returns true if the pipeline the job belongs to is paused
 	PipelineIsPaused() bool
+	PipelineIsArchived() bool
 	Pause(pausedBy string) error
 	Unpause() error
 
@@ -136,7 +137,8 @@ var jobsQuery = psql.Select(
 	"j.disable_reruns",
 	"j.paused_by",
 	"j.paused_at",
-	"p.paused").
+	"p.paused",
+	"p.archived").
 	From("jobs j").
 	LeftJoin("pipelines p ON j.pipeline_id = p.id").
 	LeftJoin("teams t ON p.team_id = t.id")
@@ -162,6 +164,7 @@ type job struct {
 	pausedBy              string
 	pausedAt              time.Time
 	pipelinePaused        bool
+	pipelineArchived      bool
 	public                bool
 	firstLoggedBuildID    int
 	teamID                int
@@ -227,6 +230,7 @@ func (j *job) Paused() bool                     { return j.paused }
 func (j *job) PausedAt() time.Time              { return j.pausedAt }
 func (j *job) PausedBy() string                 { return j.pausedBy }
 func (j *job) PipelineIsPaused() bool           { return j.pipelinePaused }
+func (j *job) PipelineIsArchived() bool         { return j.pipelineArchived }
 func (j *job) Public() bool                     { return j.public }
 func (j *job) FirstLoggedBuildID() int          { return j.firstLoggedBuildID }
 func (j *job) TeamID() int                      { return j.teamID }
@@ -1399,7 +1403,7 @@ func scanJob(j *job, row scannable) error {
 	)
 
 	m := pgtype.NewMap()
-	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, m.SQLScanner(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &j.disableReruns, &pausedBy, &pausedAt, &j.pipelinePaused)
+	err := row.Scan(&j.id, &j.name, &config, &j.paused, &j.public, &j.firstLoggedBuildID, &j.pipelineID, &j.pipelineName, &pipelineInstanceVars, &j.teamID, &j.teamName, &nonce, m.SQLScanner(&j.tags), &j.hasNewInputs, &j.scheduleRequestedTime, &j.maxInFlight, &j.disableManualTrigger, &j.disableReruns, &pausedBy, &pausedAt, &j.pipelinePaused, &j.pipelineArchived)
 	if err != nil {
 		return err
 	}

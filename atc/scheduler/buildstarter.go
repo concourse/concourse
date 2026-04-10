@@ -238,7 +238,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 		"build-name": nextPendingBuild.Name(),
 	})
 
-	if nextPendingBuild.IsAborted() {
+	if nextPendingBuild.IsAborted() || job.PipelineIsArchived() {
 		logger.Debug("cancel-aborted-pending-build")
 
 		err := nextPendingBuild.Finish(db.BuildStatusAborted)
