@@ -21,6 +21,8 @@ type Algorithm interface {
 	) (db.InputMapping, bool, bool, error)
 }
 
+var _ BuildScheduler = (*Scheduler)(nil)
+
 type Scheduler struct {
 	Algorithm    Algorithm
 	BuildStarter BuildStarter
@@ -31,6 +33,12 @@ func (s *Scheduler) Schedule(
 	logger lager.Logger,
 	job db.SchedulerJob,
 ) (bool, error) {
+	if job.Paused() || job.PipelineIsPaused() {
+		// Skip making more db calls and check for any pending builds that users
+		// may be trying to abort
+		return s.BuildStarter.TryStartPendingBuildsForJob(logger, job, nil)
+	}
+
 	jobInputs, err := job.AlgorithmInputs()
 	if err != nil {
 		return false, fmt.Errorf("inputs: %w", err)
