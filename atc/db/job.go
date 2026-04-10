@@ -293,6 +293,7 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var inputs InputConfigs
 	m := pgtype.NewMap()
@@ -366,6 +367,7 @@ func (j *job) Inputs() ([]atc.JobInput, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var inputs []atc.JobInput
 	m := pgtype.NewMap()
@@ -421,6 +423,7 @@ func (j *job) Outputs() ([]atc.JobOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var outputs []atc.JobOutput
 	for rows.Next() {
@@ -1044,6 +1047,7 @@ func (j *job) getSerialGroups(tx Tx) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var serialGroups []string
 	for rows.Next() {

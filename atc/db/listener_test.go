@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,17 +19,19 @@ var _ = Describe("PgxListener", func() {
 		err          error
 		notifierConn db.DbConn
 		listener     *db.PgxListener
+		logger       lager.Logger
 
 		testPayload = "hello"
 	)
 
 	BeforeEach(func(ctx context.Context) {
+		logger = lagertest.NewTestLogger("")
 		notifierConn = postgresRunner.OpenConn()
 
 		pool, err := pgxpool.New(ctx, postgresRunner.DataSourceName())
 		Expect(err).ToNot(HaveOccurred())
 
-		listener = db.NewPgxListener(pool)
+		listener = db.NewPgxListener(pool, logger)
 		Expect(listener).ToNot(BeNil())
 	})
 

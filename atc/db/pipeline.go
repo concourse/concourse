@@ -1291,6 +1291,7 @@ func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
 	if err != nil {
 		return err
 	}
+	defer rows.Close()
 
 	var jobIDs []int
 	for rows.Next() {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/cenkalti/backoff/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,6 +21,8 @@ type PgxListener struct {
 	channels   map[string]struct{}
 	cancelFunc context.CancelFunc
 	comms      chan struct{}
+
+	logger lager.Logger
 }
 
 var (
@@ -29,7 +32,7 @@ var (
 	start         struct{}
 )
 
-func NewPgxListener(pool *pgxpool.Pool) *PgxListener {
+func NewPgxListener(pool *pgxpool.Pool, log lager.Logger) *PgxListener {
 	conn, err := pool.Acquire(context.Background())
 	if err != nil {
 		panic(err)
@@ -41,6 +44,7 @@ func NewPgxListener(pool *pgxpool.Pool) *PgxListener {
 		notify:   make(chan *pgconn.Notification, 32),
 		comms:    make(chan struct{}),
 		channels: make(map[string]struct{}),
+		logger:   log.Session("db-listener"),
 	}
 
 	go l.ListenerMain()
@@ -121,12 +125,15 @@ func (l *PgxListener) listenerLoop() {
 				// Will retry to a max of 15mins
 				_, err = backoff.Retry(ctx, l.reconnect, backoff.WithBackOff(backoff.NewExponentialBackOff()))
 				if err != nil {
-					panic(fmt.Errorf("unable to reconnect to the database: %w", err))
+					l.logger.Error("reconnect-to-db", fmt.Errorf("unable to reconnect to the database: %w", err))
 				}
 
 				//listen to all channels again
 				for channel, _ := range l.channels {
-					l.conn.Exec(ctx, fmt.Sprintf("LISTEN %s", channel))
+					_, err := l.conn.Exec(ctx, fmt.Sprintf("LISTEN %s", channel))
+					if err != nil {
+						l.logger.Error("error-listening-to-channel", err, lager.Data{"channel": channel})
+					}
 				}
 			}
 			cancel()
