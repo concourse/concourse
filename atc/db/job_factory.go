@@ -100,70 +100,36 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 		return nil, err
 	}
 
-	es := j.conn.EncryptionStrategy()
-
-	var schedulerJobs SchedulerJobs
-	pipelineResourceTypes := make(map[int]ResourceTypes)
-	pipelinePrototypes := make(map[int]Prototypes)
+	// Separate paused from non-paused jobs; only non-paused jobs need
+	// resource, resource type, and prototype lookups.
+	schedulerJobs := make(SchedulerJobs, 0, len(jobs))
+	var nonPausedJobs []Job
+	var nonPausedJobIDs []int
 	for _, job := range jobs {
 		if job.Paused() || job.PipelineIsPaused() {
 			schedulerJobs = append(schedulerJobs, SchedulerJob{Job: job})
-			continue
+		} else {
+			nonPausedJobs = append(nonPausedJobs, job)
+			nonPausedJobIDs = append(nonPausedJobIDs, job.ID())
 		}
+	}
 
-		resourceRows, err := tx.Query(`WITH inputs AS (
-                SELECT ji.resource_id from job_inputs ji where ji.job_id = $1
-                UNION
-                SELECT jo.resource_id from job_outputs jo where jo.job_id = $1
-            )
-            SELECT r.name, r.type, r.config, r.nonce
-            From resources r
-            Join inputs i on i.resource_id = r.id`, job.ID())
+	if len(nonPausedJobs) == 0 {
+		err = tx.Commit()
 		if err != nil {
 			return nil, err
 		}
-		defer Close(resourceRows)
+		return schedulerJobs, nil
+	}
 
-		var schedulerResources SchedulerResources
-		for resourceRows.Next() {
-			var name, type_ string
-			var configBlob []byte
-			var nonce sql.NullString
+	jobResources, err := j.fetchJobResources(tx, nonPausedJobIDs)
+	if err != nil {
+		return nil, err
+	}
 
-			err = resourceRows.Scan(&name, &type_, &configBlob, &nonce)
-			if err != nil {
-				return nil, err
-			}
-
-			var noncense *string
-			if nonce.Valid {
-				noncense = &nonce.String
-			}
-
-			decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
-			if err != nil {
-				return nil, err
-			}
-
-			var config atc.ResourceConfig
-			err = json.Unmarshal(decryptedConfig, &config)
-			if err != nil {
-				return nil, err
-			}
-
-			schedulerResources = append(schedulerResources, SchedulerResource{
-				Name:                 name,
-				Type:                 type_,
-				Source:               config.Source,
-				ExposeBuildCreatedBy: config.ExposeBuildCreatedBy,
-			})
-		}
-		if err = resourceRows.Err(); err != nil {
-			resourceRows.Close()
-			return nil, err
-		}
-		resourceRows.Close()
-
+	pipelineResourceTypes := make(map[int]ResourceTypes)
+	pipelinePrototypes := make(map[int]Prototypes)
+	for _, job := range nonPausedJobs {
 		resourceTypes, found := pipelineResourceTypes[job.PipelineID()]
 		if !found {
 			resourceTypeRows, err := resourceTypesQuery.
@@ -174,12 +140,12 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			if err != nil {
 				return nil, err
 			}
-			defer Close(resourceTypeRows)
 
 			for resourceTypeRows.Next() {
 				resourceType := newEmptyResourceType(j.conn, j.lockFactory)
 				err := scanResourceType(resourceType, resourceTypeRows)
 				if err != nil {
+					resourceTypeRows.Close()
 					return nil, err
 				}
 
@@ -204,12 +170,12 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 			if err != nil {
 				return nil, err
 			}
-			defer Close(prototypeRows)
 
 			for prototypeRows.Next() {
 				prototype := newEmptyPrototype(j.conn, j.lockFactory)
 				err := scanPrototype(prototype, prototypeRows)
 				if err != nil {
+					prototypeRows.Close()
 					return nil, err
 				}
 
@@ -226,7 +192,7 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 
 		schedulerJobs = append(schedulerJobs, SchedulerJob{
 			Job:           job,
-			Resources:     schedulerResources,
+			Resources:     jobResources[job.ID()],
 			ResourceTypes: resourceTypes.Deserialize(),
 			Prototypes:    prototypes.Configs(),
 		})
@@ -238,6 +204,65 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	}
 
 	return schedulerJobs, nil
+}
+
+func (j *jobFactory) fetchJobResources(tx Tx, jobIDs []int) (map[int]SchedulerResources, error) {
+	rows, err := tx.Query(`
+		SELECT sub.job_id, r.name, r.type, r.config, r.nonce
+		FROM (
+			SELECT ji.job_id, ji.resource_id FROM job_inputs ji WHERE ji.job_id = ANY($1)
+			UNION
+			SELECT jo.job_id, jo.resource_id FROM job_outputs jo WHERE jo.job_id = ANY($1)
+		) sub
+		JOIN resources r ON r.id = sub.resource_id`, jobIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	es := j.conn.EncryptionStrategy()
+	result := make(map[int]SchedulerResources)
+
+	for rows.Next() {
+		var jobID int
+		var name, rsType string
+		var configBlob []byte
+		var nonce sql.NullString
+
+		err = rows.Scan(&jobID, &name, &rsType, &configBlob, &nonce)
+		if err != nil {
+			return nil, err
+		}
+
+		var noncense *string
+		if nonce.Valid {
+			noncense = &nonce.String
+		}
+
+		decryptedConfig, err := es.Decrypt(string(configBlob), noncense)
+		if err != nil {
+			return nil, err
+		}
+
+		var config atc.ResourceConfig
+		err = json.Unmarshal(decryptedConfig, &config)
+		if err != nil {
+			return nil, err
+		}
+
+		result[jobID] = append(result[jobID], SchedulerResource{
+			Name:                 name,
+			Type:                 rsType,
+			Source:               config.Source,
+			ExposeBuildCreatedBy: config.ExposeBuildCreatedBy,
+		})
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (j *jobFactory) VisibleJobs(teamNames []string) ([]atc.JobSummary, error) {
