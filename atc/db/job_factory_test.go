@@ -505,6 +505,15 @@ var _ = Describe("JobFactory", func() {
 					Jobs: atc.JobConfigs{
 						{Name: "job-name"},
 					},
+					Resources: atc.ResourceConfigs{
+						{Name: "resource-name", Type: "type-name"},
+					},
+					ResourceTypes: atc.ResourceTypes{
+						{Name: "type-name"},
+					},
+					Prototypes: atc.Prototypes{
+						{Name: "prototype-name"},
+					},
 				}, db.ConfigVersion(1), false)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -520,10 +529,65 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("does not fetch that job", func() {
+			It("does fetch that job", func() {
 				jobs, err := jobFactory.JobsToSchedule()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(jobs)).To(Equal(0))
+				Expect(jobs).To(HaveLen(1))
+			})
+
+			It("does not fetch the resources or prototypes for the job", func() {
+				jobs, err := jobFactory.JobsToSchedule()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(jobs).To(HaveLen(1))
+				Expect(jobs[0].Resources).To(HaveLen(0))
+				Expect(jobs[0].ResourceTypes).To(HaveLen(0))
+				Expect(jobs[0].Prototypes).To(HaveLen(0))
+			})
+		})
+
+		Context("when the pipeline is paused but it's job has a later schedule requested time", func() {
+			BeforeEach(func() {
+				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
+					Jobs: atc.JobConfigs{
+						{Name: "job-name"},
+					},
+					Resources: atc.ResourceConfigs{
+						{Name: "resource-name", Type: "type-name"},
+					},
+					ResourceTypes: atc.ResourceTypes{
+						{Name: "type-name"},
+					},
+					Prototypes: atc.Prototypes{
+						{Name: "prototype-name"},
+					},
+				}, db.ConfigVersion(1), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				var found bool
+				job1, found, err = pipeline1.Job("job-name")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				err = job1.RequestSchedule()
+				Expect(err).ToNot(HaveOccurred())
+
+				err = pipeline1.Pause("")
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("does fetch that job", func() {
+				jobs, err := jobFactory.JobsToSchedule()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(jobs)).To(Equal(1))
+			})
+
+			It("does not fetch the resources or prototypes for the job", func() {
+				jobs, err := jobFactory.JobsToSchedule()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(jobs).To(HaveLen(1))
+				Expect(jobs[0].Resources).To(HaveLen(0))
+				Expect(jobs[0].ResourceTypes).To(HaveLen(0))
+				Expect(jobs[0].Prototypes).To(HaveLen(0))
 			})
 		})
 
@@ -545,34 +609,6 @@ var _ = Describe("JobFactory", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				_, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{}, pipeline1.ConfigVersion(), false)
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("does not fetch that job", func() {
-				jobs, err := jobFactory.JobsToSchedule()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(jobs)).To(Equal(0))
-			})
-		})
-
-		Context("when the pipeline is paused but it's job has a later schedule requested time", func() {
-			BeforeEach(func() {
-				pipeline1, _, err := defaultTeam.SavePipeline(atc.PipelineRef{Name: "fake-pipeline"}, atc.Config{
-					Jobs: atc.JobConfigs{
-						{Name: "job-name"},
-					},
-				}, db.ConfigVersion(1), false)
-				Expect(err).ToNot(HaveOccurred())
-
-				var found bool
-				job1, found, err = pipeline1.Job("job-name")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
-
-				err = job1.RequestSchedule()
-				Expect(err).ToNot(HaveOccurred())
-
-				err = pipeline1.Pause("")
 				Expect(err).ToNot(HaveOccurred())
 			})
 

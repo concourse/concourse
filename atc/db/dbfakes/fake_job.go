@@ -383,6 +383,26 @@ type FakeJob struct {
 	pipelineInstanceVarsReturnsOnCall map[int]struct {
 		result1 atc.InstanceVars
 	}
+	PipelineIsArchivedStub        func() bool
+	pipelineIsArchivedMutex       sync.RWMutex
+	pipelineIsArchivedArgsForCall []struct {
+	}
+	pipelineIsArchivedReturns struct {
+		result1 bool
+	}
+	pipelineIsArchivedReturnsOnCall map[int]struct {
+		result1 bool
+	}
+	PipelineIsPausedStub        func() bool
+	pipelineIsPausedMutex       sync.RWMutex
+	pipelineIsPausedArgsForCall []struct {
+	}
+	pipelineIsPausedReturns struct {
+		result1 bool
+	}
+	pipelineIsPausedReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	PipelineNameStub        func() string
 	pipelineNameMutex       sync.RWMutex
 	pipelineNameArgsForCall []struct {
@@ -2349,6 +2369,112 @@ func (fake *FakeJob) PipelineInstanceVarsReturnsOnCall(i int, result1 atc.Instan
 	}
 	fake.pipelineInstanceVarsReturnsOnCall[i] = struct {
 		result1 atc.InstanceVars
+	}{result1}
+}
+
+func (fake *FakeJob) PipelineIsArchived() bool {
+	fake.pipelineIsArchivedMutex.Lock()
+	ret, specificReturn := fake.pipelineIsArchivedReturnsOnCall[len(fake.pipelineIsArchivedArgsForCall)]
+	fake.pipelineIsArchivedArgsForCall = append(fake.pipelineIsArchivedArgsForCall, struct {
+	}{})
+	stub := fake.PipelineIsArchivedStub
+	fakeReturns := fake.pipelineIsArchivedReturns
+	fake.recordInvocation("PipelineIsArchived", []interface{}{})
+	fake.pipelineIsArchivedMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) PipelineIsArchivedCallCount() int {
+	fake.pipelineIsArchivedMutex.RLock()
+	defer fake.pipelineIsArchivedMutex.RUnlock()
+	return len(fake.pipelineIsArchivedArgsForCall)
+}
+
+func (fake *FakeJob) PipelineIsArchivedCalls(stub func() bool) {
+	fake.pipelineIsArchivedMutex.Lock()
+	defer fake.pipelineIsArchivedMutex.Unlock()
+	fake.PipelineIsArchivedStub = stub
+}
+
+func (fake *FakeJob) PipelineIsArchivedReturns(result1 bool) {
+	fake.pipelineIsArchivedMutex.Lock()
+	defer fake.pipelineIsArchivedMutex.Unlock()
+	fake.PipelineIsArchivedStub = nil
+	fake.pipelineIsArchivedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) PipelineIsArchivedReturnsOnCall(i int, result1 bool) {
+	fake.pipelineIsArchivedMutex.Lock()
+	defer fake.pipelineIsArchivedMutex.Unlock()
+	fake.PipelineIsArchivedStub = nil
+	if fake.pipelineIsArchivedReturnsOnCall == nil {
+		fake.pipelineIsArchivedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.pipelineIsArchivedReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) PipelineIsPaused() bool {
+	fake.pipelineIsPausedMutex.Lock()
+	ret, specificReturn := fake.pipelineIsPausedReturnsOnCall[len(fake.pipelineIsPausedArgsForCall)]
+	fake.pipelineIsPausedArgsForCall = append(fake.pipelineIsPausedArgsForCall, struct {
+	}{})
+	stub := fake.PipelineIsPausedStub
+	fakeReturns := fake.pipelineIsPausedReturns
+	fake.recordInvocation("PipelineIsPaused", []interface{}{})
+	fake.pipelineIsPausedMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeJob) PipelineIsPausedCallCount() int {
+	fake.pipelineIsPausedMutex.RLock()
+	defer fake.pipelineIsPausedMutex.RUnlock()
+	return len(fake.pipelineIsPausedArgsForCall)
+}
+
+func (fake *FakeJob) PipelineIsPausedCalls(stub func() bool) {
+	fake.pipelineIsPausedMutex.Lock()
+	defer fake.pipelineIsPausedMutex.Unlock()
+	fake.PipelineIsPausedStub = stub
+}
+
+func (fake *FakeJob) PipelineIsPausedReturns(result1 bool) {
+	fake.pipelineIsPausedMutex.Lock()
+	defer fake.pipelineIsPausedMutex.Unlock()
+	fake.PipelineIsPausedStub = nil
+	fake.pipelineIsPausedReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeJob) PipelineIsPausedReturnsOnCall(i int, result1 bool) {
+	fake.pipelineIsPausedMutex.Lock()
+	defer fake.pipelineIsPausedMutex.Unlock()
+	fake.PipelineIsPausedStub = nil
+	if fake.pipelineIsPausedReturnsOnCall == nil {
+		fake.pipelineIsPausedReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.pipelineIsPausedReturnsOnCall[i] = struct {
+		result1 bool
 	}{result1}
 }
 

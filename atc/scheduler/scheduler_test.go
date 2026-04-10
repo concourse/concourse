@@ -477,5 +477,41 @@ var _ = Describe("Scheduler", func() {
 				Expect(scheduleErr).To(Equal(fmt.Errorf("inputs: %w", disaster)))
 			})
 		})
+
+		Context("when the pipeline is paused", func() {
+			BeforeEach(func() {
+				fakeJob.PipelineIsPausedReturns(true)
+			})
+
+			It("does not schedule the job", func() {
+				Expect(scheduleErr).To(BeNil())
+
+				Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
+				_, _, inputConfigs := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+				Expect(inputConfigs).To(BeNil())
+
+				Expect(fakeJob.AlgorithmInputsCallCount()).To(Equal(0))
+				Expect(fakeJob.RequestScheduleCallCount()).To(Equal(0))
+				Expect(fakeJob.SaveNextInputMappingCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when the job is paused", func() {
+			BeforeEach(func() {
+				fakeJob.PausedReturns(true)
+			})
+
+			It("does not schedule the job", func() {
+				Expect(scheduleErr).To(BeNil())
+
+				Expect(fakeBuildStarter.TryStartPendingBuildsForJobCallCount()).To(Equal(1))
+				_, _, inputConfigs := fakeBuildStarter.TryStartPendingBuildsForJobArgsForCall(0)
+				Expect(inputConfigs).To(BeNil())
+
+				Expect(fakeJob.AlgorithmInputsCallCount()).To(Equal(0))
+				Expect(fakeJob.RequestScheduleCallCount()).To(Equal(0))
+				Expect(fakeJob.SaveNextInputMappingCallCount()).To(Equal(0))
+			})
+		})
 	})
 })

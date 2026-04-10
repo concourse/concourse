@@ -87,15 +87,13 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 		Where(sq.Expr("j.schedule_requested > j.last_scheduled")).
 		Where(sq.Eq{
 			"j.active": true,
-			"j.paused": false,
-			"p.paused": false,
 		}).
 		RunWith(tx).
 		Query()
 	if err != nil {
 		return nil, err
 	}
-	defer Close(rows) // Properly defer closing the main job rows
+	defer Close(rows)
 
 	jobs, err := scanJobs(j.conn, j.lockFactory, rows)
 	if err != nil {
@@ -108,6 +106,11 @@ func (j *jobFactory) JobsToSchedule() (SchedulerJobs, error) {
 	pipelineResourceTypes := make(map[int]ResourceTypes)
 	pipelinePrototypes := make(map[int]Prototypes)
 	for _, job := range jobs {
+		if job.Paused() || job.PipelineIsPaused() {
+			schedulerJobs = append(schedulerJobs, SchedulerJob{Job: job})
+			continue
+		}
+
 		resourceRows, err := tx.Query(`WITH inputs AS (
                 SELECT ji.resource_id from job_inputs ji where ji.job_id = $1
                 UNION

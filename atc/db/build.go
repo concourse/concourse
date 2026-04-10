@@ -120,7 +120,9 @@ var latestCompletedBuildQuery = psql.Select("max(id)").
 type Build interface {
 	PipelineRef
 
+	// The globally unique ID of the build
 	ID() int
+	// The job-scoped build number
 	Name() string
 
 	RunStateID() string

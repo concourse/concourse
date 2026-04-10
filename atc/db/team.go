@@ -1546,7 +1546,7 @@ func saveResources(tx Tx, resources atc.ResourceConfigs, pipelineID int) (map[st
 
 	existingResources, err := existingResources(tx, pipelineID)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	for _, resource := range resources {

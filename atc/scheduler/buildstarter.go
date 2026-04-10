@@ -232,11 +232,13 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	job db.SchedulerJob,
 ) (startResults, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
+		"pipeline":   job.PipelineName(),
+		"job":        job.Name(),
 		"build-id":   nextPendingBuild.ID(),
 		"build-name": nextPendingBuild.Name(),
 	})
 
-	if nextPendingBuild.IsAborted() {
+	if nextPendingBuild.IsAborted() || job.PipelineIsArchived() {
 		logger.Debug("cancel-aborted-pending-build")
 
 		err := nextPendingBuild.Finish(db.BuildStatusAborted)
