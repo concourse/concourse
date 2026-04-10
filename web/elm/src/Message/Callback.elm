@@ -64,3 +64,5 @@ type Callback
     | AllPipelinesFetched (Fetched (List Concourse.Pipeline))
     | GotViewport DomID (Result Browser.Dom.Error Browser.Dom.Viewport)
     | GotElement (Result Browser.Dom.Error Browser.Dom.Element)
+    | WallSet (Fetched ())
+    | WallCleared (Fetched ())
