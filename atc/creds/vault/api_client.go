@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -31,11 +32,24 @@ type APIClient struct {
 
 	clientValue *atomic.Value
 
+	// kvMountCache caches the KV engine version per Vault mount path.
+	// The mount path (e.g. "concourse/") is determined by the first
+	// preflight request to /v1/sys/internal/ui/mounts/ and all
+	// subsequent reads under that mount reuse the cached result.
+	// Only used if enableKVMountCache is true.
+	// Key: mount path (string), Value: kvMountInfo.
+	kvMountCache sync.Map
+
+	// enableKVMountCache controls whether KV mount version detection results are cached.
+	// When false, every Read() call performs a preflight request.
+	// When true, mount versions are cached by mount path for the lifetime of the APIClient.
+	enabledKVMountCache bool
+
 	renewable bool
 }
 
 // NewAPIClient with the associated authorization config and underlying vault client.
-func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration) (*APIClient, error) {
+func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration, enableKVMountCache bool) (*APIClient, error) {
 	ac := &APIClient{
 		logger: logger,
 
@@ -47,6 +61,8 @@ func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig,
 		queryTimeout: queryTimeout,
 
 		clientValue: &atomic.Value{},
+
+		enabledKVMountCache: enableKVMountCache,
 
 		renewable: true,
 	}
@@ -64,9 +80,8 @@ func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig,
 // Read must be called after a successful login has occurred or an
 // un-authorized client will be used.
 func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
-	// Check if path is kv1 or kv2
 	path = sanitizePath(path)
-	mountPath, kv2, err := isKVv2(path, ac.client())
+	mountPath, kv2, err := ac.cachedIsKVv2(path)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +108,95 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 	}
 
 	return secret, err
+}
+
+type kvMountInfo struct {
+	mountPath string
+	isV2      bool
+}
+
+// cachedIsKVv2 returns the mount path and whether the mount uses KV v2.
+//
+// On the first call for a given mount, it performs the preflight request
+// to /v1/sys/internal/ui/mounts/<path>. If caching is enabled, it caches the result
+// keyed by the mount path returned by Vault (e.g. "concourse/"). All subsequent
+// reads whose path starts with a known mount path skip the preflight entirely.
+//
+// This is safe because a mount's KV version is a configuration-time
+// property — it does not change at runtime without a Vault admin
+// explicitly remounting the engine (which requires a Concourse restart
+// anyway, clearing the in-memory cache).
+//
+// Caching can be disabled via the EnableKVMountCache configuration flag.
+// When disabled, every Read() call performs a preflight request.
+// Errors from the preflight request are never cached.
+func (ac *APIClient) cachedIsKVv2(secretPath string) (string, bool, error) {
+	fmt.Println("Check if cache is enabled")
+	fmt.Println("========> cache enabled: ", ac.enabledKVMountCache)
+	// If caching is disabled, skip the cache lookup entirely.
+	if !ac.enabledKVMountCache {
+		return isKVv2(secretPath, ac.client())
+	}
+
+	// Fast path: reuse a cached mount version if available.
+	if mountPath, isV2, found := ac.lookupCachedKVMount(secretPath); found {
+		return mountPath, isV2, nil
+	}
+
+	// Slow path: perform the preflight request.
+	mountPath, kv2, err := isKVv2(secretPath, ac.client())
+	if err != nil {
+		return "", false, err
+	}
+
+	return ac.storeCachedKVMount(mountPath, kv2)
+}
+
+func (ac *APIClient) lookupCachedKVMount(secretPath string) (string, bool, bool) {
+	fmt.Println("========> checking cache for secret path: ", secretPath)
+
+	var best kvMountInfo
+	found := false
+
+	ac.kvMountCache.Range(func(key, value any) bool {
+		info, ok := value.(kvMountInfo)
+		if !ok {
+			return true
+		}
+
+		fmt.Println("========> cache entry mount path: ", info.mountPath)
+		if !strings.HasPrefix(secretPath, info.mountPath) {
+			return true
+		}
+
+		// Prefer the most specific matching mount when multiple prefixes match.
+		if !found || len(info.mountPath) > len(best.mountPath) {
+			best = info
+			found = true
+		}
+
+		return true
+	})
+
+	if !found {
+		return "", false, false
+	}
+
+	return best.mountPath, best.isV2, true
+}
+
+func (ac *APIClient) storeCachedKVMount(mountPath string, isV2 bool) (string, bool, error) {
+	// Cache keyed by mount path so all secrets under the same mount
+	// benefit. LoadOrStore handles the benign race where two goroutines
+	// both miss the cache for the same mount simultaneously.
+	entry := kvMountInfo{mountPath: mountPath, isV2: isV2}
+	if actual, loaded := ac.kvMountCache.LoadOrStore(mountPath, entry); loaded {
+		if cached, ok := actual.(kvMountInfo); ok {
+			return cached.mountPath, cached.isV2, nil
+		}
+	}
+
+	return mountPath, isV2, nil
 }
 
 func (ac *APIClient) loginParams() map[string]any {

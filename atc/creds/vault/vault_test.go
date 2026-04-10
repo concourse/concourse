@@ -343,7 +343,7 @@ var _ = Describe("Vault KV2", func() {
 		server = ghttp.NewServer()
 
 		var err error
-		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0)
+		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0, false)
 		Expect(err).To(BeNil())
 
 		statusCodeOK = 200
@@ -616,7 +616,7 @@ var _ = Describe("Vault KV1", func() {
 		server = ghttp.NewServer()
 
 		var err error
-		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0)
+		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0, true)
 		Expect(err).To(BeNil())
 
 		statusCodeOK = 200
