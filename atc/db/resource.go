@@ -214,7 +214,7 @@ func (resources Resources) Lookup(name string) (Resource, bool) {
 }
 
 func (resources Resources) Configs() atc.ResourceConfigs {
-	var configs atc.ResourceConfigs
+	configs := make(atc.ResourceConfigs, 0, len(resources))
 	for _, r := range resources {
 		configs = append(configs, r.Config())
 	}

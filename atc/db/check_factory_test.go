@@ -318,7 +318,7 @@ var _ = Describe("CheckFactory", func() {
 
 			Context("when build is created in db", func() {
 				It("creates a check plan", func() {
-					var rts atc.ResourceTypes
+					rts := atc.ResourceTypes{}
 					Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
 					_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))
@@ -347,7 +347,7 @@ var _ = Describe("CheckFactory", func() {
 				})
 
 				It("creates a check plan", func() {
-					var rts atc.ResourceTypes
+					rts := atc.ResourceTypes{}
 					Expect(fakeResourceType.CheckPlanCallCount()).To(Equal(1))
 					_, types, version, interval, defaults, _, _ := fakeResourceType.CheckPlanArgsForCall(0)
 					Expect(version).To(Equal(atc.Version{"from": "version"}))

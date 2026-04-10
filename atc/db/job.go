@@ -209,10 +209,10 @@ func (j *job) SetHasNewInputs(hasNewInputs bool) error {
 
 type Jobs []Job
 
-func (jobs Jobs) Configs() (atc.JobConfigs, error) {
-	var configs atc.JobConfigs
+func (js Jobs) Configs() (atc.JobConfigs, error) {
+	configs := make(atc.JobConfigs, 0, len(js))
 
-	for _, j := range jobs {
+	for _, j := range js {
 		config, err := j.Config()
 		if err != nil {
 			return nil, err
