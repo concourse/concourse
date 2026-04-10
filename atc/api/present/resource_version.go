@@ -5,7 +5,7 @@ import (
 )
 
 func ResourceVersions(hideMetadata bool, resourceVersions []atc.ResourceVersion) []atc.ResourceVersion {
-	presented := []atc.ResourceVersion{}
+	presented := make([]atc.ResourceVersion, 0, len(resourceVersions))
 
 	for _, resourceVersion := range resourceVersions {
 		if hideMetadata {

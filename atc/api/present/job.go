@@ -32,8 +32,7 @@ func Job(
 		presented := Build(transitionBuild, job, access)
 		presentedTransitionBuild = &presented
 	}
-
-	sanitizedInputs := []atc.JobInput{}
+	sanitizedInputs := make([]atc.JobInput, 0, len(inputs))
 	for _, input := range inputs {
 		sanitizedInputs = append(sanitizedInputs, atc.JobInput{
 			Name:     input.Name,
@@ -43,7 +42,7 @@ func Job(
 		})
 	}
 
-	sanitizedOutputs := []atc.JobOutput{}
+	sanitizedOutputs := make([]atc.JobOutput, 0, len(outputs))
 	for _, output := range outputs {
 		sanitizedOutputs = append(sanitizedOutputs, atc.JobOutput{
 			Name:     output.Name,

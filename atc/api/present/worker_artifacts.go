@@ -6,7 +6,7 @@ import (
 )
 
 func WorkerArtifacts(artifacts []db.WorkerArtifact) []atc.WorkerArtifact {
-	wa := []atc.WorkerArtifact{}
+	wa := make([]atc.WorkerArtifact, 0, len(artifacts))
 	for _, a := range artifacts {
 		wa = append(wa, WorkerArtifact(a))
 	}

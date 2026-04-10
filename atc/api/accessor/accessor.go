@@ -99,13 +99,13 @@ func (a *access) rolesForTeam(auth atc.TeamAuth) []string {
 	if userName != "" {
 		userName = fmt.Sprintf("%v:%v", connectorID, userName)
 	}
-	var groups []string
+	groups := make([]string, 0, len(a.groups()))
 	for _, group := range a.groups() {
 		if group != "" {
 			groups = append(groups, fmt.Sprintf("%v:%v", connectorID, group))
 		}
 	}
-	var roles []string
+	roles := make([]string, 0, len(auth))
 	for role, roleAuth := range auth {
 		if roleOnTeam(userID, userName, groups, roleAuth) {
 			roles = append(roles, role)
@@ -163,7 +163,7 @@ func (a *access) IsAuthorized(teamName string) bool {
 }
 
 func (a *access) TeamNames() []string {
-	teamNames := []string{}
+	teamNames := make([]string, 0, len(a.teams))
 	for _, team := range a.teams {
 		if a.isAdmin || a.hasPermission(a.teamRoles[team.Name()]) {
 			teamNames = append(teamNames, team.Name())
@@ -243,9 +243,10 @@ func (a *access) connectorID() string {
 }
 
 func (a *access) groups() []string {
-	groups := []string{}
+	var groups []string
 	if raw, ok := a.claims()["groups"]; ok {
 		if rawGroups, ok := raw.([]any); ok {
+			groups = make([]string, 0, len(rawGroups))
 			for _, rawGroup := range rawGroups {
 				if group, ok := rawGroup.(string); ok {
 					groups = append(groups, group)

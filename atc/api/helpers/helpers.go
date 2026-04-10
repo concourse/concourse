@@ -17,16 +17,10 @@ func HandleBadRequest(w http.ResponseWriter, errorMessages ...string) {
 }
 
 func WriteSaveConfigResponse(w http.ResponseWriter, saveConfigResponse atc.SaveConfigResponse) {
-	responseJSON, err := json.Marshal(saveConfigResponse)
+	err := json.NewEncoder(w).Encode(saveConfigResponse)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "failed to generate error response: %s", err)
-		return
-	}
-
-	_, err = w.Write(responseJSON)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }

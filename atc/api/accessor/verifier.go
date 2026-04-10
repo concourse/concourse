@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/concourse/concourse/atc/db"
@@ -33,7 +32,6 @@ func NewVerifier(accessTokenFetcher AccessTokenFetcher, audience []string) *veri
 }
 
 type verifier struct {
-	sync.Mutex
 	accessTokenFetcher AccessTokenFetcher
 	audience           []string
 }
