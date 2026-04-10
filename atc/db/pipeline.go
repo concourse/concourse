@@ -1304,17 +1304,15 @@ func requestScheduleForJobsInPipeline(tx Tx, pipelineID int) error {
 		jobIDs = append(jobIDs, id)
 	}
 
-	for _, jID := range jobIDs {
-		_, err := psql.Update("jobs").
-			Set("schedule_requested", sq.Expr("now()")).
-			Where(sq.Eq{
-				"id": jID,
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return err
-		}
+	_, err = psql.Update("jobs").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": jobIDs,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil

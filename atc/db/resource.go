@@ -1143,17 +1143,15 @@ func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
 		jobs = append(jobs, jid)
 	}
 
-	for _, j := range jobs {
-		_, err := psql.Update("jobs").
-			Set("schedule_requested", sq.Expr("now()")).
-			Where(sq.Eq{
-				"id": j,
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return err
-		}
+	_, err = psql.Update("jobs").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": jobs,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil
