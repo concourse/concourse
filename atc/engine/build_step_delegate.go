@@ -307,7 +307,8 @@ func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte,
 		for j, v := range acrossVars {
 			localVars[v.Var] = values[j]
 		}
-		interpolatedBytes, err := template.Evaluate(vars.NamedVariables{".": localVars}, vars.EvaluateOpts{})
+		
+		interpolatedBytes, err := template.Evaluate(ignoreMissingSourceVars{vars.NamedVariables{".": localVars}}, vars.EvaluateOpts{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to interpolate template: %w", err)
 		}
@@ -440,4 +441,22 @@ func (it *credVarsIterator) YieldCred(name, value string) {
 			it.line = strings.ReplaceAll(it.line, lineValue, "((redacted))")
 		}
 	}
+}
+
+type ignoreMissingSourceVars struct {
+	vars vars.Variables
+}
+
+func (i ignoreMissingSourceVars) Get(ref vars.Reference) (any, bool, error) {
+	val, found, err := i.vars.Get(ref)
+	if err != nil {
+		if _, isMissingSource := err.(vars.MissingSourceError); isMissingSource {
+			return nil, false, nil
+		}
+	}
+	return val, found, err
+}
+
+func (i ignoreMissingSourceVars) List() ([]vars.Reference, error) {
+	return i.vars.List()
 }
