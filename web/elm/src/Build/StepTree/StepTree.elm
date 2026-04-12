@@ -366,6 +366,7 @@ constructStep { id, step } =
     , initialize = Nothing
     , start = Nothing
     , finish = Nothing
+    , exitStatus = Nothing
     , tabFocus = Auto
     , expandedHeaders = Dict.empty
     , initializationExpanded = False
@@ -868,6 +869,14 @@ viewStepWithBody model session depth step body =
                     Just _ ->
                         viewInitializationToggle step
 
+                    Nothing ->
+                        Html.text ""
+                , case step.exitStatus of
+                    Just status ->
+                        if status /= 0 then
+                            Html.span [ class "exit-status", style "display" "flex", style "align-items" "center", style "margin-right" "10px", style "color" Colors.error, style "font-weight" "bold" ] [ Html.text ("exit: " ++ String.fromInt status) ]
+                        else
+                            Html.text ""
                     Nothing ->
                         Html.text ""
                 , viewStepState step.state (Just step.id)

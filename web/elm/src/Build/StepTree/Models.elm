@@ -92,6 +92,7 @@ type alias Step =
     , initialize : Maybe Time.Posix
     , start : Maybe Time.Posix
     , finish : Maybe Time.Posix
+    , exitStatus : Maybe Int
     , tabFocus : TabFocus
     , expandedHeaders : Dict Int Bool
     , initializationExpanded : Bool
