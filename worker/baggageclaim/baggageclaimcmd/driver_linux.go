@@ -68,7 +68,13 @@ func (cmd *BaggageclaimCommand) driver(logger lager.Logger) (volume.Driver, erro
 	var d volume.Driver
 	switch cmd.Driver {
 	case "overlay":
+		err := os.MkdirAll(cmd.OverlaysDir, 0755)
+		if err != nil {
+			return nil, err
+		}
+
 		d = driver.NewOverlayDriver(logger, cmd.OverlaysDir)
+
 		if !kernelSupportsOverlay {
 			return nil, errors.New("overlay driver requires kernel version >= 4.0.0")
 		}
