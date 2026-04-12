@@ -66,7 +66,7 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 	}
 
 	return func(plan atc.Plan) exec.Step {
-		return factory.buildStep(build, plan)
+		return factory.buildStep(build, plan, string(build.Status()))
 	}, nil
 }
 
@@ -81,108 +81,109 @@ func (factory *stepperFactory) buildDelegateFactory(build db.Build, plan atc.Pla
 	}
 }
 
-func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	if plan.InParallel != nil {
-		return factory.buildParallelStep(build, plan)
+		return factory.buildParallelStep(build, plan, buildState)
 	}
 
 	if plan.Across != nil {
-		return factory.buildAcrossStep(build, plan)
+		return factory.buildAcrossStep(build, plan, buildState)
 	}
 
 	if plan.Do != nil {
-		return factory.buildDoStep(build, plan)
+		return factory.buildDoStep(build, plan, buildState)
 	}
 
 	if plan.Timeout != nil {
-		return factory.buildTimeoutStep(build, plan)
+		return factory.buildTimeoutStep(build, plan, buildState)
 	}
 
 	if plan.Try != nil {
-		return factory.buildTryStep(build, plan)
+		return factory.buildTryStep(build, plan, buildState)
 	}
 
 	if plan.OnAbort != nil {
-		return factory.buildOnAbortStep(build, plan)
+		return factory.buildOnAbortStep(build, plan, buildState)
 	}
 
 	if plan.OnError != nil {
-		return factory.buildOnErrorStep(build, plan)
+		return factory.buildOnErrorStep(build, plan, buildState)
 	}
 
 	if plan.OnSuccess != nil {
-		return factory.buildOnSuccessStep(build, plan)
+		return factory.buildOnSuccessStep(build, plan, buildState)
 	}
 
 	if plan.OnFailure != nil {
-		return factory.buildOnFailureStep(build, plan)
+		return factory.buildOnFailureStep(build, plan, buildState)
 	}
 
 	if plan.Ensure != nil {
-		return factory.buildEnsureStep(build, plan)
+		return factory.buildEnsureStep(build, plan, buildState)
 	}
 
 	if plan.Run != nil {
-		return factory.buildRunStep(build, plan)
+		return factory.buildRunStep(build, plan, buildState)
 	}
 
 	if plan.Task != nil {
-		return factory.buildTaskStep(build, plan)
+		return factory.buildTaskStep(build, plan, buildState)
 	}
 
 	if plan.SetPipeline != nil {
-		return factory.buildSetPipelineStep(build, plan)
+		return factory.buildSetPipelineStep(build, plan, buildState)
 	}
 
 	if plan.LoadVar != nil {
-		return factory.buildLoadVarStep(build, plan)
+		return factory.buildLoadVarStep(build, plan, buildState)
 	}
 
 	if plan.Check != nil {
-		return factory.buildCheckStep(build, plan)
+		return factory.buildCheckStep(build, plan, buildState)
 	}
 
 	if plan.Get != nil {
-		return factory.buildGetStep(build, plan)
+		return factory.buildGetStep(build, plan, buildState)
 	}
 
 	if plan.Put != nil {
-		return factory.buildPutStep(build, plan)
+		return factory.buildPutStep(build, plan, buildState)
 	}
 
 	if plan.Retry != nil {
-		return factory.buildRetryStep(build, plan)
+		return factory.buildRetryStep(build, plan, buildState)
 	}
 
 	if plan.ArtifactInput != nil {
-		return factory.buildArtifactInputStep(build, plan)
+		return factory.buildArtifactInputStep(build, plan, buildState)
 	}
 
 	if plan.ArtifactOutput != nil {
-		return factory.buildArtifactOutputStep(build, plan)
+		return factory.buildArtifactOutputStep(build, plan, buildState)
 	}
 
 	return exec.IdentityStep{}
 }
 
-func (factory *stepperFactory) buildParallelStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildParallelStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 
 	var steps []exec.Step
 
 	for _, innerPlan := range plan.InParallel.Steps {
 		innerPlan.Attempts = plan.Attempts
-		step := factory.buildStep(build, innerPlan)
+		step := factory.buildStep(build, innerPlan, buildState)
 		steps = append(steps, step)
 	}
 
 	return exec.InParallel(steps, plan.InParallel.Limit, plan.InParallel.FailFast)
 }
 
-func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
 		false,
+		buildState,
 	)
 
 	acrossStep := exec.Across(
@@ -194,87 +195,87 @@ func (factory *stepperFactory) buildAcrossStep(build db.Build, plan atc.Plan) ex
 	return exec.LogError(acrossStep, factory.buildDelegateFactory(build, plan))
 }
 
-func (factory *stepperFactory) buildDoStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildDoStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	var step exec.Step = exec.IdentityStep{}
 
 	for i := len(*plan.Do) - 1; i >= 0; i-- {
 		innerPlan := (*plan.Do)[i]
 		innerPlan.Attempts = plan.Attempts
-		previous := factory.buildStep(build, innerPlan)
+		previous := factory.buildStep(build, innerPlan, buildState)
 		step = exec.OnSuccess(previous, step)
 	}
 
 	return step
 }
 
-func (factory *stepperFactory) buildTimeoutStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildTimeoutStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	innerPlan := plan.Timeout.Step
 	innerPlan.Attempts = plan.Attempts
-	step := factory.buildStep(build, innerPlan)
+	step := factory.buildStep(build, innerPlan, buildState)
 	return exec.Timeout(step, plan.Timeout.Duration)
 }
 
-func (factory *stepperFactory) buildTryStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildTryStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	innerPlan := plan.Try.Step
 	innerPlan.Attempts = plan.Attempts
-	step := factory.buildStep(build, innerPlan)
+	step := factory.buildStep(build, innerPlan, buildState)
 	return exec.Try(step)
 }
 
-func (factory *stepperFactory) buildOnAbortStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildOnAbortStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	plan.OnAbort.Step.Attempts = plan.Attempts
-	step := factory.buildStep(build, plan.OnAbort.Step)
+	step := factory.buildStep(build, plan.OnAbort.Step, buildState)
 	plan.OnAbort.Next.Attempts = plan.Attempts
-	next := factory.buildStep(build, plan.OnAbort.Next)
+	next := factory.buildStep(build, plan.OnAbort.Next, string(db.BuildStatusAborted))
 	return exec.OnAbort(step, next)
 }
 
-func (factory *stepperFactory) buildOnErrorStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildOnErrorStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	plan.OnError.Step.Attempts = plan.Attempts
-	step := factory.buildStep(build, plan.OnError.Step)
+	step := factory.buildStep(build, plan.OnError.Step, buildState)
 	plan.OnError.Next.Attempts = plan.Attempts
-	next := factory.buildStep(build, plan.OnError.Next)
+	next := factory.buildStep(build, plan.OnError.Next, string(db.BuildStatusErrored))
 	return exec.OnError(step, next)
 }
 
-func (factory *stepperFactory) buildOnSuccessStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildOnSuccessStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	plan.OnSuccess.Step.Attempts = plan.Attempts
-	step := factory.buildStep(build, plan.OnSuccess.Step)
+	step := factory.buildStep(build, plan.OnSuccess.Step, buildState)
 	plan.OnSuccess.Next.Attempts = plan.Attempts
-	next := factory.buildStep(build, plan.OnSuccess.Next)
+	next := factory.buildStep(build, plan.OnSuccess.Next, string(db.BuildStatusSucceeded))
 	return exec.OnSuccess(step, next)
 }
 
-func (factory *stepperFactory) buildOnFailureStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildOnFailureStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	plan.OnFailure.Step.Attempts = plan.Attempts
-	step := factory.buildStep(build, plan.OnFailure.Step)
+	step := factory.buildStep(build, plan.OnFailure.Step, buildState)
 	plan.OnFailure.Next.Attempts = plan.Attempts
-	next := factory.buildStep(build, plan.OnFailure.Next)
+	next := factory.buildStep(build, plan.OnFailure.Next, string(db.BuildStatusFailed))
 	return exec.OnFailure(step, next)
 }
 
-func (factory *stepperFactory) buildEnsureStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildEnsureStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	plan.Ensure.Step.Attempts = plan.Attempts
-	step := factory.buildStep(build, plan.Ensure.Step)
+	step := factory.buildStep(build, plan.Ensure.Step, buildState)
 	plan.Ensure.Next.Attempts = plan.Attempts
-	next := factory.buildStep(build, plan.Ensure.Next)
+	next := factory.buildStep(build, plan.Ensure.Next, buildState)
 	return exec.Ensure(step, next)
 }
 
-func (factory *stepperFactory) buildRetryStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildRetryStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	steps := []exec.Step{}
 
 	for index, innerPlan := range *plan.Retry {
 		innerPlan.Attempts = append(plan.Attempts, index+1)
 
-		step := factory.buildStep(build, innerPlan)
+		step := factory.buildStep(build, innerPlan, buildState)
 		steps = append(steps, step)
 	}
 
 	return exec.Retry(steps...)
 }
 
-func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 
 	containerMetadata := factory.containerMetadata(
 		build,
@@ -287,6 +288,7 @@ func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan) exec.
 		build,
 		factory.externalURL,
 		false,
+		buildState,
 	)
 
 	return factory.coreFactory.GetStep(
@@ -297,7 +299,7 @@ func (factory *stepperFactory) buildGetStep(build db.Build, plan atc.Plan) exec.
 	)
 }
 
-func (factory *stepperFactory) buildPutStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildPutStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 
 	containerMetadata := factory.containerMetadata(
 		build,
@@ -310,6 +312,7 @@ func (factory *stepperFactory) buildPutStep(build db.Build, plan atc.Plan) exec.
 		build,
 		factory.externalURL,
 		plan.Put.ExposeBuildCreatedBy,
+		buildState,
 	)
 
 	return factory.coreFactory.PutStep(
@@ -320,7 +323,7 @@ func (factory *stepperFactory) buildPutStep(build db.Build, plan atc.Plan) exec.
 	)
 }
 
-func (factory *stepperFactory) buildCheckStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildCheckStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	containerMetadata := factory.containerMetadata(
 		build,
 		db.ContainerTypeCheck,
@@ -332,6 +335,7 @@ func (factory *stepperFactory) buildCheckStep(build db.Build, plan atc.Plan) exe
 		build,
 		factory.externalURL,
 		false,
+		buildState,
 	)
 
 	return factory.coreFactory.CheckStep(
@@ -342,7 +346,7 @@ func (factory *stepperFactory) buildCheckStep(build db.Build, plan atc.Plan) exe
 	)
 }
 
-func (factory *stepperFactory) buildRunStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildRunStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	containerMetadata := factory.containerMetadata(
 		build,
 		db.ContainerTypeRun,
@@ -354,6 +358,7 @@ func (factory *stepperFactory) buildRunStep(build db.Build, plan atc.Plan) exec.
 		build,
 		factory.externalURL,
 		false,
+		buildState,
 	)
 
 	return factory.coreFactory.RunStep(
@@ -364,7 +369,7 @@ func (factory *stepperFactory) buildRunStep(build db.Build, plan atc.Plan) exec.
 	)
 }
 
-func (factory *stepperFactory) buildTaskStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildTaskStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 
 	containerMetadata := factory.containerMetadata(
 		build,
@@ -377,6 +382,7 @@ func (factory *stepperFactory) buildTaskStep(build db.Build, plan atc.Plan) exec
 		build,
 		factory.externalURL,
 		false,
+		buildState,
 	)
 
 	return factory.coreFactory.TaskStep(
@@ -387,12 +393,13 @@ func (factory *stepperFactory) buildTaskStep(build db.Build, plan atc.Plan) exec
 	)
 }
 
-func (factory *stepperFactory) buildSetPipelineStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildSetPipelineStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
 		false,
+		buildState,
 	)
 
 	return factory.coreFactory.SetPipelineStep(
@@ -402,12 +409,13 @@ func (factory *stepperFactory) buildSetPipelineStep(build db.Build, plan atc.Pla
 	)
 }
 
-func (factory *stepperFactory) buildLoadVarStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildLoadVarStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 
 	stepMetadata := factory.stepMetadata(
 		build,
 		factory.externalURL,
 		false,
+		buildState,
 	)
 
 	return factory.coreFactory.LoadVarStep(
@@ -417,14 +425,14 @@ func (factory *stepperFactory) buildLoadVarStep(build db.Build, plan atc.Plan) e
 	)
 }
 
-func (factory *stepperFactory) buildArtifactInputStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildArtifactInputStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	return factory.coreFactory.ArtifactInputStep(
 		plan,
 		build,
 	)
 }
 
-func (factory *stepperFactory) buildArtifactOutputStep(build db.Build, plan atc.Plan) exec.Step {
+func (factory *stepperFactory) buildArtifactOutputStep(build db.Build, plan atc.Plan, buildState string) exec.Step {
 	return factory.coreFactory.ArtifactOutputStep(
 		plan,
 		build,
@@ -469,6 +477,7 @@ func (factory *stepperFactory) stepMetadata(
 	build db.Build,
 	externalURL string,
 	exposeBuildCreatedBy bool,
+	buildState string,
 ) exec.StepMetadata {
 	meta := exec.StepMetadata{
 		BuildID:              build.ID(),
@@ -482,6 +491,7 @@ func (factory *stepperFactory) stepMetadata(
 		PipelineInstanceVars: build.PipelineInstanceVars(),
 		InstanceVarsQuery:    build.PipelineRef().QueryParams(),
 		ExternalURL:          externalURL,
+		BuildState:           buildState,
 	}
 	if exposeBuildCreatedBy && build.CreatedBy() != nil {
 		meta.CreatedBy = *build.CreatedBy()
