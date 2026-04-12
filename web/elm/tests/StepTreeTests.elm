@@ -70,6 +70,7 @@ someVersionedStep version id buildStep state =
     , initialize = Nothing
     , start = Nothing
     , finish = Nothing
+    , exitStatus = Nothing
     , tabFocus = Models.Auto
     , expandedHeaders = Dict.empty
     , initializationExpanded = False
