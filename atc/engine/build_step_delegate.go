@@ -307,7 +307,11 @@ func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte,
 		for j, v := range acrossVars {
 			localVars[v.Var] = values[j]
 		}
-		interpolatedBytes, err := template.Evaluate(vars.NamedVariables{".": localVars}, vars.EvaluateOpts{})
+		multiVars := vars.NewMultiVars([]vars.Variables{
+			vars.NamedVariables{".": localVars},
+			delegate.state,
+		})
+		interpolatedBytes, err := template.Evaluate(multiVars, vars.EvaluateOpts{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to interpolate template: %w", err)
 		}
