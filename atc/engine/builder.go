@@ -75,7 +75,7 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 		return nil, errors.New("schema not supported")
 	}
 
-	pb := &planBuilder{factory: factory, build: build, buildStatus: build.Status().String()}
+	pb := &planBuilder{factory: factory, build: build}
 	return func(plan atc.Plan) exec.Step {
 		return pb.buildStep(plan)
 	}, nil
