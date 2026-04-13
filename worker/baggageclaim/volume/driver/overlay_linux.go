@@ -3,6 +3,7 @@ package driver
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -255,6 +256,16 @@ func (driver *OverlayDriver) workDir(vol volume.FilesystemVolume) string {
 }
 
 func (driver *OverlayDriver) RemoveOrphanedResources(knownHandles map[string]struct{}) error {
+	_, err := os.Stat(driver.OverlaysDir)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			// If dir does not exist yet then there's nothing to remove
+			return nil
+		} else {
+			return fmt.Errorf("checking overlay dir exists: %w", err)
+		}
+	}
+
 	entries, err := os.ReadDir(driver.OverlaysDir)
 	if err != nil {
 		return fmt.Errorf("read overlays dir: %w", err)

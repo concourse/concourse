@@ -173,6 +173,19 @@ var _ = Describe("Overlay", func() {
 			err := overlayDrv.RemoveOrphanedResources(knownHandles)
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		Context("when the overlays dir does not exist", func() {
+			BeforeEach(func() {
+				err := os.RemoveAll(overlaysDir)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("does not error", func() {
+				knownHandles := map[string]struct{}{}
+				err := overlayDrv.RemoveOrphanedResources(knownHandles)
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
 	})
 
 })
