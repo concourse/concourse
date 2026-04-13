@@ -89,7 +89,7 @@ func (f *workerFactory) VisibleWorkers(teamNames []string) ([]Worker, error) {
 		return slices.Contains(teamNames, worker.TeamName())
 	}
 
-	visibleWorkers := []Worker{}
+	visibleWorkers := make([]Worker, 0, len(workers))
 	for _, worker := range workers {
 		if isVisible(worker) {
 			visibleWorkers = append(visibleWorkers, worker)

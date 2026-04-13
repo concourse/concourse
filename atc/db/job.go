@@ -209,10 +209,10 @@ func (j *job) SetHasNewInputs(hasNewInputs bool) error {
 
 type Jobs []Job
 
-func (jobs Jobs) Configs() (atc.JobConfigs, error) {
-	var configs atc.JobConfigs
+func (js Jobs) Configs() (atc.JobConfigs, error) {
+	configs := make(atc.JobConfigs, 0, len(js))
 
-	for _, j := range jobs {
+	for _, j := range js {
 		config, err := j.Config()
 		if err != nil {
 			return nil, err
@@ -293,6 +293,7 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var inputs InputConfigs
 	m := pgtype.NewMap()
@@ -366,6 +367,7 @@ func (j *job) Inputs() ([]atc.JobInput, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var inputs []atc.JobInput
 	m := pgtype.NewMap()
@@ -421,6 +423,7 @@ func (j *job) Outputs() ([]atc.JobOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var outputs []atc.JobOutput
 	for rows.Next() {
@@ -1044,6 +1047,7 @@ func (j *job) getSerialGroups(tx Tx) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var serialGroups []string
 	for rows.Next() {
@@ -1504,17 +1508,15 @@ func requestScheduleOnDownstreamJobs(tx Tx, jobID int) error {
 		jobIDs = append(jobIDs, id)
 	}
 
-	for _, jID := range jobIDs {
-		_, err := psql.Update("jobs").
-			Set("schedule_requested", sq.Expr("now()")).
-			Where(sq.Eq{
-				"id": jID,
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return err
-		}
+	_, err = psql.Update("jobs").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": jobIDs,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil

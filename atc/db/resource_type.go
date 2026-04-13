@@ -87,7 +87,7 @@ func (resourceTypes ResourceTypes) Filter(checkable Checkable) ResourceTypes {
 }
 
 func (resourceTypes ResourceTypes) Deserialize() atc.ResourceTypes {
-	var atcResourceTypes atc.ResourceTypes
+	atcResourceTypes := make(atc.ResourceTypes, 0, len(resourceTypes))
 
 	for _, t := range resourceTypes {
 		// Apply source defaults to resource types
@@ -118,7 +118,7 @@ func (resourceTypes ResourceTypes) Deserialize() atc.ResourceTypes {
 }
 
 func (resourceTypes ResourceTypes) Configs() atc.ResourceTypes {
-	var configs atc.ResourceTypes
+	configs := make(atc.ResourceTypes, 0, len(resourceTypes))
 
 	for _, r := range resourceTypes {
 		configs = append(configs, atc.ResourceType{

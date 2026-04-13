@@ -78,6 +78,7 @@ func (r *resourceFactory) AllResources() ([]Resource, error) {
 func scanResources(resourceRows *sql.Rows, conn DbConn, lockFactory lock.LockFactory) ([]Resource, error) {
 	var resources []Resource
 
+	defer resourceRows.Close()
 	for resourceRows.Next() {
 		resource := newEmptyResource(conn, lockFactory)
 		err := scanResource(resource, resourceRows)

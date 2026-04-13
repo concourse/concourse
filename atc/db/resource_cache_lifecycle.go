@@ -162,7 +162,7 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 		var cacheID int
 		err = rows.Scan(&cacheID)
 		if err != nil {
-			return nil
+			return err
 		}
 
 		deletedCacheIDs = append(deletedCacheIDs, cacheID)

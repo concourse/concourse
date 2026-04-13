@@ -1460,7 +1460,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 		}
 	}
 
-	buildInputs := []BuildInput{}
+	buildInputs := make([]BuildInput, 0, len(inputs))
 
 	for inputName, input := range inputs {
 		var versionBlob string

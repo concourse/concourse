@@ -214,7 +214,7 @@ func (resources Resources) Lookup(name string) (Resource, bool) {
 }
 
 func (resources Resources) Configs() atc.ResourceConfigs {
-	var configs atc.ResourceConfigs
+	configs := make(atc.ResourceConfigs, 0, len(resources))
 	for _, r := range resources {
 		configs = append(configs, r.Config())
 	}
@@ -1143,17 +1143,15 @@ func requestScheduleForJobsUsingResource(tx Tx, resourceID int) error {
 		jobs = append(jobs, jid)
 	}
 
-	for _, j := range jobs {
-		_, err := psql.Update("jobs").
-			Set("schedule_requested", sq.Expr("now()")).
-			Where(sq.Eq{
-				"id": j,
-			}).
-			RunWith(tx).
-			Exec()
-		if err != nil {
-			return err
-		}
+	_, err = psql.Update("jobs").
+		Set("schedule_requested", sq.Expr("now()")).
+		Where(sq.Eq{
+			"id": jobs,
+		}).
+		RunWith(tx).
+		Exec()
+	if err != nil {
+		return err
 	}
 
 	return nil

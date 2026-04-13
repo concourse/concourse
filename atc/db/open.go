@@ -76,18 +76,18 @@ func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Ke
 			return nil, err
 		}
 
-		return NewConn(name, sqlDB, dsn, oldKey, newKey)
+		return NewConn(logger, name, sqlDB, dsn, oldKey, newKey)
 	}
 }
 
-func NewConn(name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (DbConn, error) {
+func NewConn(logger lager.Logger, name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (DbConn, error) {
 	// only used for the LISTEN/NOTIFY commands
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	listener := NewPgxListener(pool)
+	listener := NewPgxListener(pool, logger)
 
 	var strategy encryption.Strategy
 	if newKey != nil {
