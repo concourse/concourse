@@ -90,7 +90,7 @@ var _ = Describe("Builder", func() {
 					PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 					ExternalURL:          "http://example.com",
 					CreatedBy:            "some-user",
-					BuildState:           "started",
+					BuildStatus:          "started",
 				}
 
 				expectedMetadataWithoutCreatedBy = exec.StepMetadata{
@@ -104,7 +104,7 @@ var _ = Describe("Builder", func() {
 					PipelineName:         "some-pipeline",
 					PipelineInstanceVars: atc.InstanceVars{"branch": "master"},
 					ExternalURL:          "http://example.com",
-					BuildState:           "started",
+					BuildStatus:          "started",
 				}
 			})
 
@@ -680,7 +680,7 @@ var _ = Describe("Builder", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(dependentGetPlan))
 							expectedMeta := expectedMetadataWithoutCreatedBy
-							expectedMeta.BuildState = "succeeded"
+							expectedMeta.BuildStatus = "succeeded"
 							Expect(stepMetadata).To(Equal(expectedMeta))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeGet,
@@ -784,7 +784,7 @@ var _ = Describe("Builder", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(0)
 							Expect(plan).To(Equal(failureTaskPlan))
 							expectedMeta := expectedMetadataWithoutCreatedBy
-							expectedMeta.BuildState = "failed"
+							expectedMeta.BuildStatus = "failed"
 							Expect(stepMetadata).To(Equal(expectedMeta))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
@@ -804,7 +804,7 @@ var _ = Describe("Builder", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(1)
 							Expect(plan).To(Equal(successTaskPlan))
 							expectedMeta := expectedMetadataWithoutCreatedBy
-							expectedMeta.BuildState = "succeeded"
+							expectedMeta.BuildStatus = "succeeded"
 							Expect(stepMetadata).To(Equal(expectedMeta))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
@@ -824,7 +824,7 @@ var _ = Describe("Builder", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(3)
 							Expect(plan).To(Equal(nextTaskPlan))
 							expectedMeta := expectedMetadataWithoutCreatedBy
-							expectedMeta.BuildState = "succeeded"
+							expectedMeta.BuildStatus = "succeeded"
 							Expect(stepMetadata).To(Equal(expectedMeta))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,

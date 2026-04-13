@@ -61,13 +61,13 @@ type stepperFactory struct {
 }
 
 type planBuilder struct {
-	factory    *stepperFactory
-	build      db.Build
-	buildState string
+	factory     *stepperFactory
+	build       db.Build
+	buildStatus string
 }
 
-func (pb *planBuilder) withBuildState(state string) *planBuilder {
-	return &planBuilder{factory: pb.factory, build: pb.build, buildState: state}
+func (pb *planBuilder) withBuildStatus(state string) *planBuilder {
+	return &planBuilder{factory: pb.factory, build: pb.build, buildStatus: state}
 }
 
 func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, error) {
@@ -75,7 +75,7 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 		return nil, errors.New("schema not supported")
 	}
 
-	pb := &planBuilder{factory: factory, build: build, buildState: build.Status().String()}
+	pb := &planBuilder{factory: factory, build: build, buildStatus: build.Status().String()}
 	return func(plan atc.Plan) exec.Step {
 		return pb.buildStep(plan)
 	}, nil
@@ -232,7 +232,7 @@ func (pb *planBuilder) buildOnAbortStep(plan atc.Plan) exec.Step {
 	plan.OnAbort.Step.Attempts = plan.Attempts
 	step := pb.buildStep(plan.OnAbort.Step)
 	plan.OnAbort.Next.Attempts = plan.Attempts
-	next := pb.withBuildState(db.BuildStatusAborted.String()).buildStep(plan.OnAbort.Next)
+	next := pb.withBuildStatus(db.BuildStatusAborted.String()).buildStep(plan.OnAbort.Next)
 	return exec.OnAbort(step, next)
 }
 
@@ -240,7 +240,7 @@ func (pb *planBuilder) buildOnErrorStep(plan atc.Plan) exec.Step {
 	plan.OnError.Step.Attempts = plan.Attempts
 	step := pb.buildStep(plan.OnError.Step)
 	plan.OnError.Next.Attempts = plan.Attempts
-	next := pb.withBuildState(db.BuildStatusErrored.String()).buildStep(plan.OnError.Next)
+	next := pb.withBuildStatus(db.BuildStatusErrored.String()).buildStep(plan.OnError.Next)
 	return exec.OnError(step, next)
 }
 
@@ -248,7 +248,7 @@ func (pb *planBuilder) buildOnSuccessStep(plan atc.Plan) exec.Step {
 	plan.OnSuccess.Step.Attempts = plan.Attempts
 	step := pb.buildStep(plan.OnSuccess.Step)
 	plan.OnSuccess.Next.Attempts = plan.Attempts
-	next := pb.withBuildState(db.BuildStatusSucceeded.String()).buildStep(plan.OnSuccess.Next)
+	next := pb.withBuildStatus(db.BuildStatusSucceeded.String()).buildStep(plan.OnSuccess.Next)
 	return exec.OnSuccess(step, next)
 }
 
@@ -256,7 +256,7 @@ func (pb *planBuilder) buildOnFailureStep(plan atc.Plan) exec.Step {
 	plan.OnFailure.Step.Attempts = plan.Attempts
 	step := pb.buildStep(plan.OnFailure.Step)
 	plan.OnFailure.Next.Attempts = plan.Attempts
-	next := pb.withBuildState(db.BuildStatusFailed.String()).buildStep(plan.OnFailure.Next)
+	next := pb.withBuildStatus(db.BuildStatusFailed.String()).buildStep(plan.OnFailure.Next)
 	return exec.OnFailure(step, next)
 }
 
@@ -453,7 +453,7 @@ func (pb *planBuilder) stepMetadata(
 		PipelineInstanceVars: pb.build.PipelineInstanceVars(),
 		InstanceVarsQuery:    pb.build.PipelineRef().QueryParams(),
 		ExternalURL:          pb.factory.externalURL,
-		BuildState:           pb.buildState,
+		BuildStatus:          pb.buildStatus,
 	}
 	if exposeBuildCreatedBy && pb.build.CreatedBy() != nil {
 		meta.CreatedBy = *pb.build.CreatedBy()
