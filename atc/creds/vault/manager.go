@@ -105,7 +105,7 @@ func (manager *VaultManager) Config(config map[string]any) error {
 	manager.Auth.RetryInitial = time.Second
 	manager.LoginTimeout = 60 * time.Second
 	manager.QueryTimeout = 60 * time.Second
-	manager.EnableKVMountCache = false // enabled by default to reduce preflight requests
+	manager.EnableKVMountCache = false
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
