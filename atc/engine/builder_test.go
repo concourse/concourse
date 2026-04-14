@@ -76,6 +76,7 @@ var _ = Describe("Builder", func() {
 				fakeBuild.TeamIDReturns(1111)
 				someUser := "some-user"
 				fakeBuild.CreatedByReturns(&someUser)
+				fakeBuild.StatusReturns("started")
 
 				expectedMetadataWithCreatedBy = exec.StepMetadata{
 					BuildID:              4444,
@@ -676,6 +677,7 @@ var _ = Describe("Builder", func() {
 						It("constructs the dependent get correctly", func() {
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.GetStepArgsForCall(0)
 							Expect(plan).To(Equal(dependentGetPlan))
+							expectedMetadataWithoutCreatedBy.BuildStatus = db.BuildStatusSucceeded.String()
 							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								Type:                 db.ContainerTypeGet,
@@ -778,6 +780,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(0)
 							Expect(plan).To(Equal(failureTaskPlan))
+							expectedMetadataWithoutCreatedBy.BuildStatus = db.BuildStatusFailed.String()
 							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
@@ -796,6 +799,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(1)
 							Expect(plan).To(Equal(successTaskPlan))
+							expectedMetadataWithoutCreatedBy.BuildStatus = db.BuildStatusSucceeded.String()
 							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,
@@ -814,6 +818,7 @@ var _ = Describe("Builder", func() {
 							Expect(fakeCoreStepFactory.TaskStepCallCount()).To(Equal(4))
 							plan, stepMetadata, containerMetadata, _ := fakeCoreStepFactory.TaskStepArgsForCall(3)
 							Expect(plan).To(Equal(nextTaskPlan))
+							expectedMetadataWithoutCreatedBy.BuildStatus = db.BuildStatusSucceeded.String()
 							Expect(stepMetadata).To(Equal(expectedMetadataWithoutCreatedBy))
 							Expect(containerMetadata).To(Equal(db.ContainerMetadata{
 								PipelineID:           2222,

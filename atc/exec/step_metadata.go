@@ -19,10 +19,15 @@ type StepMetadata struct {
 	InstanceVarsQuery    url.Values
 	ExternalURL          string
 	CreatedBy            string
+	BuildStatus          string
 }
 
 func (metadata StepMetadata) Env() []string {
 	env := []string{}
+
+	if metadata.BuildStatus != "" {
+		env = append(env, "BUILD_STATUS="+metadata.BuildStatus)
+	}
 
 	if metadata.BuildID != 0 {
 		env = append(env, fmt.Sprintf("BUILD_ID=%d", metadata.BuildID))

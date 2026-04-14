@@ -26,6 +26,7 @@ var _ = Describe("StepMetadata", func() {
 					PipelineName: "some-pipeline-name",
 					ExternalURL:  "https://www.example.com",
 					CreatedBy:    "someone",
+					BuildStatus:  "success",
 				}
 			})
 
@@ -43,6 +44,7 @@ var _ = Describe("StepMetadata", func() {
 					"BUILD_URL=https://www.example.com/teams/some-team/pipelines/some-pipeline-name/jobs/some-job-name/builds/42",
 					"BUILD_URL_SHORT=https://www.example.com/builds/1",
 					"BUILD_CREATED_BY=someone",
+					"BUILD_STATUS=success",
 				))
 			})
 		})
