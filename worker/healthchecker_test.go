@@ -1,6 +1,8 @@
 package worker_test
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -12,6 +14,25 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+type componentHealth struct {
+	Healthy       bool   `json:"healthy"`
+	ResponseError string `json:"response_error"`
+}
+
+type healthResponseBody struct {
+	Garden       componentHealth `json:"garden"`
+	Baggageclaim componentHealth `json:"baggageclaim"`
+}
+
+func parseHealthResponse(resp *http.Response) healthResponseBody {
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	Expect(err).ToNot(HaveOccurred())
+	var result healthResponseBody
+	Expect(json.Unmarshal(body, &result)).To(Succeed())
+	return result
+}
 
 var _ = Describe("CheckHealth", func() {
 	var (
@@ -83,7 +104,11 @@ var _ = Describe("CheckHealth", func() {
 			})
 
 			It("doesn't wait forever", func() {
-				Expect(resp.StatusCode).To(Equal(503))
+				Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
+				body := parseHealthResponse(resp)
+				Expect(body.Garden.Healthy).To(BeTrue())
+				Expect(body.Baggageclaim.Healthy).To(BeFalse())
+				Expect(body.Baggageclaim.ResponseError).ToNot(BeEmpty())
 			})
 		})
 
@@ -92,8 +117,13 @@ var _ = Describe("CheckHealth", func() {
 				baggageclaim.Close()
 			})
 
-			It("returns 503", func() {
-				Expect(resp.StatusCode).To(Equal(503))
+			It("returns 503 with baggageclaim unhealthy", func() {
+				Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
+				body := parseHealthResponse(resp)
+				Expect(body.Garden.Healthy).To(BeTrue())
+				Expect(body.Garden.ResponseError).To(BeEmpty())
+				Expect(body.Baggageclaim.Healthy).To(BeFalse())
+				Expect(body.Baggageclaim.ResponseError).ToNot(BeEmpty())
 			})
 		})
 
@@ -102,14 +132,23 @@ var _ = Describe("CheckHealth", func() {
 				garden.Close()
 			})
 
-			It("returns 503", func() {
-				Expect(resp.StatusCode).To(Equal(503))
+			It("returns 503 with garden unhealthy", func() {
+				Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
+				body := parseHealthResponse(resp)
+				Expect(body.Garden.Healthy).To(BeFalse())
+				Expect(body.Garden.ResponseError).ToNot(BeEmpty())
 			})
 		})
 
 		Context("having baggageclaim AND garden up", func() {
-			It("returns 200", func() {
-				Expect(resp.StatusCode).To(Equal(200))
+			It("returns 200 with json response", func() {
+				Expect(resp.StatusCode).To(Equal(http.StatusOK))
+				Expect(resp.Header.Get("Content-Type")).To(Equal("application/json"))
+				body := parseHealthResponse(resp)
+				Expect(body.Garden.Healthy).To(BeTrue())
+				Expect(body.Garden.ResponseError).To(BeEmpty())
+				Expect(body.Baggageclaim.Healthy).To(BeTrue())
+				Expect(body.Baggageclaim.ResponseError).To(BeEmpty())
 			})
 		})
 	})
