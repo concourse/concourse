@@ -201,7 +201,7 @@ handleEvent event ( model, effects ) =
             )
 
         FinishTask origin exitStatus time ->
-            ( updateStep origin.id (finishStep (exitStatus == 0) (Just time)) model
+            ( updateStep origin.id (finishStep (exitStatus == 0) (Just time) << setStepExitStatus exitStatus) model
             , effects
             )
 
@@ -380,6 +380,11 @@ setStepInitialize time step =
 setStepStart : Time.Posix -> Step -> Step
 setStepStart time step =
     { step | start = Just time }
+
+
+setStepExitStatus : Int -> Step -> Step
+setStepExitStatus status step =
+    { step | exitStatus = Just status }
 
 
 setStepFinish : Maybe Time.Posix -> Step -> Step

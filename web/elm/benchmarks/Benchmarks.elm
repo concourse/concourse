@@ -857,6 +857,7 @@ steps =
         , initialize = Nothing
         , start = Nothing
         , finish = Nothing
+        , exitStatus = Nothing
         , tabFocus = STModels.Auto
         , expandedHeaders = Dict.empty
         , initializationExpanded = False
