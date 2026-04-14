@@ -1,0 +1,4 @@
+services:
+  web:
+    environment:
+      CONCOURSE_VAULT_ENABLE_KV_MOUNT_CACHE: "true"
