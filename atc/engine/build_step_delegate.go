@@ -307,7 +307,7 @@ func (delegate *buildStepDelegate) ConstructAcrossSubsteps(templateBytes []byte,
 		for j, v := range acrossVars {
 			localVars[v.Var] = values[j]
 		}
-		
+
 		interpolatedBytes, err := template.Evaluate(ignoreMissingSourceVars{vars.NamedVariables{".": localVars}}, vars.EvaluateOpts{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to interpolate template: %w", err)
@@ -443,16 +443,16 @@ func (it *credVarsIterator) YieldCred(name, value string) {
 	}
 }
 
+var _ vars.Variables = (*ignoreMissingSourceVars)(nil)
+
 type ignoreMissingSourceVars struct {
 	vars vars.Variables
 }
 
 func (i ignoreMissingSourceVars) Get(ref vars.Reference) (any, bool, error) {
 	val, found, err := i.vars.Get(ref)
-	if err != nil {
-		if _, isMissingSource := err.(vars.MissingSourceError); isMissingSource {
-			return nil, false, nil
-		}
+	if _, isMissingSource := err.(vars.MissingSourceError); isMissingSource {
+		return nil, false, nil
 	}
 	return val, found, err
 }
