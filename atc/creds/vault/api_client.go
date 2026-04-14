@@ -32,18 +32,8 @@ type APIClient struct {
 
 	clientValue *atomic.Value
 
-	// kvMountCache caches the KV engine version per Vault mount path.
-	// The mount path (e.g. "concourse/") is determined by the first
-	// preflight request to /v1/sys/internal/ui/mounts/ and all
-	// subsequent reads under that mount reuse the cached result.
-	// Only used if enableKVMountCache is true.
-	// Key: mount path (string), Value: kvMountInfo.
-	kvMountCache sync.Map
-
-	// enableKVMountCache controls whether KV mount version detection results are cached.
-	// When false, every Read() call performs a preflight request.
-	// When true, mount versions are cached by mount path for the lifetime of the APIClient.
-	enabledKVMountCache bool
+	kvMountCacheEnabled bool
+	kvMountCache        sync.Map
 
 	renewable bool
 }
@@ -62,7 +52,7 @@ func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig,
 
 		clientValue: &atomic.Value{},
 
-		enabledKVMountCache: enableKVMountCache,
+		kvMountCacheEnabled: enableKVMountCache,
 
 		renewable: true,
 	}
@@ -121,40 +111,26 @@ type kvMountInfo struct {
 // to /v1/sys/internal/ui/mounts/<path>. If caching is enabled, it caches the result
 // keyed by the mount path returned by Vault (e.g. "concourse/"). All subsequent
 // reads whose path starts with a known mount path skip the preflight entirely.
-//
-// This is safe because a mount's KV version is a configuration-time
-// property — it does not change at runtime without a Vault admin
-// explicitly remounting the engine (which requires a Concourse restart
-// anyway, clearing the in-memory cache).
-//
-// Caching can be disabled via the EnableKVMountCache configuration flag.
-// When disabled, every Read() call performs a preflight request.
-// Errors from the preflight request are never cached.
 func (ac *APIClient) cachedIsKVv2(secretPath string) (string, bool, error) {
-	fmt.Println("Check if cache is enabled")
-	fmt.Println("========> cache enabled: ", ac.enabledKVMountCache)
-	// If caching is disabled, skip the cache lookup entirely.
-	if !ac.enabledKVMountCache {
+	if !ac.kvMountCacheEnabled {
 		return isKVv2(secretPath, ac.client())
 	}
 
-	// Fast path: reuse a cached mount version if available.
 	if mountPath, isV2, found := ac.lookupCachedKVMount(secretPath); found {
 		return mountPath, isV2, nil
 	}
 
-	// Slow path: perform the preflight request.
 	mountPath, kv2, err := isKVv2(secretPath, ac.client())
 	if err != nil {
 		return "", false, err
 	}
 
-	return ac.storeCachedKVMount(mountPath, kv2)
+	mountPath, kv2 = ac.storeCachedKVMount(mountPath, kv2)
+	return mountPath, kv2, nil
 }
 
+// lookupCachedKVMount finds the most specific cached mount that matches the requested secret path.
 func (ac *APIClient) lookupCachedKVMount(secretPath string) (string, bool, bool) {
-	fmt.Println("========> checking cache for secret path: ", secretPath)
-
 	var best kvMountInfo
 	found := false
 
@@ -164,8 +140,7 @@ func (ac *APIClient) lookupCachedKVMount(secretPath string) (string, bool, bool)
 			return true
 		}
 
-		fmt.Println("========> cache entry mount path: ", info.mountPath)
-		if !strings.HasPrefix(secretPath, info.mountPath) {
+		if !pathMatchesMount(secretPath, info.mountPath) {
 			return true
 		}
 
@@ -185,18 +160,26 @@ func (ac *APIClient) lookupCachedKVMount(secretPath string) (string, bool, bool)
 	return best.mountPath, best.isV2, true
 }
 
-func (ac *APIClient) storeCachedKVMount(mountPath string, isV2 bool) (string, bool, error) {
-	// Cache keyed by mount path so all secrets under the same mount
-	// benefit. LoadOrStore handles the benign race where two goroutines
-	// both miss the cache for the same mount simultaneously.
+// pathMatchesMount reports whether secretPath is exactly the mount or
+// is nested beneath it on a path boundary.
+func pathMatchesMount(secretPath, mountPath string) bool {
+	mountPath = strings.TrimSuffix(mountPath, "/")
+	if mountPath == "" {
+		return false
+	}
+	return secretPath == mountPath || strings.HasPrefix(secretPath, mountPath+"/")
+}
+
+// storeCachedKVMount remembers the KV version for a mount path
+// so later reads under the same mount can skip another Vault preflight lookup.
+func (ac *APIClient) storeCachedKVMount(mountPath string, isV2 bool) (string, bool) {
 	entry := kvMountInfo{mountPath: mountPath, isV2: isV2}
 	if actual, loaded := ac.kvMountCache.LoadOrStore(mountPath, entry); loaded {
-		if cached, ok := actual.(kvMountInfo); ok {
-			return cached.mountPath, cached.isV2, nil
-		}
+		cached := actual.(kvMountInfo)
+		return cached.mountPath, cached.isV2
 	}
 
-	return mountPath, isV2, nil
+	return mountPath, isV2
 }
 
 func (ac *APIClient) loginParams() map[string]any {

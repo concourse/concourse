@@ -2,7 +2,6 @@ package vault
 
 import (
 	"errors"
-	"fmt"
 	"path"
 	"strings"
 
@@ -15,7 +14,6 @@ import (
 
 func kvPreflightVersionRequest(client *api.Client, path string) (string, int, error) {
 	r := client.NewRequest("GET", "/v1/sys/internal/ui/mounts/"+path)
-	fmt.Println("========> preflight request path /v1/sys/internal/ui/mounts/" + path)
 	resp, err := client.RawRequest(r)
 	if resp != nil {
 		defer resp.Body.Close()
@@ -46,7 +44,6 @@ func kvPreflightVersionRequest(client *api.Client, path string) (string, int, er
 	if mountPathRaw, ok := secret.Data["path"]; ok {
 		mountPath = mountPathRaw.(string)
 	}
-	fmt.Println("======> kvmountPath", mountPath)
 	options := secret.Data["options"]
 	if options == nil {
 		return mountPath, 1, nil
