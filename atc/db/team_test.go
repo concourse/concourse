@@ -2885,14 +2885,14 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path")
+			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path", 0)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(job.ID(), "some-task", "some-path")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-nested-task", "some-path")
+			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-nested-task", "some-path", 0)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(job.ID(), "some-nested-task", "some-path")
@@ -2921,14 +2921,14 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path")
+			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path", 0)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(job.ID(), "some-task", "some-path")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-nested-task", "some-path")
+			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-nested-task", "some-path", 0)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(job.ID(), "some-nested-task", "some-path")
@@ -2972,7 +2972,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path")
+			_, err = taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path", 0)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(job.ID(), "some-task", "some-path")
@@ -2983,7 +2983,7 @@ var _ = Describe("Team", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
-			_, err = taskCacheFactory.FindOrCreate(otherJob.ID(), "some-task", "some-path")
+			_, err = taskCacheFactory.FindOrCreate(otherJob.ID(), "some-task", "some-path", 0)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, found, err = taskCacheFactory.Find(otherJob.ID(), "some-task", "some-path")

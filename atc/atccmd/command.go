@@ -280,6 +280,8 @@ type RunCommand struct {
 	DefaultPutTimeout  time.Duration `long:"default-put-timeout" description:"Default timeout of put steps"`
 	DefaultTaskTimeout time.Duration `long:"default-task-timeout" description:"Default timeout of task steps"`
 
+	DefaultTaskCacheTTL time.Duration `long:"default-task-cache-ttl" default:"0s" description:"Default TTL for task caches. Caches unused for this duration will be garbage-collected. 0s means no expiry."`
+
 	NumGoroutineThreshold int `long:"num-goroutine-threshold" description:"When number of goroutines reaches to this threshold, then slow down current ATC. This helps distribute workloads across ATCs evenly."`
 
 	DBNotificationBusQueueSize int `long:"db-notification-bus-queue-size" default:"10000" description:"DB notification bus queue size, default is 10000. If UI often misses loading running build logs, then consider to increase the queue size."`
@@ -1720,6 +1722,13 @@ func (cmd *RunCommand) validate() error {
 		)
 	}
 
+	if cmd.DefaultTaskCacheTTL > 0 && cmd.DefaultTaskCacheTTL < time.Second {
+		errs = multierror.Append(
+			errs,
+			errors.New("default-task-cache-ttl must be 0s or >= 1s. A TTL of < 1s is not supported."),
+		)
+	}
+
 	if err := cmd.validateCustomRoles(); err != nil {
 		errs = multierror.Append(errs, err)
 	}
@@ -1859,6 +1868,7 @@ func (cmd *RunCommand) constructEngine(
 				cmd.DefaultGetTimeout,
 				cmd.DefaultPutTimeout,
 				cmd.DefaultTaskTimeout,
+				cmd.DefaultTaskCacheTTL,
 			),
 			cmd.ExternalURL.String(),
 			rateLimiter,

@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbtest"
@@ -37,10 +39,10 @@ var _ = Describe("TaskCacheLifecycle", func() {
 				},
 			}),
 		)
-		taskCache, err := taskCacheFactory.FindOrCreate(archivedScenario.Job("some-job").ID(), "some-step", "some-path")
+		taskCache, err := taskCacheFactory.FindOrCreate(archivedScenario.Job("some-job").ID(), "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = taskCacheFactory.FindOrCreate(otherScenario.Job("some-other-job").ID(), "some-step", "some-path")
+		_, err = taskCacheFactory.FindOrCreate(otherScenario.Job("some-other-job").ID(), "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = archivedScenario.Pipeline.Archive()
@@ -76,13 +78,13 @@ var _ = Describe("TaskCacheLifecycle", func() {
 		err := finishedBuild.Finish(db.BuildStatusSucceeded)
 		Expect(err).ToNot(HaveOccurred())
 
-		taskCache, err := taskCacheFactory.FindOrCreate(otherScenario.Job("some-other-job").ID(), "some-step", "some-path")
+		taskCache, err := taskCacheFactory.FindOrCreate(otherScenario.Job("some-other-job").ID(), "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-1").ID(), "some-step", "some-path")
+		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-1").ID(), "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-2").ID(), "some-step", "some-path")
+		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-2").ID(), "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
 		err = pausedScenario.Pipeline.Pause("tester")
@@ -119,14 +121,82 @@ var _ = Describe("TaskCacheLifecycle", func() {
 		err = pausedScenario.Job("some-job-2").Pause("tester")
 		Expect(err).ToNot(HaveOccurred())
 
-		taskCache, err := taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-1").ID(), "some-step", "some-path")
+		taskCache, err := taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-1").ID(), "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-2").ID(), "some-step", "some-path")
+		_, err = taskCacheFactory.FindOrCreate(pausedScenario.Job("some-job-2").ID(), "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
 		deletedCacheIDs, err := taskCacheLifecycle.CleanUpInvalidTaskCaches()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(deletedCacheIDs).To(ConsistOf(taskCache.ID()))
+	})
+
+	Context("task cache has a ttl of zero", func() {
+		It("does not remove the cache", func() {
+			ttl := time.Duration(0)
+			unpausedScenario := dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Jobs: []atc.JobConfig{
+						{Name: "some-job"},
+					},
+				}),
+			)
+			err := unpausedScenario.Pipeline.Unpause()
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = taskCacheFactory.FindOrCreate(unpausedScenario.Job("some-job").ID(), "some-step", "some-path", ttl)
+			Expect(err).ToNot(HaveOccurred())
+
+			deletedCacheIDs, err := taskCacheLifecycle.CleanUpInvalidTaskCaches()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deletedCacheIDs).To(BeEmpty())
+		})
+	})
+
+	Context("task cache has a ttl greater than zero", func() {
+		It("does remove the cache when the ttl has been reached", func() {
+			ttl := 1 * time.Second
+			unpausedScenario := dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Jobs: []atc.JobConfig{
+						{Name: "some-job"},
+					},
+				}),
+			)
+			err := unpausedScenario.Pipeline.Unpause()
+			Expect(err).ToNot(HaveOccurred())
+
+			taskCache, err := taskCacheFactory.FindOrCreate(unpausedScenario.Job("some-job").ID(), "some-step", "some-path", ttl)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("waiting for ttl to pass", func() {
+				time.Sleep(ttl + (1 * time.Second))
+			})
+
+			deletedCacheIDs, err := taskCacheLifecycle.CleanUpInvalidTaskCaches()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deletedCacheIDs).To(ConsistOf(taskCache.ID()))
+		})
+
+		It("doesn't remove the cache when the ttl is not reached", func() {
+			ttl := 1 * time.Hour
+			unpausedScenario := dbtest.Setup(
+				builder.WithPipeline(atc.Config{
+					Jobs: []atc.JobConfig{
+						{Name: "some-job"},
+					},
+				}),
+			)
+			err := unpausedScenario.Pipeline.Unpause()
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = taskCacheFactory.FindOrCreate(unpausedScenario.Job("some-job").ID(), "some-step", "some-path", ttl)
+			Expect(err).ToNot(HaveOccurred())
+
+			deletedCacheIDs, err := taskCacheLifecycle.CleanUpInvalidTaskCaches()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deletedCacheIDs).To(BeEmpty())
+		})
 	})
 })

@@ -22,14 +22,15 @@ func NewTaskCacheLifecycle(conn DbConn) TaskCacheLifecycle {
 func (f *taskCacheLifecycle) CleanUpInvalidTaskCaches() ([]int, error) {
 	rows, err := psql.Delete("task_caches tc").
 		Where(sq.Expr(`tc.id IN (
-            SELECT tc.id 
-            FROM task_caches tc
-            JOIN jobs j ON j.id = tc.job_id
-            JOIN pipelines p ON p.id = j.pipeline_id
-            WHERE p.archived OR
-                (p.paused AND j.next_build_id IS NULL) OR
-                (j.paused AND j.next_build_id IS NULL)
-        )`)).
+				SELECT tc.id
+				FROM task_caches tc
+				JOIN jobs j ON j.id = tc.job_id
+				JOIN pipelines p ON p.id = j.pipeline_id
+				WHERE p.archived
+					OR (p.paused AND j.next_build_id IS NULL)
+					OR (j.paused AND j.next_build_id IS NULL)
+			)
+			OR (tc.ttl > 0 AND tc.last_used + make_interval(secs => tc.ttl) < now())`)).
 		Suffix("RETURNING id").
 		RunWith(f.conn).
 		Query()

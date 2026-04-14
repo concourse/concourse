@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing/fstest"
+	"time"
 
 	"github.com/concourse/concourse/atc/compression"
 	"github.com/concourse/concourse/atc/db"
@@ -28,6 +29,7 @@ type Volume struct {
 	ResourceCacheInitialized  bool
 	ResourceCacheStreamedFrom int
 	TaskCacheInitialized      bool
+	TaskCacheTTL              time.Duration
 	DBVolume_                 *dbfakes.FakeCreatedVolume
 }
 
@@ -73,8 +75,9 @@ func (v *Volume) InitializeStreamedResourceCache(_ context.Context, _ db.Resourc
 	return nil, nil
 }
 
-func (v *Volume) InitializeTaskCache(_ context.Context, _ int, _, _ string, _ bool) error {
+func (v *Volume) InitializeTaskCache(_ context.Context, _ int, _, _ string, _ bool, ttl time.Duration) error {
 	v.TaskCacheInitialized = true
+	v.TaskCacheTTL = ttl
 	return nil
 }
 

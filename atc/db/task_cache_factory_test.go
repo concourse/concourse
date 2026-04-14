@@ -16,6 +16,7 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(usedTaskCache.ID()).ToNot(BeNil())
@@ -33,6 +34,7 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -42,6 +44,7 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-other-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(otherTaskCache.ID()).ToNot(Equal(usedTaskCache.ID()))
@@ -74,6 +77,7 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})

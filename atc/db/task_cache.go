@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -11,6 +12,7 @@ type usedTaskCache struct {
 	jobID    int
 	stepName string
 	path     string
+	ttl      time.Duration
 }
 
 type UsedTaskCache interface {
@@ -19,12 +21,14 @@ type UsedTaskCache interface {
 	JobID() int
 	StepName() string
 	Path() string
+	TTL() time.Duration
 }
 
-func (tc *usedTaskCache) ID() int          { return tc.id }
-func (tc *usedTaskCache) JobID() int       { return tc.jobID }
-func (tc *usedTaskCache) StepName() string { return tc.stepName }
-func (tc *usedTaskCache) Path() string     { return tc.path }
+func (tc *usedTaskCache) ID() int            { return tc.id }
+func (tc *usedTaskCache) JobID() int         { return tc.jobID }
+func (tc *usedTaskCache) StepName() string   { return tc.stepName }
+func (tc *usedTaskCache) Path() string       { return tc.path }
+func (tc *usedTaskCache) TTL() time.Duration { return tc.ttl }
 
 func (f usedTaskCache) findOrCreate(tx Tx) (UsedTaskCache, error) {
 	utc, found, err := f.find(tx)
@@ -39,17 +43,22 @@ func (f usedTaskCache) findOrCreate(tx Tx) (UsedTaskCache, error) {
 				"job_id",
 				"step_name",
 				"path",
+				"last_used",
+				"ttl",
 			).
 			Values(
 				f.jobID,
 				f.stepName,
 				f.path,
+				sq.Expr("now()"),
+				int64(f.ttl.Seconds()),
 			).
 			Suffix(`
 					ON CONFLICT (job_id, step_name, path) DO UPDATE SET
-						job_id = ?
+						last_used = now(),
+						ttl = ?
 					RETURNING id
-				`, f.jobID).
+				`, int64(f.ttl.Seconds())).
 			RunWith(tx).
 			QueryRow().
 			Scan(&id)
@@ -62,6 +71,7 @@ func (f usedTaskCache) findOrCreate(tx Tx) (UsedTaskCache, error) {
 			jobID:    f.jobID,
 			stepName: f.stepName,
 			path:     f.path,
+			ttl:      f.ttl,
 		}, nil
 	}
 
@@ -69,8 +79,11 @@ func (f usedTaskCache) findOrCreate(tx Tx) (UsedTaskCache, error) {
 }
 
 func (f usedTaskCache) find(runner sq.Runner) (UsedTaskCache, bool, error) {
-	var id int
-	err := psql.Select("id").
+	var (
+		id         int
+		ttlSeconds int64
+	)
+	err := psql.Select("id", "ttl").
 		From("task_caches").
 		Where(sq.Eq{
 			"job_id":    f.jobID,
@@ -79,7 +92,7 @@ func (f usedTaskCache) find(runner sq.Runner) (UsedTaskCache, bool, error) {
 		}).
 		RunWith(runner).
 		QueryRow().
-		Scan(&id)
+		Scan(&id, &ttlSeconds)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, false, nil
@@ -93,6 +106,7 @@ func (f usedTaskCache) find(runner sq.Runner) (UsedTaskCache, bool, error) {
 		jobID:    f.jobID,
 		stepName: f.stepName,
 		path:     f.path,
+		ttl:      time.Duration(ttlSeconds) * time.Second,
 	}, true, nil
 
 }

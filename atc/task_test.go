@@ -172,6 +172,61 @@ run: {path: a/file}
 				})
 			})
 
+			Context("given a valid task config with cache ttl", func() {
+				It("parses a valid ttl", func() {
+					data := []byte(`
+platform: beos
+run: {path: a/file}
+caches:
+- path: some-path
+  ttl: 24h
+`)
+					task, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Caches).To(Equal([]TaskCacheConfig{
+						{Path: "some-path", TTL: "24h"},
+					}))
+				})
+
+				It("allows blank ttl", func() {
+					data := []byte(`
+platform: beos
+run: {path: a/file}
+caches:
+- path: some-path
+`)
+					task, err := NewTaskConfig(data)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(task.Caches).To(Equal([]TaskCacheConfig{
+						{Path: "some-path"},
+					}))
+				})
+
+				It("rejects ttl shorter than 1s", func() {
+					data := []byte(`
+platform: beos
+run: {path: a/file}
+caches:
+- path: some-path
+  ttl: 500ms
+`)
+					_, err := NewTaskConfig(data)
+					Expect(err).To(MatchError(ContainSubstring("cache ttl must be at least 1s")))
+				})
+
+				It("rejects an invalid ttl string", func() {
+					data := []byte(`
+platform: beos
+run: {path: a/file}
+caches:
+- path: some-path
+  ttl: notaduration
+`)
+					_, err := NewTaskConfig(data)
+					Expect(err).To(MatchError(ContainSubstring("invalid cache ttl")))
+				})
+			})
+
 			Context("given a valid task config with extra keys", func() {
 				It("returns an error", func() {
 					data := []byte(`
