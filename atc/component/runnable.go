@@ -2,6 +2,8 @@ package component
 
 import "context"
 
+//counterfeiter:generate . Runnable
+
 // Runnable represents a workload to execute.
 type Runnable interface {
 	// Run is invoked repeatedly. The component should perform whatever work is

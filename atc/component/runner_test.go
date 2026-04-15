@@ -10,7 +10,7 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc/component"
-	"github.com/concourse/concourse/atc/component/cmocks"
+	"github.com/concourse/concourse/atc/component/componentfakes"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -43,11 +43,11 @@ func (s *RunnerSuite) TestEndToEnd() {
 	interval := 30 * time.Second
 	componentName := "some-component"
 
-	mockComponent := new(cmocks.Component)
-	mockComponent.On("Name").Return(componentName)
-	mockComponent.On("Interval").Return(interval)
+	fakeComponent := new(componentfakes.FakeComponent)
+	fakeComponent.NameReturns(componentName)
+	// interval????
 
-	mockBus := new(cmocks.NotificationsBus)
+	fakeBus := new(componentfakes.FakeNotificationsBus)
 
 	ranPeriodically := make(chan context.Context)
 	ranImmediately := make(chan context.Context)
@@ -64,8 +64,8 @@ func (s *RunnerSuite) TestEndToEnd() {
 	scheduler := &component.Runner{
 		Logger:      lagertest.NewTestLogger("test"),
 		Interval:    interval,
-		Component:   mockComponent,
-		Bus:         mockBus,
+		Component:   fakeComponent,
+		Bus:         fakeBus,
 		Schedulable: mockSchedulable,
 	}
 
@@ -73,7 +73,11 @@ func (s *RunnerSuite) TestEndToEnd() {
 
 	var process ifrit.Process
 	s.Run("listens for component notifications on start", func() {
-		mockBus.On("Listen", componentName, 1).Return(notifications, nil)
+		fakeBus.ListenStub = func(comp string, i int) (chan db.Notification, error) {
+			s.Equal(componentName, comp)
+			s.Equal(1, i)
+			return notifications, nil
+		}
 
 		process = ifrit.Background(scheduler)
 		select {
@@ -82,7 +86,7 @@ func (s *RunnerSuite) TestEndToEnd() {
 			s.Failf("process exited early", "error: %s", err)
 		}
 
-		mockBus.AssertCalled(s.T(), "Listen", componentName, 1)
+		s.Equal(1, fakeBus.ListenCallCount())
 	})
 
 	defer func() {
@@ -137,11 +141,15 @@ func (s *RunnerSuite) TestEndToEnd() {
 	})
 
 	s.Run("unlistens on exit", func() {
-		mockBus.On("Unlisten", componentName, notifications).Return(nil)
+		fakeBus.UnlistenStub = func(comp string, c chan db.Notification) error {
+			s.Equal(componentName, comp)
+			s.Equal(notifications, c)
+			return nil
+		}
 		process.Signal(os.Interrupt)
 
 		s.NoError(<-process.Wait())
-		mockBus.AssertCalled(s.T(), "Unlisten", componentName, notifications)
+		s.Equal(1, fakeBus.UnlistenCallCount())
 	})
 }
 

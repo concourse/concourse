@@ -13,6 +13,7 @@ import (
 
 var Clock = clock.NewClock()
 
+//counterfeiter:generate . NotificationsBus
 type NotificationsBus interface {
 	Listen(string, int) (chan db.Notification, error)
 	Unlisten(string, chan db.Notification) error
