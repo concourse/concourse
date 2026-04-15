@@ -132,26 +132,27 @@ declarative YAML files:
 
 ```yaml
 resources:
-- name: booklit
+- name: examples
   type: git
-  source: {uri: "https://github.com/concourse/booklit"}
+  source:
+    uri: https://github.com/concourse/examples
 
 jobs:
-- name: unit
+- name: hello-world
   plan:
-  - get: booklit
+  - get: examples
     trigger: true
-  - task: test
-    file: booklit/ci/test.yml
+  - task: hello
+    file: examples/tasks/hello-world.yml
 ```
 
 Most operations are done via the accompanying `fly` CLI. If you've got Concourse
 [installed](https://concourse-ci.org/install.html), try saving the above example
-as `booklit.yml`, [target your Concourse
+as `hello-world.yml`, [target your Concourse
 instance](https://concourse-ci.org/fly.html#fly-login), and then run:
 
 ```sh
-fly -t ci set-pipeline -p booklit -c booklit.yml
+fly -t ci set-pipeline -p hello-world -c hello-world.yml
 ```
 
 These pipeline files are self-contained, making them easily portable between
