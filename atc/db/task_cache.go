@@ -31,51 +31,42 @@ func (tc *usedTaskCache) Path() string       { return tc.path }
 func (tc *usedTaskCache) TTL() time.Duration { return tc.ttl }
 
 func (f usedTaskCache) findOrCreate(tx Tx) (UsedTaskCache, error) {
-	utc, found, err := f.find(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	if !found {
-		var id int
-		err = psql.Insert("task_caches").
-			Columns(
-				"job_id",
-				"step_name",
-				"path",
-				"last_used",
-				"ttl",
-			).
-			Values(
-				f.jobID,
-				f.stepName,
-				f.path,
-				sq.Expr("now()"),
-				int64(f.ttl.Seconds()),
-			).
-			Suffix(`
+	var id int
+	err := psql.Insert("task_caches").
+		Columns(
+			"job_id",
+			"step_name",
+			"path",
+			"last_used",
+			"ttl",
+		).
+		Values(
+			f.jobID,
+			f.stepName,
+			f.path,
+			sq.Expr("now()"),
+			int64(f.ttl.Seconds()),
+		).
+		Suffix(`
 					ON CONFLICT (job_id, step_name, path) DO UPDATE SET
 						last_used = now(),
 						ttl = ?
 					RETURNING id
 				`, int64(f.ttl.Seconds())).
-			RunWith(tx).
-			QueryRow().
-			Scan(&id)
-		if err != nil {
-			return nil, err
-		}
-
-		return &usedTaskCache{
-			id:       id,
-			jobID:    f.jobID,
-			stepName: f.stepName,
-			path:     f.path,
-			ttl:      f.ttl,
-		}, nil
+		RunWith(tx).
+		QueryRow().
+		Scan(&id)
+	if err != nil {
+		return nil, err
 	}
 
-	return utc, nil
+	return &usedTaskCache{
+		id:       id,
+		jobID:    f.jobID,
+		stepName: f.stepName,
+		path:     f.path,
+		ttl:      f.ttl,
+	}, nil
 }
 
 func (f usedTaskCache) find(runner sq.Runner) (UsedTaskCache, bool, error) {

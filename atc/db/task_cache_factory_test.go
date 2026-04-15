@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -37,6 +39,18 @@ var _ = Describe("TaskCacheFactory", func() {
 					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("updates the existing task cache's ttl", func() {
+				updatedTaskCache, err := taskCacheFactory.FindOrCreate(
+					defaultJob.ID(),
+					"some-step",
+					"some-path",
+					1*time.Hour,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updatedTaskCache.ID()).To(Equal(usedTaskCache.ID()))
+				Expect(updatedTaskCache.TTL()).ToNot(Equal(usedTaskCache.TTL()))
 			})
 
 			It("creates a new task cache for another task", func() {
