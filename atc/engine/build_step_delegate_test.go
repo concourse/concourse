@@ -416,7 +416,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					"step": {
 						"id": "put-id",
 						"put": {
-							"name": "((.:v1))",
+							"name": "((.:v1))-((dummy-source:global-var))",
 							"type": "some-type",
 							"params": {
 								"p1": "((.:v2))",
@@ -428,7 +428,7 @@ var _ = Describe("BuildStepDelegate", func() {
 					"on_success": {
 						"id": "get-id",
 						"get": {
-							"name": "((.:v1))",
+							"name": "((.:v1))-((dummy-source:global-var))",
 							"type": "some-type",
 							"version_from": "put-id"
 						}
@@ -454,7 +454,7 @@ var _ = Describe("BuildStepDelegate", func() {
 							Step: atc.Plan{
 								ID: "some-plan-id/0/1",
 								Put: &atc.PutPlan{
-									Name: "a1",
+									Name: "a1-((dummy-source:global-var))",
 									Type: "some-type",
 									Params: atc.Params{
 										"p1":        "b1",
@@ -466,7 +466,7 @@ var _ = Describe("BuildStepDelegate", func() {
 							Next: atc.Plan{
 								ID: "some-plan-id/0/2",
 								Get: &atc.GetPlan{
-									Name:        "a1",
+									Name:        "a1-((dummy-source:global-var))",
 									Type:        "some-type",
 									VersionFrom: planIDPtr("some-plan-id/0/1"),
 								},
@@ -482,7 +482,7 @@ var _ = Describe("BuildStepDelegate", func() {
 							Step: atc.Plan{
 								ID: "some-plan-id/1/1",
 								Put: &atc.PutPlan{
-									Name: "a1",
+									Name: "a1-((dummy-source:global-var))",
 									Type: "some-type",
 									Params: atc.Params{
 										"p1":        "b1",
@@ -494,7 +494,7 @@ var _ = Describe("BuildStepDelegate", func() {
 							Next: atc.Plan{
 								ID: "some-plan-id/1/2",
 								Get: &atc.GetPlan{
-									Name:        "a1",
+									Name:        "a1-((dummy-source:global-var))",
 									Type:        "some-type",
 									VersionFrom: planIDPtr("some-plan-id/1/1"),
 								},
