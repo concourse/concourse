@@ -157,15 +157,14 @@ func TestVaultKVMountCacheV2(t *testing.T) {
 
 	testCredentialManagement(t, fly, dc,
 		func(team, key string, val any) {
-			// v2 writes go through the /data/ path prefix
-			vault.Write(t,
-				fmt.Sprintf("concourse/main/data/%s/%s", team, key),
+			vault.KVPut(t,
+				fmt.Sprintf("concourse/%s/%s", team, key),
 				val,
 			)
 		},
 		func(team, pipeline, key string, val any) {
-			vault.Write(t,
-				fmt.Sprintf("concourse/main/data/%s/%s/%s", team, pipeline, key),
+			vault.KVPut(t,
+				fmt.Sprintf("concourse/%s/%s/%s", team, pipeline, key),
 				val,
 			)
 		},
