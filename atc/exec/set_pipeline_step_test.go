@@ -613,6 +613,19 @@ jobs:
 			})
 		})
 	})
+
+	Context("when pipeline name contains '/'", func() {
+		BeforeEach(func() {
+			spPlan.Name = "some/pipeline"
+			fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+		})
+
+		It("should fail with error invalid identifier", func() {
+			Expect(stderr).To(gbytes.Say("ERROR: pipeline name cannot contain '/'"))
+			Expect(stepOk).To(BeFalse())
+			Expect(stepErr).ToNot(HaveOccurred())
+		})
+	})
 })
 
 type fakeReadCloser struct {
