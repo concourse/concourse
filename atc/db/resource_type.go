@@ -167,7 +167,7 @@ var resourceTypesQuery = psql.Select(
 	Join("pipelines p ON p.id = r.pipeline_id").
 	Join("teams t ON t.id = p.team_id").
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
-	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id").
+	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id AND ro.resource_id IS NULL").
 	Where(sq.Eq{"r.active": true})
 
 type resourceType struct {
