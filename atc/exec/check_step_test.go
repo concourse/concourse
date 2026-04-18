@@ -9,6 +9,7 @@ import (
 	"io"
 	"time"
 
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -126,10 +127,11 @@ var _ = Describe("CheckStep", func() {
 		}
 
 		var err error
-		_, noInputStrategy, checkStrategy, err = worker.NewPlacementStrategy(worker.PlacementOptions{
-			NoInputStrategies: []string{},
-			CheckStrategies:   []string{},
-		})
+		_, noInputStrategy, checkStrategy, err = worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+			worker.PlacementOptions{
+				NoInputStrategies: []string{},
+				CheckStrategies:   []string{},
+			})
 		Expect(err).ToNot(HaveOccurred())
 
 		expires := db.ContainerOwnerExpiries{

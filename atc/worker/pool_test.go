@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/metric"
 	"github.com/concourse/concourse/atc/runtime"
@@ -79,9 +80,10 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies: []string{"fewest-build-containers"},
-			})
+			strategy, _, _, err := worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+				worker.PlacementOptions{
+					Strategies: []string{"fewest-build-containers"},
+				})
 			Expect(err).ToNot(HaveOccurred())
 
 			worker, err := scenario.Pool.FindOrSelectWorker(
@@ -280,10 +282,11 @@ var _ = Describe("Pool", func() {
 				),
 			)
 
-			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies:              []string{"limit-active-tasks"},
-				MaxActiveTasksPerWorker: 1,
-			})
+			strategy, _, _, err := worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+				worker.PlacementOptions{
+					Strategies:              []string{"limit-active-tasks"},
+					MaxActiveTasksPerWorker: 1,
+				})
 			Expect(err).ToNot(HaveOccurred())
 
 			taskSpec := runtime.ContainerSpec{Type: db.ContainerTypeTask}

@@ -3,6 +3,7 @@ package worker_test
 import (
 	"slices"
 
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
@@ -17,9 +18,10 @@ import (
 var _ = Describe("Container Placement Strategies", func() {
 	Describe("Volume Locality", func() {
 		volumeLocalityStrategy := func() worker.PlacementStrategy {
-			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies: []string{"volume-locality"},
-			})
+			strategy, _, _, err := worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+				worker.PlacementOptions{
+					Strategies: []string{"volume-locality"},
+				})
 			Expect(err).ToNot(HaveOccurred())
 			return strategy
 		}
@@ -498,9 +500,10 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Fewest Build Containers", func() {
 		fewestBuildContainersStrategy := func() worker.PlacementStrategy {
-			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies: []string{"fewest-build-containers"},
-			})
+			strategy, _, _, err := worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+				worker.PlacementOptions{
+					Strategies: []string{"fewest-build-containers"},
+				})
 			Expect(err).ToNot(HaveOccurred())
 			return strategy
 		}
@@ -534,10 +537,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Tasks", func() {
 		limitActiveTasksStrategy := func(max int) worker.PlacementStrategy {
-			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies:              []string{"limit-active-tasks"},
-				MaxActiveTasksPerWorker: max,
-			})
+			strategy, _, _, err := worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+				worker.PlacementOptions{
+					Strategies:              []string{"limit-active-tasks"},
+					MaxActiveTasksPerWorker: max,
+				})
 			Expect(err).ToNot(HaveOccurred())
 			return strategy
 		}
@@ -611,10 +615,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Containers", func() {
 		limitActiveContainersStrategy := func(max int) worker.PlacementStrategy {
-			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies:                   []string{"limit-active-containers"},
-				MaxActiveContainersPerWorker: max,
-			})
+			strategy, _, _, err := worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+				worker.PlacementOptions{
+					Strategies:                   []string{"limit-active-containers"},
+					MaxActiveContainersPerWorker: max,
+				})
 			Expect(err).ToNot(HaveOccurred())
 			return strategy
 		}
@@ -699,10 +704,11 @@ var _ = Describe("Container Placement Strategies", func() {
 
 	Describe("Limit Active Volumes", func() {
 		limitActiveVolumesStrategy := func(max int) worker.PlacementStrategy {
-			strategy, _, _, err := worker.NewPlacementStrategy(worker.PlacementOptions{
-				Strategies:                []string{"limit-active-volumes"},
-				MaxActiveVolumesPerWorker: max,
-			})
+			strategy, _, _, err := worker.NewPlacementStrategy(lagertest.NewTestLogger("atc"),
+				worker.PlacementOptions{
+					Strategies:                []string{"limit-active-volumes"},
+					MaxActiveVolumesPerWorker: max,
+				})
 			Expect(err).ToNot(HaveOccurred())
 			return strategy
 		}

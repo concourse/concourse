@@ -26,7 +26,7 @@ var (
 	ErrTooManyVolumes    = errors.New("worker has too many volumes")
 )
 
-func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, PlacementStrategy, PlacementStrategy, error) {
+func NewPlacementStrategy(logger lager.Logger, options PlacementOptions) (PlacementStrategy, PlacementStrategy, PlacementStrategy, error) {
 	// If no-input-container-placement-strategy is not configured, then just use
 	// container-placement-strategy.
 	if len(options.NoInputStrategies) == 0 {
@@ -45,6 +45,12 @@ func NewPlacementStrategy(options PlacementOptions) (PlacementStrategy, Placemen
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	logger.Info("container-placement-strategies", lager.Data{
+		"build-strategies":    options.Strategies,
+		"no-input-strategies": options.NoInputStrategies,
+		"check-strategies":    options.CheckStrategies,
+	})
 
 	return strategy, noInputStrategy, checkStrategy, nil
 }
