@@ -92,6 +92,18 @@ func (step *SetPipelineStep) run(ctx context.Context, state RunState, delegate S
 		step.plan.Team = ""
 	}
 
+	if strings.Contains(step.plan.Name, "/") {
+		fmt.Fprintln(delegate.Stderr(), "ERROR: pipeline name cannot contain '/'")
+		delegate.Finished(logger, false)
+		return false, nil
+	}
+
+	if strings.Contains(step.plan.Team, "/") {
+		fmt.Fprintln(delegate.Stderr(), "ERROR: team name cannot contain '/'")
+		delegate.Finished(logger, false)
+		return false, nil
+	}
+
 	source := setPipelineSource{
 		ctx:      ctx,
 		logger:   logger,
