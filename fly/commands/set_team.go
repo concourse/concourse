@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
@@ -32,6 +34,10 @@ type SetTeamCommand struct {
 }
 
 func (command *SetTeamCommand) Validate() ([]concourse.ConfigWarning, error) {
+	if strings.Contains(command.Team.Name(), "/") {
+		return nil, errors.New("team name cannot contain '/'")
+	}
+
 	var warnings []concourse.ConfigWarning
 	warning, err := atc.ValidateIdentifier(command.Team.Name(), "team")
 	if err != nil {

@@ -614,6 +614,19 @@ jobs:
 		})
 	})
 
+	Context("when team name contains '/'", func() {
+		BeforeEach(func() {
+			spPlan.Team = "some/team"
+			fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+		})
+
+		It("should fail with error", func() {
+			Expect(stderr).To(gbytes.Say("ERROR: team name cannot contain '/'"))
+			Expect(stepOk).To(BeFalse())
+			Expect(stepErr).ToNot(HaveOccurred())
+		})
+	})
+
 	Context("when pipeline name contains '/'", func() {
 		BeforeEach(func() {
 			spPlan.Name = "some/pipeline"

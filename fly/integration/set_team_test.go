@@ -470,6 +470,16 @@ var _ = Describe("set-team", func() {
 		})
 	})
 
+	Context("when team name contains '/'", func() {
+		It("returns an error", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "set-team", "--team-name", "some/team", "--local-user", "foo")
+			sess, err := gexec.Start(flyCmd, ginkgo.GinkgoWriter, ginkgo.GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred())
+			Eventually(sess.Err).Should(gbytes.Say("team name cannot contain '/'"))
+			Eventually(sess).Should(gexec.Exit(1))
+		})
+	})
+
 	Context("using command line args", func() {
 		Describe("flag validation", func() {
 			Describe("no auth", func() {
