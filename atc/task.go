@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"sigs.k8s.io/yaml"
 )
@@ -194,6 +195,28 @@ type TaskOutputConfig struct {
 
 type TaskCacheConfig struct {
 	Path string `json:"path,omitempty"`
+	TTL  string `json:"ttl,omitempty"`
+}
+
+func (c *TaskCacheConfig) UnmarshalJSON(data []byte) error {
+	type alias TaskCacheConfig
+	var a alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+
+	if a.TTL != "" {
+		d, err := time.ParseDuration(a.TTL)
+		if err != nil {
+			return fmt.Errorf("invalid cache ttl '%s': %w", a.TTL, err)
+		}
+		if d < time.Second {
+			return fmt.Errorf("cache ttl must be at least 1s, got '%s'", a.TTL)
+		}
+	}
+
+	*c = TaskCacheConfig(a)
+	return nil
 }
 
 type TaskEnv map[string]string

@@ -327,7 +327,7 @@ type Volume interface {
 
 	// InitializeTaskCache is called upon a successful run of the task step to
 	// register this Volume as a task cache.
-	InitializeTaskCache(ctx context.Context, jobID int, stepName string, path string, privileged bool) error
+	InitializeTaskCache(ctx context.Context, jobID int, stepName string, path string, privileged bool, ttl time.Duration) error
 
 	DBVolume() db.CreatedVolume
 }

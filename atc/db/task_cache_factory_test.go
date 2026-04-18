@@ -1,6 +1,8 @@
 package db_test
 
 import (
+	"time"
+
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,6 +18,7 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(usedTaskCache.ID()).ToNot(BeNil())
@@ -33,8 +36,21 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("updates the existing task cache's ttl", func() {
+				updatedTaskCache, err := taskCacheFactory.FindOrCreate(
+					defaultJob.ID(),
+					"some-step",
+					"some-path",
+					1*time.Hour,
+				)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updatedTaskCache.ID()).To(Equal(usedTaskCache.ID()))
+				Expect(updatedTaskCache.TTL()).ToNot(Equal(usedTaskCache.TTL()))
 			})
 
 			It("creates a new task cache for another task", func() {
@@ -42,6 +58,7 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-other-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(otherTaskCache.ID()).ToNot(Equal(usedTaskCache.ID()))
@@ -74,6 +91,7 @@ var _ = Describe("TaskCacheFactory", func() {
 					defaultJob.ID(),
 					"some-step",
 					"some-path",
+					0,
 				)
 				Expect(err).ToNot(HaveOccurred())
 			})

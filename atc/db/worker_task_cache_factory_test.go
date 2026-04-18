@@ -11,7 +11,7 @@ var _ = Describe("WorkerTaskCache", func() {
 	var workerTaskCache db.WorkerTaskCache
 
 	BeforeEach(func() {
-		taskCache, err := taskCacheFactory.FindOrCreate(1, "some-step", "some-path")
+		taskCache, err := taskCacheFactory.FindOrCreate(1, "some-step", "some-path", 0)
 		Expect(err).ToNot(HaveOccurred())
 
 		workerTaskCache = db.WorkerTaskCache{
