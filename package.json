@@ -7,7 +7,7 @@
   "type": "module",
   "dependencies": {
     "request": "^2.88.2",
-    "uuid": "^13.0.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
@@ -26,7 +26,7 @@
     "puppeteer": "^24.37.3",
     "uglify-js": "^3.19.3",
     "webpack": "^5.105.2",
-    "webpack-cli": "7.0.0"
+    "webpack-cli": "7.0.2"
   },
   "resolutions": {
     "less/request": "^2.86.0",
@@ -45,5 +45,5 @@
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" | tr -d '\n' > web/public/mdi-svg.min.js",
     "benchmark": "cd web/elm && elm make --optimize --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
   },
-  "packageManager": "yarn@4.12.0"
+  "packageManager": "yarn@4.14.1"
 }
