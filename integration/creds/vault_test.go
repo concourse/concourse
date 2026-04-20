@@ -177,9 +177,6 @@ func setupVaultAuth(t *testing.T, vault vaulttest.Cmd) {
 		path "concourse/*" {
 			policy = "read"
 		}
-		path "secret*" {
-			policy = "read"
-		}
 	`)).Run(t, "policy", "write", "concourse", "-")
 
 	// set up cert-based auth
