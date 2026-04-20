@@ -8,11 +8,11 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	store "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/storage"
-	"github.com/concourse/flag/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 

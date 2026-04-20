@@ -786,8 +786,6 @@ github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 h1:6xNmx7iTtyBRev0+D/T
 github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5/go.mod h1:KdCmV+x/BuvyMxRnYBlmVaq4OLiKW6iRQfvC62cvdkI=
 github.com/concourse/dex v1.12.0 h1:P2Azy3FQXbjEppHxUywLCZOaTjDlII/HXChh8tlbwO0=
 github.com/concourse/dex v1.12.0/go.mod h1:WpPmne4QEtOtjRSJu3eHLS5u2hCGCYgLKjF7c5mLhjM=
-github.com/concourse/flag/v2 v2.4.0 h1:os2R6Mmck8mVG689rI6/uzIdk+H9EEqiuB1q1AGAjhA=
-github.com/concourse/flag/v2 v2.4.0/go.mod h1:o/IhPRE8pH5VQQdx/ooMCXQzIpwKOrLLhhEjvMRPAIo=
 github.com/concourse/go-archive v1.0.1 h1:6jQk0VDiE4G6lNJQ0mLZ7XmxbqI3spO4x0wgVwk4pfo=
 github.com/concourse/go-archive v1.0.1/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/houdini v1.3.0 h1:JzxY0p0algYdydonCG/7SSAkDOWNXpaG37TRbVwY2Io=

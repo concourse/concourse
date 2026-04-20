@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/atc/db/encryption"
-	"github.com/concourse/flag/v2"
+	"github.com/concourse/concourse/flag"
 	flags "github.com/jessevdk/go-flags"
 )
 

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/connector/saml"
-	"github.com/concourse/flag/v2"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
