@@ -147,8 +147,12 @@ type RunCommand struct {
 		GracePeriod    time.Duration `long:"grace-period" default:"24h" description:"How long a key should still be published for the idtoken secrets provider after a new key has been generated"`
 	} `group:"Pipeline Identity Tokens" namespace:"signing-key"`
 
-	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey flag.Cipher `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
+	EncryptionKey          flag.Cipher       `long:"encryption-key"            description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyBase64    flag.CipherBase64 `long:"encryption-key-base64"     description:"A base64-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyHex       flag.CipherHex    `long:"encryption-key-hex"        description:"A hex-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey       flag.Cipher       `long:"old-encryption-key"        description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyBase64 flag.CipherBase64 `long:"old-encryption-key-base64" description:"Base64-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyHex    flag.CipherHex    `long:"old-encryption-key-hex"    description:"Hex-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
@@ -293,8 +297,12 @@ type Migration struct {
 	lockFactory lock.LockFactory
 
 	Postgres               flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
-	EncryptionKey          flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey       flag.Cipher         `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	EncryptionKey          flag.Cipher         `long:"encryption-key"            description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyBase64    flag.CipherBase64   `long:"encryption-key-base64"     description:"A base64-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyHex       flag.CipherHex      `long:"encryption-key-hex"        description:"A hex-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey       flag.Cipher         `long:"old-encryption-key"        description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyBase64 flag.CipherBase64   `long:"old-encryption-key-base64" description:"Base64-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyHex    flag.CipherHex      `long:"old-encryption-key-hex"    description:"Hex-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 	CurrentDBVersion       bool                `long:"current-db-version" description:"Print the current database version and exit"`
 	SupportedDBVersion     bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
 	MigrateDBToVersion     int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
@@ -377,15 +385,8 @@ func (cmd *Migration) supportedDBVersion() error {
 func (cmd *Migration) migrateDBToVersion() error {
 	version := cmd.MigrateDBToVersion
 
-	var newKey *encryption.Key
-	var oldKey *encryption.Key
-
-	if cmd.EncryptionKey.AEAD != nil {
-		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
-	}
-	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
-	}
+	newKey := cmd.resolveNewKey()
+	oldKey := cmd.resolveOldKey()
 
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
@@ -405,15 +406,8 @@ func (cmd *Migration) migrateDBToVersion() error {
 }
 
 func (cmd *Migration) rotateEncryptionKey() error {
-	var newKey *encryption.Key
-	var oldKey *encryption.Key
-
-	if cmd.EncryptionKey.AEAD != nil {
-		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
-	}
-	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
-	}
+	newKey := cmd.resolveNewKey()
+	oldKey := cmd.resolveOldKey()
 
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
@@ -429,6 +423,34 @@ func (cmd *Migration) rotateEncryptionKey() error {
 	}
 
 	return helper.MigrateToVersion(version)
+}
+
+func (cmd *Migration) resolveNewKey() *encryption.Key {
+	aead := cmd.EncryptionKey.AEAD
+	if aead == nil {
+		aead = cmd.EncryptionKeyBase64.AEAD
+	}
+	if aead == nil {
+		aead = cmd.EncryptionKeyHex.AEAD
+	}
+	if aead != nil {
+		return encryption.NewKey(aead)
+	}
+	return nil
+}
+
+func (cmd *Migration) resolveOldKey() *encryption.Key {
+	aead := cmd.OldEncryptionKey.AEAD
+	if aead == nil {
+		aead = cmd.OldEncryptionKeyBase64.AEAD
+	}
+	if aead == nil {
+		aead = cmd.OldEncryptionKeyHex.AEAD
+	}
+	if aead != nil {
+		return encryption.NewKey(aead)
+	}
+	return nil
 }
 
 func (cmd *Migration) migrateToLatestVersion() error {
@@ -1506,16 +1528,30 @@ func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error)
 
 func (cmd *RunCommand) newKey() *encryption.Key {
 	var newKey *encryption.Key
-	if cmd.EncryptionKey.AEAD != nil {
-		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	aead := cmd.EncryptionKey.AEAD
+	if aead == nil {
+		aead = cmd.EncryptionKeyBase64.AEAD
+	}
+	if aead == nil {
+		aead = cmd.EncryptionKeyHex.AEAD
+	}
+	if aead != nil {
+		newKey = encryption.NewKey(aead)
 	}
 	return newKey
 }
 
 func (cmd *RunCommand) oldKey() *encryption.Key {
 	var oldKey *encryption.Key
-	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	aead := cmd.OldEncryptionKey.AEAD
+	if aead == nil {
+		aead = cmd.OldEncryptionKeyBase64.AEAD
+	}
+	if aead == nil {
+		aead = cmd.OldEncryptionKeyHex.AEAD
+	}
+	if aead != nil {
+		oldKey = encryption.NewKey(aead)
 	}
 	return oldKey
 }
