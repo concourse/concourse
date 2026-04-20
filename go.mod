@@ -79,7 +79,7 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/square/certstrap v1.3.0
 	github.com/stretchr/testify v1.11.1
-	github.com/tedsuo/ifrit v0.0.0-20230516164442-7862c310ad26
+	github.com/tedsuo/ifrit v0.0.0-20260418191334-846868129986
 	github.com/tedsuo/rata v1.0.1-0.20170830210128-07d200713958
 	github.com/txn2/txeh v1.8.0
 	github.com/vbauerster/mpb/v8 v8.12.0
