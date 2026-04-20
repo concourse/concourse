@@ -108,10 +108,76 @@ func TestVaultV2WithUnmountPath(t *testing.T) {
 	require.NotContains(t, result, "403")
 }
 
+func TestVaultKVMountCache(t *testing.T) {
+	t.Parallel()
+
+	dc := dctest.Init(t, "../docker-compose.yml", "overrides/vault.yml", "overrides/vault-cache.yml")
+	dc.Run(t, "up", "-d")
+
+	vault := vaulttest.Init(t, dc)
+
+	fly := flytest.Init(t, dc)
+
+	// set up kv v1 store for Concourse with mount cache enabled
+	vault.Run(t, "secrets", "enable", "-version=1", "-path", "concourse/main", "kv")
+
+	setupVaultAuth(t, vault)
+
+	testCredentialManagement(t, fly, dc,
+		func(team, key string, val any) {
+			vault.Write(t,
+				fmt.Sprintf("concourse/%s/%s", team, key),
+				val,
+			)
+		},
+		func(team, pipeline, key string, val any) {
+			vault.Write(t,
+				fmt.Sprintf("concourse/%s/%s/%s", team, pipeline, key),
+				val,
+			)
+		},
+	)
+}
+
+func TestVaultKVMountCacheV2(t *testing.T) {
+	t.Parallel()
+
+	dc := dctest.Init(t, "../docker-compose.yml", "overrides/vault.yml", "overrides/vault-cache.yml")
+	dc.Run(t, "up", "-d")
+
+	vault := vaulttest.Init(t, dc)
+
+	fly := flytest.Init(t, dc)
+
+	// set up kv v2 store for Concourse with mount cache enabled.
+	// the cache must correctly detect v2, store it, and reuse it on subsequent reads.
+	vault.Run(t, "secrets", "enable", "-version=2", "-path", "concourse/main", "kv")
+
+	setupVaultAuth(t, vault)
+
+	testCredentialManagement(t, fly, dc,
+		func(team, key string, val any) {
+			vault.KVPut(t,
+				fmt.Sprintf("concourse/%s/%s", team, key),
+				val,
+			)
+		},
+		func(team, pipeline, key string, val any) {
+			vault.KVPut(t,
+				fmt.Sprintf("concourse/%s/%s/%s", team, pipeline, key),
+				val,
+			)
+		},
+	)
+}
+
 func setupVaultAuth(t *testing.T, vault vaulttest.Cmd) {
 	// set up a policy for Concourse
 	vault.WithInput(bytes.NewBufferString(`
 		path "concourse/*" {
+			policy = "read"
+		}
+		path "secret*" {
 			policy = "read"
 		}
 	`)).Run(t, "policy", "write", "concourse", "-")

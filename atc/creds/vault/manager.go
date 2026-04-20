@@ -17,12 +17,13 @@ import (
 type VaultManager struct {
 	URL string `mapstructure:"url" long:"url" description:"Vault server address used to access secrets."`
 
-	PathPrefix      string        `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
-	LookupTemplates []string      `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
-	SharedPath      string        `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
-	Namespace       string        `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
-	LoginTimeout    time.Duration `mapstructure:"login_timeout" long:"login-timeout" default:"60s" description:"Timeout value for Vault login."`
-	QueryTimeout    time.Duration `mapstructure:"query_timeout" long:"query-timeout" default:"60s" description:"Timeout value for Vault query."`
+	PathPrefix         string        `mapstructure:"path_prefix" long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+	LookupTemplates    []string      `mapstructure:"lookup_templates" long:"lookup-templates" default:"/{{.Team}}/{{.Pipeline}}/{{.Secret}}" default:"/{{.Team}}/{{.Secret}}" description:"Path templates for credential lookup"`
+	SharedPath         string        `mapstructure:"shared_path" long:"shared-path" description:"Path under which to lookup shared credentials."`
+	Namespace          string        `mapstructure:"namespace" long:"namespace"   description:"Vault namespace to use for authentication and secret lookup."`
+	LoginTimeout       time.Duration `mapstructure:"login_timeout" long:"login-timeout" default:"60s" description:"Timeout value for Vault login."`
+	QueryTimeout       time.Duration `mapstructure:"query_timeout" long:"query-timeout" default:"60s" description:"Timeout value for Vault query."`
+	EnableKVMountCache bool          `mapstructure:"enable_kv_mount_cache" long:"enable-kv-mount-cache" description:"Enable caching of KV mount version detection to reduce preflight requests to Vault."`
 
 	ClientConfig ClientConfig `mapstructure:",squash"`
 	TLS          TLSConfig    `mapstructure:",squash"`
@@ -67,7 +68,7 @@ type AuthConfig struct {
 func (manager *VaultManager) Init(log lager.Logger) error {
 	var err error
 
-	manager.Client, err = NewAPIClient(log, manager.URL, manager.ClientConfig, manager.TLS, manager.Auth, manager.Namespace, manager.QueryTimeout)
+	manager.Client, err = NewAPIClient(log, manager.URL, manager.ClientConfig, manager.TLS, manager.Auth, manager.Namespace, manager.QueryTimeout, manager.EnableKVMountCache)
 	if err != nil {
 		return err
 	}
@@ -104,6 +105,7 @@ func (manager *VaultManager) Config(config map[string]any) error {
 	manager.Auth.RetryInitial = time.Second
 	manager.LoginTimeout = 60 * time.Second
 	manager.QueryTimeout = 60 * time.Second
+	manager.EnableKVMountCache = false
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook:  mapstructure.StringToTimeDurationHookFunc(),
