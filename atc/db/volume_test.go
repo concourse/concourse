@@ -589,7 +589,7 @@ var _ = Describe("Volume", func() {
 				existingTaskCacheVolume, err = v.Created()
 				Expect(err).ToNot(HaveOccurred())
 
-				err = existingTaskCacheVolume.InitializeTaskCache(defaultJob.ID(), "some-step", "some-cache-path")
+				err = existingTaskCacheVolume.InitializeTaskCache(defaultJob.ID(), "some-step", "some-cache-path", 0)
 				Expect(err).ToNot(HaveOccurred())
 
 				v, err = volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), creatingContainer, "some-other-path")
@@ -600,7 +600,7 @@ var _ = Describe("Volume", func() {
 			})
 
 			It("sets current volume as worker task cache volume", func() {
-				taskCache, err := taskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-cache-path")
+				taskCache, err := taskCacheFactory.FindOrCreate(defaultJob.ID(), "some-step", "some-cache-path", 0)
 				Expect(err).ToNot(HaveOccurred())
 
 				createdVolume, found, err := volumeRepository.FindTaskCacheVolume(defaultTeam.ID(), defaultWorker.Name(), taskCache)
@@ -609,7 +609,7 @@ var _ = Describe("Volume", func() {
 				Expect(createdVolume).ToNot(BeNil())
 				Expect(createdVolume.Handle()).To(Equal(existingTaskCacheVolume.Handle()))
 
-				err = volume.InitializeTaskCache(defaultJob.ID(), "some-step", "some-cache-path")
+				err = volume.InitializeTaskCache(defaultJob.ID(), "some-step", "some-cache-path", 0)
 				Expect(err).ToNot(HaveOccurred())
 
 				createdVolume, found, err = volumeRepository.FindTaskCacheVolume(defaultTeam.ID(), defaultWorker.Name(), taskCache)
@@ -891,7 +891,7 @@ var _ = Describe("Volume", func() {
 
 	Describe("Task cache volumes", func() {
 		It("returns volume type and task identifier", func() {
-			taskCache, err := taskCacheFactory.FindOrCreate(defaultJob.ID(), "some-task", "some-path")
+			taskCache, err := taskCacheFactory.FindOrCreate(defaultJob.ID(), "some-task", "some-path", 0)
 			Expect(err).ToNot(HaveOccurred())
 
 			uwtc, err := workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{

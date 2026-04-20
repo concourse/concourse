@@ -2112,7 +2112,7 @@ var _ = Describe("Job", func() {
 					found bool
 				)
 
-				usedTaskCache, err := taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path")
+				usedTaskCache, err := taskCacheFactory.FindOrCreate(job.ID(), "some-task", "some-path", 0)
 				Expect(err).ToNot(HaveOccurred())
 
 				_, err = workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{
@@ -2126,7 +2126,7 @@ var _ = Describe("Job", func() {
 				Expect(found).To(BeTrue())
 				Expect(someOtherJob).ToNot(BeNil())
 
-				otherUsedTaskCache, err := taskCacheFactory.FindOrCreate(someOtherJob.ID(), "some-other-task", "some-other-path")
+				otherUsedTaskCache, err := taskCacheFactory.FindOrCreate(someOtherJob.ID(), "some-other-task", "some-other-path", 0)
 				Expect(err).ToNot(HaveOccurred())
 
 				_, err = workerTaskCacheFactory.FindOrCreate(db.WorkerTaskCache{

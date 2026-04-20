@@ -86,16 +86,17 @@ type TaskDelegate interface {
 // TaskStep executes a TaskConfig, whose inputs will be fetched from the
 // artifact.Repository and outputs will be added to the artifact.Repository.
 type TaskStep struct {
-	planID             atc.PlanID
-	plan               atc.TaskPlan
-	defaultLimits      atc.ContainerLimits
-	metadata           StepMetadata
-	containerMetadata  db.ContainerMetadata
-	strategy           worker.PlacementStrategy
-	workerPool         Pool
-	streamer           Streamer
-	delegateFactory    TaskDelegateFactory
-	defaultTaskTimeout time.Duration
+	planID              atc.PlanID
+	plan                atc.TaskPlan
+	defaultLimits       atc.ContainerLimits
+	metadata            StepMetadata
+	containerMetadata   db.ContainerMetadata
+	strategy            worker.PlacementStrategy
+	workerPool          Pool
+	streamer            Streamer
+	delegateFactory     TaskDelegateFactory
+	defaultTaskTimeout  time.Duration
+	defaultTaskCacheTTL time.Duration
 }
 
 func NewTaskStep(
@@ -109,18 +110,20 @@ func NewTaskStep(
 	streamer Streamer,
 	delegateFactory TaskDelegateFactory,
 	defaultTaskTimeout time.Duration,
+	defaultTaskCacheTTL time.Duration,
 ) Step {
 	return &TaskStep{
-		planID:             planID,
-		plan:               plan,
-		defaultLimits:      defaultLimits,
-		metadata:           metadata,
-		containerMetadata:  containerMetadata,
-		strategy:           strategy,
-		workerPool:         workerPool,
-		streamer:           streamer,
-		delegateFactory:    delegateFactory,
-		defaultTaskTimeout: defaultTaskTimeout,
+		planID:              planID,
+		plan:                plan,
+		defaultLimits:       defaultLimits,
+		metadata:            metadata,
+		containerMetadata:   containerMetadata,
+		strategy:            strategy,
+		workerPool:          workerPool,
+		streamer:            streamer,
+		delegateFactory:     delegateFactory,
+		defaultTaskTimeout:  defaultTaskTimeout,
+		defaultTaskCacheTTL: defaultTaskCacheTTL,
 	}
 }
 
@@ -335,7 +338,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	// Do not initialize caches for one-off builds
 	if step.metadata.JobID != 0 {
-		if err := step.registerCaches(ctx, repository, config, volumeMounts, step.containerMetadata); err != nil {
+		if err := step.registerCaches(ctx, config, volumeMounts, step.containerMetadata); err != nil {
 			return false, err
 		}
 	}
@@ -496,9 +499,22 @@ func (step *TaskStep) registerOutputs(logger lager.Logger, repository *build.Rep
 	}
 }
 
-func (step *TaskStep) registerCaches(ctx context.Context, repository *build.Repository, config atc.TaskConfig, volumeMounts []runtime.VolumeMount, metadata db.ContainerMetadata) error {
+func (step *TaskStep) registerCaches(ctx context.Context, config atc.TaskConfig, volumeMounts []runtime.VolumeMount, metadata db.ContainerMetadata) error {
 	logger := lagerctx.FromContext(ctx)
 	for _, cacheConfig := range config.Caches {
+		var ttl time.Duration
+		if cacheConfig.TTL != "" {
+			var err error
+			ttl, err = time.ParseDuration(cacheConfig.TTL)
+			if err != nil {
+				return fmt.Errorf("invalid cache ttl %q: %w", cacheConfig.TTL, err)
+			}
+		}
+
+		if ttl == 0 && step.defaultTaskCacheTTL > 0 {
+			ttl = step.defaultTaskCacheTTL
+		}
+
 		for _, volumeMount := range volumeMounts {
 			mountPath := resolvePath(metadata.WorkingDirectory, cacheConfig.Path)
 			if filepath.Clean(volumeMount.MountPath) == mountPath {
@@ -511,6 +527,7 @@ func (step *TaskStep) registerCaches(ctx context.Context, repository *build.Repo
 					step.plan.Name,
 					cacheConfig.Path,
 					step.plan.Privileged,
+					ttl,
 				)
 				if err != nil {
 					return err

@@ -77,12 +77,12 @@ func (v Volume) InitializeStreamedResourceCache(ctx context.Context, cache db.Re
 	return uwrc, nil
 }
 
-func (v Volume) InitializeTaskCache(ctx context.Context, jobID int, stepName string, path string, privileged bool) error {
+func (v Volume) InitializeTaskCache(ctx context.Context, jobID int, stepName string, path string, privileged bool, ttl time.Duration) error {
 	logger := lagerctx.FromContext(ctx)
 	path = filepath.Clean(path)
 
 	if v.dbVolume.ParentHandle() == "" {
-		return v.dbVolume.InitializeTaskCache(jobID, stepName, path)
+		return v.dbVolume.InitializeTaskCache(jobID, stepName, path, ttl)
 	}
 
 	logger.Debug("creating-an-import-volume", lager.Data{"path": v.bcVolume.Path()})
@@ -100,7 +100,7 @@ func (v Volume) InitializeTaskCache(ctx context.Context, jobID int, stepName str
 		return err
 	}
 
-	return importVolume.InitializeTaskCache(ctx, jobID, stepName, path, privileged)
+	return importVolume.InitializeTaskCache(ctx, jobID, stepName, path, privileged, ttl)
 }
 
 func (v Volume) COWStrategy() baggageclaim.COWStrategy {
@@ -331,7 +331,7 @@ func (worker *Worker) createVolumeForTaskCache(
 	path string,
 ) (Volume, error) {
 	logger := lagerctx.FromContext(ctx)
-	usedTaskCache, err := worker.db.TaskCacheFactory.FindOrCreate(jobID, stepName, path)
+	usedTaskCache, err := worker.db.TaskCacheFactory.FindOrCreate(jobID, stepName, path, 0)
 	if err != nil {
 		logger.Error("failed-to-find-or-create-task-cache-in-db", err)
 		return Volume{}, err

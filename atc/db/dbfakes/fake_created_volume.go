@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -118,12 +119,13 @@ type FakeCreatedVolume struct {
 		result1 *db.UsedWorkerResourceCache
 		result2 error
 	}
-	InitializeTaskCacheStub        func(int, string, string) error
+	InitializeTaskCacheStub        func(int, string, string, time.Duration) error
 	initializeTaskCacheMutex       sync.RWMutex
 	initializeTaskCacheArgsForCall []struct {
 		arg1 int
 		arg2 string
 		arg3 string
+		arg4 time.Duration
 	}
 	initializeTaskCacheReturns struct {
 		result1 error
@@ -765,20 +767,21 @@ func (fake *FakeCreatedVolume) InitializeStreamedResourceCacheReturnsOnCall(i in
 	}{result1, result2}
 }
 
-func (fake *FakeCreatedVolume) InitializeTaskCache(arg1 int, arg2 string, arg3 string) error {
+func (fake *FakeCreatedVolume) InitializeTaskCache(arg1 int, arg2 string, arg3 string, arg4 time.Duration) error {
 	fake.initializeTaskCacheMutex.Lock()
 	ret, specificReturn := fake.initializeTaskCacheReturnsOnCall[len(fake.initializeTaskCacheArgsForCall)]
 	fake.initializeTaskCacheArgsForCall = append(fake.initializeTaskCacheArgsForCall, struct {
 		arg1 int
 		arg2 string
 		arg3 string
-	}{arg1, arg2, arg3})
+		arg4 time.Duration
+	}{arg1, arg2, arg3, arg4})
 	stub := fake.InitializeTaskCacheStub
 	fakeReturns := fake.initializeTaskCacheReturns
-	fake.recordInvocation("InitializeTaskCache", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("InitializeTaskCache", []interface{}{arg1, arg2, arg3, arg4})
 	fake.initializeTaskCacheMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3)
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
@@ -792,17 +795,17 @@ func (fake *FakeCreatedVolume) InitializeTaskCacheCallCount() int {
 	return len(fake.initializeTaskCacheArgsForCall)
 }
 
-func (fake *FakeCreatedVolume) InitializeTaskCacheCalls(stub func(int, string, string) error) {
+func (fake *FakeCreatedVolume) InitializeTaskCacheCalls(stub func(int, string, string, time.Duration) error) {
 	fake.initializeTaskCacheMutex.Lock()
 	defer fake.initializeTaskCacheMutex.Unlock()
 	fake.InitializeTaskCacheStub = stub
 }
 
-func (fake *FakeCreatedVolume) InitializeTaskCacheArgsForCall(i int) (int, string, string) {
+func (fake *FakeCreatedVolume) InitializeTaskCacheArgsForCall(i int) (int, string, string, time.Duration) {
 	fake.initializeTaskCacheMutex.RLock()
 	defer fake.initializeTaskCacheMutex.RUnlock()
 	argsForCall := fake.initializeTaskCacheArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeCreatedVolume) InitializeTaskCacheReturns(result1 error) {

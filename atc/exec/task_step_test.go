@@ -70,7 +70,8 @@ var _ = Describe("TaskStep", func() {
 
 		expectedOwner = db.NewBuildStepContainerOwner(stepMetadata.BuildID, planID, stepMetadata.TeamID)
 
-		defaultTaskTimeout time.Duration = 0
+		defaultTaskTimeout  time.Duration = 0
+		defaultTaskCacheTTL time.Duration = 0
 	)
 
 	BeforeEach(func() {
@@ -125,6 +126,7 @@ var _ = Describe("TaskStep", func() {
 			fakeStreamer,
 			fakeDelegateFactory,
 			defaultTaskTimeout,
+			defaultTaskCacheTTL,
 		)
 
 		stepOk, stepErr = taskStep.Run(ctx, state)
@@ -645,6 +647,90 @@ var _ = Describe("TaskStep", func() {
 				})
 
 				itRegistersCaches(false)
+			})
+		})
+
+		Context("when task config's cache TTL is not set", func() {
+			var volume1 *runtimetest.Volume
+
+			BeforeEach(func() {
+				stepMetadata.JobID = 12
+
+				taskPlan.Config.Caches = []atc.TaskCacheConfig{
+					{Path: "some-path-1"},
+				}
+
+				volume1 = runtimetest.NewVolume("volume1")
+
+				chosenContainer.Mounts = []runtime.VolumeMount{
+					{
+						Volume:    volume1,
+						MountPath: "some-artifact-root/some-path-1",
+					},
+				}
+			})
+
+			Context("when defaultTaskCacheTTL is set", func() {
+				BeforeEach(func() {
+					defaultTaskCacheTTL = 24 * time.Hour
+					DeferCleanup(func() {
+						defaultTaskCacheTTL = 0
+					})
+				})
+
+				It("uses the defaultTaskCacheTTL", func() {
+					Expect(volume1.TaskCacheInitialized).To(BeTrue())
+					Expect(volume1.TaskCacheTTL).To(Equal(24 * time.Hour))
+				})
+			})
+
+			Context("when defaultTaskCacheTTL is not set", func() {
+				It("uses zero TTL", func() {
+					Expect(volume1.TaskCacheInitialized).To(BeTrue())
+					Expect(volume1.TaskCacheTTL).To(Equal(time.Duration(0)))
+				})
+			})
+		})
+
+		Context("when task config's cache TTL is set", func() {
+			var volume1 *runtimetest.Volume
+
+			BeforeEach(func() {
+				stepMetadata.JobID = 12
+
+				taskPlan.Config.Caches = []atc.TaskCacheConfig{
+					{Path: "some-path-1", TTL: "1h"},
+				}
+
+				volume1 = runtimetest.NewVolume("volume1")
+
+				chosenContainer.Mounts = []runtime.VolumeMount{
+					{
+						Volume:    volume1,
+						MountPath: "some-artifact-root/some-path-1",
+					},
+				}
+			})
+
+			Context("when defaultTaskCacheTTL is also set", func() {
+				BeforeEach(func() {
+					defaultTaskCacheTTL = 24 * time.Hour
+					DeferCleanup(func() {
+						defaultTaskCacheTTL = 0
+					})
+				})
+
+				It("uses task config's cache TTL over defaultTaskCacheTTL", func() {
+					Expect(volume1.TaskCacheInitialized).To(BeTrue())
+					Expect(volume1.TaskCacheTTL).To(Equal(1 * time.Hour))
+				})
+			})
+
+			Context("when defaultTaskCacheTTL is not set", func() {
+				It("uses cacheConfig.TTL", func() {
+					Expect(volume1.TaskCacheInitialized).To(BeTrue())
+					Expect(volume1.TaskCacheTTL).To(Equal(1 * time.Hour))
+				})
 			})
 		})
 

@@ -1,9 +1,11 @@
 package db
 
+import "time"
+
 //counterfeiter:generate . TaskCacheFactory
 type TaskCacheFactory interface {
 	Find(jobID int, stepName string, path string) (UsedTaskCache, bool, error)
-	FindOrCreate(jobID int, stepName string, path string) (UsedTaskCache, error)
+	FindOrCreate(jobID int, stepName string, path string, ttl time.Duration) (UsedTaskCache, error)
 }
 
 type taskCacheFactory struct {
@@ -24,7 +26,7 @@ func (f *taskCacheFactory) Find(jobID int, stepName string, path string) (UsedTa
 	}.find(f.conn)
 }
 
-func (f *taskCacheFactory) FindOrCreate(jobID int, stepName string, path string) (UsedTaskCache, error) {
+func (f *taskCacheFactory) FindOrCreate(jobID int, stepName string, path string, ttl time.Duration) (UsedTaskCache, error) {
 	tx, err := f.conn.Begin()
 	if err != nil {
 		return nil, err
@@ -36,6 +38,7 @@ func (f *taskCacheFactory) FindOrCreate(jobID int, stepName string, path string)
 		jobID:    jobID,
 		stepName: stepName,
 		path:     path,
+		ttl:      ttl,
 	}.findOrCreate(tx)
 
 	if err != nil {
