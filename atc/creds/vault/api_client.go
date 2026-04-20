@@ -117,6 +117,7 @@ func (ac *APIClient) cachedIsKVv2(secretPath string) (string, bool, error) {
 	}
 
 	if mountPath, isV2, found := ac.lookupCachedKVMount(secretPath); found {
+		ac.logger.Debug("kv-mount-cache-hit", lager.Data{"path": secretPath})
 		return mountPath, isV2, nil
 	}
 
