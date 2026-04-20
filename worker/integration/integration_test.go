@@ -7,8 +7,8 @@ import (
 	"crypto/rsa"
 	"os"
 
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/concourse/worker/workercmd"
-	"github.com/concourse/flag/v2"
 	"github.com/jessevdk/go-flags"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

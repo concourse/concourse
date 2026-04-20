@@ -4,9 +4,9 @@ import (
 	"log/slog"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/storage"
 	"github.com/concourse/dex/storage/sql"
-	"github.com/concourse/flag/v2"
 )
 
 type Storage interface {
