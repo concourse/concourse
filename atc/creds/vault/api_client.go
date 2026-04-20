@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -31,11 +32,14 @@ type APIClient struct {
 
 	clientValue *atomic.Value
 
+	kvMountCacheEnabled bool
+	kvMountCache        sync.Map
+
 	renewable bool
 }
 
 // NewAPIClient with the associated authorization config and underlying vault client.
-func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration) (*APIClient, error) {
+func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig, tlsConfig TLSConfig, authConfig AuthConfig, namespace string, queryTimeout time.Duration, enableKVMountCache bool) (*APIClient, error) {
 	ac := &APIClient{
 		logger: logger,
 
@@ -47,6 +51,8 @@ func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig,
 		queryTimeout: queryTimeout,
 
 		clientValue: &atomic.Value{},
+
+		kvMountCacheEnabled: enableKVMountCache,
 
 		renewable: true,
 	}
@@ -64,9 +70,8 @@ func NewAPIClient(logger lager.Logger, apiURL string, clientConfig ClientConfig,
 // Read must be called after a successful login has occurred or an
 // un-authorized client will be used.
 func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
-	// Check if path is kv1 or kv2
 	path = sanitizePath(path)
-	mountPath, kv2, err := isKVv2(path, ac.client())
+	mountPath, kv2, err := ac.cachedIsKVv2(path)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +98,89 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 	}
 
 	return secret, err
+}
+
+type kvMountInfo struct {
+	mountPath string
+	isV2      bool
+}
+
+// cachedIsKVv2 returns the mount path and whether the mount uses KV v2.
+//
+// On the first call for a given mount, it performs the preflight request
+// to /v1/sys/internal/ui/mounts/<path>. If caching is enabled, it caches the result
+// keyed by the mount path returned by Vault (e.g. "concourse/"). All subsequent
+// reads whose path starts with a known mount path skip the preflight entirely.
+func (ac *APIClient) cachedIsKVv2(secretPath string) (string, bool, error) {
+	if !ac.kvMountCacheEnabled {
+		return isKVv2(secretPath, ac.client())
+	}
+
+	if mountPath, isV2, found := ac.lookupCachedKVMount(secretPath); found {
+		ac.logger.Debug("kv-mount-cache-hit", lager.Data{"path": secretPath})
+		return mountPath, isV2, nil
+	}
+
+	mountPath, kv2, err := isKVv2(secretPath, ac.client())
+	if err != nil {
+		return "", false, err
+	}
+
+	mountPath, kv2 = ac.storeCachedKVMount(mountPath, kv2)
+	return mountPath, kv2, nil
+}
+
+// lookupCachedKVMount finds the most specific cached mount that matches the requested secret path.
+func (ac *APIClient) lookupCachedKVMount(secretPath string) (string, bool, bool) {
+	var best kvMountInfo
+	found := false
+
+	ac.kvMountCache.Range(func(key, value any) bool {
+		info, ok := value.(kvMountInfo)
+		if !ok {
+			return true
+		}
+
+		if !pathMatchesMount(secretPath, info.mountPath) {
+			return true
+		}
+
+		// Prefer the most specific matching mount when multiple prefixes match.
+		if !found || len(info.mountPath) > len(best.mountPath) {
+			best = info
+			found = true
+		}
+
+		return true
+	})
+
+	if !found {
+		return "", false, false
+	}
+
+	return best.mountPath, best.isV2, true
+}
+
+// pathMatchesMount reports whether secretPath is exactly the mount or
+// is nested beneath it on a path boundary.
+func pathMatchesMount(secretPath, mountPath string) bool {
+	mountPath = strings.TrimSuffix(mountPath, "/")
+	if mountPath == "" {
+		return false
+	}
+	return secretPath == mountPath || strings.HasPrefix(secretPath, mountPath+"/")
+}
+
+// storeCachedKVMount remembers the KV version for a mount path
+// so later reads under the same mount can skip another Vault preflight lookup.
+func (ac *APIClient) storeCachedKVMount(mountPath string, isV2 bool) (string, bool) {
+	entry := kvMountInfo{mountPath: mountPath, isV2: isV2}
+	if actual, loaded := ac.kvMountCache.LoadOrStore(mountPath, entry); loaded {
+		cached := actual.(kvMountInfo)
+		return cached.mountPath, cached.isV2
+	}
+
+	return mountPath, isV2
 }
 
 func (ac *APIClient) loginParams() map[string]any {

@@ -153,6 +153,7 @@ var _ = Describe("VaultManager", func() {
 				"client_key":           string(clientKeyBytes),
 				"server_name":          serverName,
 				"insecure_skip_verify": true,
+				"enable_kv_mount_cache": true,
 				"client_token":         "some-client-token",
 				"auth_backend_max_ttl": "5m",
 				"auth_retry_max":       "15m",
@@ -197,6 +198,7 @@ var _ = Describe("VaultManager", func() {
 			Expect(manager.Namespace).To(Equal("some-namespace"))
 
 			Expect(manager.TLS.Insecure).To(BeTrue())
+			Expect(manager.EnableKVMountCache).To(BeTrue())
 
 			Expect(manager.Auth.ClientToken).To(Equal("some-client-token"))
 			Expect(manager.Auth.BackendMaxTTL).To(Equal(5 * time.Minute))
@@ -216,6 +218,7 @@ var _ = Describe("VaultManager", func() {
 				delete(config, "auth_retry_initial")
 				delete(config, "lookup_templates")
 				delete(config, "disable_srv_lookup")
+				delete(config, "enable_kv_mount_cache")
 			})
 
 			It("has sane defaults", func() {
@@ -225,6 +228,7 @@ var _ = Describe("VaultManager", func() {
 				Expect(manager.PathPrefix).To(Equal("/concourse"))
 				Expect(manager.Auth.RetryMax).To(Equal(5 * time.Minute))
 				Expect(manager.Auth.RetryInitial).To(Equal(time.Second))
+				Expect(manager.EnableKVMountCache).To(BeFalse())
 				Expect(manager.LookupTemplates).To(Equal([]string{
 					"/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
 					"/{{.Team}}/{{.Secret}}",

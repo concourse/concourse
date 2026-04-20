@@ -46,6 +46,12 @@ func (cmd Cmd) Write(t *testing.T, path string, val any) {
 	cmd.WithArgs("write", path).Run(t, writeArgs(val)...)
 }
 
+// KVPut writes a secret using "vault kv put" which handles KV v2's
+// /data/ path prefix and {"data": ...} payload wrapping automatically.
+func (cmd Cmd) KVPut(t *testing.T, path string, val any) {
+	cmd.WithArgs("kv", "put", path).Run(t, writeArgs(val)...)
+}
+
 func writeArgs(val any) []string {
 	vals := []string{}
 	switch x := val.(type) {

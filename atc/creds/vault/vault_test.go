@@ -12,6 +12,7 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 )
 
@@ -343,7 +344,7 @@ var _ = Describe("Vault KV2", func() {
 		server = ghttp.NewServer()
 
 		var err error
-		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0)
+		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0, false)
 		Expect(err).To(BeNil())
 
 		statusCodeOK = 200
@@ -598,6 +599,47 @@ var _ = Describe("Vault KV2", func() {
 				})
 			})
 		})
+
+		Context("with kv mount cache enabled", func() {
+			var logger *lagertest.TestLogger
+
+			BeforeEach(func() {
+				logger = lagertest.NewTestLogger("test")
+
+				var err error
+				vaultApi, err = vault.NewAPIClient(logger, "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0, true)
+				Expect(err).To(BeNil())
+
+				v = &vault.Vault{
+					SecretReader:    vaultApi,
+					Prefix:          "/concourse",
+					LookupTemplates: v.LookupTemplates,
+					SharedPath:      "shared",
+				}
+				variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
+			})
+
+			It("should log a cache hit on the second get", func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/concourse/data/team/pipeline/foo"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
+					),
+				)
+
+				_, _, err := variables.Get(varFoo)
+				Expect(err).To(BeNil())
+				Expect(logger.Buffer()).NotTo(gbytes.Say("kv-mount-cache-hit"), "path should not yet be cached")
+
+				_, _, err = variables.Get(varFoo)
+				Expect(err).To(BeNil())
+				Expect(logger.Buffer()).To(gbytes.Say("kv-mount-cache-hit"), "path should be cached")
+			})
+		})
 	})
 })
 
@@ -616,7 +658,7 @@ var _ = Describe("Vault KV1", func() {
 		server = ghttp.NewServer()
 
 		var err error
-		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0)
+		vaultApi, err = vault.NewAPIClient(lagertest.NewTestLogger("test"), "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0, false)
 		Expect(err).To(BeNil())
 
 		statusCodeOK = 200
@@ -855,6 +897,47 @@ var _ = Describe("Vault KV1", func() {
 					Expect(err).To(BeNil())
 					Expect(found).To(BeFalse())
 				})
+			})
+		})
+
+		Context("with kv mount cache enabled", func() {
+			var logger *lagertest.TestLogger
+
+			BeforeEach(func() {
+				logger = lagertest.NewTestLogger("test")
+
+				var err error
+				vaultApi, err = vault.NewAPIClient(logger, "http://"+server.Addr(), vault.ClientConfig{}, vault.TLSConfig{}, vault.AuthConfig{}, "", 0, true)
+				Expect(err).To(BeNil())
+
+				v = &vault.Vault{
+					SecretReader:    vaultApi,
+					Prefix:          "/concourse",
+					LookupTemplates: v.LookupTemplates,
+					SharedPath:      "shared",
+				}
+				variables = creds.NewVariables(v, creds.SecretLookupParams{Team: "team", Pipeline: "pipeline"}, false)
+			})
+
+			It("should log a cache hit on the second get", func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("bar")),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/concourse/team/pipeline/foo"),
+						ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV1Secret("bar")),
+					),
+				)
+
+				_, _, err := variables.Get(varFoo)
+				Expect(err).To(BeNil())
+				Expect(logger.Buffer()).NotTo(gbytes.Say("kv-mount-cache-hit"), "path should not yet be cached")
+
+				_, _, err = variables.Get(varFoo)
+				Expect(err).To(BeNil())
+				Expect(logger.Buffer()).To(gbytes.Say("kv-mount-cache-hit"), "path should be cached")
 			})
 		})
 	})
