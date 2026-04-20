@@ -55,7 +55,7 @@ func (c confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "y", "yes":
 				c.confirmation = true
 				return c, tea.Quit
-			case "n", "no":
+			case "n", "no", "":
 				c.confirmation = false
 				return c, tea.Quit
 			default:
@@ -76,7 +76,7 @@ func (c confirmModel) View() string {
 	if c.unknownInput {
 		return fmt.Sprintf("%s\n%s",
 			c.input.View(),
-			"Unknow input. Please enter y/yes/n/no.")
+			"Unknown input. Please enter y/yes/n/no.")
 	}
 	return c.input.View()
 }
