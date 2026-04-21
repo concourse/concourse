@@ -147,8 +147,12 @@ type RunCommand struct {
 		GracePeriod    time.Duration `long:"grace-period" default:"24h" description:"How long a key should still be published for the idtoken secrets provider after a new key has been generated"`
 	} `group:"Pipeline Identity Tokens" namespace:"signing-key"`
 
-	EncryptionKey    flag.Cipher `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey flag.Cipher `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
+	EncryptionKey          flag.Cipher       `long:"encryption-key"            description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyBase64    flag.CipherBase64 `long:"encryption-key-base64"     description:"A base64-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyHex       flag.CipherHex    `long:"encryption-key-hex"        description:"A hex-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey       flag.Cipher       `long:"old-encryption-key"        description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyBase64 flag.CipherBase64 `long:"old-encryption-key-base64" description:"Base64-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyHex    flag.CipherHex    `long:"old-encryption-key-hex"    description:"Hex-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 
 	DebugBindIP   flag.IP `long:"debug-bind-ip"   default:"127.0.0.1" description:"IP address on which to listen for the pprof debugger endpoints."`
 	DebugBindPort uint16  `long:"debug-bind-port" default:"8079"      description:"Port on which to listen for the pprof debugger endpoints."`
@@ -293,8 +297,12 @@ type Migration struct {
 	lockFactory lock.LockFactory
 
 	Postgres               flag.PostgresConfig `group:"PostgreSQL Configuration" namespace:"postgres"`
-	EncryptionKey          flag.Cipher         `long:"encryption-key"     description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey       flag.Cipher         `long:"old-encryption-key" description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	EncryptionKey          flag.Cipher         `long:"encryption-key"            description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyBase64    flag.CipherBase64   `long:"encryption-key-base64"     description:"A base64-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	EncryptionKeyHex       flag.CipherHex      `long:"encryption-key-hex"        description:"A hex-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
+	OldEncryptionKey       flag.Cipher         `long:"old-encryption-key"        description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyBase64 flag.CipherBase64   `long:"old-encryption-key-base64" description:"Base64-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKeyHex    flag.CipherHex      `long:"old-encryption-key-hex"    description:"Hex-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 	CurrentDBVersion       bool                `long:"current-db-version" description:"Print the current database version and exit"`
 	SupportedDBVersion     bool                `long:"supported-db-version" description:"Print the max supported database version and exit"`
 	MigrateDBToVersion     int                 `long:"migrate-db-to-version" description:"Migrate to the specified database version and exit"`
@@ -377,14 +385,13 @@ func (cmd *Migration) supportedDBVersion() error {
 func (cmd *Migration) migrateDBToVersion() error {
 	version := cmd.MigrateDBToVersion
 
-	var newKey *encryption.Key
-	var oldKey *encryption.Key
-
-	if cmd.EncryptionKey.AEAD != nil {
-		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	newKey, err := cmd.newKey()
+	if err != nil {
+		return err
 	}
-	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	oldKey, err := cmd.oldKey()
+	if err != nil {
+		return err
 	}
 
 	helper := migration.NewOpenHelper(
@@ -395,7 +402,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 		oldKey,
 	)
 
-	err := helper.MigrateToVersion(version)
+	err = helper.MigrateToVersion(version)
 	if err != nil {
 		return fmt.Errorf("could not migrate to version: %d Reason: %s", version, err.Error())
 	}
@@ -405,14 +412,13 @@ func (cmd *Migration) migrateDBToVersion() error {
 }
 
 func (cmd *Migration) rotateEncryptionKey() error {
-	var newKey *encryption.Key
-	var oldKey *encryption.Key
-
-	if cmd.EncryptionKey.AEAD != nil {
-		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
+	newKey, err := cmd.newKey()
+	if err != nil {
+		return err
 	}
-	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
+	oldKey, err := cmd.oldKey()
+	if err != nil {
+		return err
 	}
 
 	helper := migration.NewOpenHelper(
@@ -429,6 +435,14 @@ func (cmd *Migration) rotateEncryptionKey() error {
 	}
 
 	return helper.MigrateToVersion(version)
+}
+
+func (cmd *Migration) newKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.EncryptionKey.AEAD, cmd.EncryptionKeyBase64.AEAD, cmd.EncryptionKeyHex.AEAD)
+}
+
+func (cmd *Migration) oldKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.OldEncryptionKey.AEAD, cmd.OldEncryptionKeyBase64.AEAD, cmd.OldEncryptionKeyHex.AEAD)
 }
 
 func (cmd *Migration) migrateToLatestVersion() error {
@@ -1504,20 +1518,12 @@ func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error)
 	return cmd.CredentialManagement.NewSecrets(secretsFactory), nil
 }
 
-func (cmd *RunCommand) newKey() *encryption.Key {
-	var newKey *encryption.Key
-	if cmd.EncryptionKey.AEAD != nil {
-		newKey = encryption.NewKey(cmd.EncryptionKey.AEAD)
-	}
-	return newKey
+func (cmd *RunCommand) newKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.EncryptionKey.AEAD, cmd.EncryptionKeyBase64.AEAD, cmd.EncryptionKeyHex.AEAD)
 }
 
-func (cmd *RunCommand) oldKey() *encryption.Key {
-	var oldKey *encryption.Key
-	if cmd.OldEncryptionKey.AEAD != nil {
-		oldKey = encryption.NewKey(cmd.OldEncryptionKey.AEAD)
-	}
-	return oldKey
+func (cmd *RunCommand) oldKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.OldEncryptionKey.AEAD, cmd.OldEncryptionKeyBase64.AEAD, cmd.OldEncryptionKeyHex.AEAD)
 }
 
 func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, error) {
@@ -1765,7 +1771,16 @@ func (cmd *RunCommand) constructDBConn(
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.DbConn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
+	newKey, err := cmd.newKey()
+	if err != nil {
+		return nil, err
+	}
+	oldKey, err := cmd.oldKey()
+	if err != nil {
+		return nil, err
+	}
+
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey, connectionName, lockFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)
 	}
