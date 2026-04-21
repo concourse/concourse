@@ -83,3 +83,45 @@ var _ = Describe("Encryption Key", func() {
 		})
 	})
 })
+
+var _ = Describe("ResolveKey", func() {
+	var aesgcm cipher.AEAD
+
+	BeforeEach(func() {
+		block, err := aes.NewCipher([]byte("AES256Key-32Characters1234567890"))
+		Expect(err).ToNot(HaveOccurred())
+
+		aesgcm, err = cipher.NewGCM(block)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("returns nil when no arguments are provided", func() {
+		key, err := encryption.ResolveKey()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(key).To(BeNil())
+	})
+
+	It("returns nil when all arguments are nil", func() {
+		key, err := encryption.ResolveKey(nil, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(key).To(BeNil())
+	})
+
+	It("returns a key when exactly one argument is non-nil", func() {
+		key, err := encryption.ResolveKey(nil, aesgcm, nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(key).ToNot(BeNil())
+	})
+
+	It("returns an error when multiple arguments are non-nil", func() {
+		block2, err := aes.NewCipher([]byte("AES256Key-32Characters9564567123"))
+		Expect(err).ToNot(HaveOccurred())
+
+		aesgcm2, err := cipher.NewGCM(block2)
+		Expect(err).ToNot(HaveOccurred())
+
+		key, err := encryption.ResolveKey(aesgcm, aesgcm2)
+		Expect(err).To(MatchError("only one encryption key format may be specified"))
+		Expect(key).To(BeNil())
+	})
+})

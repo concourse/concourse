@@ -150,7 +150,7 @@ type RunCommand struct {
 	EncryptionKey          flag.Cipher       `long:"encryption-key"            description:"A 16 or 32 length key used to encrypt sensitive information before storing it in the database."`
 	EncryptionKeyBase64    flag.CipherBase64 `long:"encryption-key-base64"     description:"A base64-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
 	EncryptionKeyHex       flag.CipherHex    `long:"encryption-key-hex"        description:"A hex-encoded 16 or 32 byte key used to encrypt sensitive information before storing it in the database."`
-	OldEncryptionKey       flag.Cipher       `long:"old-encryption-key"        description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is encrypted. If provided with a new key, data is re-encrypted."`
+	OldEncryptionKey       flag.Cipher       `long:"old-encryption-key"        description:"Encryption key previously used for encrypting sensitive information. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 	OldEncryptionKeyBase64 flag.CipherBase64 `long:"old-encryption-key-base64" description:"Base64-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 	OldEncryptionKeyHex    flag.CipherHex    `long:"old-encryption-key-hex"    description:"Hex-encoded encryption key previously used. If provided without a new key, data is decrypted. If provided with a new key, data is re-encrypted."`
 
@@ -385,8 +385,14 @@ func (cmd *Migration) supportedDBVersion() error {
 func (cmd *Migration) migrateDBToVersion() error {
 	version := cmd.MigrateDBToVersion
 
-	newKey := cmd.resolveNewKey()
-	oldKey := cmd.resolveOldKey()
+	newKey, err := cmd.newKey()
+	if err != nil {
+		return err
+	}
+	oldKey, err := cmd.oldKey()
+	if err != nil {
+		return err
+	}
 
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
@@ -396,7 +402,7 @@ func (cmd *Migration) migrateDBToVersion() error {
 		oldKey,
 	)
 
-	err := helper.MigrateToVersion(version)
+	err = helper.MigrateToVersion(version)
 	if err != nil {
 		return fmt.Errorf("could not migrate to version: %d Reason: %s", version, err.Error())
 	}
@@ -406,8 +412,14 @@ func (cmd *Migration) migrateDBToVersion() error {
 }
 
 func (cmd *Migration) rotateEncryptionKey() error {
-	newKey := cmd.resolveNewKey()
-	oldKey := cmd.resolveOldKey()
+	newKey, err := cmd.newKey()
+	if err != nil {
+		return err
+	}
+	oldKey, err := cmd.oldKey()
+	if err != nil {
+		return err
+	}
 
 	helper := migration.NewOpenHelper(
 		defaultDriverName,
@@ -425,32 +437,12 @@ func (cmd *Migration) rotateEncryptionKey() error {
 	return helper.MigrateToVersion(version)
 }
 
-func (cmd *Migration) resolveNewKey() *encryption.Key {
-	aead := cmd.EncryptionKey.AEAD
-	if aead == nil {
-		aead = cmd.EncryptionKeyBase64.AEAD
-	}
-	if aead == nil {
-		aead = cmd.EncryptionKeyHex.AEAD
-	}
-	if aead != nil {
-		return encryption.NewKey(aead)
-	}
-	return nil
+func (cmd *Migration) newKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.EncryptionKey.AEAD, cmd.EncryptionKeyBase64.AEAD, cmd.EncryptionKeyHex.AEAD)
 }
 
-func (cmd *Migration) resolveOldKey() *encryption.Key {
-	aead := cmd.OldEncryptionKey.AEAD
-	if aead == nil {
-		aead = cmd.OldEncryptionKeyBase64.AEAD
-	}
-	if aead == nil {
-		aead = cmd.OldEncryptionKeyHex.AEAD
-	}
-	if aead != nil {
-		return encryption.NewKey(aead)
-	}
-	return nil
+func (cmd *Migration) oldKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.OldEncryptionKey.AEAD, cmd.OldEncryptionKeyBase64.AEAD, cmd.OldEncryptionKeyHex.AEAD)
 }
 
 func (cmd *Migration) migrateToLatestVersion() error {
@@ -1526,34 +1518,12 @@ func (cmd *RunCommand) secretManager(logger lager.Logger) (creds.Secrets, error)
 	return cmd.CredentialManagement.NewSecrets(secretsFactory), nil
 }
 
-func (cmd *RunCommand) newKey() *encryption.Key {
-	var newKey *encryption.Key
-	aead := cmd.EncryptionKey.AEAD
-	if aead == nil {
-		aead = cmd.EncryptionKeyBase64.AEAD
-	}
-	if aead == nil {
-		aead = cmd.EncryptionKeyHex.AEAD
-	}
-	if aead != nil {
-		newKey = encryption.NewKey(aead)
-	}
-	return newKey
+func (cmd *RunCommand) newKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.EncryptionKey.AEAD, cmd.EncryptionKeyBase64.AEAD, cmd.EncryptionKeyHex.AEAD)
 }
 
-func (cmd *RunCommand) oldKey() *encryption.Key {
-	var oldKey *encryption.Key
-	aead := cmd.OldEncryptionKey.AEAD
-	if aead == nil {
-		aead = cmd.OldEncryptionKeyBase64.AEAD
-	}
-	if aead == nil {
-		aead = cmd.OldEncryptionKeyHex.AEAD
-	}
-	if aead != nil {
-		oldKey = encryption.NewKey(aead)
-	}
-	return oldKey
+func (cmd *RunCommand) oldKey() (*encryption.Key, error) {
+	return encryption.ResolveKey(cmd.OldEncryptionKey.AEAD, cmd.OldEncryptionKeyBase64.AEAD, cmd.OldEncryptionKeyHex.AEAD)
 }
 
 func (cmd *RunCommand) constructWebHandler(logger lager.Logger) (http.Handler, error) {
@@ -1801,7 +1771,16 @@ func (cmd *RunCommand) constructDBConn(
 	connectionName string,
 	lockFactory lock.LockFactory,
 ) (db.DbConn, error) {
-	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), cmd.newKey(), cmd.oldKey(), connectionName, lockFactory)
+	newKey, err := cmd.newKey()
+	if err != nil {
+		return nil, err
+	}
+	oldKey, err := cmd.oldKey()
+	if err != nil {
+		return nil, err
+	}
+
+	dbConn, err := db.Open(logger.Session("db"), driverName, cmd.Postgres.ConnectionString(), newKey, oldKey, connectionName, lockFactory)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %s", err)
 	}

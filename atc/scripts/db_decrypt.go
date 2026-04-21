@@ -23,18 +23,15 @@ func main() {
 		panic(err)
 	}
 
-	aead := command.Key.AEAD
-	if aead == nil {
-		aead = command.KeyBase64.AEAD
+	key, err := encryption.ResolveKey(command.Key.AEAD, command.KeyBase64.AEAD, command.KeyHex.AEAD)
+	if err != nil {
+		panic(err)
 	}
-	if aead == nil {
-		aead = command.KeyHex.AEAD
-	}
-	if aead == nil {
+	if key == nil {
 		panic("one of --encryption-key, --encryption-key-base64, or --encryption-key-hex must be provided")
 	}
 
-	plaintext, err := encryption.NewKey(aead).Decrypt(command.Ciphertext, &command.Nonce)
+	plaintext, err := key.Decrypt(command.Ciphertext, &command.Nonce)
 	if err != nil {
 		panic(err)
 	}
