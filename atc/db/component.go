@@ -20,6 +20,8 @@ type Component interface {
 	Interval() time.Duration
 	LastRan() time.Time
 	Paused() bool
+	Pause() error
+	Unpause() error
 
 	Reload() (bool, error)
 	IntervalElapsed() bool
@@ -42,6 +44,8 @@ func (r RealGoroutineCounter) NumGoroutine() int {
 	return runtime.NumGoroutine()
 }
 
+var _ Component = (*component)(nil)
+
 type component struct {
 	id       int
 	name     string
@@ -62,6 +66,32 @@ func (c *component) Name() string            { return c.name }
 func (c *component) Interval() time.Duration { return c.interval }
 func (c *component) LastRan() time.Time      { return c.lastRan }
 func (c *component) Paused() bool            { return c.paused }
+
+func (c *component) Pause() error {
+	_, err := psql.Update("components").
+		Set("paused", true).
+		Where(sq.Eq{"id": c.id}).
+		RunWith(c.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+	c.paused = true
+	return nil
+}
+
+func (c *component) Unpause() error {
+	_, err := psql.Update("components").
+		Set("paused", false).
+		Where(sq.Eq{"id": c.id}).
+		RunWith(c.conn).
+		Exec()
+	if err != nil {
+		return err
+	}
+	c.paused = false
+	return nil
+}
 
 func (c *component) Reload() (bool, error) {
 	row := componentsQuery.Where(sq.Eq{"c.id": c.id}).

@@ -12,7 +12,18 @@ import (
 type ComponentFactory interface {
 	CreateOrUpdate(atc.Component) (Component, error)
 	Find(string) (Component, bool, error)
+
+	// Returns all components
+	All() ([]Component, error)
+
+	// Pauses all components
+	PauseAll() error
+
+	// Unpauses all components
+	UnpauseAll() error
 }
+
+var _ ComponentFactory = (*componentFactory)(nil)
 
 type componentFactory struct {
 	conn                  DbConn
@@ -94,4 +105,48 @@ func (f *componentFactory) CreateOrUpdate(c atc.Component) (Component, error) {
 	}
 
 	return obj, nil
+}
+
+func (f *componentFactory) All() ([]Component, error) {
+	rows, err := componentsQuery.
+		RunWith(f.conn).
+		Query()
+	if err != nil {
+		return nil, err
+	}
+	defer Close(rows)
+
+	var components []Component
+	for rows.Next() {
+		c := &component{
+			conn:                  f.conn,
+			numGoroutineThreshold: f.numGoroutineThreshold,
+			rander:                f.rander,
+			clock:                 f.clock,
+			goRoutineCounter:      f.goRoutineCounter,
+		}
+		err = scanComponent(c, rows)
+		if err != nil {
+			return nil, err
+		}
+		components = append(components, c)
+	}
+
+	return components, nil
+}
+
+func (f *componentFactory) PauseAll() error {
+	_, err := psql.Update("components").
+		Set("paused", true).
+		RunWith(f.conn).
+		Exec()
+	return err
+}
+
+func (f *componentFactory) UnpauseAll() error {
+	_, err := psql.Update("components").
+		Set("paused", false).
+		RunWith(f.conn).
+		Exec()
+	return err
 }

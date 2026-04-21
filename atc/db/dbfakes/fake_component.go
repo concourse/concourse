@@ -59,6 +59,16 @@ type FakeComponent struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	PauseStub        func() error
+	pauseMutex       sync.RWMutex
+	pauseArgsForCall []struct {
+	}
+	pauseReturns struct {
+		result1 error
+	}
+	pauseReturnsOnCall map[int]struct {
+		result1 error
+	}
 	PausedStub        func() bool
 	pausedMutex       sync.RWMutex
 	pausedArgsForCall []struct {
@@ -80,6 +90,16 @@ type FakeComponent struct {
 	reloadReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
+	}
+	UnpauseStub        func() error
+	unpauseMutex       sync.RWMutex
+	unpauseArgsForCall []struct {
+	}
+	unpauseReturns struct {
+		result1 error
+	}
+	unpauseReturnsOnCall map[int]struct {
+		result1 error
 	}
 	UpdateLastRanStub        func() error
 	updateLastRanMutex       sync.RWMutex
@@ -360,6 +380,59 @@ func (fake *FakeComponent) NameReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
+func (fake *FakeComponent) Pause() error {
+	fake.pauseMutex.Lock()
+	ret, specificReturn := fake.pauseReturnsOnCall[len(fake.pauseArgsForCall)]
+	fake.pauseArgsForCall = append(fake.pauseArgsForCall, struct {
+	}{})
+	stub := fake.PauseStub
+	fakeReturns := fake.pauseReturns
+	fake.recordInvocation("Pause", []interface{}{})
+	fake.pauseMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeComponent) PauseCallCount() int {
+	fake.pauseMutex.RLock()
+	defer fake.pauseMutex.RUnlock()
+	return len(fake.pauseArgsForCall)
+}
+
+func (fake *FakeComponent) PauseCalls(stub func() error) {
+	fake.pauseMutex.Lock()
+	defer fake.pauseMutex.Unlock()
+	fake.PauseStub = stub
+}
+
+func (fake *FakeComponent) PauseReturns(result1 error) {
+	fake.pauseMutex.Lock()
+	defer fake.pauseMutex.Unlock()
+	fake.PauseStub = nil
+	fake.pauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeComponent) PauseReturnsOnCall(i int, result1 error) {
+	fake.pauseMutex.Lock()
+	defer fake.pauseMutex.Unlock()
+	fake.PauseStub = nil
+	if fake.pauseReturnsOnCall == nil {
+		fake.pauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeComponent) Paused() bool {
 	fake.pausedMutex.Lock()
 	ret, specificReturn := fake.pausedReturnsOnCall[len(fake.pausedArgsForCall)]
@@ -467,6 +540,59 @@ func (fake *FakeComponent) ReloadReturnsOnCall(i int, result1 bool, result2 erro
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeComponent) Unpause() error {
+	fake.unpauseMutex.Lock()
+	ret, specificReturn := fake.unpauseReturnsOnCall[len(fake.unpauseArgsForCall)]
+	fake.unpauseArgsForCall = append(fake.unpauseArgsForCall, struct {
+	}{})
+	stub := fake.UnpauseStub
+	fakeReturns := fake.unpauseReturns
+	fake.recordInvocation("Unpause", []interface{}{})
+	fake.unpauseMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeComponent) UnpauseCallCount() int {
+	fake.unpauseMutex.RLock()
+	defer fake.unpauseMutex.RUnlock()
+	return len(fake.unpauseArgsForCall)
+}
+
+func (fake *FakeComponent) UnpauseCalls(stub func() error) {
+	fake.unpauseMutex.Lock()
+	defer fake.unpauseMutex.Unlock()
+	fake.UnpauseStub = stub
+}
+
+func (fake *FakeComponent) UnpauseReturns(result1 error) {
+	fake.unpauseMutex.Lock()
+	defer fake.unpauseMutex.Unlock()
+	fake.UnpauseStub = nil
+	fake.unpauseReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeComponent) UnpauseReturnsOnCall(i int, result1 error) {
+	fake.unpauseMutex.Lock()
+	defer fake.unpauseMutex.Unlock()
+	fake.UnpauseStub = nil
+	if fake.unpauseReturnsOnCall == nil {
+		fake.unpauseReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unpauseReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeComponent) UpdateLastRan() error {

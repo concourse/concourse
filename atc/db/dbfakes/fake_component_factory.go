@@ -9,6 +9,18 @@ import (
 )
 
 type FakeComponentFactory struct {
+	AllStub        func() ([]db.Component, error)
+	allMutex       sync.RWMutex
+	allArgsForCall []struct {
+	}
+	allReturns struct {
+		result1 []db.Component
+		result2 error
+	}
+	allReturnsOnCall map[int]struct {
+		result1 []db.Component
+		result2 error
+	}
 	CreateOrUpdateStub        func(atc.Component) (db.Component, error)
 	createOrUpdateMutex       sync.RWMutex
 	createOrUpdateArgsForCall []struct {
@@ -37,8 +49,84 @@ type FakeComponentFactory struct {
 		result2 bool
 		result3 error
 	}
+	PauseAllStub        func() error
+	pauseAllMutex       sync.RWMutex
+	pauseAllArgsForCall []struct {
+	}
+	pauseAllReturns struct {
+		result1 error
+	}
+	pauseAllReturnsOnCall map[int]struct {
+		result1 error
+	}
+	UnpauseAllStub        func() error
+	unpauseAllMutex       sync.RWMutex
+	unpauseAllArgsForCall []struct {
+	}
+	unpauseAllReturns struct {
+		result1 error
+	}
+	unpauseAllReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeComponentFactory) All() ([]db.Component, error) {
+	fake.allMutex.Lock()
+	ret, specificReturn := fake.allReturnsOnCall[len(fake.allArgsForCall)]
+	fake.allArgsForCall = append(fake.allArgsForCall, struct {
+	}{})
+	stub := fake.AllStub
+	fakeReturns := fake.allReturns
+	fake.recordInvocation("All", []interface{}{})
+	fake.allMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeComponentFactory) AllCallCount() int {
+	fake.allMutex.RLock()
+	defer fake.allMutex.RUnlock()
+	return len(fake.allArgsForCall)
+}
+
+func (fake *FakeComponentFactory) AllCalls(stub func() ([]db.Component, error)) {
+	fake.allMutex.Lock()
+	defer fake.allMutex.Unlock()
+	fake.AllStub = stub
+}
+
+func (fake *FakeComponentFactory) AllReturns(result1 []db.Component, result2 error) {
+	fake.allMutex.Lock()
+	defer fake.allMutex.Unlock()
+	fake.AllStub = nil
+	fake.allReturns = struct {
+		result1 []db.Component
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeComponentFactory) AllReturnsOnCall(i int, result1 []db.Component, result2 error) {
+	fake.allMutex.Lock()
+	defer fake.allMutex.Unlock()
+	fake.AllStub = nil
+	if fake.allReturnsOnCall == nil {
+		fake.allReturnsOnCall = make(map[int]struct {
+			result1 []db.Component
+			result2 error
+		})
+	}
+	fake.allReturnsOnCall[i] = struct {
+		result1 []db.Component
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeComponentFactory) CreateOrUpdate(arg1 atc.Component) (db.Component, error) {
@@ -170,6 +258,112 @@ func (fake *FakeComponentFactory) FindReturnsOnCall(i int, result1 db.Component,
 		result2 bool
 		result3 error
 	}{result1, result2, result3}
+}
+
+func (fake *FakeComponentFactory) PauseAll() error {
+	fake.pauseAllMutex.Lock()
+	ret, specificReturn := fake.pauseAllReturnsOnCall[len(fake.pauseAllArgsForCall)]
+	fake.pauseAllArgsForCall = append(fake.pauseAllArgsForCall, struct {
+	}{})
+	stub := fake.PauseAllStub
+	fakeReturns := fake.pauseAllReturns
+	fake.recordInvocation("PauseAll", []interface{}{})
+	fake.pauseAllMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeComponentFactory) PauseAllCallCount() int {
+	fake.pauseAllMutex.RLock()
+	defer fake.pauseAllMutex.RUnlock()
+	return len(fake.pauseAllArgsForCall)
+}
+
+func (fake *FakeComponentFactory) PauseAllCalls(stub func() error) {
+	fake.pauseAllMutex.Lock()
+	defer fake.pauseAllMutex.Unlock()
+	fake.PauseAllStub = stub
+}
+
+func (fake *FakeComponentFactory) PauseAllReturns(result1 error) {
+	fake.pauseAllMutex.Lock()
+	defer fake.pauseAllMutex.Unlock()
+	fake.PauseAllStub = nil
+	fake.pauseAllReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeComponentFactory) PauseAllReturnsOnCall(i int, result1 error) {
+	fake.pauseAllMutex.Lock()
+	defer fake.pauseAllMutex.Unlock()
+	fake.PauseAllStub = nil
+	if fake.pauseAllReturnsOnCall == nil {
+		fake.pauseAllReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.pauseAllReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeComponentFactory) UnpauseAll() error {
+	fake.unpauseAllMutex.Lock()
+	ret, specificReturn := fake.unpauseAllReturnsOnCall[len(fake.unpauseAllArgsForCall)]
+	fake.unpauseAllArgsForCall = append(fake.unpauseAllArgsForCall, struct {
+	}{})
+	stub := fake.UnpauseAllStub
+	fakeReturns := fake.unpauseAllReturns
+	fake.recordInvocation("UnpauseAll", []interface{}{})
+	fake.unpauseAllMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeComponentFactory) UnpauseAllCallCount() int {
+	fake.unpauseAllMutex.RLock()
+	defer fake.unpauseAllMutex.RUnlock()
+	return len(fake.unpauseAllArgsForCall)
+}
+
+func (fake *FakeComponentFactory) UnpauseAllCalls(stub func() error) {
+	fake.unpauseAllMutex.Lock()
+	defer fake.unpauseAllMutex.Unlock()
+	fake.UnpauseAllStub = stub
+}
+
+func (fake *FakeComponentFactory) UnpauseAllReturns(result1 error) {
+	fake.unpauseAllMutex.Lock()
+	defer fake.unpauseAllMutex.Unlock()
+	fake.UnpauseAllStub = nil
+	fake.unpauseAllReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeComponentFactory) UnpauseAllReturnsOnCall(i int, result1 error) {
+	fake.unpauseAllMutex.Lock()
+	defer fake.unpauseAllMutex.Unlock()
+	fake.UnpauseAllStub = nil
+	if fake.unpauseAllReturnsOnCall == nil {
+		fake.unpauseAllReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.unpauseAllReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeComponentFactory) Invocations() map[string][][]interface{} {

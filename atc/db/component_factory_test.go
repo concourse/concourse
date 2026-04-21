@@ -67,4 +67,72 @@ var _ = Describe("ComponentFactory", func() {
 			Expect(foundComponent.Interval()).To(Equal(interval + 1))
 		})
 	})
+
+	Describe("All", func() {
+		BeforeEach(func() {
+			_, err := dbConn.Exec("INSERT INTO components (name, interval) VALUES ('comp-a', '100ms') ON CONFLICT (name) DO UPDATE SET interval = EXCLUDED.interval")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = dbConn.Exec("INSERT INTO components (name, interval) VALUES ('comp-b', '200ms') ON CONFLICT (name) DO UPDATE SET interval = EXCLUDED.interval")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns all components", func() {
+			components, err := componentFactory.All()
+			Expect(err).NotTo(HaveOccurred())
+
+			names := []string{}
+			for _, c := range components {
+				names = append(names, c.Name())
+			}
+			Expect(names).To(ContainElements("comp-a", "comp-b"))
+		})
+	})
+
+	Describe("PauseAll", func() {
+		BeforeEach(func() {
+			_, err := dbConn.Exec("INSERT INTO components (name, interval) VALUES ('comp-a', '100ms') ON CONFLICT (name) DO UPDATE SET interval = EXCLUDED.interval")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = dbConn.Exec("INSERT INTO components (name, interval) VALUES ('comp-b', '200ms') ON CONFLICT (name) DO UPDATE SET interval = EXCLUDED.interval")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("pauses all components", func() {
+			err := componentFactory.PauseAll()
+			Expect(err).NotTo(HaveOccurred())
+
+			compA, found, err := componentFactory.Find("comp-a")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(compA.Paused()).To(BeTrue())
+
+			compB, found, err := componentFactory.Find("comp-b")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(compB.Paused()).To(BeTrue())
+		})
+	})
+
+	Describe("UnpauseAll", func() {
+		BeforeEach(func() {
+			_, err := dbConn.Exec("INSERT INTO components (name, interval, paused) VALUES ('comp-a', '100ms', true) ON CONFLICT (name) DO UPDATE SET interval = EXCLUDED.interval, paused = EXCLUDED.paused")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = dbConn.Exec("INSERT INTO components (name, interval, paused) VALUES ('comp-b', '200ms', true) ON CONFLICT (name) DO UPDATE SET interval = EXCLUDED.interval, paused = EXCLUDED.paused")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("unpauses all components", func() {
+			err := componentFactory.UnpauseAll()
+			Expect(err).NotTo(HaveOccurred())
+
+			compA, found, err := componentFactory.Find("comp-a")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(compA.Paused()).To(BeFalse())
+
+			compB, found, err := componentFactory.Find("comp-b")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(found).To(BeTrue())
+			Expect(compB.Paused()).To(BeFalse())
+		})
+	})
 })
