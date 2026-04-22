@@ -38,10 +38,16 @@ type Client interface {
 	GetWall() (atc.Wall, error)
 	SetWall(atc.Wall) error
 	ClearWall() error
+	ListComponents() ([]atc.Component, error)
+	PauseComponent(componentName string) error
+	UnpauseComponent(componentName string) error
+	PauseAllComponents() error
+	UnpauseAllComponents() error
 }
 
 type client struct {
-	connection internal.Connection //Deprecated
+	//Deprecated. Use httpAgent instead
+	connection internal.Connection
 	httpAgent  internal.HTTPAgent
 }
 
