@@ -11,6 +11,7 @@ import (
 	"github.com/concourse/concourse/atc/api/artifactserver"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/ccserver"
+	"github.com/concourse/concourse/atc/api/componentsserver"
 	"github.com/concourse/concourse/atc/api/cliserver"
 	"github.com/concourse/concourse/atc/api/configserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
@@ -64,6 +65,7 @@ func NewHandler(
 	dbCheckFactory db.CheckFactory,
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
+	dbComponentFactory db.ComponentFactory,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -113,6 +115,7 @@ func NewHandler(
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
+	componentServer := componentsserver.NewServer(logger, dbComponentFactory)
 	if oidcIssuer == "" {
 		oidcIssuer = externalURL
 	}
@@ -241,6 +244,12 @@ func NewHandler(
 
 		atc.GetOpenIDConfiguration: http.HandlerFunc(idTokenServer.OpenIDConfiguration),
 		atc.GetSigningKeys:         http.HandlerFunc(idTokenServer.SigningKeys),
+
+		atc.GetComponents:        http.HandlerFunc(componentServer.GetComponents),
+		atc.PauseAllComponents:   http.HandlerFunc(componentServer.PauseAll),
+		atc.UnpauseAllComponents: http.HandlerFunc(componentServer.UnpauseAll),
+		atc.PauseComponent:       http.HandlerFunc(componentServer.Pause),
+		atc.UnpauseComponent:     http.HandlerFunc(componentServer.Unpause),
 	}
 
 	return rata.NewRouter(atc.Routes, wrapper.Wrap(handlers))

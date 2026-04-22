@@ -27,6 +27,8 @@ const (
 )
 
 type Component struct {
-	Name     string
-	Interval time.Duration
+	Name     string        `json:"name"`
+	Interval time.Duration `json:"interval"`
+	LastRan  time.Time     `json:"last_ran"`
+	Paused   bool          `json:"paused"`
 }
