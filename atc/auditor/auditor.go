@@ -145,7 +145,12 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.GetUser,
 		atc.GetWall,
 		atc.SetWall,
-		atc.ClearWall:
+		atc.ClearWall,
+		atc.GetComponents,
+		atc.PauseAllComponents,
+		atc.UnpauseAllComponents,
+		atc.PauseComponent,
+		atc.UnpauseComponent:
 		return a.EnableSystemAuditLog
 	case atc.ListTeams,
 		atc.SetTeam,
@@ -169,7 +174,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.ReportWorkerVolumes:
 		return a.EnableVolumeAuditLog
 	default:
-		panic(fmt.Sprintf("unhandled action: %s", action))
+		panic(fmt.Sprintf("auditor unhandled action: %s", action))
 	}
 }
 
