@@ -94,6 +94,10 @@ type FlyCommand struct {
 	SetWall   SetWallCommand   `command:"set-wall" alias:"sw" description:"Set a wall message"`
 	ClearWall ClearWallCommand `command:"clear-wall" alias:"cw" description:"Clear the wall message"`
 
+	GetComponents    GetComponentsCommand    `command:"get-components" alias:"gc" description:"Get details about all web components"`
+	PauseComponent   PauseComponentCommand   `command:"pause-component" alias:"pc" description:"Pause one or more web components"`
+	UnpauseComponent UnpauseComponentCommand `command:"unpause-component" alias:"uc" description:"Unpause one or more web components"`
+
 	Completion CompletionCommand `command:"completion" description:"generate shell completion code"`
 }
 
