@@ -465,8 +465,8 @@ var _ = Describe("CheckFactory", func() {
 		Context("when all resources have been previously checked successfully", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource", time.Minute),
-					builder.WithResourceVersions("some-resource-trigger", time.Minute),
+					builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"ref": "r1"}),
+					builder.WithResourceVersions("some-resource-trigger", time.Minute, atc.Version{"ref": "r1"}),
 					builder.WithResourceVersions("some-put-only-resource", time.Minute),
 				)
 			})
@@ -503,7 +503,7 @@ var _ = Describe("CheckFactory", func() {
 			Context("has failed its last check", func() {
 				BeforeEach(func() {
 					scenario.Run(
-						builder.WithResourceVersions("some-resource", time.Minute),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"ref": "r1"}),
 						builder.WithResourceVersions("some-resource-trigger", time.Minute),
 						builder.WithFailingResourceCheck("some-put-only-resource", time.Minute),
 					)
@@ -522,7 +522,7 @@ var _ = Describe("CheckFactory", func() {
 				BeforeEach(func() {
 					By("creating successful builds for all resources")
 					scenario.Run(
-						builder.WithResourceVersions("some-resource", time.Minute),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"ref": "r1"}),
 						builder.WithResourceVersions("some-resource-trigger", time.Minute),
 						builder.WithResourceVersions("some-put-only-resource", time.Minute),
 					)
@@ -532,6 +532,49 @@ var _ = Describe("CheckFactory", func() {
 					Expect(resources).To(HaveLen(1))
 					Expect(resources[0].Name()).To(Equal("some-resource-trigger"))
 				})
+			})
+		})
+
+		Context("when a resource has been checked successfully but has no versions", func() {
+			BeforeEach(func() {
+				scenario.Run(
+					builder.WithResourceVersions("some-resource-trigger", time.Minute, atc.Version{"ref": "r1"}),
+					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-put-only-resource", time.Minute),
+				)
+			})
+
+			It("returns the resource with no versions", func() {
+				Expect(resources).To(HaveLen(2))
+
+				resourceNames := []string{}
+				for _, r := range resources {
+					resourceNames = append(resourceNames, r.Name())
+				}
+
+				Expect(resourceNames).To(ConsistOf("some-resource-trigger", "some-resource"))
+			})
+		})
+
+		Context("when a non-triggering resource fails its last check", func() {
+			BeforeEach(func() {
+				scenario.Run(
+					builder.WithResourceVersions("some-resource-trigger", time.Minute, atc.Version{"ref": "r1"}),
+					builder.WithResourceVersions("some-put-only-resource", time.Minute),
+					builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"ref": "r1"}),
+					builder.WithFailingResourceCheck("some-resource", time.Minute),
+				)
+			})
+
+			It("returns the erroring resource", func() {
+				Expect(resources).To(HaveLen(2))
+
+				resourceNames := []string{}
+				for _, r := range resources {
+					resourceNames = append(resourceNames, r.Name())
+				}
+
+				Expect(resourceNames).To(ConsistOf("some-resource-trigger", "some-resource"))
 			})
 		})
 	})

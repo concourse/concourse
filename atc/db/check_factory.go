@@ -53,8 +53,8 @@ type CheckFactory interface {
 	TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool, toDb bool) (Build, bool, error)
 
 	// Returns all resources that are triggers for jobs, excluding those with
-	// passed constraints. Will also return resources that have errored or never
-	// been checked.
+	// passed constraints. Will also return resources that have errored, never
+	// been checked, or are inputs and have no versions in their version history.
 	Resources() ([]Resource, error)
 	ResourceTypesByPipeline() (map[int]ResourceTypes, error)
 	Drain()
@@ -165,14 +165,14 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 	var resources []Resource
 
 	rows, err := resourcesQuery.
-		LeftJoin("(select DISTINCT(resource_id) FROM job_inputs WHERE trigger = true and passed_job_id IS NULL) ji ON ji.resource_id = r.id").
+		LeftJoin("(SELECT resource_id, bool_or(trigger) AS trigger FROM job_inputs WHERE passed_job_id IS NULL GROUP BY resource_id) ji ON ji.resource_id = r.id").
 		Where(sq.And{
 			sq.Eq{"p.paused": false},
 		}).
 		Where(sq.Or{
 			sq.And{
-				// find all resources that are inputs to jobs
-				sq.NotEq{"ji.resource_id": nil},
+				// find all resources that are triggering inputs to jobs
+				sq.Eq{"ji.trigger": true},
 			},
 			sq.And{
 				// find resources that have errored or never been checked
@@ -180,7 +180,20 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 					sq.Eq{"rs.last_check_build_id": nil},
 					sq.Eq{"rs.last_check_succeeded": false},
 				},
-				sq.Eq{"ji.resource_id": nil},
+				// that are put-only or non-triggering resources
+				sq.Or{
+					sq.Eq{"ji.resource_id": nil},
+					sq.Eq{"ji.trigger": false},
+				},
+			},
+			sq.And{
+				// find non-triggering input resources that have no versions in
+				// their version history
+				sq.Eq{"ji.trigger": false},
+				sq.Expr(`NOT EXISTS (SELECT 1
+				          FROM resource_config_versions rcv
+				          WHERE rcv.resource_config_scope_id = r.resource_config_scope_id
+				        )`),
 			},
 		}).
 		OrderBy("r.id ASC").
