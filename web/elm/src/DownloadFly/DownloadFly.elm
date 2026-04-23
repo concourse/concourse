@@ -26,7 +26,7 @@ import DownloadFly.Model
         )
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, style)
+import Html.Attributes exposing (class, href, id, rel, style, target)
 import Html.Events exposing (onFocus, onInput)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
@@ -190,6 +190,7 @@ mv ./fly /usr/local/bin/"""
                 ]
             ]
         , directDownloadLink url
+        , nextSteps baseUrl
         ]
 
 
@@ -214,6 +215,7 @@ mv ./fly /usr/local/bin/"""
                 ]
             ]
         , directDownloadLink url
+        , nextSteps baseUrl
         ]
 
 
@@ -240,6 +242,68 @@ Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\\fly.exe\""""
                 ]
             ]
         , directDownloadLink url
+        , nextSteps baseUrl
+        ]
+
+
+nextSteps : String -> Html msg
+nextSteps baseUrl =
+    Html.div
+        [ style "margin-top" "24px" ]
+        [ Html.div [] [ Html.text "Next, log in and set up your first pipeline:" ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text <|
+                    "fly -t ci login -c "
+                        ++ baseUrl
+                ]
+            ]
+        , Html.div
+            [ style "margin-top" "16px" ]
+            [ Html.text "Save this as pipeline.yml to get started:" ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text <|
+                    """jobs:
+- name: hello
+  plan:
+  - task: say-hello
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: { repository: alpine }
+      run:
+        path: echo
+        args: ["hello world"]"""
+                ]
+            ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text
+                    ("fly -t ci set-pipeline -p hello -c pipeline.yml"
+                        ++ "\nfly -t ci unpause-pipeline -p hello"
+                        ++ "\nfly -t ci trigger-job -j hello/hello --watch"
+                    )
+                ]
+            ]
+        , Html.div
+            [ style "margin-top" "8px" ]
+            [ Html.text "To learn more, read our "
+            , Html.a
+                [ href "https://concourse-ci.org/docs/getting-started/", target "_blank", rel "noopener noreferrer" ]
+                [ Html.text "Getting Started guide" ]
+            ]
+        , Html.div
+            [ style "margin-top" "8px" ]
+            [ Html.text "or examples at "
+            , Html.a
+                [ href "https://github.com/concourse/examples", target "_blank", rel "noopener noreferrer" ]
+                [ Html.text "concourse/examples" ]
+            ]
         ]
 
 
