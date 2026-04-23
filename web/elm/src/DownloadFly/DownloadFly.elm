@@ -26,7 +26,7 @@ import DownloadFly.Model
         )
 import EffectTransformer exposing (ET)
 import Html exposing (Html)
-import Html.Attributes exposing (class, href, id, style)
+import Html.Attributes exposing (class, href, id, rel, style, target)
 import Html.Events exposing (onFocus, onInput)
 import Login.Login as Login
 import Message.Effects exposing (Effect(..))
@@ -292,9 +292,16 @@ nextSteps baseUrl =
             ]
         , Html.div
             [ style "margin-top" "8px" ]
-            [ Html.text "More examples at "
+            [ Html.text "To learn more, read our "
             , Html.a
-                [ href "https://github.com/concourse/examples" ]
+                [ href "https://concourse-ci.org/docs/getting-started/", target "_blank", rel "noopener noreferrer" ]
+                [ Html.text "Getting Started guide" ]
+            ]
+        , Html.div
+            [ style "margin-top" "8px" ]
+            [ Html.text "or examples at "
+            , Html.a
+                [ href "https://github.com/concourse/examples", target "_blank", rel "noopener noreferrer" ]
                 [ Html.text "concourse/examples" ]
             ]
         ]
