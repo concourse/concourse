@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"embed"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/concourse/concourse/skymarshal/skycmd"
 	s "github.com/concourse/concourse/skymarshal/storage"
 	"github.com/concourse/dex/server"
+	"github.com/concourse/dex/server/signer"
 	"github.com/concourse/dex/storage"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -40,7 +42,7 @@ func NewDexServer(config *DexConfig) (*server.Server, error) {
 		return nil, err
 	}
 
-	return server.NewServerWithKey(context.Background(), newDexServerConfig, config.SigningKey)
+	return server.NewServer(context.Background(), newDexServerConfig)
 }
 
 func NewDexServerConfig(config *DexConfig) (server.Config, error) {
@@ -118,6 +120,11 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		Issuer:  "Concourse",
 	}
 
+	staticSigner, err := signer.NewMockSigner(config.SigningKey)
+	if err != nil {
+		return server.Config{}, fmt.Errorf("configuring static signer: %w", err)
+	}
+
 	return server.Config{
 		PasswordConnector:      config.PasswordConnector,
 		SupportedResponseTypes: []string{"code", "token", "id_token"},
@@ -127,6 +134,7 @@ func NewDexServerConfig(config *DexConfig) (server.Config, error) {
 		Storage:                config.Storage,
 		Web:                    webConfig,
 		Logger:                 slog.New(lager.NewHandler(config.Logger)),
+		Signer:                 staticSigner,
 	}, nil
 }
 
