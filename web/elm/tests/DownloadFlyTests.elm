@@ -145,4 +145,36 @@ all =
                     installSteps
                         |> Query.contains [ expectedInstructions ]
             ]
+        , describe "next steps"
+            (let
+                viewAfterSelect =
+                    Common.initRoute Routes.DownloadFly
+                        |> Application.update (Msgs.Update <| Message.PlatformSelected "linux-amd64")
+                        |> Tuple.first
+                        |> queryView
+             in
+             [ test "shows fly login command" <|
+                \_ ->
+                    viewAfterSelect
+                        |> Query.has [ text ("fly -t ci login -c " ++ DownloadFly.defaultHostname) ]
+             , test "shows example pipeline YAML" <|
+                \_ ->
+                    viewAfterSelect
+                        |> Query.has [ text "jobs:" ]
+             , test "shows fly set-pipeline commands" <|
+                \_ ->
+                    viewAfterSelect
+                        |> Query.has [ text "fly -t ci set-pipeline -p hello -c pipeline.yml" ]
+             , test "shows Getting Started guide link" <|
+                \_ ->
+                    viewAfterSelect
+                        |> Query.find [ Selector.tag "a", attribute <| Attr.href "https://concourse-ci.org/docs/getting-started/" ]
+                        |> Query.has [ text "Getting Started guide" ]
+             , test "shows concourse/examples link" <|
+                \_ ->
+                    viewAfterSelect
+                        |> Query.find [ Selector.tag "a", attribute <| Attr.href "https://github.com/concourse/examples" ]
+                        |> Query.has [ text "concourse/examples" ]
+             ]
+            )
         ]
