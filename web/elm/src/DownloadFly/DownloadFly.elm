@@ -190,6 +190,7 @@ mv ./fly /usr/local/bin/"""
                 ]
             ]
         , directDownloadLink url
+        , nextSteps baseUrl
         ]
 
 
@@ -214,6 +215,7 @@ mv ./fly /usr/local/bin/"""
                 ]
             ]
         , directDownloadLink url
+        , nextSteps baseUrl
         ]
 
 
@@ -240,6 +242,61 @@ Invoke-WebRequest $concourseURL -OutFile "${concoursePath}\\fly.exe\""""
                 ]
             ]
         , directDownloadLink url
+        , nextSteps baseUrl
+        ]
+
+
+nextSteps : String -> Html msg
+nextSteps baseUrl =
+    Html.div
+        [ style "margin-top" "24px" ]
+        [ Html.div [] [ Html.text "Next, log in and set up your first pipeline:" ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text <|
+                    "fly -t ci login -c "
+                        ++ baseUrl
+                ]
+            ]
+        , Html.div
+            [ style "margin-top" "16px" ]
+            [ Html.text "Save this as pipeline.yml to get started:" ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text <|
+                    """jobs:
+- name: hello
+  plan:
+  - task: say-hello
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: { repository: alpine }
+      run:
+        path: echo
+        args: ["hello world"]"""
+                ]
+            ]
+        , Html.code
+            []
+            [ Html.pre []
+                [ Html.text
+                    ("fly -t ci set-pipeline -p hello -c pipeline.yml"
+                        ++ "\nfly -t ci unpause-pipeline -p hello"
+                        ++ "\nfly -t ci trigger-job -j hello/hello --watch"
+                    )
+                ]
+            ]
+        , Html.div
+            [ style "margin-top" "8px" ]
+            [ Html.text "More examples at "
+            , Html.a
+                [ href "https://github.com/concourse/examples" ]
+                [ Html.text "concourse/examples" ]
+            ]
         ]
 
 
