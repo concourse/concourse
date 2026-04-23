@@ -26,7 +26,36 @@ const (
 	ComponentSigningKeyLifecycler       = "signing_key_lifecycler"
 )
 
+var (
+	// These components control starting and running builds
+	ComponentsRuntime = [...]string{
+		ComponentBuildTracker,
+		ComponentLidarScanner,
+		ComponentScheduler,
+	}
+
+	// These components GC data in the database, and artifacts (containers, volumes) on Workers.
+	ComponentsGarbageCollection = [...]string{
+		ComponentBuildReaper,
+		ComponentCollectorArtifacts,
+		ComponentCollectorBuilds,
+		ComponentCollectorCheckSessions,
+		ComponentCollectorChecks,
+		ComponentCollectorContainers,
+		ComponentCollectorResourceCacheUses,
+		ComponentCollectorResourceCaches,
+		ComponentCollectorTaskCaches,
+		ComponentCollectorResourceConfigs,
+		ComponentCollectorVolumes,
+		ComponentCollectorWorkers,
+		ComponentCollectorPipelines,
+		ComponentPipelinePauser,
+	}
+)
+
 type Component struct {
-	Name     string
-	Interval time.Duration
+	Name     string        `json:"name"`
+	Interval time.Duration `json:"interval"`
+	LastRan  time.Time     `json:"last_ran"`
+	Paused   bool          `json:"paused"`
 }

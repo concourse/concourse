@@ -128,11 +128,9 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 }
 
 func merge(base, extra url.Values) url.Values {
-	if extra != nil {
-		for key, values := range extra {
-			for _, value := range values {
-				base.Add(key, value)
-			}
+	for key, values := range extra {
+		for _, value := range values {
+			base.Add(key, value)
 		}
 	}
 	return base

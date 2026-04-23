@@ -122,6 +122,12 @@ const (
 
 	GetOpenIDConfiguration = "GetOpenIDConfiguration"
 	GetSigningKeys         = "GetSigningKeys"
+
+	GetComponents        = "GetComponents"
+	PauseComponent       = "PauseComponent"
+	UnpauseComponent     = "UnpauseComponent"
+	PauseAllComponents   = "PauseAllComponents"
+	UnpauseAllComponents = "UnpauseAllComponents"
 )
 
 const (
@@ -251,4 +257,10 @@ var Routes = rata.Routes([]rata.Route{
 
 	{Path: "/.well-known/openid-configuration", Method: "GET", Name: GetOpenIDConfiguration},
 	{Path: "/.well-known/jwks.json", Method: "GET", Name: GetSigningKeys},
+
+	{Path: "/api/v1/components", Method: "GET", Name: GetComponents},
+	{Path: "/api/v1/components/pause", Method: "PUT", Name: PauseAllComponents},
+	{Path: "/api/v1/components/unpause", Method: "PUT", Name: UnpauseAllComponents},
+	{Path: "/api/v1/components/:component_name/pause", Method: "PUT", Name: PauseComponent},
+	{Path: "/api/v1/components/:component_name/unpause", Method: "PUT", Name: UnpauseComponent},
 })

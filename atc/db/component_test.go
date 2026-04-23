@@ -259,4 +259,42 @@ var _ = Describe("Component", func() {
 			Expect(lastRan).To(BeTemporally("~", time.Now(), time.Second))
 		})
 	})
+
+	Describe("Pause", func() {
+		It("pauses the component", func() {
+			Expect(component.Paused()).To(BeFalse())
+
+			err := component.Pause()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(component.Paused()).To(BeTrue())
+
+			reloaded, err := component.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reloaded).To(BeTrue())
+			Expect(component.Paused()).To(BeTrue())
+		})
+	})
+
+	Describe("Unpause", func() {
+		BeforeEach(func() {
+			_, err = dbConn.Exec("UPDATE components SET paused = true WHERE name = 'scheduler'")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("unpauses the component", func() {
+			reloaded, err := component.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reloaded).To(BeTrue())
+			Expect(component.Paused()).To(BeTrue())
+
+			err = component.Unpause()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(component.Paused()).To(BeFalse())
+
+			reloaded, err = component.Reload()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(reloaded).To(BeTrue())
+			Expect(component.Paused()).To(BeFalse())
+		})
+	})
 })

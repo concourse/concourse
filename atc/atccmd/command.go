@@ -906,6 +906,7 @@ func (cmd *RunCommand) constructAPIMembers(
 	dbSigningKeyFactory := db.NewSigningKeyFactory(dbConn)
 	dbClock := db.NewClock()
 	dbWall := db.NewWall(dbConn, &dbClock)
+	dbComponentFactory := db.NewComponentFactory(dbConn, cmd.NumGoroutineThreshold, rander{}, clock.NewClock(), db.RealGoroutineCounter{})
 
 	MiB := 1024 * 1024
 	claimsCacher := accessor.NewClaimsCacher(dbAccessTokenFactory, 1*MiB)
@@ -950,6 +951,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbCheckFactory,
 		dbResourceConfigFactory,
 		userFactory,
+		dbComponentFactory,
 		pool,
 		secretManager,
 		credsManagers,
@@ -2072,6 +2074,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	dbCheckFactory db.CheckFactory,
 	resourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
+	dbComponentFactory db.ComponentFactory,
 	workerPool worker.Pool,
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
@@ -2150,6 +2153,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbCheckFactory,
 		resourceConfigFactory,
 		dbUserFactory,
+		dbComponentFactory,
 
 		buildserver.NewEventHandler,
 
