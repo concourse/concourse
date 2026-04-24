@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 var _ list.Item = Item{}
@@ -38,8 +39,9 @@ func Select(prompt string, items []list.Item) (any, error) {
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)
 	l.SetShowFilter(true)
-	l.FilterInput.PromptStyle = blankStyle
-	l.FilterInput.Cursor.Style = blankStyle
+	fs := l.FilterInput.Styles()
+	fs.Focused.Prompt = blankStyle
+	l.FilterInput.SetStyles(fs)
 	l.Help.Styles.ShortKey = blankStyle.Bold(true)
 	l.Help.Styles.ShortDesc = blankStyle
 
@@ -54,7 +56,10 @@ func Select(prompt string, items []list.Item) (any, error) {
 	l.KeyMap.ShowFullHelp.Unbind()
 
 	done, err := tea.NewProgram(selectModel{prompt: prompt, list: l},
-		tea.WithInput(checkStdin())).Run()
+		// set initial window size for tests
+		tea.WithWindowSize(80, 20),
+		tea.WithInput(os.Stdin),
+	).Run()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +81,7 @@ func (s selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s.list.SetWidth(msg.Width)
 		return s, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "esc", "ctrl+c", "ctrl+d":
 			switch s.list.FilterState() {
@@ -107,7 +112,7 @@ func (s selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 var titleStyle = lipgloss.NewStyle().MarginLeft(2)
 
-func (s selectModel) View() string {
+func (s selectModel) View() tea.View {
 	finalView := strings.Builder{}
 	finalView.WriteString("\n")
 	if s.list.FilterState() != list.Filtering {
@@ -115,7 +120,7 @@ func (s selectModel) View() string {
 	}
 
 	finalView.WriteString(s.list.View())
-	return finalView.String()
+	return tea.NewView(finalView.String())
 }
 
 var _ list.ItemDelegate = itemDelegate{}

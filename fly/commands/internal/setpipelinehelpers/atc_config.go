@@ -38,6 +38,7 @@ func (atcConfig ATCConfig) ApplyConfigInteraction() bool {
 
 	confirm, err := interaction.Confirm("apply configuration?")
 	if err != nil {
+		fmt.Println(err.Error())
 		return false
 	}
 

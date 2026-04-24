@@ -3,11 +3,12 @@ package interaction
 import (
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // Asks a user to confirm an action before taking it. Accepts all variants of
@@ -15,14 +16,20 @@ import (
 func Confirm(prompt string) (bool, error) {
 	i := textinput.New()
 	i.Prompt = fmt.Sprintf("%s [yN]: ", prompt)
-	i.PromptStyle = lipgloss.NewStyle()
+	s := i.Styles()
+	s.Focused.Prompt = lipgloss.NewStyle()
+	i.SetStyles(s)
 	i.Focus()
 	i.CharLimit = 3
-	i.Width = 3
+	i.SetWidth(3)
 
 	m, err := tea.NewProgram(confirmModel{input: i},
-		tea.WithInput(checkStdin())).Run()
+		// set initial window size for tests
+		tea.WithWindowSize(80, 20),
+		tea.WithInput(os.Stdin),
+	).Run()
 	if err != nil {
+		fmt.Println(err.Error())
 		return false, err
 	}
 	final, ok := m.(confirmModel)
@@ -48,8 +55,8 @@ func (c confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
+	case tea.KeyPressMsg:
+		switch msg.Code {
 		case tea.KeyEnter:
 			switch strings.ToLower(c.input.Value()) {
 			case "y", "yes":
@@ -62,9 +69,14 @@ func (c confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				c.unknownInput = true
 				c.input.SetValue("")
 			}
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyEscape:
 			c.confirmation = false
 			return c, tea.Quit
+		default:
+			if msg.String() == "ctrl+c" {
+				c.confirmation = false
+				return c, tea.Quit
+			}
 		}
 	}
 
@@ -72,11 +84,11 @@ func (c confirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return c, cmd
 }
 
-func (c confirmModel) View() string {
+func (c confirmModel) View() tea.View {
 	if c.unknownInput {
-		return fmt.Sprintf("%s\n%s",
+		return tea.NewView(fmt.Sprintf("%s\n%s",
 			c.input.View(),
-			"Unknown input. Please enter y/yes/n/no.")
+			"Unknown input. Please enter y/yes/n/no."))
 	}
-	return c.input.View()
+	return tea.NewView(c.input.View())
 }
