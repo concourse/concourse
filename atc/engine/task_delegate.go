@@ -54,11 +54,34 @@ func (d *taskDelegate) SetTaskConfig(config atc.TaskConfig) {
 	d.config = config
 }
 
+// redactedConfig returns a copy of the task config with secrets redacted from
+// the run command path and args. This prevents credential values from leaking
+// into build events (and thus into fly watch/execute/trigger-job output).
+func (d *taskDelegate) redactedConfig() atc.TaskConfig {
+	bsd, ok := d.BuildStepDelegate.(*buildStepDelegate)
+	if !ok || bsd.disableRedactSecrets {
+		return d.config
+	}
+
+	config := d.config
+	config.Run.Path = bsd.buildOutputFilter(config.Run.Path)
+
+	if len(config.Run.Args) > 0 {
+		redactedArgs := make([]string, len(config.Run.Args))
+		for i, arg := range config.Run.Args {
+			redactedArgs[i] = bsd.buildOutputFilter(arg)
+		}
+		config.Run.Args = redactedArgs
+	}
+
+	return config
+}
+
 func (d *taskDelegate) Initializing(logger lager.Logger) {
 	err := d.build.SaveEvent(event.InitializeTask{
 		Origin:     d.eventOrigin,
 		Time:       d.clock.Now().Unix(),
-		TaskConfig: event.ShadowTaskConfig(d.config),
+		TaskConfig: event.ShadowTaskConfig(d.redactedConfig()),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-task-event", err)
@@ -72,7 +95,7 @@ func (d *taskDelegate) Starting(logger lager.Logger) {
 	err := d.build.SaveEvent(event.StartTask{
 		Origin:     d.eventOrigin,
 		Time:       d.clock.Now().Unix(),
-		TaskConfig: event.ShadowTaskConfig(d.config),
+		TaskConfig: event.ShadowTaskConfig(d.redactedConfig()),
 	})
 	if err != nil {
 		logger.Error("failed-to-save-initialize-task-event", err)

@@ -101,6 +101,40 @@ var _ = Describe("TaskDelegate", func() {
 				}
 			}`))
 		})
+
+		Context("when run args contain interpolated secrets", func() {
+			BeforeEach(func() {
+				state.Get(vars.Reference{Path: "source-param"})
+
+				delegate.SetTaskConfig(atc.TaskConfig{
+					Platform: "some-platform",
+					Run: atc.TaskRunConfig{
+						Path: "sh",
+						Args: []string{"-c", "echo super-secret-source"},
+						Dir:  "some-bar-dir",
+					},
+				})
+			})
+
+			It("redacts secrets from the event args", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(json.Marshal(e)).To(MatchJSON(`{
+					"time": 675927000,
+					"origin": {"id": "some-plan-id"},
+					"config": {
+						"platform": "some-platform",
+						"image":"",
+						"run": {
+							"path": "sh",
+							"args": ["-c", "echo ((redacted))"],
+							"dir": "some-bar-dir"
+						},
+						"inputs":null
+					}
+				}`))
+			})
+		})
 	})
 
 	Describe("Starting", func() {
@@ -131,6 +165,40 @@ var _ = Describe("TaskDelegate", func() {
 					"inputs":null
 				}
 			}`))
+		})
+
+		Context("when run args contain interpolated secrets", func() {
+			BeforeEach(func() {
+				state.Get(vars.Reference{Path: "source-param"})
+
+				delegate.SetTaskConfig(atc.TaskConfig{
+					Platform: "some-platform",
+					Run: atc.TaskRunConfig{
+						Path: "sh",
+						Args: []string{"-c", "echo super-secret-source"},
+						Dir:  "some-bar-dir",
+					},
+				})
+			})
+
+			It("redacts secrets from the event args", func() {
+				Expect(fakeBuild.SaveEventCallCount()).To(Equal(1))
+				e := fakeBuild.SaveEventArgsForCall(0)
+				Expect(json.Marshal(e)).To(MatchJSON(`{
+					"time": 675927000,
+					"origin": {"id": "some-plan-id"},
+					"config": {
+						"platform": "some-platform",
+						"image":"",
+						"run": {
+							"path": "sh",
+							"args": ["-c", "echo ((redacted))"],
+							"dir": "some-bar-dir"
+						},
+						"inputs":null
+					}
+				}`))
+			})
 		})
 	})
 
