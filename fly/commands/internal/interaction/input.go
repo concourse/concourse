@@ -3,7 +3,6 @@ package interaction
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -37,7 +36,7 @@ func InputProgram(prompt string, isSensitive bool) *tea.Program {
 	return tea.NewProgram(InputModel{input: i},
 		// set initial window size for tests
 		tea.WithWindowSize(80, 20),
-		tea.WithInput(os.Stdin),
+		tea.WithInput(Stdin()),
 	)
 }
 

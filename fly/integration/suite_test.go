@@ -51,8 +51,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	return []byte(binPath)
 }, func(data []byte) {
 	flyPath = string(data)
-
 	SetDefaultEventuallyTimeout(10 * time.Second)
+	os.Setenv("FLY_TEST", "true")
 })
 
 var _ = SynchronizedAfterSuite(func() {

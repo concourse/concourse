@@ -3,7 +3,6 @@ package interaction
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"charm.land/bubbles/v2/textinput"
@@ -26,7 +25,7 @@ func Confirm(prompt string) (bool, error) {
 	m, err := tea.NewProgram(confirmModel{input: i},
 		// set initial window size for tests
 		tea.WithWindowSize(80, 20),
-		tea.WithInput(os.Stdin),
+		tea.WithInput(Stdin()),
 	).Run()
 	if err != nil {
 		fmt.Println(err.Error())

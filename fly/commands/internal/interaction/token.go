@@ -2,7 +2,6 @@ package interaction
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"charm.land/bubbles/v2/textinput"
@@ -22,7 +21,7 @@ func TokenProgram() *tea.Program {
 	return tea.NewProgram(TokenModel{input: i},
 		// set initial window size for tests
 		tea.WithWindowSize(80, 20),
-		tea.WithInput(os.Stdin),
+		tea.WithInput(Stdin()),
 	)
 }
 

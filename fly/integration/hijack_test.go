@@ -407,9 +407,6 @@ var _ = Describe("hijack", func() {
 			fmt.Fprint(stdin, "j")
 			time.Sleep(time.Millisecond)
 			fmt.Fprint(stdin, "\r")
-			// not 100% what happens, but it seems the underlying pipe gets
-			// broken and sending something to stdin gets it working again
-			fmt.Fprintf(stdin, "reset stdin\r\n")
 
 			Eventually(hijacked).Should(BeClosed())
 
@@ -529,9 +526,6 @@ var _ = Describe("hijack", func() {
 
 				_, err = fmt.Fprintf(stdin, "\r")
 				Expect(err).NotTo(HaveOccurred())
-				// not 100% what happens, but it seems the underlying pipe gets
-				// broken and sending something to stdin gets it working again
-				fmt.Fprintf(stdin, "reset stdin\r\n")
 
 				Eventually(hijacked).Should(BeClosed())
 

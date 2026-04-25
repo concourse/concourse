@@ -200,7 +200,7 @@ func (command *HijackCommand) Execute([]string) error {
 
 			in = term
 		} else {
-			in = os.Stdin
+			in = interaction.Stdin()
 		}
 
 		inputs := make(chan atc.HijackInput, 1)

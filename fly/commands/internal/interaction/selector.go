@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
@@ -58,7 +57,7 @@ func Select(prompt string, items []list.Item) (any, error) {
 	done, err := tea.NewProgram(selectModel{prompt: prompt, list: l},
 		// set initial window size for tests
 		tea.WithWindowSize(80, 20),
-		tea.WithInput(os.Stdin),
+		tea.WithInput(Stdin()),
 	).Run()
 	if err != nil {
 		return nil, err
