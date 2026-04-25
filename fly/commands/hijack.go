@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
+	"charm.land/bubbles/v2/list"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -200,7 +200,7 @@ func (command *HijackCommand) Execute([]string) error {
 
 			in = term
 		} else {
-			in = os.Stdin
+			in = interaction.Stdin()
 		}
 
 		inputs := make(chan atc.HijackInput, 1)

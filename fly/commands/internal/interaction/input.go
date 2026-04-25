@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // Prompts a user to enter a string and returns the entered string
@@ -26,12 +26,18 @@ func Input(prompt string, isSensitive bool) (string, error) {
 func InputProgram(prompt string, isSensitive bool) *tea.Program {
 	i := textinput.New()
 	i.Prompt = fmt.Sprintf("%s: ", prompt)
-	i.PromptStyle = lipgloss.NewStyle()
+	s := i.Styles()
+	s.Focused.Prompt = lipgloss.NewStyle()
+	i.SetStyles(s)
 	i.Focus()
 	if isSensitive {
 		i.EchoMode = textinput.EchoNone
 	}
-	return tea.NewProgram(InputModel{input: i}, tea.WithInput(checkStdin()))
+	return tea.NewProgram(InputModel{input: i},
+		// set initial window size for tests
+		tea.WithWindowSize(80, 20),
+		tea.WithInput(Stdin()),
+	)
 }
 
 var _ tea.Model = InputModel{}
@@ -53,13 +59,17 @@ func (i InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
+	case tea.KeyPressMsg:
+		switch msg.Code {
 		case tea.KeyEnter:
 			i.output = i.input.Value()
 			return i, tea.Quit
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyEscape:
 			return i, tea.Quit
+		default:
+			if msg.String() == "ctrl+c" {
+				return i, tea.Quit
+			}
 		}
 	}
 
@@ -67,6 +77,6 @@ func (i InputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return i, cmd
 }
 
-func (i InputModel) View() string {
-	return i.input.View()
+func (i InputModel) View() tea.View {
+	return tea.NewView(i.input.View())
 }

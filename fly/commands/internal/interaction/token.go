@@ -4,19 +4,25 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 // Prompts a user to enter a bearer token
 func TokenProgram() *tea.Program {
 	i := textinput.New()
 	i.Prompt = "or enter token manually (input hidden): "
-	i.PromptStyle = lipgloss.NewStyle()
+	s := i.Styles()
+	s.Focused.Prompt = lipgloss.NewStyle()
+	i.SetStyles(s)
 	i.EchoMode = textinput.EchoNone
 	i.Focus()
-	return tea.NewProgram(TokenModel{input: i}, tea.WithInput(checkStdin()))
+	return tea.NewProgram(TokenModel{input: i},
+		// set initial window size for tests
+		tea.WithWindowSize(80, 20),
+		tea.WithInput(Stdin()),
+	)
 }
 
 var _ tea.Model = TokenModel{}
@@ -39,8 +45,8 @@ func (i TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
+	case tea.KeyPressMsg:
+		switch msg.Code {
 		case tea.KeyEnter:
 			token := i.input.Value()
 			parts := strings.Split(token, " ")
@@ -52,8 +58,12 @@ func (i TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				i.malformedToken = false
 				return i, tea.Quit
 			}
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyEscape:
 			return i, tea.Quit
+		default:
+			if msg.String() == "ctrl+c" {
+				return i, tea.Quit
+			}
 		}
 	}
 
@@ -61,9 +71,9 @@ func (i TokenModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return i, cmd
 }
 
-func (i TokenModel) View() string {
+func (i TokenModel) View() tea.View {
 	if i.malformedToken {
-		return fmt.Sprintf("%s\n%s", i.input.View(), "token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'")
+		return tea.NewView(fmt.Sprintf("%s\n%s", i.input.View(), "token must be of the format 'TYPE VALUE', e.g. 'Bearer ...'"))
 	}
-	return i.input.View()
+	return tea.NewView(i.input.View())
 }
