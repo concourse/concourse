@@ -18,17 +18,17 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.6
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.5
-	github.com/aws/smithy-go v1.25.0
-	github.com/caarlos0/env/v11 v11.3.1
+	github.com/aws/smithy-go v1.25.1
+	github.com/caarlos0/env/v11 v11.4.0
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
-	github.com/charmbracelet/bubbles v1.0.0
-	github.com/charmbracelet/bubbletea v1.3.10
-	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/charmbracelet/bubbles/v2 v2.1.0
+	github.com/charmbracelet/bubbletea/v2 v2.0.6
+	github.com/charmbracelet/lipgloss/v2 v2.0.3
 	github.com/concourse/dex v1.13.0
 	github.com/concourse/houdini v1.3.0
 	github.com/concourse/retryhttp v1.3.0
-	github.com/containerd/containerd v1.7.31
+	github.com/containerd/containerd/v2 v2.2.3
 	github.com/containerd/containerd/api v1.10.0
 	github.com/containerd/containerd/v2 v2.2.3
 	github.com/containerd/errdefs v1.0.0
@@ -56,17 +56,17 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/jackc/pgx/v5 v5.9.2
-	github.com/jackpal/gateway v1.1.1
+	github.com/jackpal/gateway v1.2.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.18.5
 	github.com/madflojo/testcerts v1.5.0
 	github.com/mattn/go-colorable v0.1.14
-	github.com/mattn/go-isatty v0.0.21
+	github.com/mattn/go-isatty v0.0.22
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.2
 	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d
 	github.com/miekg/dns v1.1.72
 	github.com/moby/sys/user v0.4.0
-	github.com/onsi/ginkgo/v2 v2.28.1
+	github.com/onsi/ginkgo/v2 v2.28.2
 	github.com/onsi/gomega v1.39.1
 	github.com/opencontainers/cgroups v0.0.6
 	github.com/opencontainers/runtime-spec v1.3.0
