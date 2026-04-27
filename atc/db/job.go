@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -271,7 +272,7 @@ func (j *job) Config() (atc.JobConfig, error) {
 	}
 
 	var config atc.JobConfig
-	err = json.Unmarshal(decryptedConfig, &config)
+	err = sonic.Unmarshal(decryptedConfig, &config)
 	if err != nil {
 		return atc.JobConfig{}, err
 	}
@@ -317,7 +318,7 @@ func (j *job) AlgorithmInputs() (InputConfigs, error) {
 		}
 
 		if pinnedVersionString.Valid {
-			err = json.Unmarshal([]byte(pinnedVersionString.String), &inputConfig.PinnedVersion)
+			err = sonic.UnmarshalString(pinnedVersionString.String, &inputConfig.PinnedVersion)
 			if err != nil {
 				return nil, err
 			}
@@ -1352,7 +1353,7 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 
 		var version atc.Version
 		if versionBlob.Valid {
-			err = json.Unmarshal([]byte(versionBlob.String), &version)
+			err = sonic.UnmarshalString(versionBlob.String, &version)
 			if err != nil {
 				return nil, err
 			}
@@ -1378,7 +1379,7 @@ func (j *job) getNextBuildInputs(tx Tx) ([]BuildInput, error) {
 
 		var spanContext SpanContext
 		if spanContextJSON.Valid {
-			err = json.Unmarshal([]byte(spanContextJSON.String), &spanContext)
+			err = sonic.UnmarshalString(spanContextJSON.String, &spanContext)
 			if err != nil {
 				return nil, err
 			}
@@ -1421,7 +1422,7 @@ func scanJob(j *job, row scannable) error {
 	}
 
 	if pipelineInstanceVars.Valid {
-		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &j.pipelineInstanceVars)
+		err = sonic.UnmarshalString(pipelineInstanceVars.String, &j.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}

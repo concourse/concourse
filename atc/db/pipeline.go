@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
@@ -356,12 +357,12 @@ func (p *pipeline) ResourceVersion(resourceConfigVersionID int) (atc.ResourceVer
 		return atc.ResourceVersion{}, false, err
 	}
 
-	err = json.Unmarshal([]byte(versionBytes), &rv.Version)
+	err = sonic.UnmarshalString(versionBytes, &rv.Version)
 	if err != nil {
 		return atc.ResourceVersion{}, false, err
 	}
 
-	err = json.Unmarshal([]byte(metadataBytes), &rv.Metadata)
+	err = sonic.UnmarshalString(metadataBytes, &rv.Metadata)
 	if err != nil {
 		return atc.ResourceVersion{}, false, err
 	}

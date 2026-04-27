@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -185,7 +186,7 @@ func (factory *teamFactory) scanTeam(t *team, rows scannable) error {
 	)
 
 	if providerAuth.Valid {
-		err = json.Unmarshal([]byte(providerAuth.String), &t.auth)
+		err = sonic.UnmarshalString(providerAuth.String, &t.auth)
 		if err != nil {
 			return err
 		}

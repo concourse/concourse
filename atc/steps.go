@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/bytedance/sonic"
 )
 
 // Step is an "envelope" type, acting as a wrapper to handle the marshaling and
@@ -688,7 +690,7 @@ const VersionEvery = "every"
 func (c *VersionConfig) UnmarshalJSON(version []byte) error {
 	var data any
 
-	err := json.Unmarshal(version, &data)
+	err := sonic.Unmarshal(version, &data)
 	if err != nil {
 		return err
 	}

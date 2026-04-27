@@ -2,11 +2,11 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -252,7 +252,7 @@ func (volume *createdVolume) TaskIdentifier() (int, atc.PipelineRef, string, str
 
 	pipelineRef := atc.PipelineRef{Name: pipelineName}
 	if pipelineInstanceVars.Valid {
-		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &pipelineRef.InstanceVars)
+		err = sonic.UnmarshalString(pipelineInstanceVars.String, &pipelineRef.InstanceVars)
 		if err != nil {
 			return 0, atc.PipelineRef{}, "", "", err
 		}
@@ -280,7 +280,7 @@ func (volume *createdVolume) findVolumeResourceTypeByCacheID(resourceCacheID int
 	}
 
 	var version atc.Version
-	err = json.Unmarshal(versionString, &version)
+	err = sonic.Unmarshal(versionString, &version)
 	if err != nil {
 		return nil, err
 	}

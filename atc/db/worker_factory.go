@@ -9,6 +9,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 )
 
@@ -236,12 +237,12 @@ func scanWorker(worker *worker, row scannable) error {
 		worker.ephemeral = ephemeral.Bool
 	}
 
-	err = json.Unmarshal(resourceTypes, &worker.resourceTypes)
+	err = sonic.Unmarshal(resourceTypes, &worker.resourceTypes)
 	if err != nil {
 		return err
 	}
 
-	return json.Unmarshal(tags, &worker.tags)
+	return sonic.Unmarshal(tags, &worker.tags)
 }
 
 func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration) (Worker, error) {

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 
@@ -1498,7 +1499,7 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 		}
 
 		var version atc.Version
-		err = json.Unmarshal([]byte(versionBlob), &version)
+		err = sonic.UnmarshalString(versionBlob, &version)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1667,7 +1668,7 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 		}
 
 		var version atc.Version
-		err = json.Unmarshal([]byte(versionBlob), &version)
+		err = sonic.UnmarshalString(versionBlob, &version)
 		if err != nil {
 			return nil, false, err
 		}
@@ -1777,7 +1778,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			return nil, nil, err
 		}
 
-		err = json.Unmarshal([]byte(versionBlob), &version)
+		err = sonic.UnmarshalString(versionBlob, &version)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1818,7 +1819,7 @@ func (b *build) Resources() ([]BuildInput, []BuildOutput, error) {
 			return nil, nil, err
 		}
 
-		err = json.Unmarshal([]byte(versionBlob), &version)
+		err = sonic.UnmarshalString(versionBlob, &version)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1990,28 +1991,28 @@ func scanBuild(b *build, row scannable, encryptionStrategy encryption.Strategy) 
 	}
 
 	if len(decryptedPlan) > 0 {
-		err = json.Unmarshal(decryptedPlan, &b.privatePlan)
+		err = sonic.Unmarshal(decryptedPlan, &b.privatePlan)
 		if err != nil {
 			return err
 		}
 	}
 
 	if publicPlan.Valid {
-		err = json.Unmarshal([]byte(publicPlan.String), &b.publicPlan)
+		err = sonic.UnmarshalString(publicPlan.String, &b.publicPlan)
 		if err != nil {
 			return err
 		}
 	}
 
 	if spanContext.Valid {
-		err = json.Unmarshal([]byte(spanContext.String), &b.spanContext)
+		err = sonic.UnmarshalString(spanContext.String, &b.spanContext)
 		if err != nil {
 			return err
 		}
 	}
 
 	if pipelineInstanceVars.Valid {
-		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &b.pipelineInstanceVars)
+		err = sonic.UnmarshalString(pipelineInstanceVars.String, &b.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}

@@ -12,6 +12,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/util"
@@ -599,13 +600,13 @@ func (r *resource) Versions(page Page, versionFilter atc.Version) ([]atc.Resourc
 			return nil, Pagination{}, false, err
 		}
 
-		err = json.Unmarshal([]byte(versionBytes), &rv.Version)
+		err = sonic.UnmarshalString(versionBytes, &rv.Version)
 		if err != nil {
 			return nil, Pagination{}, false, err
 		}
 
 		if metadataBytes.Valid {
-			err = json.Unmarshal([]byte(metadataBytes.String), &rv.Metadata)
+			err = sonic.UnmarshalString(metadataBytes.String, &rv.Metadata)
 			if err != nil {
 				return nil, Pagination{}, false, err
 			}
@@ -964,7 +965,7 @@ func scanResource(r *resource, row scannable) error {
 			return err
 		}
 
-		err = json.Unmarshal(decryptedConfig, &r.config)
+		err = sonic.Unmarshal(decryptedConfig, &r.config)
 		if err != nil {
 			return err
 		}
@@ -974,7 +975,7 @@ func scanResource(r *resource, row scannable) error {
 
 	if pinnedVersion.Valid {
 		var version atc.Version
-		err = json.Unmarshal([]byte(pinnedVersion.String), &version)
+		err = sonic.UnmarshalString(pinnedVersion.String, &version)
 		if err != nil {
 			return err
 		}
@@ -1012,7 +1013,7 @@ func scanResource(r *resource, row scannable) error {
 	}
 
 	if pipelineInstanceVars.Valid {
-		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &r.pipelineInstanceVars)
+		err = sonic.UnmarshalString(pipelineInstanceVars.String, &r.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}
@@ -1083,7 +1084,7 @@ func (d buildData) useInMemoryBuild(buildSummary *atc.BuildSummary, lastCheckSta
 	buildSummary.Status = atc.BuildStatus(d.inMemoryBuildStatus.String)
 	*lastCheckStart = d.inMemoryBuildStartTime.Time
 	if d.inMemoryBuildPlan.Valid {
-		err := json.Unmarshal([]byte(d.inMemoryBuildPlan.String), &buildSummary.PublicPlan)
+		err := sonic.UnmarshalString(d.inMemoryBuildPlan.String, &buildSummary.PublicPlan)
 		if err != nil {
 			return err
 		}
@@ -1108,7 +1109,7 @@ func (d buildData) useLastCheckBuild(buildSummary *atc.BuildSummary, lastCheckSt
 	}
 
 	if d.lastCheckBuildPlan.Valid {
-		err := json.Unmarshal([]byte(d.lastCheckBuildPlan.String), &buildSummary.PublicPlan)
+		err := sonic.UnmarshalString(d.lastCheckBuildPlan.String, &buildSummary.PublicPlan)
 		if err != nil {
 			return err
 		}
@@ -1313,7 +1314,7 @@ LIMIT $3
 			return err
 		}
 
-		err = json.Unmarshal([]byte(versionStr), &version)
+		err = sonic.UnmarshalString(versionStr, &version)
 		if err != nil {
 			return err
 		}

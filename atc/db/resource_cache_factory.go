@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 )
@@ -191,7 +192,7 @@ func (f *resourceCacheFactory) ResourceCacheMetadata(resourceCache ResourceCache
 
 	var metadata []ResourceConfigMetadataField
 	if metadataJSON.Valid {
-		err = json.Unmarshal([]byte(metadataJSON.String), &metadata)
+		err = sonic.UnmarshalString(metadataJSON.String, &metadata)
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +231,7 @@ func findResourceCacheByID(tx Tx, resourceCacheID int, lock lock.LockFactory, co
 	}
 
 	var version atc.Version
-	err = json.Unmarshal([]byte(versionBytes), &version)
+	err = sonic.UnmarshalString(versionBytes, &version)
 	if err != nil {
 		return nil, false, err
 	}

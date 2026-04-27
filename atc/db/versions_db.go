@@ -12,6 +12,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/tracing"
 	gocache "github.com/patrickmn/go-cache"
@@ -210,7 +211,7 @@ func (versions VersionsDB) SuccessfulBuildOutputs(ctx context.Context, buildID i
 	}
 
 	outputs := map[string][]string{}
-	err = json.Unmarshal([]byte(outputsJSON), &outputs)
+	err = sonic.UnmarshalString(outputsJSON, &outputs)
 	if err != nil {
 		return nil, err
 	}

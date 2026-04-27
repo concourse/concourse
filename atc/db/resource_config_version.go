@@ -2,9 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"go.opentelemetry.io/otel/propagation"
 )
@@ -107,21 +107,21 @@ func scanResourceConfigVersion(r *resourceConfigVersion, scan scannable) error {
 	}
 
 	if version.Valid {
-		err = json.Unmarshal([]byte(version.String), &r.version)
+		err = sonic.UnmarshalString(version.String, &r.version)
 		if err != nil {
 			return err
 		}
 	}
 
 	if metadata.Valid {
-		err = json.Unmarshal([]byte(metadata.String), &r.metadata)
+		err = sonic.UnmarshalString(metadata.String, &r.metadata)
 		if err != nil {
 			return err
 		}
 	}
 
 	if spanContext.Valid {
-		err = json.Unmarshal([]byte(spanContext.String), &r.spanContext)
+		err = sonic.UnmarshalString(spanContext.String, &r.spanContext)
 		if err != nil {
 			return err
 		}

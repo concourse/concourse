@@ -3,12 +3,12 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
@@ -265,7 +265,7 @@ func scanPrototype(p *prototype, row scannable) error {
 	p.lastCheckEndTime = lastCheckEndTime.Time
 
 	if version.Valid {
-		err = json.Unmarshal([]byte(version.String), &p.version)
+		err = sonic.UnmarshalString(version.String, &p.version)
 		if err != nil {
 			return err
 		}
@@ -285,7 +285,7 @@ func scanPrototype(p *prototype, row scannable) error {
 			return err
 		}
 
-		err = json.Unmarshal(decryptedConfig, &config)
+		err = sonic.Unmarshal(decryptedConfig, &config)
 		if err != nil {
 			return err
 		}
@@ -312,7 +312,7 @@ func scanPrototype(p *prototype, row scannable) error {
 	}
 
 	if pipelineInstanceVars.Valid {
-		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &p.pipelineInstanceVars)
+		err = sonic.UnmarshalString(pipelineInstanceVars.String, &p.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}

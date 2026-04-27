@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/gobwas/glob"
 
 	"github.com/concourse/concourse/atc"
@@ -1365,7 +1366,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 
 	if groups.Valid {
 		var pipelineGroups atc.GroupConfigs
-		err = json.Unmarshal([]byte(groups.String), &pipelineGroups)
+		err = sonic.UnmarshalString(groups.String, &pipelineGroups)
 		if err != nil {
 			return err
 		}
@@ -1379,7 +1380,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 
 	if display.Valid {
 		var displayConfig *atc.DisplayConfig
-		err = json.Unmarshal([]byte(display.String), &displayConfig)
+		err = sonic.UnmarshalString(display.String, &displayConfig)
 		if err != nil {
 			return err
 		}
@@ -1389,7 +1390,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 
 	if userData.Valid {
 		var userDataObj any
-		err = json.Unmarshal([]byte(userData.String), &userDataObj)
+		err = sonic.UnmarshalString(userData.String, &userDataObj)
 		if err != nil {
 			return err
 		}
@@ -1403,7 +1404,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		if err != nil {
 			return err
 		}
-		err = json.Unmarshal([]byte(decryptedVarSource), &pipelineVarSources)
+		err = sonic.Unmarshal(decryptedVarSource, &pipelineVarSources)
 		if err != nil {
 			return err
 		}
@@ -1412,7 +1413,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 	}
 
 	if instanceVars.Valid {
-		err = json.Unmarshal([]byte(instanceVars.String), &p.instanceVars)
+		err = sonic.UnmarshalString(instanceVars.String, &p.instanceVars)
 		if err != nil {
 			return err
 		}
@@ -1491,7 +1492,7 @@ func (t *team) queryTeam(tx Tx, query string, params ...any) error {
 
 	if providerAuth.Valid {
 		var auth atc.TeamAuth
-		err = json.Unmarshal([]byte(providerAuth.String), &auth)
+		err = sonic.UnmarshalString(providerAuth.String, &auth)
 		if err != nil {
 			return err
 		}
@@ -1679,7 +1680,7 @@ func configsDifferent(resourceConfig atc.ResourceConfig, encryptedBlob string, e
 
 	existingConfig := atc.ResourceConfig{}
 	if string(decryptedConfig) != "" {
-		err = json.Unmarshal(decryptedConfig, &existingConfig)
+		err = sonic.Unmarshal(decryptedConfig, &existingConfig)
 		if err != nil {
 			return false, err
 		}

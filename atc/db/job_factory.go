@@ -2,10 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"sort"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -245,7 +245,7 @@ func (j *jobFactory) fetchJobResources(tx Tx, jobIDs []int) (map[int]SchedulerRe
 		}
 
 		var config atc.ResourceConfig
-		err = json.Unmarshal(decryptedConfig, &config)
+		err = sonic.Unmarshal(decryptedConfig, &config)
 		if err != nil {
 			return nil, err
 		}
@@ -419,7 +419,7 @@ func (d dashboardFactory) constructJobsForDashboard() ([]atc.JobSummary, error) 
 		}
 
 		if pipelineInstanceVars.Valid {
-			err = json.Unmarshal([]byte(pipelineInstanceVars.String), &j.PipelineInstanceVars)
+			err = sonic.UnmarshalString(pipelineInstanceVars.String, &j.PipelineInstanceVars)
 			if err != nil {
 				return nil, err
 			}

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/go-jose/go-jose/v4"
 )
 
@@ -88,7 +89,7 @@ func (f *signingKeyFactory) GetAllKeys() ([]SigningKey, error) {
 			return nil, err
 		}
 
-		err = json.Unmarshal(rawJWK, &signingKey.jwk)
+		err = sonic.Unmarshal(rawJWK, &signingKey.jwk)
 		if err != nil {
 			return nil, err
 		}
@@ -124,7 +125,7 @@ func (f *signingKeyFactory) GetNewestKey(keyType SigningKeyType) (SigningKey, er
 			return nil, err
 		}
 
-		err = json.Unmarshal(rawJWK, &signingKey.jwk)
+		err = sonic.Unmarshal(rawJWK, &signingKey.jwk)
 		if err != nil {
 			return nil, err
 		}

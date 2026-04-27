@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/bytedance/sonic"
 	"github.com/go-jose/go-jose/v4/jwt"
 )
 
@@ -38,10 +39,10 @@ func (c Claims) MarshalJSON() ([]byte, error) {
 func (c *Claims) UnmarshalJSON(data []byte) error {
 	type target Claims
 	var t target
-	if err := json.Unmarshal(data, &t); err != nil {
+	if err := sonic.Unmarshal(data, &t); err != nil {
 		return err
 	}
-	if err := json.Unmarshal(data, &t.RawClaims); err != nil {
+	if err := sonic.Unmarshal(data, &t.RawClaims); err != nil {
 		return err
 	}
 
@@ -59,5 +60,5 @@ func (c *Claims) Scan(value any) error {
 		return fmt.Errorf("invalid claims: expected []byte, got %T", value)
 	}
 
-	return json.Unmarshal(b, c)
+	return sonic.Unmarshal(b, c)
 }

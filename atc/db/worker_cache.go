@@ -1,7 +1,6 @@
 package db
 
 import (
-	"encoding/json"
 	"maps"
 	"sync"
 	"sync/atomic"
@@ -9,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 )
 
 // WorkerCache provides a thread-safe, in-memory cache of worker information
@@ -143,7 +143,7 @@ func (cache *WorkerCache) listenWorkers(notifications <-chan Notification) {
 		}
 
 		var event TriggerEvent
-		if err := json.Unmarshal([]byte(notification.Payload), &event); err != nil {
+		if err := sonic.UnmarshalString(notification.Payload, &event); err != nil {
 			logger.Error("invalid-payload", err)
 			continue
 		}
@@ -178,7 +178,7 @@ func (cache *WorkerCache) listenContainers(notifications <-chan Notification) {
 		}
 
 		var event TriggerEvent
-		if err := json.Unmarshal([]byte(notification.Payload), &event); err != nil {
+		if err := sonic.UnmarshalString(notification.Payload, &event); err != nil {
 			logger.Error("invalid-payload", err)
 			continue
 		}

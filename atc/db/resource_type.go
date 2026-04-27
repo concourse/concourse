@@ -3,13 +3,13 @@ package db
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/util"
@@ -385,7 +385,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 			return err
 		}
 
-		err = json.Unmarshal(decryptedConfig, &config)
+		err = sonic.Unmarshal(decryptedConfig, &config)
 		if err != nil {
 			return err
 		}
@@ -412,7 +412,7 @@ func scanResourceType(t *resourceType, row scannable) error {
 	}
 
 	if pipelineInstanceVars.Valid {
-		err = json.Unmarshal([]byte(pipelineInstanceVars.String), &t.pipelineInstanceVars)
+		err = sonic.UnmarshalString(pipelineInstanceVars.String, &t.pipelineInstanceVars)
 		if err != nil {
 			return err
 		}
