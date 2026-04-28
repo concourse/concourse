@@ -1,10 +1,10 @@
 package concourse
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 )
@@ -22,7 +22,7 @@ func (client *client) UserInfo() (atc.UserInfo, error) {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var userInfo atc.UserInfo
-		err = json.NewDecoder(resp.Body).Decode(&userInfo)
+		err = sonic.ConfigDefault.NewDecoder(resp.Body).Decode(&userInfo)
 		if err != nil {
 			return atc.UserInfo{}, err
 		}

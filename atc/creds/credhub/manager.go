@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/auth"
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/creds"
 )
 
@@ -138,7 +139,7 @@ func (manager CredHubManager) Health() (*creds.HealthResponse, error) {
 	}
 
 	defer response.Body.Close()
-	err = json.NewDecoder(response.Body).Decode(&credhubHealth)
+	err = sonic.ConfigDefault.NewDecoder(response.Body).Decode(&credhubHealth)
 	if err != nil {
 		return nil, err
 	}

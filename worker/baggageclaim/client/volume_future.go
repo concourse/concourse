@@ -2,11 +2,11 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/cenkalti/backoff"
 	"github.com/tedsuo/rata"
 
@@ -59,7 +59,7 @@ func (f *volumeFuture) Wait(ctx context.Context) (baggageclaim.Volume, error) {
 		}
 
 		var volumeResponse baggageclaim.VolumeResponse
-		err = json.NewDecoder(response.Body).Decode(&volumeResponse)
+		err = sonic.ConfigDefault.NewDecoder(response.Body).Decode(&volumeResponse)
 		if err != nil {
 			return nil, err
 		}

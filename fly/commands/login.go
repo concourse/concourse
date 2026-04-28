@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -12,6 +11,7 @@ import (
 
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/interaction"
 	"github.com/concourse/concourse/fly/pty"
@@ -335,7 +335,7 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 	defer authResponse.Body.Close()
 
 	var authMethods []authMethod
-	json.NewDecoder(authResponse.Body).Decode(&authMethods)
+	sonic.ConfigDefault.NewDecoder(authResponse.Body).Decode(&authMethods)
 
 	var chosenMethod authMethod
 
@@ -472,7 +472,7 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 		defer tokenResponse.Body.Close()
 
 		var token authToken
-		json.NewDecoder(tokenResponse.Body).Decode(&token)
+		sonic.ConfigDefault.NewDecoder(tokenResponse.Body).Decode(&token)
 
 		return token.Type, token.Value, nil
 
@@ -495,7 +495,7 @@ func (command *LoginCommand) legacyAuth(target rc.Target) (string, string, error
 		defer tokenResponse.Body.Close()
 
 		var token authToken
-		json.NewDecoder(tokenResponse.Body).Decode(&token)
+		sonic.ConfigDefault.NewDecoder(tokenResponse.Body).Decode(&token)
 
 		return token.Type, token.Value, nil
 	}

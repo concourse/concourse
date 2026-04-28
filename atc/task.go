@@ -253,7 +253,7 @@ type CoercedString string
 
 func (cs *CoercedString) UnmarshalJSON(p []byte) error {
 	var raw any
-	dec := json.NewDecoder(bytes.NewReader(p))
+	dec := sonic.ConfigDefault.NewDecoder(bytes.NewReader(p))
 	dec.UseNumber()
 	err := dec.Decode(&raw)
 	if err != nil {

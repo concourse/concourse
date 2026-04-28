@@ -1,10 +1,10 @@
 package buildserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -15,7 +15,7 @@ func (s *Server) SetBuildComment(build db.BuildForAPI) http.Handler {
 		logger := s.logger.Session("set-comment")
 
 		var reqBody atc.SetBuildCommentBody
-		err := json.NewDecoder(r.Body).Decode(&reqBody)
+		err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&reqBody)
 		if err != nil {
 			logger.Info("malformed-request", lager.Data{"error": err.Error()})
 			w.WriteHeader(http.StatusBadRequest)

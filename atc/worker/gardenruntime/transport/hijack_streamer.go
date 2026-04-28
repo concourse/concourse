@@ -4,7 +4,6 @@ package transport
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +11,7 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/garden"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/retryhttp"
 	"github.com/tedsuo/rata"
@@ -63,7 +63,7 @@ func (h *WorkerHijackStreamer) Stream(handler string, body io.Reader, params rat
 		defer httpResp.Body.Close()
 
 		var result garden.Error
-		err := json.NewDecoder(httpResp.Body).Decode(&result)
+		err := sonic.ConfigDefault.NewDecoder(httpResp.Body).Decode(&result)
 		if err != nil {
 			return nil, fmt.Errorf("bad response: %s", err)
 		}

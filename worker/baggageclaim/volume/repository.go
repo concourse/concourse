@@ -2,7 +2,6 @@ package volume
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim"
 	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
@@ -615,7 +615,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context, handle string, path st
 	var errorResponse struct {
 		Message string `json:"error"`
 	}
-	err = json.NewDecoder(resp.Body).Decode(&errorResponse)
+	err = sonic.ConfigDefault.NewDecoder(resp.Body).Decode(&errorResponse)
 	if err != nil {
 		errorResponse.Message = err.Error()
 	}

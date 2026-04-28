@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
@@ -14,7 +15,7 @@ func (s *Server) CreateBuild(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("create-build")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var plan atc.Plan
-		err := json.NewDecoder(r.Body).Decode(&plan)
+		err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&plan)
 		if err != nil {
 			logger.Info("malformed-request", lager.Data{"error": err.Error()})
 			w.WriteHeader(http.StatusBadRequest)

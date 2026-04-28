@@ -3,6 +3,8 @@ package tsa
 import (
 	"encoding/json"
 	"io"
+
+	"github.com/bytedance/sonic"
 )
 
 type EventType string
@@ -35,12 +37,12 @@ func (w EventWriter) Heartbeated() error {
 }
 
 type EventReader struct {
-	dec *json.Decoder
+	dec sonic.Decoder
 }
 
 func NewEventReader(src io.Reader) EventReader {
 	return EventReader{
-		dec: json.NewDecoder(src),
+		dec: sonic.ConfigDefault.NewDecoder(src),
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/google/jsonapi"
 
@@ -19,7 +20,7 @@ func (s *Server) ClearResourceCache(pipeline db.Pipeline) http.Handler {
 		resourceName := r.FormValue(":resource_name")
 
 		var version atc.VersionDeleteBody
-		err := json.NewDecoder(r.Body).Decode(&version)
+		err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&version)
 		switch {
 		case err == io.EOF:
 			version = atc.VersionDeleteBody{}

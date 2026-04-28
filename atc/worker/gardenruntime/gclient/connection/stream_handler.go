@@ -1,13 +1,13 @@
 package connection
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
 
 	"code.cloudfoundry.org/garden/transport"
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 )
 
 type streamHandler struct {
@@ -47,7 +47,7 @@ type waitReturn struct {
 	err      error
 }
 
-func (sh *streamHandler) wait(decoder *json.Decoder) <-chan waitReturn {
+func (sh *streamHandler) wait(decoder sonic.Decoder) <-chan waitReturn {
 	result := make(chan waitReturn)
 	go func() {
 		for {

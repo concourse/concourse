@@ -3,7 +3,6 @@ package connection
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -123,7 +122,7 @@ func (c *hijackable) Stream(handler string, body io.Reader, params rata.Params, 
 		defer httpResp.Body.Close()
 
 		var result garden.Error
-		err := json.NewDecoder(httpResp.Body).Decode(&result)
+		err := sonic.ConfigDefault.NewDecoder(httpResp.Body).Decode(&result)
 		if err != nil {
 			return nil, fmt.Errorf("bad response: %s", err)
 		}

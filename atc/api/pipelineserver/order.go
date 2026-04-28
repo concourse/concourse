@@ -1,12 +1,12 @@
 package pipelineserver
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 )
 
@@ -15,7 +15,7 @@ func (s *Server) OrderPipelines(team db.Team) http.Handler {
 		logger := s.logger.Session("order-pipelines")
 
 		var pipelinesNames []string
-		if err := json.NewDecoder(r.Body).Decode(&pipelinesNames); err != nil {
+		if err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&pipelinesNames); err != nil {
 			logger.Error("invalid-json", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return

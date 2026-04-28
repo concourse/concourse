@@ -1,10 +1,10 @@
 package testhelpers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
@@ -26,7 +26,7 @@ func MatchPlan(plan atc.Plan) *PlanMatcher {
 func VerifyPlan(expectedPlan atc.Plan) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var plan atc.Plan
-		err := json.NewDecoder(r.Body).Decode(&plan)
+		err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&plan)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		gomega.Expect(plan).To(MatchPlan(expectedPlan))

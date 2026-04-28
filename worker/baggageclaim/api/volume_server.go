@@ -13,6 +13,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/google/uuid"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
@@ -246,7 +247,7 @@ func (vs *VolumeServer) DestroyVolumes(w http.ResponseWriter, req *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	var volumes []string
-	err := json.NewDecoder(req.Body).Decode(&volumes)
+	err := sonic.ConfigDefault.NewDecoder(req.Body).Decode(&volumes)
 
 	if err != nil {
 		hLog.Error("failed-to-destroy-volumes", err)
@@ -384,7 +385,7 @@ func (vs *VolumeServer) SetProperty(w http.ResponseWriter, req *http.Request) {
 	ctx := lagerctx.NewContext(req.Context(), hLog)
 
 	var request baggageclaim.PropertyRequest
-	err := json.NewDecoder(req.Body).Decode(&request)
+	err := sonic.ConfigDefault.NewDecoder(req.Body).Decode(&request)
 	if err != nil {
 		RespondWithError(w, ErrSetPropertyFailed, http.StatusBadRequest)
 		return
@@ -455,7 +456,7 @@ func (vs *VolumeServer) SetPrivileged(w http.ResponseWriter, req *http.Request) 
 	ctx := lagerctx.NewContext(req.Context(), hLog)
 
 	var request baggageclaim.PrivilegedRequest
-	err := json.NewDecoder(req.Body).Decode(&request)
+	err := sonic.ConfigDefault.NewDecoder(req.Body).Decode(&request)
 	if err != nil {
 		RespondWithError(w, ErrSetPrivilegedFailed, http.StatusBadRequest)
 		return
@@ -676,7 +677,7 @@ func (vs *VolumeServer) generateHandle() (string, error) {
 
 func (vs *VolumeServer) prepareCreate(w http.ResponseWriter, req *http.Request, hLog lager.Logger) (baggageclaim.VolumeRequest, string, volume.Strategy, lager.Logger, error) {
 	var request baggageclaim.VolumeRequest
-	err := json.NewDecoder(req.Body).Decode(&request)
+	err := sonic.ConfigDefault.NewDecoder(req.Body).Decode(&request)
 	if err != nil {
 		hLog.Error("failed-to-decode-request", err)
 		RespondWithError(w, ErrCreateVolumeFailed, http.StatusBadRequest)

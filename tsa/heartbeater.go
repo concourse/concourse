@@ -12,6 +12,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	"github.com/concourse/concourse/worker/baggageclaim"
@@ -230,7 +231,7 @@ func (heartbeater *Heartbeater) heartbeat(logger lager.Logger) HeartbeatStatus {
 	}
 
 	var workerInfo atc.Worker
-	err = json.NewDecoder(response.Body).Decode(&workerInfo)
+	err = sonic.ConfigDefault.NewDecoder(response.Body).Decode(&workerInfo)
 	if err != nil {
 		logger.Error("failed-to-decode-response", err)
 		return HeartbeatStatusUnhealthy

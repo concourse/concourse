@@ -2,7 +2,6 @@ package tsacmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	"github.com/concourse/concourse/tsa"
@@ -32,7 +32,7 @@ func (req forwardWorkerRequest) Handle(ctx context.Context, state ConnState, cha
 	logger := lagerctx.FromContext(ctx)
 
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func checkTeam(state ConnState, worker atc.Worker) error {
 
 func (req landWorkerRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ type retireWorkerRequest struct {
 
 func (req retireWorkerRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ type deleteWorkerRequest struct {
 
 func (req deleteWorkerRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ type sweepContainersRequest struct {
 
 func (req sweepContainersRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ type reportContainersRequest struct {
 
 func (req reportContainersRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ type sweepVolumesRequest struct {
 
 func (req sweepVolumesRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}
@@ -311,7 +311,7 @@ type reportVolumesRequest struct {
 
 func (req reportVolumesRequest) Handle(ctx context.Context, state ConnState, channel ssh.Channel) error {
 	var worker atc.Worker
-	err := json.NewDecoder(channel).Decode(&worker)
+	err := sonic.ConfigDefault.NewDecoder(channel).Decode(&worker)
 	if err != nil {
 		return err
 	}

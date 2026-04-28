@@ -15,6 +15,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
 
@@ -110,7 +111,7 @@ func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec bag
 	}
 
 	var volumeFutureResponse baggageclaim.VolumeFutureResponse
-	err = json.NewDecoder(response.Body).Decode(&volumeFutureResponse)
+	err = sonic.ConfigDefault.NewDecoder(response.Body).Decode(&volumeFutureResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +164,7 @@ func (c *client) ListVolumes(ctx context.Context, properties baggageclaim.Volume
 	}
 
 	var volumesResponse []baggageclaim.VolumeResponse
-	err = json.NewDecoder(response.Body).Decode(&volumesResponse)
+	err = sonic.ConfigDefault.NewDecoder(response.Body).Decode(&volumesResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -435,7 +436,7 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 
 func getError(response *http.Response) error {
 	var errorResponse *api.ErrorResponse
-	err := json.NewDecoder(response.Body).Decode(&errorResponse)
+	err := sonic.ConfigDefault.NewDecoder(response.Body).Decode(&errorResponse)
 	if err != nil {
 		return err
 	}
@@ -479,7 +480,7 @@ func (c *client) getVolumeResponse(ctx context.Context, handle string) (baggagec
 	}
 
 	var volumeResponse baggageclaim.VolumeResponse
-	err = json.NewDecoder(response.Body).Decode(&volumeResponse)
+	err = sonic.ConfigDefault.NewDecoder(response.Body).Decode(&volumeResponse)
 	if err != nil {
 		return baggageclaim.VolumeResponse{}, false, err
 	}
@@ -529,7 +530,7 @@ func (c *client) getPrivileged(ctx context.Context, handle string) (bool, error)
 	}
 
 	var privileged bool
-	err = json.NewDecoder(response.Body).Decode(&privileged)
+	err = sonic.ConfigDefault.NewDecoder(response.Body).Decode(&privileged)
 	if err != nil {
 		return false, err
 	}

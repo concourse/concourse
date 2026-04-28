@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
@@ -132,7 +133,7 @@ func (client *client) FindTeam(teamName string) (Team, error) {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		err = json.NewDecoder(resp.Body).Decode(&atcTeam)
+		err = sonic.ConfigDefault.NewDecoder(resp.Body).Decode(&atcTeam)
 		if err != nil {
 			return nil, err
 		}

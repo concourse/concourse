@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"encoding/json"
 	"io"
 	"maps"
 	"net/http"
@@ -12,6 +11,7 @@ import (
 
 	"log"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
@@ -192,7 +192,7 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 	if response.StatusCode == http.StatusNotFound {
 		var errors ResourceNotFoundError
 
-		json.NewDecoder(response.Body).Decode(&errors)
+		sonic.ConfigDefault.NewDecoder(response.Body).Decode(&errors)
 		return errors
 	}
 
@@ -241,7 +241,7 @@ func (connection *connection) populateResponse(response *http.Response, returnRe
 		return nil
 	}
 
-	err := json.NewDecoder(response.Body).Decode(passedResponse.Result)
+	err := sonic.ConfigDefault.NewDecoder(response.Body).Decode(passedResponse.Result)
 	if err != nil {
 		return err
 	}

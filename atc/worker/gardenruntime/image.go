@@ -2,13 +2,13 @@ package gardenruntime
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/url"
 	"path"
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/runtime"
@@ -144,7 +144,7 @@ func loadMetadata(tarReader io.ReadCloser) (ImageMetadata, error) {
 	defer tarReader.Close()
 
 	var imageMetadata ImageMetadata
-	if err := json.NewDecoder(tarReader).Decode(&imageMetadata); err != nil {
+	if err := sonic.ConfigDefault.NewDecoder(tarReader).Decode(&imageMetadata); err != nil {
 		return ImageMetadata{}, MalformedMetadataError{
 			UnmarshalError: err,
 		}

@@ -1,12 +1,12 @@
 package concourse
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
@@ -23,7 +23,7 @@ func (client *client) ListComponents() ([]atc.Component, error) {
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		err = json.NewDecoder(resp.Body).Decode(&components)
+		err = sonic.ConfigDefault.NewDecoder(resp.Body).Decode(&components)
 		if err != nil {
 			return nil, err
 		}

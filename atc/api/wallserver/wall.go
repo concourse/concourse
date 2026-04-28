@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 )
 
@@ -32,7 +33,7 @@ func (s *Server) SetWall(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("wall")
 
 	var wall atc.Wall
-	err := json.NewDecoder(r.Body).Decode(&wall)
+	err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&wall)
 	if err != nil {
 		logger.Error("failed-to-decode-json", err)
 		w.WriteHeader(http.StatusInternalServerError)

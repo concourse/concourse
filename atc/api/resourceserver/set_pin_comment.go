@@ -1,10 +1,10 @@
 package resourceserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -30,7 +30,7 @@ func (s *Server) SetPinCommentOnResource(pipeline db.Pipeline) http.Handler {
 		}
 
 		var reqBody atc.SetPinCommentRequestBody
-		err = json.NewDecoder(r.Body).Decode(&reqBody)
+		err = sonic.ConfigDefault.NewDecoder(r.Body).Decode(&reqBody)
 		if err != nil {
 			logger.Info("malformed-request", lager.Data{"error": err.Error()})
 			w.WriteHeader(http.StatusBadRequest)

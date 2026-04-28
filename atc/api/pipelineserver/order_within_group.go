@@ -1,12 +1,12 @@
 package pipelineserver
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 )
@@ -16,7 +16,7 @@ func (s *Server) OrderPipelinesWithinGroup(team db.Team) http.Handler {
 		logger := s.logger.Session("order-pipelines-within-group")
 
 		var instanceVars []atc.InstanceVars
-		if err := json.NewDecoder(r.Body).Decode(&instanceVars); err != nil {
+		if err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&instanceVars); err != nil {
 			logger.Error("invalid-json", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return

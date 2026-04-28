@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"code.cloudfoundry.org/garden/routes"
 	"code.cloudfoundry.org/garden/transport"
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/tedsuo/rata"
 )
 
@@ -200,7 +200,7 @@ func (c *connection) Attach(ctx context.Context, handle string, processID string
 }
 
 func (c *connection) streamProcess(ctx context.Context, handle string, processIO garden.ProcessIO, hijackedConn net.Conn, hijackedResponseReader *bufio.Reader) (garden.Process, error) {
-	decoder := json.NewDecoder(hijackedResponseReader)
+	decoder := sonic.ConfigDefault.NewDecoder(hijackedResponseReader)
 
 	payload := &transport.ProcessPayload{}
 	if err := decoder.Decode(payload); err != nil {
@@ -597,5 +597,5 @@ func (c *connection) do(
 
 	defer response.Close()
 
-	return json.NewDecoder(response).Decode(res)
+	return sonic.ConfigDefault.NewDecoder(response).Decode(res)
 }

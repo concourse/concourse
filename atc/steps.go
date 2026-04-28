@@ -795,7 +795,7 @@ func (c InputsConfig) MarshalJSON() ([]byte, error) {
 }
 
 func unmarshalStrict(data []byte, to any) error {
-	decoder := json.NewDecoder(bytes.NewBuffer(data))
+	decoder := sonic.ConfigDefault.NewDecoder(bytes.NewBuffer(data))
 	decoder.DisallowUnknownFields()
 	return decoder.Decode(to)
 }

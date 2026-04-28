@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+
+	"github.com/bytedance/sonic"
 )
 
 type VolumeState string
@@ -91,7 +93,7 @@ func readMetadataFile(path string, properties any) error {
 	}
 	defer file.Close()
 
-	if err := json.NewDecoder(file).Decode(&properties); err != nil {
+	if err := sonic.ConfigDefault.NewDecoder(file).Decode(&properties); err != nil {
 		return err
 	}
 

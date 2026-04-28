@@ -14,6 +14,7 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"sigs.k8s.io/yaml"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -157,7 +158,7 @@ func (step *LoadVarStep) fetchVars(
 	var value any
 	switch format {
 	case "json":
-		decoder := json.NewDecoder(bytes.NewReader(fileContent))
+		decoder := sonic.ConfigDefault.NewDecoder(bytes.NewReader(fileContent))
 		decoder.UseNumber()
 		err = decoder.Decode(&value)
 		if err != nil {

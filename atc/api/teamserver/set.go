@@ -6,6 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/api/present"
@@ -27,7 +28,7 @@ func (s *Server) SetTeam(w http.ResponseWriter, r *http.Request) {
 	teamName := r.URL.Query().Get(":team_name")
 
 	var atcTeam atc.Team
-	err := json.NewDecoder(r.Body).Decode(&atcTeam)
+	err := sonic.ConfigDefault.NewDecoder(r.Body).Decode(&atcTeam)
 	if err != nil {
 		hLog.Error("malformed-request", err)
 		w.WriteHeader(http.StatusBadRequest)

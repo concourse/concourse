@@ -147,7 +147,7 @@ var _ = Describe("hijackStreamer", func() {
 				Expect(actualReadCloser).To(BeNil())
 				Expect(streamErr).To(HaveOccurred())
 				Expect(fakeBody.CloseCallCount()).To(Equal(1))
-				Expect(streamErr).To(MatchError(fmt.Errorf("bad response: %s", errors.New("invalid character 's' looking for beginning of value"))))
+				Expect(streamErr).To(MatchError("bad response: EOF"))
 			})
 		})
 
