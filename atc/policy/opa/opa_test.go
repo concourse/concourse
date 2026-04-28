@@ -205,7 +205,7 @@ var _ = Describe("OPA Policy Checker", func() {
 		It("should return error", func() {
 			result, err := agent.Check(policy.PolicyCheckInput{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("parsing JSON: invalid character 'h' looking for beginning of value"))
+			Expect(err.Error()).To(ContainSubstring("Syntax error at index"))
 			Expect(result).To(BeNil())
 		})
 	})

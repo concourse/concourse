@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/runtime"
 )
@@ -53,7 +54,7 @@ func (resource Resource) Get(ctx context.Context, container runtime.Container, s
 	}
 
 	if result := properties[resultCachePropertyName]; result != "" {
-		if err := json.Unmarshal([]byte(result), &versionResult); err != nil {
+		if err := sonic.UnmarshalString(result, &versionResult); err != nil {
 			return VersionResult{}, runtime.ProcessResult{}, err
 		}
 		return versionResult, runtime.ProcessResult{}, nil
@@ -86,7 +87,7 @@ func (resource Resource) Put(ctx context.Context, container runtime.Container, s
 	}
 
 	if result := properties[resultCachePropertyName]; result != "" {
-		if err := json.Unmarshal([]byte(result), &versionResult); err != nil {
+		if err := sonic.UnmarshalString(result, &versionResult); err != nil {
 			return VersionResult{}, runtime.ProcessResult{}, err
 		}
 		return versionResult, runtime.ProcessResult{}, nil
@@ -153,7 +154,7 @@ func (resource Resource) run(ctx context.Context, container runtime.Container, s
 		return result, nil
 	}
 
-	if err := json.Unmarshal(buf.Bytes(), output); err != nil {
+	if err := sonic.Unmarshal(buf.Bytes(), output); err != nil {
 		return runtime.ProcessResult{}, err
 	}
 	return result, nil

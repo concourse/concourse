@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/vars"
 	"sigs.k8s.io/yaml"
 )
@@ -119,7 +120,7 @@ func InstanceVarsFromQueryParams(q url.Values) (InstanceVars, error) {
 		if err != nil {
 			return nil, err
 		}
-		if err = json.Unmarshal([]byte(q.Get(k)), &kvp.Value); err != nil {
+		if err = sonic.UnmarshalString(q.Get(k), &kvp.Value); err != nil {
 			return nil, err
 		}
 		kvPairs = append(kvPairs, kvp)

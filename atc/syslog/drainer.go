@@ -9,6 +9,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
 )
@@ -115,7 +116,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 	switch ev.Event {
 	case event.EventTypeInitialize:
 		var initEvent event.Initialize
-		err := json.Unmarshal(*ev.Data, &initEvent)
+		err := sonic.Unmarshal(*ev.Data, &initEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -125,7 +126,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = "initializing"
 	case event.EventTypeInitializeGet:
 		var initGetEvent event.InitializeGet
-		err := json.Unmarshal(*ev.Data, &initGetEvent)
+		err := sonic.Unmarshal(*ev.Data, &initGetEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -135,7 +136,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = "get initializing"
 	case event.EventTypeInitializePut:
 		var initPutEvent event.InitializePut
-		err := json.Unmarshal(*ev.Data, &initPutEvent)
+		err := sonic.Unmarshal(*ev.Data, &initPutEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -145,7 +146,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = "put initializing"
 	case event.EventTypeInitializeCheck:
 		var initCheckEvent event.InitializeCheck
-		err := json.Unmarshal(*ev.Data, &initCheckEvent)
+		err := sonic.Unmarshal(*ev.Data, &initCheckEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -155,7 +156,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = fmt.Sprintf("check initializing %s", initCheckEvent.Name)
 	case event.EventTypeInitializeTask:
 		var initTaskEvent event.InitializeTask
-		err := json.Unmarshal(*ev.Data, &initTaskEvent)
+		err := sonic.Unmarshal(*ev.Data, &initTaskEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -165,7 +166,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = "task initializing"
 	case event.EventTypeSelectedWorker:
 		var selectedWorkerEvent event.SelectedWorker
-		err := json.Unmarshal(*ev.Data, &selectedWorkerEvent)
+		err := sonic.Unmarshal(*ev.Data, &selectedWorkerEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -175,7 +176,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = fmt.Sprintf("selected worker: %s", selectedWorkerEvent.WorkerName)
 	case event.EventTypeStreamingVolume:
 		var streamingVolumeEvent event.StreamingVolume
-		err := json.Unmarshal(*ev.Data, &streamingVolumeEvent)
+		err := sonic.Unmarshal(*ev.Data, &streamingVolumeEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -185,7 +186,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = fmt.Sprintf("streaming volume %s from worker %s", streamingVolumeEvent.Volume, streamingVolumeEvent.SourceWorker)
 	case event.EventTypeWaitingForStreamedVolume:
 		var waitingForStreamedVolumeEvent event.WaitingForStreamedVolume
-		err := json.Unmarshal(*ev.Data, &waitingForStreamedVolumeEvent)
+		err := sonic.Unmarshal(*ev.Data, &waitingForStreamedVolumeEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -195,7 +196,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = fmt.Sprintf("waiting for volume %s to be streamed by another step", waitingForStreamedVolumeEvent.Volume)
 	case event.EventTypeStartTask:
 		var startTaskEvent event.StartTask
-		err := json.Unmarshal(*ev.Data, &startTaskEvent)
+		err := sonic.Unmarshal(*ev.Data, &startTaskEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -208,7 +209,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = fmt.Sprintf("running %s", argv)
 	case event.EventTypeLog:
 		var logEvent event.Log
-		err := json.Unmarshal(*ev.Data, &logEvent)
+		err := sonic.Unmarshal(*ev.Data, &logEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -218,7 +219,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = logEvent.Payload
 	case event.EventTypeFinishGet:
 		var finishGetEvent event.FinishGet
-		err := json.Unmarshal(*ev.Data, &finishGetEvent)
+		err := sonic.Unmarshal(*ev.Data, &finishGetEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -231,7 +232,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = fmt.Sprintf("get {\"version\": %s, \"metadata\": %s", string(version), string(metadata))
 	case event.EventTypeFinishPut:
 		var finishPutEvent event.FinishPut
-		err := json.Unmarshal(*ev.Data, &finishPutEvent)
+		err := sonic.Unmarshal(*ev.Data, &finishPutEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -244,7 +245,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = fmt.Sprintf("put {\"version\": %s, \"metadata\": %s", string(version), string(metadata))
 	case event.EventTypeError:
 		var errorEvent event.Error
-		err := json.Unmarshal(*ev.Data, &errorEvent)
+		err := sonic.Unmarshal(*ev.Data, &errorEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err
@@ -254,7 +255,7 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		message = errorEvent.Message
 	case event.EventTypeStatus:
 		var statusEvent event.Status
-		err := json.Unmarshal(*ev.Data, &statusEvent)
+		err := sonic.Unmarshal(*ev.Data, &statusEvent)
 		if err != nil {
 			logger.Error("failed-to-unmarshal", err)
 			return err

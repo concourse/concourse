@@ -1,10 +1,10 @@
 package eventstream
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/event"
 	"github.com/vito/go-sse/sse"
@@ -35,7 +35,7 @@ func (s *SSEEventStream) NextEvent() (atc.Event, error) {
 	switch se.Name {
 	case "event":
 		var message event.Message
-		err = json.Unmarshal(se.Data, &message)
+		err = sonic.Unmarshal(se.Data, &message)
 		if err != nil {
 			return nil, err
 		}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
@@ -68,7 +69,7 @@ func (client *client) PruneWorker(workerName string) error {
 		if unexpectedResponseError.StatusCode == http.StatusBadRequest {
 			var pruneWorkerErr PruneWorkerError
 
-			err = json.Unmarshal([]byte(unexpectedResponseError.Body), &pruneWorkerErr)
+			err = sonic.UnmarshalString(unexpectedResponseError.Body, &pruneWorkerErr)
 			if err != nil {
 				return err
 			}

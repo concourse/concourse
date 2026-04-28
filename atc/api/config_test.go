@@ -193,7 +193,7 @@ var _ = Describe("Config API", func() {
 								Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 										{
 											"errors": [
-												"instance vars are malformed: unexpected end of JSON input"
+												"instance vars are malformed: \"Syntax error at index 1: expect a json key\\n\\n\\t{\\n\\t^\\n\""
 											]
 										}`))
 							})
@@ -1097,7 +1097,7 @@ jobs:
 									Expect(io.ReadAll(response.Body)).To(MatchJSON(`
 										{
 											"errors": [
-												"instance vars are malformed: unexpected end of JSON input"
+												"instance vars are malformed: \"Syntax error at index 1: expect a json key\\n\\n\\t{\\n\\t^\\n\""
 											]
 										}`))
 								})

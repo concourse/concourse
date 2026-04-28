@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 )
 
@@ -18,7 +19,7 @@ var events = eventTable{}
 func unmarshaler(e atc.Event) func([]byte) (atc.Event, error) {
 	return func(payload []byte) (atc.Event, error) {
 		val := reflect.New(reflect.TypeOf(e))
-		err := json.Unmarshal(payload, val.Interface())
+		err := sonic.Unmarshal(payload, val.Interface())
 		return val.Elem().Interface().(atc.Event), err
 	}
 }
@@ -122,7 +123,7 @@ func (m Message) MarshalJSON() ([]byte, error) {
 func (m *Message) UnmarshalJSON(bytes []byte) error {
 	var envelope Envelope
 
-	err := json.Unmarshal(bytes, &envelope)
+	err := sonic.Unmarshal(bytes, &envelope)
 	if err != nil {
 		return err
 	}

@@ -2,12 +2,12 @@ package concourse
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
@@ -94,7 +94,7 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 			}
 		}
 		configResponse := setConfigResponse{}
-		err = json.Unmarshal(body, &configResponse)
+		err = sonic.Unmarshal(body, &configResponse)
 		if err != nil {
 			return false, false, []ConfigWarning{}, fmt.Errorf("parsing JSON: %w", err)
 		}
@@ -109,7 +109,7 @@ func (team *team) CreateOrUpdatePipelineConfig(pipelineRef atc.PipelineRef, conf
 			}
 		}
 		var validationErr atc.SaveConfigResponse
-		err = json.Unmarshal(body, &validationErr)
+		err = sonic.Unmarshal(body, &validationErr)
 		if err != nil {
 			return false, false, []ConfigWarning{}, fmt.Errorf("parsing JSON: %w", err)
 		}

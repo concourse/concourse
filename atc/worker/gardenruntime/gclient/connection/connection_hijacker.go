@@ -14,6 +14,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/routes"
+	"github.com/bytedance/sonic"
 	"github.com/tedsuo/rata"
 )
 
@@ -86,7 +87,7 @@ func (h *hijackable) Hijack(ctx context.Context, handler string, body io.Reader,
 		}
 
 		var result garden.Error
-		err = json.Unmarshal(errRespBytes, &result)
+		err = sonic.Unmarshal(errRespBytes, &result)
 		if err != nil {
 			return nil, nil, fmt.Errorf("backend error: Exit status: %d, Body: %s, error reading response body: %s", httpResp.StatusCode, string(errRespBytes), err)
 		}

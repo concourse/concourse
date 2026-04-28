@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/skymarshal/token"
@@ -266,7 +267,7 @@ func (s *SkyServer) verifyState(raw string) (stateToken, error) {
 	}
 
 	var st stateToken
-	if err := json.Unmarshal(data, &st); err != nil {
+	if err := sonic.Unmarshal(data, &st); err != nil {
 		return stateToken{}, errors.New("failed to unmarshal state")
 	}
 

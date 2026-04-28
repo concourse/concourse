@@ -2,7 +2,6 @@ package cmdtest
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +9,8 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/bytedance/sonic"
 )
 
 type Cmd struct {
@@ -103,7 +104,7 @@ func (cmd Cmd) OutputJSON(t *testing.T, dest any, args ...string) {
 	cmd.Stdout = buf
 	cmd.Run(t, args...)
 
-	err := json.Unmarshal(buf.Bytes(), dest)
+	err := sonic.Unmarshal(buf.Bytes(), dest)
 	if err != nil {
 		t.Fatalf("Unmarshal: %v", err)
 		return
@@ -204,7 +205,7 @@ func (cmd Cmd) TryOutputJSON(dest any, args ...string) error {
 		return err
 	}
 
-	err = json.Unmarshal(buf.Bytes(), dest)
+	err = sonic.Unmarshal(buf.Bytes(), dest)
 	if err != nil {
 		return err
 	}

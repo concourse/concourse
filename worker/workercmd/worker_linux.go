@@ -1,7 +1,6 @@
 package workercmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/flag"
@@ -208,7 +208,7 @@ func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResour
 			}
 
 			var t atc.WorkerResourceType
-			err = json.Unmarshal(meta, &t)
+			err = sonic.Unmarshal(meta, &t)
 			if err != nil {
 				logger.Error("failed-to-unmarshal-resource-type-metadata", err)
 				return nil, err

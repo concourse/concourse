@@ -11,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/event"
@@ -418,7 +419,7 @@ func (delegate *buildStepDelegate) redactImageSource(source atc.Source) (atc.Sou
 	}
 	s := delegate.buildOutputFilter(string(b))
 	newSource := atc.Source{}
-	err = json.Unmarshal([]byte(s), &newSource)
+	err = sonic.UnmarshalString(s, &newSource)
 	if err != nil {
 		return source, err
 	}

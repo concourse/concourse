@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -76,7 +77,7 @@ func StoreAccessToken(
 			RefreshToken string `json:"refresh_token,omitempty"`
 			IDToken      string `json:"id_token"`
 		}
-		err := json.Unmarshal(rec.Body.Bytes(), &resp)
+		err := sonic.Unmarshal(rec.Body.Bytes(), &resp)
 		if err != nil {
 			logger.Error("unmarshal-response-from-dex", err)
 			w.WriteHeader(http.StatusInternalServerError)

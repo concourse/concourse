@@ -1,10 +1,10 @@
 package opa
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -28,7 +28,7 @@ func (r opaResult) Messages() []string {
 
 func ParseOpaResult(bytesResult []byte, opaConfig OpaConfig) (opaResult, error) {
 	var results vars.StaticVariables
-	err := json.Unmarshal(bytesResult, &results)
+	err := sonic.Unmarshal(bytesResult, &results)
 	if err != nil {
 		return opaResult{}, fmt.Errorf("parsing JSON: %w", err)
 	}

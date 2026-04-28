@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/yaml"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/vars"
 )
 
@@ -227,7 +228,7 @@ type CheckEvery struct {
 func (c *CheckEvery) UnmarshalJSON(checkEvery []byte) error {
 	var data any
 
-	err := json.Unmarshal(checkEvery, &data)
+	err := sonic.Unmarshal(checkEvery, &data)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package exec
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/exec/build"
@@ -577,7 +577,7 @@ func (step *TaskStep) getOciEntrypoint(ctx context.Context, imageSpec runtime.Im
 	}
 
 	imgCmd := ociRunConfig{}
-	err = json.Unmarshal(imageMetadata, &imgCmd)
+	err = sonic.Unmarshal(imageMetadata, &imgCmd)
 	if err != nil {
 		return path, args, fmt.Errorf("error parsing metadata.json from rootfs: %s", err.Error())
 	}

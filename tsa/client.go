@@ -17,6 +17,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc"
 	"golang.org/x/crypto/ssh"
 )
@@ -248,7 +249,7 @@ func (client *Client) ContainersToDestroy(ctx context.Context) ([]string, error)
 	}
 
 	var handles []string
-	err = json.Unmarshal(out.Bytes(), &handles)
+	err = sonic.Unmarshal(out.Bytes(), &handles)
 	if err != nil {
 		logger.Error("failed-to-unmarshal-handles", err)
 		return nil, err
@@ -295,7 +296,7 @@ func (client *Client) VolumesToDestroy(ctx context.Context) ([]string, error) {
 	}
 
 	var handles []string
-	err = json.Unmarshal(out.Bytes(), &handles)
+	err = sonic.Unmarshal(out.Bytes(), &handles)
 	if err != nil {
 		logger.Error("failed-to-unmarshal-handles", err)
 		return nil, err

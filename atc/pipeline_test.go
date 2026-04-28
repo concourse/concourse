@@ -201,7 +201,7 @@ var _ = Describe("PipelineRef", func() {
 				query: url.Values{
 					`vars.foo`: {`"123`},
 				},
-				err: "unexpected end of JSON input",
+				err: "Syntax error at",
 			},
 		} {
 			It(tt.desc, func() {

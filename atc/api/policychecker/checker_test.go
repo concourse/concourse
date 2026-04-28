@@ -123,7 +123,7 @@ var _ = Describe("PolicyChecker", func() {
 
 				It("should error", func() {
 					Expect(checkErr).To(HaveOccurred())
-					Expect(checkErr.Error()).To(Equal(`invalid character 'h' looking for beginning of value`))
+					Expect(checkErr.Error()).To(ContainSubstring(`Syntax error at`))
 					Expect(result).To(BeNil())
 				})
 				It("Agent should not be called", func() {

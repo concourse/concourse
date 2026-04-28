@@ -8,13 +8,13 @@ package runtime
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"code.cloudfoundry.org/garden"
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/worker/runtime/libcontainerd"
 	bespec "github.com/concourse/concourse/worker/runtime/spec"
 	containerd "github.com/containerd/containerd/v2/client"
@@ -202,7 +202,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 			}
 			fmt.Println("Parsing hooks file", f)
 			var hooksParsed HookFile
-			var err2 = json.Unmarshal(hookJsonContent, &hooksParsed)
+			var err2 = sonic.Unmarshal(hookJsonContent, &hooksParsed)
 			if err2 != nil {
 				return b, fmt.Errorf("ociHooks file failed to parse: %w", err2)
 			}
@@ -233,7 +233,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 			return b, fmt.Errorf("seccomp file: %w", err)
 		}
 		var profile specs.LinuxSeccomp
-		var err2 = json.Unmarshal(seccompJsonContent, &profile)
+		var err2 = sonic.Unmarshal(seccompJsonContent, &profile)
 		if err2 != nil {
 			return b, fmt.Errorf("seccomp file failed to parse: %w", err2)
 		}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"sigs.k8s.io/yaml"
 )
 
@@ -74,14 +75,14 @@ func (ir *ImageResource) ApplySourceDefaults(resourceTypes ResourceTypes) {
 func (config *TaskConfig) UnmarshalJSON(data []byte) error {
 	// First, unmarshal into a map to capture all fields
 	var rawConfig map[string]*json.RawMessage
-	if err := json.Unmarshal(data, &rawConfig); err != nil {
+	if err := sonic.Unmarshal(data, &rawConfig); err != nil {
 		return err
 	}
 
 	// Use a type alias to avoid infinite recursion
 	type taskConfigAlias TaskConfig
 	var alias taskConfigAlias
-	if err := json.Unmarshal(data, &alias); err != nil {
+	if err := sonic.Unmarshal(data, &alias); err != nil {
 		return err
 	}
 
@@ -201,7 +202,7 @@ type TaskCacheConfig struct {
 func (c *TaskCacheConfig) UnmarshalJSON(data []byte) error {
 	type alias TaskCacheConfig
 	var a alias
-	if err := json.Unmarshal(data, &a); err != nil {
+	if err := sonic.Unmarshal(data, &a); err != nil {
 		return err
 	}
 
@@ -223,7 +224,7 @@ type TaskEnv map[string]string
 
 func (te *TaskEnv) UnmarshalJSON(p []byte) error {
 	raw := map[string]CoercedString{}
-	err := json.Unmarshal(p, &raw)
+	err := sonic.Unmarshal(p, &raw)
 	if err != nil {
 		return err
 	}

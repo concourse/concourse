@@ -1,10 +1,10 @@
 package volume
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/worker/baggageclaim"
 )
 
@@ -27,7 +27,7 @@ func (s *strategizer) StrategyFor(request baggageclaim.VolumeRequest) (Strategy,
 	}
 
 	var strategyInfo map[string]any
-	err := json.Unmarshal(*request.Strategy, &strategyInfo)
+	err := sonic.Unmarshal(*request.Strategy, &strategyInfo)
 	if err != nil {
 		return nil, fmt.Errorf("malformed strategy: %s", err)
 	}

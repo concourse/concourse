@@ -1,11 +1,12 @@
 package atc
 
 import (
-	"encoding/json"
 	"errors"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/bytedance/sonic"
 )
 
 var memoryRegex = regexp.MustCompile(`(?i)^([0-9]+)(([KMG])(i)?B?)?$`)
@@ -19,7 +20,7 @@ type CPULimit uint64
 
 func (c *CPULimit) UnmarshalJSON(data []byte) error {
 	var target float64
-	if err := json.Unmarshal(data, &target); err != nil {
+	if err := sonic.Unmarshal(data, &target); err != nil {
 		return errors.New("cpu limit must be an integer")
 	}
 	*c = CPULimit(target)
@@ -30,7 +31,7 @@ type MemoryLimit uint64
 
 func (m *MemoryLimit) UnmarshalJSON(data []byte) error {
 	var dst any
-	if err := json.Unmarshal(data, &dst); err != nil {
+	if err := sonic.Unmarshal(data, &dst); err != nil {
 		return err
 	}
 	switch v := dst.(type) {

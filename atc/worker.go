@@ -1,9 +1,10 @@
 package atc
 
 import (
-	"encoding/json"
 	"errors"
 	"regexp"
+
+	"github.com/bytedance/sonic"
 )
 
 type Worker struct {
@@ -39,7 +40,7 @@ type Tags []string
 // tags are treated as unset.
 func (t *Tags) UnmarshalJSON(data []byte) error {
 	var dst []string
-	if err := json.Unmarshal(data, &dst); err != nil {
+	if err := sonic.Unmarshal(data, &dst); err != nil {
 		return err
 	}
 

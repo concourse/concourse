@@ -48,7 +48,7 @@ var ErrNoCoreStepDeclared = errors.New("no core step type declared (e.g. get, pu
 // returned.
 func (step *Step) UnmarshalJSON(data []byte) error {
 	var rawStepConfig map[string]*json.RawMessage
-	err := json.Unmarshal(data, &rawStepConfig)
+	err := sonic.Unmarshal(data, &rawStepConfig)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (step *Step) UnmarshalJSON(data []byte) error {
 
 		curStep := s.New()
 
-		err := json.Unmarshal(data, curStep)
+		err := sonic.Unmarshal(data, curStep)
 		if err != nil {
 			return MalformedStepError{
 				StepType: s.Key,
@@ -122,7 +122,7 @@ func (step Step) MarshalJSON() ([]byte, error) {
 			return nil, err
 		}
 
-		err = json.Unmarshal(payload, &fields)
+		err = sonic.Unmarshal(payload, &fields)
 		if err != nil {
 			return nil, err
 		}
@@ -438,14 +438,14 @@ type InParallelConfig struct {
 
 func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 	var data any
-	err := json.Unmarshal(payload, &data)
+	err := sonic.Unmarshal(payload, &data)
 	if err != nil {
 		return err
 	}
 
 	switch actual := data.(type) {
 	case []any:
-		if err := json.Unmarshal(payload, &c.Steps); err != nil {
+		if err := sonic.Unmarshal(payload, &c.Steps); err != nil {
 			return fmt.Errorf("failed to unmarshal parallel steps: %s", err)
 		}
 	case map[string]any:
@@ -453,7 +453,7 @@ func (c *InParallelConfig) UnmarshalJSON(payload []byte) error {
 		type target InParallelConfig
 
 		var t target
-		if err := json.Unmarshal(payload, &t); err != nil {
+		if err := sonic.Unmarshal(payload, &t); err != nil {
 			return fmt.Errorf("failed to unmarshal parallel config: %s", err)
 		}
 
@@ -491,7 +491,7 @@ type AcrossStep struct {
 }
 
 func (step *AcrossStep) ParseJSON(data []byte) error {
-	return json.Unmarshal(data, step)
+	return sonic.Unmarshal(data, step)
 }
 
 func (step *AcrossStep) Visit(v StepVisitor) error {
@@ -640,7 +640,7 @@ const MaxInFlightAll = "all"
 func (c *MaxInFlightConfig) UnmarshalJSON(version []byte) error {
 	if bytes.HasPrefix(version, []byte{'"'}) {
 		var data string
-		err := json.Unmarshal(version, &data)
+		err := sonic.Unmarshal(version, &data)
 		if err != nil {
 			return err
 		}
@@ -650,7 +650,7 @@ func (c *MaxInFlightConfig) UnmarshalJSON(version []byte) error {
 		c.All = true
 		return nil
 	}
-	err := json.Unmarshal(version, &c.Limit)
+	err := sonic.Unmarshal(version, &c.Limit)
 	if err != nil {
 		return err
 	}
@@ -749,7 +749,7 @@ type InputsConfig struct {
 func (c *InputsConfig) UnmarshalJSON(inputs []byte) error {
 	var data any
 
-	err := json.Unmarshal(inputs, &data)
+	err := sonic.Unmarshal(inputs, &data)
 	if err != nil {
 		return err
 	}

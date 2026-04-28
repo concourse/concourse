@@ -2,10 +2,10 @@ package secretsmanager
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/concourse/concourse/atc/creds"
 
 	lager "code.cloudfoundry.org/lager/v3"
@@ -100,7 +100,7 @@ func (s *SecretsManager) getSecretById(path string) (any, *time.Time, bool, erro
 
 func decodeJsonValue(data []byte) (map[string]any, error) {
 	var values map[string]any
-	if err := json.Unmarshal(data, &values); err != nil {
+	if err := sonic.Unmarshal(data, &values); err != nil {
 		return nil, err
 	}
 	return values, nil
