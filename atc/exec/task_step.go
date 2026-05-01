@@ -301,6 +301,12 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 
 	container, volumeMounts, err := worker.FindOrCreateContainer(ctx, owner, step.containerMetadata, containerSpec, delegate)
 	if err != nil {
+		if strings.Contains(err.Error(), "rootfs must not be empty") {
+			return false, errors.Join(
+				err,
+				errors.New(`No image specified for task? Make sure to specify "image" on your task step or "image_resource" in your task config. The image must be in rootfs format.`),
+			)
+		}
 		return false, err
 	}
 
