@@ -32,16 +32,35 @@ func WriteDefaultContainerdConfig(dest string) error {
 	// - CRI: we're not supposed to be targetted by a kubelet, so there's no
 	//        need to bring up kubernete's container runtime interface plugin.
 	//
-	// - AUFS/BTRFS/ZFS: since linux 3.18, `overlayfs` is in upstream, which
-	//                   most distros should include, so by keeping a focus
-	//                   on a single snapshotter implementation we can better
-	//                   reason about potential problems down the road.
+	// - Snapshotters: since linux 3.18, `overlayfs` is in upstream, which
+	//                 most distros should include, so by keeping a focus
+	//                 on a single snapshotter implementation we can better
+	//                 reason about potential problems down the road. We currently
+	//                 do not make use of any of the snapshotters.
 	//
 	const config = `
 version = 4
 
 oom_score = -999
-disabled_plugins = ["io.containerd.grpc.v1.cri", "io.containerd.snapshotter.v1.aufs", "io.containerd.snapshotter.v1.btrfs", "io.containerd.snapshotter.v1.zfs"]
+disabled_plugins = [
+	"io.containerd.grpc.v1.cri",
+	"io.containerd.cri.v1.images",
+	"io.containerd.cri.v1.runtime",
+	"io.containerd.sandbox.store.v1.local",
+	"io.containerd.podsandbox.controller.v1.podsandbox",
+	"io.containerd.sandbox.controller.v1.shim",
+	"io.containerd.grpc.v1.sandbox-controllers",
+	"io.containerd.grpc.v1.sandboxes",
+	"io.containerd.service.v1.snapshots-service",
+	"io.containerd.grpc.v1.snapshots",
+	"io.containerd.snapshotter.v1.aufs",
+	"io.containerd.snapshotter.v1.btrfs",
+	"io.containerd.snapshotter.v1.zfs",
+	"io.containerd.snapshotter.v1.erofs",
+	"io.containerd.snapshotter.v1.blockfile",
+	"io.containerd.snapshotter.v1.devmapper",
+	"io.containerd.snapshotter.v1.native",
+]
 
 [debug]
   format = "json"
