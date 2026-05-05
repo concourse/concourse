@@ -45,7 +45,7 @@ Steps for a new major/minor release:
 * [ ] Add your release pipeline to the `reconfigure-pipeline`
 
 * [ ] Once the all source code changes are finalized, Concourse RC version should be deployed to CI using [dispatcher.concourse-ci.org](https://dispatcher.concourse-ci.org/)
-  * including all the external workers (Currently only the `bosh` tagged worker deployed in [`concourse/prod`](https://github.com/concourse/prod))
+  * including all the external workers (Currently only the `bosh` tagged worker deployed in [`concourse/infrastructure`](https://github.com/concourse/infrastructure/tree/master/bosh))
 
 * [ ] If you are doing a major release (or a release that involves a risky large feature), consider creating a [drills environment](https://github.com/concourse/drills) for some stress testing to ensure that the release does not involve any performance regressions.
 
