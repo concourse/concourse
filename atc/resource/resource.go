@@ -153,7 +153,7 @@ func (resource Resource) run(ctx context.Context, container runtime.Container, s
 		return result, nil
 	}
 
-	if err := json.Unmarshal(buf.Bytes(), output); err != nil {
+	if err := json.NewDecoder(buf).Decode(output); err != nil {
 		return runtime.ProcessResult{}, err
 	}
 	return result, nil
