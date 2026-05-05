@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Garbage collecting build containers", func() {
@@ -113,7 +114,8 @@ var _ = Describe("Garbage collecting build containers", func() {
 				Fly.Run("unpause-pipeline", "-p", "build-container-gc")
 
 				By("triggering job")
-				<-Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				session := Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job")
+				Eventually(session).Should(gexec.Exit())
 
 				By("collecting the build containers")
 				buildContainerHandles := getContainers("type", "task")
@@ -151,13 +153,15 @@ var _ = Describe("Garbage collecting build containers", func() {
 				Fly.Run("unpause-pipeline", "-p", "build-container-gc")
 
 				By("triggering first job")
-				<-Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				session := Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job")
+				Eventually(session).Should(gexec.Exit())
 
 				By("collecting the first build containers")
 				firstBuildContainerHandles := getContainers("type", "task")
 
 				By("triggering second job")
-				<-Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				session = Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job")
+				Eventually(session).Should(gexec.Exit())
 
 				By("collecting the second build containers")
 				allBuildContainerHandles := getContainers("type", "task")
@@ -218,7 +222,8 @@ var _ = Describe("Garbage collecting build containers", func() {
 				Fly.Run("unpause-pipeline", "-p", "build-container-gc")
 
 				By("triggering first failing job")
-				<-Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job").Exited
+				session := Fly.Start("trigger-job", "-w", "-j", "build-container-gc/simple-job")
+				Eventually(session).Should(gexec.Exit())
 
 				By("collecting the first build containers")
 				firstBuildContainerHandles := getContainers("type", "task")
@@ -278,7 +283,7 @@ var _ = Describe("Garbage collecting build containers", func() {
 
 				Fly.Run("abort-build", "-j", "build-container-gc/simple-job", "-b", "2")
 
-				<-runningBuildSession.Exited
+				Eventually(runningBuildSession).Should(gexec.Exit())
 			})
 		})
 	})

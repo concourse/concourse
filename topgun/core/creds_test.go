@@ -2,6 +2,7 @@ package topgun_test
 
 import (
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/concourse/concourse/topgun/common"
@@ -44,8 +45,7 @@ func testCredentialManagement(
 
 			By("getting the pipeline config")
 			session := Fly.Start("get-pipeline", "-p", "pipeline-creds-test")
-			<-session.Exited
-			Expect(session.ExitCode()).To(Equal(0))
+			Eventually(session).Should(gexec.Exit(0))
 			Expect(string(session.Out.Contents())).ToNot(ContainSubstring("some_canary"))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("((resource_type_secret))"))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("((resource_secret))"))

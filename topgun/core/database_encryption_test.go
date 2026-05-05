@@ -25,17 +25,15 @@ var _ = Describe("Database secrets encryption", func() {
 			"--github-user", "victorias_id",
 			"--github-org", "victorias_secret_org",
 		)
-		<-setTeamSession.Exited
+		Eventually(setTeamSession).Should(gexec.Exit())
 
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipeline-secrets-test/simple-job")
-		<-buildSession.Exited
-		Expect(buildSession.ExitCode()).To(Equal(0))
+		Eventually(buildSession).Should(gexec.Exit(0))
 	}
 
 	getPipeline := func() *gexec.Session {
 		session := Fly.Start("get-pipeline", "-p", "pipeline-secrets-test")
-		<-session.Exited
-		Expect(session.ExitCode()).To(Equal(0))
+		Eventually(session).Should(gexec.Exit(0))
 		return session
 	}
 
@@ -161,13 +159,12 @@ var _ = Describe("Database secrets encryption", func() {
 						boshLogs = SpawnBosh("logs", "-f")
 
 						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
-						<-deploy.Exited
-						Expect(deploy.ExitCode()).To(Equal(1))
+						Eventually(deploy).Should(gexec.Exit(1))
 					})
 
 					AfterEach(func() {
 						boshLogs.Signal(os.Interrupt)
-						<-boshLogs.Exited
+						Eventually(boshLogs).Should(gexec.Exit())
 					})
 
 					AfterEach(func() {

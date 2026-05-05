@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("An ATC with default resource limits set", func() {
@@ -19,7 +20,7 @@ var _ = Describe("An ATC with default resource limits set", func() {
 
 	It("respects the default resource limits, overridding when specified", func() {
 		buildSession := Fly.Start("execute", "-c", "tasks/tiny.yml")
-		<-buildSession.Exited
+		Eventually(buildSession).Should(gexec.Exit())
 
 		interceptSession := Fly.Start(
 			"intercept",
@@ -28,13 +29,11 @@ var _ = Describe("An ATC with default resource limits set", func() {
 			"--", "sh", "-c",
 			"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
 		)
-		<-interceptSession.Exited
-
-		Expect(interceptSession.ExitCode()).To(Equal(0))
+		Eventually(interceptSession).Should(gexec.Exit(0))
 		Expect(interceptSession).To(gbytes.Say("1073741824\n512"))
 
 		buildSession = Fly.Start("execute", "-c", "tasks/limits.yml")
-		<-buildSession.Exited
+		Eventually(buildSession).Should(gexec.Exit())
 
 		interceptSession = Fly.Start(
 			"intercept",
@@ -43,9 +42,7 @@ var _ = Describe("An ATC with default resource limits set", func() {
 			"--", "sh", "-c",
 			"cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; cat /sys/fs/cgroup/cpu/cpu.shares",
 		)
-		<-interceptSession.Exited
-
-		Expect(interceptSession.ExitCode()).To(Equal(0))
+		Eventually(interceptSession).Should(gexec.Exit(0))
 		Expect(interceptSession).To(gbytes.Say("104857600\n256"))
 	})
 })

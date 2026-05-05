@@ -57,7 +57,7 @@ func (f *FlyCli) Login(user, password, endpoint string, loginArgs ...string) {
 				loginArgs...)...,
 		)
 
-		<-sess.Exited
+		Eventually(sess).Should(gexec.Exit())
 		return sess
 	}, 2*time.Minute, 10*time.Second).
 		Should(gexec.Exit(0), "Fly should have been able to log in")
@@ -83,8 +83,7 @@ func (f *FlyCli) GetContainers() []Container {
 	var containers = []Container{}
 
 	sess := f.Start("containers", "--json")
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(BeZero())
+	Eventually(sess).Should(gexec.Exit(0))
 
 	err := json.Unmarshal(sess.Out.Contents(), &containers)
 	Expect(err).ToNot(HaveOccurred())
@@ -96,8 +95,7 @@ func (f *FlyCli) GetWorkers() []Worker {
 	var workers = []Worker{}
 
 	sess := f.Start("workers", "--json")
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(BeZero())
+	Eventually(sess).Should(gexec.Exit(0))
 
 	err := json.Unmarshal(sess.Out.Contents(), &workers)
 	Expect(err).ToNot(HaveOccurred())
@@ -109,8 +107,7 @@ func (f *FlyCli) GetPipelines() []Pipeline {
 	var pipelines = []Pipeline{}
 
 	sess := f.Start("pipelines", "--json")
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(BeZero())
+	Eventually(sess).Should(gexec.Exit(0))
 
 	err := json.Unmarshal(sess.Out.Contents(), &pipelines)
 	Expect(err).ToNot(HaveOccurred())
@@ -122,8 +119,7 @@ func (f *FlyCli) GetVersions(pipeline string, resource string) []Version {
 	var versions = []Version{}
 
 	sess := f.Start("resource-versions", "-r", pipeline+"/"+resource, "--json")
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(BeZero())
+	Eventually(sess).Should(gexec.Exit(0))
 
 	err := json.Unmarshal(sess.Out.Contents(), &versions)
 	Expect(err).ToNot(HaveOccurred())
@@ -139,8 +135,7 @@ func (f *FlyCli) GetUserRole(teamName string) []string {
 	var teamsInfo RoleInfo = RoleInfo{}
 
 	sess := f.Start("userinfo", "--json")
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(BeZero())
+	Eventually(sess).Should(gexec.Exit(0))
 
 	err := json.Unmarshal(sess.Out.Contents(), &teamsInfo)
 	Expect(err).ToNot(HaveOccurred())

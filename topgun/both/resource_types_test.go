@@ -19,8 +19,7 @@ var _ = Describe("A pipeline-provided resource type", func() {
 
 		By("triggering the build")
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
-		<-buildSession.Exited
-		Expect(buildSession.ExitCode()).To(Equal(1))
+		Eventually(buildSession).Should(gexec.Exit(1))
 
 		By("expecting a container for the resource check, resource type check and task image check")
 		Expect(ContainersBy("type", "check")).To(HaveLen(3))
@@ -31,8 +30,7 @@ var _ = Describe("A pipeline-provided resource type", func() {
 
 		By("triggering the build again")
 		buildSession = Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
-		<-buildSession.Exited
-		Expect(buildSession.ExitCode()).To(Equal(1))
+		Eventually(buildSession).Should(gexec.Exit(1))
 
 		By("expecting 2 additional check containers for the task's image check and resource type check")
 		Expect(ContainersBy("type", "check")).To(HaveLen(5))
@@ -57,7 +55,6 @@ var _ = Describe("Tagged resource types", func() {
 
 		By("triggering a build which uses the tagged custom resource")
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
-		<-buildSession.Exited
-		Expect(buildSession.ExitCode()).To(Equal(0))
+		Eventually(buildSession).Should(gexec.Exit(0))
 	})
 })

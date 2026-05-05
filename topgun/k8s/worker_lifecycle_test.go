@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo/v2"
@@ -109,7 +110,7 @@ var _ = Describe("Worker lifecycle", func() {
 
 				By("seeing that the worker disappeared")
 				startSession := fly.Start("watch", "-j", "some-pipeline/simple-job")
-				<-startSession.Exited
+				Eventually(startSession).Should(gexec.Exit())
 				Expect(startSession.Out).To(gbytes.Say("errored"))
 			})
 		})

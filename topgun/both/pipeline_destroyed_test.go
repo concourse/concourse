@@ -7,6 +7,7 @@ import (
 	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Garbage collecting containers for destroyed pipelines", func() {
@@ -22,8 +23,7 @@ var _ = Describe("Garbage collecting containers for destroyed pipelines", func()
 		Fly.Run("unpause-pipeline", "-p", "pipeline-destroyed-test")
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipeline-destroyed-test/simple-job")
 
-		<-buildSession.Exited
-		Expect(buildSession.ExitCode()).To(Equal(0))
+		Eventually(buildSession).Should(gexec.Exit(0))
 
 		By("verifying that containers exist")
 		containerTable := FlyTable("containers")

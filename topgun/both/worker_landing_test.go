@@ -112,13 +112,11 @@ var _ = Describe("Worker landing", func() {
 					By("triggering a job")
 					buildSession := Fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
 					Eventually(buildSession).Should(gbytes.Say("mirroring self image"))
-					<-buildSession.Exited
-					Expect(buildSession.ExitCode()).To(Equal(0))
+					Eventually(buildSession).Should(gexec.Exit(0))
 
 					By("getting identifier for check container")
 					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "cat", "/proc/sys/kernel/hostname")
-					<-hijackSession.Exited
-					Expect(buildSession.ExitCode()).To(Equal(0))
+					Eventually(hijackSession).Should(gexec.Exit(0))
 
 					preservedContainerID = string(hijackSession.Out.Contents())
 				})
@@ -131,14 +129,12 @@ var _ = Describe("Worker landing", func() {
 
 					By("retaining cached image resource in second job build")
 					buildSession := Fly.Start("trigger-job", "-w", "-j", "topgun/simple-job")
-					<-buildSession.Exited
+					Eventually(buildSession).Should(gexec.Exit(0))
 					Expect(buildSession).NotTo(gbytes.Say("mirroring self image"))
-					Expect(buildSession.ExitCode()).To(Equal(0))
 
 					By("retaining check containers")
 					hijackSession := Fly.Start("hijack", "-c", "topgun/tick-tock", "--", "cat", "/proc/sys/kernel/hostname")
-					<-hijackSession.Exited
-					Expect(buildSession.ExitCode()).To(Equal(0))
+					Eventually(hijackSession).Should(gexec.Exit(0))
 
 					currentContainerID := string(hijackSession.Out.Contents())
 					Expect(currentContainerID).To(Equal(preservedContainerID))
@@ -183,7 +179,7 @@ var _ = Describe("Worker landing", func() {
 
 				AfterEach(func() {
 					buildSession.Signal(os.Interrupt)
-					<-buildSession.Exited
+					Eventually(buildSession).Should(gexec.Exit())
 				})
 
 				It("waits for the build", func() {
@@ -201,14 +197,13 @@ var _ = Describe("Worker landing", func() {
 							"-s", "one-off", "--",
 							"touch", "/tmp/stop-waiting",
 						)
-						<-hijackSession.Exited
+						Eventually(hijackSession).Should(gexec.Exit())
 						return hijackSession.ExitCode()
 					}).Should(Equal(0))
 
 					By("waiting for the build to exit")
 					Eventually(buildSession).Should(gbytes.Say("done"))
-					<-buildSession.Exited
-					Expect(buildSession.ExitCode()).To(Equal(0))
+					Eventually(buildSession).Should(gexec.Exit(0))
 
 					By("successfully landing")
 					WaitForLandedWorker()

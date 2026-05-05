@@ -60,9 +60,9 @@ var _ = Describe("Rebalancing workers", func() {
 
 			AfterEach(func() {
 				buildSession.Signal(os.Interrupt)
-				<-buildSession.Exited
+				Eventually(buildSession).Should(gexec.Exit())
 
-				<-boshStopSession.Exited
+				Eventually(boshStopSession).Should(gexec.Exit())
 				Bosh("start", "worker/0")
 			})
 

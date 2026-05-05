@@ -9,6 +9,7 @@ import (
 	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("BBR", func() {
@@ -203,8 +204,7 @@ var _ = Describe("BBR", func() {
 					"--artifact-path", path.Join(tmpDir, entries[0].Name()),
 				}
 				session := Start(nil, "bbr", restoreArgs...)
-				<-session.Exited
-				Expect(session.ExitCode()).To(Equal(1))
+				Eventually(session).Should(gexec.Exit(1))
 
 				By("checking pipeline")
 				pipelines = Fly.GetPipelines()

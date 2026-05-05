@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,7 +73,7 @@ var _ = Describe("baggageclaim drivers", func() {
 				fly.Run("set-pipeline", "-n", "-c", "pipelines/pipeline-that-fails.yml", "-p", "failing-pipeline")
 				fly.Run("unpause-pipeline", "-p", "failing-pipeline")
 				sessionTriggerJob := fly.Start("trigger-job", "-w", "-j", "failing-pipeline/simple-job")
-				<-sessionTriggerJob.Exited
+				Eventually(sessionTriggerJob).Should(gexec.Exit())
 
 				By("deleting the worker pod which triggers the initContainer script")
 				deletePods(releaseName, fmt.Sprintf("--selector=app=%s-worker", releaseName))

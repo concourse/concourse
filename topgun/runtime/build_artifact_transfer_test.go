@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Passing artifacts between build steps", func() {
@@ -26,8 +27,7 @@ var _ = Describe("Passing artifacts between build steps", func() {
 
 		By("triggering job")
 		sess := Fly.Start("trigger-job", "-w", "-j", "build-artifacts/transfer-time")
-		<-sess.Exited
+		Eventually(sess).Should(gexec.Exit(0))
 		Expect(sess).To(gbytes.Say("./something/version"))
-		Expect(sess.ExitCode()).To(Equal(0))
 	})
 })

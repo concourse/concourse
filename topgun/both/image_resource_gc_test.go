@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("A build using an image_resource", func() {
@@ -88,13 +89,11 @@ var _ = Describe("A build using an image_resource", func() {
 				"-s", "wait",
 				"touch", "/tmp/stop-waiting",
 			)
-			<-hijackSession.Exited
-			Expect(hijackSession.ExitCode()).To(Equal(0))
+			Eventually(hijackSession).Should(gexec.Exit(0))
 
 			By("waiting for the build to exit")
 			Eventually(watchSession, 1*time.Minute).Should(gbytes.Say("done"))
-			<-watchSession.Exited
-			Expect(watchSession.ExitCode()).To(Equal(0))
+			Eventually(watchSession).Should(gexec.Exit(0))
 
 			By("eventually expiring the previous build's resource cache volume")
 			var remainingHandles []string

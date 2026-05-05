@@ -8,6 +8,7 @@ import (
 	. "github.com/concourse/concourse/topgun/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("An ATC with syslog draining set", func() {
@@ -26,9 +27,7 @@ var _ = Describe("An ATC with syslog draining set", func() {
 
 		Fly.Run("unpause-pipeline", "-p", "syslog-pipeline")
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "syslog-pipeline/simple-job")
-
-		<-buildSession.Exited
-		Expect(buildSession.ExitCode()).To(Equal(0))
+		Eventually(buildSession).Should(gexec.Exit(0))
 
 		Eventually(func() (bool, error) {
 			Bosh("scp", "web/0:/var/vcap/store/syslog_storer/syslog.log", "/tmp/syslog.log")

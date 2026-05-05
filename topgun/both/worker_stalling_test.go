@@ -99,7 +99,7 @@ var _ = Describe("Worker stalling", func() {
 				WaitForWorkersToBeRunning(1)
 
 				buildSession.Signal(os.Interrupt)
-				<-buildSession.Exited
+				Eventually(buildSession).Should(gexec.Exit())
 			})
 
 			Context("when the worker does not come back", func() {
@@ -132,14 +132,13 @@ var _ = Describe("Worker stalling", func() {
 							"touch", "/tmp/stop-waiting",
 						)
 
-						<-session.Exited
+						Eventually(session).Should(gexec.Exit())
 						return session.ExitCode()
 					}).Should(Equal(0))
 
 					By("waiting for the build to exit")
 					Eventually(buildSession).Should(gbytes.Say("done"))
-					<-buildSession.Exited
-					Expect(buildSession.ExitCode()).To(Equal(0))
+					Eventually(buildSession).Should(gexec.Exit(0))
 				})
 			})
 		})

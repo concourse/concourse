@@ -50,8 +50,7 @@ func TimestampedBy(msg string) {
 }
 
 func Wait(session *gexec.Session) {
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
+	Eventually(session).Should(gexec.Exit(0))
 }
 
 func Run(env []string, command string, argv ...string) *gexec.Session {

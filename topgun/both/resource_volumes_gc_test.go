@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Garbage collecting resource cache volumes", func() {
@@ -206,8 +207,7 @@ var _ = Describe("Garbage collecting resource cache volumes", func() {
 
 			By("waiting for the build to exit")
 			Eventually(watchSession, 1*time.Minute).Should(gbytes.Say("done"))
-			<-watchSession.Exited
-			Expect(watchSession.ExitCode()).To(Equal(0))
+			Eventually(watchSession).Should(gexec.Exit(0))
 
 			By("eventually expiring the resource cache volume")
 			Eventually(func() []string {

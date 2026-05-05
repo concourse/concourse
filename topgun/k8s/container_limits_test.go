@@ -2,6 +2,7 @@ package k8s_test
 
 import (
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -52,9 +53,7 @@ func containerLimitsWork(selectorFlags ...string) {
 			defer atc.Close()
 
 			buildSession := fly.Start("execute", "-c", "tasks/tiny.yml")
-			<-buildSession.Exited
-
-			Expect(buildSession.ExitCode()).To(Equal(0))
+			Eventually(buildSession).Should(gexec.Exit(0))
 
 			hijackSession := fly.Start(
 				"hijack",
@@ -65,7 +64,7 @@ func containerLimitsWork(selectorFlags ...string) {
 				"/sys/fs/cgroup/memory/memory.limit_in_bytes",
 				"/sys/fs/cgroup/memory.max", // When cgroupsv1 is disabled this file will be present
 			)
-			<-hijackSession.Exited
+			Eventually(hijackSession).Should(gexec.Exit())
 			Expect(hijackSession).To(gbytes.Say("1073741824"))
 
 			hijackSession = fly.Start(
@@ -77,7 +76,7 @@ func containerLimitsWork(selectorFlags ...string) {
 				"/sys/fs/cgroup/cpu/cpu.shares",
 				"/sys/fs/cgroup/cpu.weight", // When cgroupsv1 is disabled this file will be present
 			)
-			<-hijackSession.Exited
+			Eventually(hijackSession).Should(gexec.Exit())
 
 			// Note: todo copied from https://github.com/concourse/concourse/blob/754cc9909e931dd0b0ba7be808a788f96a98a44c/testflight/container_limits_test.go#L70
 			// TODO: This is 20 in cgroups v2. Not sure why this happens though. It

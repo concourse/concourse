@@ -32,7 +32,7 @@ var _ = Describe("Resource Certs", func() {
 			Fly.Run("check-resource", "-r", "resources/certs")
 
 			hijackSession := Fly.Start("hijack", "--check", "resources/certs", "--", "ls", "/etc/ssl/certs")
-			<-hijackSession.Exited
+			Eventually(hijackSession).Should(gexec.Exit())
 
 			certsContent := string(hijackSession.Out.Contents())
 			Expect(certsContent).ToNot(HaveLen(0))
@@ -40,19 +40,17 @@ var _ = Describe("Resource Certs", func() {
 
 		It("bind mounts the certs volume to resource get containers", func() {
 			trigger := Fly.Start("trigger-job", "--watch", "--job", "resources/use-em")
-			<-trigger.Exited
-			Expect(trigger.ExitCode()).To(Equal(1))
+			Eventually(trigger).Should(gexec.Exit(1))
 
 			hijackSession := Fly.Start("hijack", "--job", "resources/use-em", "--step", "certs", "--step-type", "get", "--", "ls", "/etc/ssl/certs")
-			<-hijackSession.Exited
+			Eventually(hijackSession).Should(gexec.Exit())
 			certsContent := string(hijackSession.Out.Contents())
 			Expect(certsContent).ToNot(HaveLen(0))
 		})
 
 		It("bind mounts the certs volume to resource put containers", func() {
 			trigger := Fly.Start("trigger-job", "-w", "-j", "resources/use-em")
-			<-trigger.Exited
-			Expect(trigger.ExitCode()).To(Equal(1))
+			Eventually(trigger).Should(gexec.Exit(1))
 
 			hijackSession := Fly.Start("hijack", "--job", "resources/use-em", "--step", "put-certs", "--step-type", "put", "--", "ls", "/etc/ssl/certs")
 			Eventually(hijackSession).Should(gexec.Exit(0))

@@ -30,7 +30,7 @@ var _ = Describe("A job with a task using an image within the plan", func() {
 
 		JustBeforeEach(func() {
 			jobSession = Fly.Start("trigger-job", "-w", "-j", "image-artifact/"+jobName)
-			<-jobSession.Exited
+			Eventually(jobSession).Should(gexec.Exit())
 		})
 
 		Context("when the artifact is found on the worker", func() {

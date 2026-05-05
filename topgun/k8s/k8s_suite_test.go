@@ -274,7 +274,7 @@ func helmDeploy(releaseName, namespace, chartDir string, args ...string) *gexec.
 	helmArgs = append(helmArgs, releaseName, chartDir)
 
 	sess := Start(nil, "helm", helmArgs...)
-	<-sess.Exited
+	Eventually(sess).Should(gexec.Exit())
 
 	if sess.ExitCode() == 0 {
 		deployedReleases[releaseName] = namespace

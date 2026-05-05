@@ -3,6 +3,7 @@ package k8s_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("DNS Resolution", func() {
@@ -34,9 +35,7 @@ var _ = Describe("DNS Resolution", func() {
 			atc = waitAndLogin(namespace, releaseName+"-web")
 
 			sess := fly.Start("execute", "-c", "tasks/dns-proxy-task.yml", "-v", "url="+fullAddress())
-			<-sess.Exited
-
-			Expect(sess.ExitCode()).To(BeZero())
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 	}
 

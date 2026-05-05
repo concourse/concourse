@@ -45,7 +45,6 @@ var _ = Describe("ATC Shutting down", func() {
 
 			AfterEach(func() {
 				restartSession := SpawnBosh("start", atcs[0].Name)
-				<-restartSession.Exited
 				Eventually(restartSession).Should(gexec.Exit(0))
 			})
 
@@ -110,14 +109,13 @@ var _ = Describe("ATC Shutting down", func() {
 							"-s", "one-off", "--",
 							"touch", "/tmp/stop-waiting",
 						)
-						<-hijackSession.Exited
+						Eventually(hijackSession).Should(gexec.Exit())
 						return hijackSession.ExitCode()
 					}).Should(Equal(0))
 
 					By("waiting for the build to exit")
 					Eventually(watchSession, 1*time.Minute).Should(gbytes.Say("done"))
-					<-watchSession.Exited
-					Expect(watchSession.ExitCode()).To(Equal(0))
+					Eventually(watchSession).Should(gexec.Exit(0))
 				})
 			})
 		})

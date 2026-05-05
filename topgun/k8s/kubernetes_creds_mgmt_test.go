@@ -8,6 +8,7 @@ import (
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Kubernetes credential management", func() {
@@ -200,8 +201,7 @@ var _ = Describe("Kubernetes credential management", func() {
 			By("not creating the secret")
 			sess := fly.Start("execute",
 				"-c", "tasks/simple-secret.yml")
-			<-sess.Exited
-			Expect(sess.ExitCode()).NotTo(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 	})
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 	"github.com/square/certstrap/pkix"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -99,7 +100,7 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 						"--ca-cert", "k8s/certs/wrong-ca.crt",
 						"-c", "https://"+atc.Address(),
 					)
-					<-sess.Exited
+					Eventually(sess).Should(gexec.Exit())
 					return sess.Err
 				}, 2*time.Minute, 10*time.Second).
 					Should(gbytes.Say(`x509: certificate signed by unknown authority`))

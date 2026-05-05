@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Hijacked containers", func() {
@@ -61,17 +62,17 @@ var _ = Describe("Hijacked containers", func() {
 
 		By("finishing the build")
 		Eventually(func() int {
-			hS := Fly.Start(
+			sess := Fly.Start(
 				"hijack",
 				"--job", "hijacked-containers-test/simple-job",
 				"--step", "simple-task",
 				"touch", "/tmp/stop-waiting",
 			)
-			<-hS.Exited
-			return hS.ExitCode()
+			Eventually(sess).Should(gexec.Exit())
+			return sess.ExitCode()
 		}).Should(Equal(0))
 
-		<-buildSession.Exited
+		Eventually(buildSession).Should(gexec.Exit())
 
 		By("triggering a new build")
 		buildSession = Fly.Start("trigger-job", "-w", "-j", "hijacked-containers-test/simple-job")
@@ -81,17 +82,17 @@ var _ = Describe("Hijacked containers", func() {
 		Eventually(buildSession).Should(gbytes.Say("waiting for /tmp/stop-waiting to exist"))
 
 		Eventually(func() int {
-			hS := Fly.Start(
+			sess := Fly.Start(
 				"hijack",
 				"--job", "hijacked-containers-test/simple-job",
 				"--build", "2",
 				"--step", "simple-task",
 				"touch", "/tmp/stop-waiting",
 			)
-			<-hS.Exited
-			return hS.ExitCode()
+			Eventually(sess).Should(gexec.Exit())
+			return sess.ExitCode()
 		}).Should(Equal(0))
-		<-buildSession.Exited
+		Eventually(buildSession).Should(gexec.Exit())
 
 		By("verifying the hijacked container exists via fly and Garden")
 		Consistently(getContainer(func(c map[string]string) bool {
@@ -100,7 +101,7 @@ var _ = Describe("Hijacked containers", func() {
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
 		hijackSession.Interrupt()
-		<-hijackSession.Exited
+		Eventually(hijackSession).Should(gexec.Exit())
 
 		Eventually(getContainer(func(c map[string]string) bool {
 			return c["build #"] == "1" && c["name"] == "simple-task"
@@ -126,16 +127,16 @@ var _ = Describe("Hijacked containers", func() {
 
 		By("waiting for build to finish")
 		Eventually(func() int {
-			hS := Fly.Start(
+			sess := Fly.Start(
 				"hijack",
 				"-b", "1",
 				"-s", "one-off",
 				"touch", "/tmp/stop-waiting",
 			)
-			<-hS.Exited
-			return hS.ExitCode()
+			Eventually(sess).Should(gexec.Exit())
+			return sess.ExitCode()
 		}).Should(Equal(0))
-		<-buildSession.Exited
+		Eventually(buildSession).Should(gexec.Exit())
 
 		By("verifying the hijacked container exists via fly and Garden")
 		Consistently(getContainer(func(c map[string]string) bool {
@@ -144,7 +145,7 @@ var _ = Describe("Hijacked containers", func() {
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
 		hijackSession.Interrupt()
-		<-hijackSession.Exited
+		Eventually(hijackSession).Should(gexec.Exit())
 
 		Eventually(getContainer(func(c map[string]string) bool {
 			return c["build #"] == "1" && c["name"] == "one-off"
@@ -185,7 +186,7 @@ var _ = Describe("Hijacked containers", func() {
 
 		By("unhijacking and seeing the container removed via fly/Garden after 5 minutes")
 		hijackSession.Interrupt()
-		<-hijackSession.Exited
+		Eventually(hijackSession).Should(gexec.Exit())
 
 		Eventually(getContainer(func(c map[string]string) bool {
 			return c["type"] == "check"
