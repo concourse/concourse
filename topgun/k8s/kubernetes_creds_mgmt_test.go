@@ -3,6 +3,7 @@ package k8s_test
 import (
 	"encoding/json"
 	"regexp"
+	"strings"
 
 	. "github.com/concourse/concourse/topgun"
 	. "github.com/onsi/ginkgo/v2"
@@ -265,5 +266,5 @@ func extractIDtokenFromBuffer(buffer []byte, identifier string) string {
 	if len(tokenMatches) != 2 {
 		return ""
 	}
-	return string(tokenMatches[1])
+	return strings.TrimSuffix(string(tokenMatches[1]), "\r")
 }
