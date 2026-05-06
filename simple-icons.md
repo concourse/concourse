@@ -1,0 +1,3435 @@
+# Simple Icons Support
+
+The following icons are available from [Simple Icons](https://simpleicons.org):
+
+|**Title**|**Slug**|**Preview**|
+|---|---|---|
+|.ENV|`si/dotenv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dotenv.svg)|
+|.NET|`si/dotnet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dotnet.svg)|
+|/e/|`si/e`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/e.svg)|
+|1.1.1.1|`si/1dot1dot1dot1`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/1dot1dot1dot1.svg)|
+|1&1|`si/1and1`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/1and1.svg)|
+|1001Tracklists|`si/1001tracklists`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/1001tracklists.svg)|
+|1Panel|`si/1panel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/1panel.svg)|
+|1Password|`si/1password`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/1password.svg)|
+|2FAS|`si/2fas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/2fas.svg)|
+|2K|`si/2k`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/2k.svg)|
+|30 seconds of code|`si/30secondsofcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/30secondsofcode.svg)|
+|365 Data Science|`si/365datascience`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/365datascience.svg)|
+|3M|`si/3m`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/3m.svg)|
+|42|`si/42`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/42.svg)|
+|4chan|`si/4chan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/4chan.svg)|
+|4D|`si/4d`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/4d.svg)|
+|500px|`si/500px`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/500px.svg)|
+|7Zip|`si/7zip`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/7zip.svg)|
+|99designs|`si/99designs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/99designs.svg)|
+|9GAG|`si/9gag`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/9gag.svg)|
+|A-Frame|`si/aframe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aframe.svg)|
+|AB Download Manager|`si/abdownloadmanager`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/abdownloadmanager.svg)|
+|ABB|`si/abb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/abb.svg)|
+|Abbott|`si/abbott`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/abbott.svg)|
+|Abbvie|`si/abbvie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/abbvie.svg)|
+|about.me|`si/aboutdotme`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aboutdotme.svg)|
+|Abstract|`si/abstract`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/abstract.svg)|
+|abuse.ch|`si/abusedotch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/abusedotch.svg)|
+|Academia|`si/academia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/academia.svg)|
+|Accenture|`si/accenture`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/accenture.svg)|
+|Accusoft|`si/accusoft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/accusoft.svg)|
+|AccuWeather|`si/accuweather`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/accuweather.svg)|
+|Acer|`si/acer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/acer.svg)|
+|ACM|`si/acm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/acm.svg)|
+|Acode|`si/acode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/acode.svg)|
+|ActiGraph|`si/actigraph`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/actigraph.svg)|
+|Activeloop|`si/activeloop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/activeloop.svg)|
+|Activision|`si/activision`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/activision.svg)|
+|ActivityPub|`si/activitypub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/activitypub.svg)|
+|Actix|`si/actix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/actix.svg)|
+|Actual Budget|`si/actualbudget`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/actualbudget.svg)|
+|Acura|`si/acura`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/acura.svg)|
+|Ada|`si/ada`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ada.svg)|
+|Adafruit|`si/adafruit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adafruit.svg)|
+|AdAway|`si/adaway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adaway.svg)|
+|AdBlock|`si/adblock`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adblock.svg)|
+|Adblock Plus|`si/adblockplus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adblockplus.svg)|
+|addy.io|`si/addydotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/addydotio.svg)|
+|AdGuard|`si/adguard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adguard.svg)|
+|Adidas|`si/adidas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adidas.svg)|
+|Adminer|`si/adminer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adminer.svg)|
+|AdonisJS|`si/adonisjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adonisjs.svg)|
+|ADP|`si/adp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adp.svg)|
+|Adroll|`si/adroll`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adroll.svg)|
+|Advent Of Code|`si/adventofcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adventofcode.svg)|
+|Adyen|`si/adyen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/adyen.svg)|
+|Aegis Authenticator|`si/aegisauthenticator`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aegisauthenticator.svg)|
+|Aeroflot|`si/aeroflot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aeroflot.svg)|
+|Aeroméxico|`si/aeromexico`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aeromexico.svg)|
+|AFDIAN|`si/afdian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/afdian.svg)|
+|AFFiNE|`si/affine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/affine.svg)|
+|Afterpay|`si/afterpay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/afterpay.svg)|
+|AfterShip|`si/aftership`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aftership.svg)|
+|Agora|`si/agora`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/agora.svg)|
+|AI Dungeon|`si/aidungeon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aidungeon.svg)|
+|AIB|`si/aib`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aib.svg)|
+|AIOHTTP|`si/aiohttp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aiohttp.svg)|
+|Aiqfome|`si/aiqfome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aiqfome.svg)|
+|Air Canada|`si/aircanada`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aircanada.svg)|
+|Air China|`si/airchina`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airchina.svg)|
+|Air France|`si/airfrance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airfrance.svg)|
+|Air India|`si/airindia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airindia.svg)|
+|Air Serbia|`si/airserbia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airserbia.svg)|
+|Air Transat|`si/airtransat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airtransat.svg)|
+|AirAsia|`si/airasia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airasia.svg)|
+|Airbnb|`si/airbnb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airbnb.svg)|
+|Airbrake|`si/airbrake`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airbrake.svg)|
+|Airbus|`si/airbus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airbus.svg)|
+|Airbyte|`si/airbyte`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airbyte.svg)|
+|Aircall|`si/aircall`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aircall.svg)|
+|AirPlay Audio|`si/airplayaudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airplayaudio.svg)|
+|AirPlay Video|`si/airplayvideo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airplayvideo.svg)|
+|Airtable|`si/airtable`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airtable.svg)|
+|Airtel|`si/airtel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/airtel.svg)|
+|Ajv|`si/ajv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ajv.svg)|
+|Akamai|`si/akamai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/akamai.svg)|
+|Akasa Air|`si/akasaair`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/akasaair.svg)|
+|Akaunting|`si/akaunting`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/akaunting.svg)|
+|Akiflow|`si/akiflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/akiflow.svg)|
+|Alacritty|`si/alacritty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alacritty.svg)|
+|Alamy|`si/alamy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alamy.svg)|
+|Albert Heijn|`si/albertheijn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/albertheijn.svg)|
+|Alby|`si/alby`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alby.svg)|
+|Alchemy|`si/alchemy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alchemy.svg)|
+|Aldi Nord|`si/aldinord`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aldinord.svg)|
+|Aldi Süd|`si/aldisud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aldisud.svg)|
+|Alfred|`si/alfred`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alfred.svg)|
+|Algolia|`si/algolia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/algolia.svg)|
+|Algorand|`si/algorand`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/algorand.svg)|
+|Alibaba Cloud|`si/alibabacloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alibabacloud.svg)|
+|Alibaba.com|`si/alibabadotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alibabadotcom.svg)|
+|Alienware|`si/alienware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alienware.svg)|
+|AliExpress|`si/aliexpress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aliexpress.svg)|
+|Alipay|`si/alipay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alipay.svg)|
+|AList|`si/alist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alist.svg)|
+|Allegro|`si/allegro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/allegro.svg)|
+|AlliedModders|`si/alliedmodders`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alliedmodders.svg)|
+|AllTrails|`si/alltrails`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alltrails.svg)|
+|AlmaLinux|`si/almalinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/almalinux.svg)|
+|Alpine Linux|`si/alpinelinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alpinelinux.svg)|
+|Alpine.js|`si/alpinedotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alpinedotjs.svg)|
+|AlternativeTo|`si/alternativeto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alternativeto.svg)|
+|Alwaysdata|`si/alwaysdata`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/alwaysdata.svg)|
+|AMD|`si/amd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/amd.svg)|
+|Ameba|`si/ameba`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ameba.svg)|
+|American Airlines|`si/americanairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/americanairlines.svg)|
+|American Express|`si/americanexpress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/americanexpress.svg)|
+|AMG|`si/amg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/amg.svg)|
+|AMP|`si/amp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/amp.svg)|
+|Amul|`si/amul`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/amul.svg)|
+|ANA|`si/ana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ana.svg)|
+|Anaconda|`si/anaconda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anaconda.svg)|
+|Analogue|`si/analogue`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/analogue.svg)|
+|Andela|`si/andela`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/andela.svg)|
+|Android|`si/android`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/android.svg)|
+|Android Auto|`si/androidauto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/androidauto.svg)|
+|Android Studio|`si/androidstudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/androidstudio.svg)|
+|Angular|`si/angular`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/angular.svg)|
+|AniChart|`si/anichart`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anichart.svg)|
+|AniList|`si/anilist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anilist.svg)|
+|Animal Planet|`si/animalplanet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/animalplanet.svg)|
+|Anime.js|`si/animedotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/animedotjs.svg)|
+|AnkerMake|`si/ankermake`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ankermake.svg)|
+|Anki|`si/anki`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anki.svg)|
+|Ansible|`si/ansible`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ansible.svg)|
+|Answer|`si/answer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/answer.svg)|
+|Ansys|`si/ansys`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ansys.svg)|
+|Ant Design|`si/antdesign`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/antdesign.svg)|
+|Anta|`si/anta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anta.svg)|
+|Antena 3|`si/antena3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/antena3.svg)|
+|AntennaPod|`si/antennapod`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/antennapod.svg)|
+|Anthropic|`si/anthropic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anthropic.svg)|
+|AntV|`si/antv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/antv.svg)|
+|Anycubic|`si/anycubic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anycubic.svg)|
+|AnyDesk|`si/anydesk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anydesk.svg)|
+|Anytype|`si/anytype`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/anytype.svg)|
+|Apache|`si/apache`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apache.svg)|
+|Apache Airflow|`si/apacheairflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheairflow.svg)|
+|Apache Ant|`si/apacheant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheant.svg)|
+|Apache Avro|`si/apacheavro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheavro.svg)|
+|Apache Cassandra|`si/apachecassandra`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachecassandra.svg)|
+|Apache CloudStack|`si/apachecloudstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachecloudstack.svg)|
+|Apache Cordova|`si/apachecordova`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachecordova.svg)|
+|Apache CouchDB|`si/apachecouchdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachecouchdb.svg)|
+|Apache DolphinScheduler|`si/apachedolphinscheduler`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachedolphinscheduler.svg)|
+|Apache Doris|`si/apachedoris`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachedoris.svg)|
+|Apache Druid|`si/apachedruid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachedruid.svg)|
+|Apache ECharts|`si/apacheecharts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheecharts.svg)|
+|Apache Flink|`si/apacheflink`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheflink.svg)|
+|Apache FreeMarker|`si/apachefreemarker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachefreemarker.svg)|
+|Apache Groovy|`si/apachegroovy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachegroovy.svg)|
+|Apache Guacamole|`si/apacheguacamole`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheguacamole.svg)|
+|Apache Hadoop|`si/apachehadoop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachehadoop.svg)|
+|Apache HBase|`si/apachehbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachehbase.svg)|
+|Apache Hive|`si/apachehive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachehive.svg)|
+|Apache JMeter|`si/apachejmeter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachejmeter.svg)|
+|Apache Kafka|`si/apachekafka`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachekafka.svg)|
+|Apache Kylin|`si/apachekylin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachekylin.svg)|
+|Apache Lucene|`si/apachelucene`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachelucene.svg)|
+|Apache Maven|`si/apachemaven`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachemaven.svg)|
+|Apache NetBeans IDE|`si/apachenetbeanside`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachenetbeanside.svg)|
+|Apache NiFi|`si/apachenifi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachenifi.svg)|
+|Apache OpenOffice|`si/apacheopenoffice`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheopenoffice.svg)|
+|Apache Parquet|`si/apacheparquet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacheparquet.svg)|
+|Apache PDFBox|`si/apachepdfbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachepdfbox.svg)|
+|Apache Pulsar|`si/apachepulsar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachepulsar.svg)|
+|Apache RocketMQ|`si/apacherocketmq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apacherocketmq.svg)|
+|Apache Solr|`si/apachesolr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachesolr.svg)|
+|Apache Spark|`si/apachespark`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachespark.svg)|
+|Apache Storm|`si/apachestorm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachestorm.svg)|
+|Apache Superset|`si/apachesuperset`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachesuperset.svg)|
+|Apache Tomcat|`si/apachetomcat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apachetomcat.svg)|
+|Aparat|`si/aparat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aparat.svg)|
+|Apifox|`si/apifox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apifox.svg)|
+|APM Terminals|`si/apmterminals`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apmterminals.svg)|
+|Apollo GraphQL|`si/apollographql`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apollographql.svg)|
+|Apostrophe|`si/apostrophe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apostrophe.svg)|
+|App Store|`si/appstore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appstore.svg)|
+|AppGallery|`si/appgallery`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appgallery.svg)|
+|Appian|`si/appian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appian.svg)|
+|AppImage|`si/appimage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appimage.svg)|
+|Appium|`si/appium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appium.svg)|
+|Apple|`si/apple`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/apple.svg)|
+|Apple Arcade|`si/applearcade`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/applearcade.svg)|
+|Apple Music|`si/applemusic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/applemusic.svg)|
+|Apple News|`si/applenews`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/applenews.svg)|
+|Apple Pay|`si/applepay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/applepay.svg)|
+|Apple Podcasts|`si/applepodcasts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/applepodcasts.svg)|
+|Apple TV|`si/appletv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appletv.svg)|
+|AppManager|`si/appmanager`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appmanager.svg)|
+|AppSignal|`si/appsignal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appsignal.svg)|
+|Appsmith|`si/appsmith`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appsmith.svg)|
+|AppVeyor|`si/appveyor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appveyor.svg)|
+|Appwrite|`si/appwrite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/appwrite.svg)|
+|Aqua|`si/aqua`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aqua.svg)|
+|ARAL|`si/aral`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aral.svg)|
+|ArangoDB|`si/arangodb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arangodb.svg)|
+|Arc|`si/arc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arc.svg)|
+|ArcGIS|`si/arcgis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arcgis.svg)|
+|Arch Linux|`si/archlinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/archlinux.svg)|
+|Archicad|`si/archicad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/archicad.svg)|
+|Archive of Our Own|`si/archiveofourown`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/archiveofourown.svg)|
+|Ardour|`si/ardour`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ardour.svg)|
+|Arduino|`si/arduino`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arduino.svg)|
+|Argo|`si/argo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/argo.svg)|
+|Argos|`si/argos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/argos.svg)|
+|Ariakit|`si/ariakit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ariakit.svg)|
+|ARK Ecosystem|`si/arkecosystem`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arkecosystem.svg)|
+|Arlo|`si/arlo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arlo.svg)|
+|Arm|`si/arm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arm.svg)|
+|Arm Keil|`si/armkeil`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/armkeil.svg)|
+|Ars Technica|`si/arstechnica`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arstechnica.svg)|
+|Artifact Hub|`si/artifacthub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/artifacthub.svg)|
+|Artix Linux|`si/artixlinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/artixlinux.svg)|
+|ArtStation|`si/artstation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/artstation.svg)|
+|arXiv|`si/arxiv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/arxiv.svg)|
+|Asahi Linux|`si/asahilinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/asahilinux.svg)|
+|Asana|`si/asana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/asana.svg)|
+|Asciidoctor|`si/asciidoctor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/asciidoctor.svg)|
+|asciinema|`si/asciinema`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/asciinema.svg)|
+|ASDA|`si/asda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/asda.svg)|
+|Aseprite|`si/aseprite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aseprite.svg)|
+|AssemblyScript|`si/assemblyscript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/assemblyscript.svg)|
+|Asterisk|`si/asterisk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/asterisk.svg)|
+|Aston Martin|`si/astonmartin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/astonmartin.svg)|
+|Astra|`si/astra`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/astra.svg)|
+|Astral|`si/astral`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/astral.svg)|
+|Astro|`si/astro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/astro.svg)|
+|ASUS|`si/asus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/asus.svg)|
+|AT&T|`si/atandt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/atandt.svg)|
+|Atari|`si/atari`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/atari.svg)|
+|AtlasOS|`si/atlasos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/atlasos.svg)|
+|Atlassian|`si/atlassian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/atlassian.svg)|
+|Auchan|`si/auchan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/auchan.svg)|
+|Audacity|`si/audacity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/audacity.svg)|
+|Audi|`si/audi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/audi.svg)|
+|Audible|`si/audible`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/audible.svg)|
+|Audio-Technica|`si/audiotechnica`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/audiotechnica.svg)|
+|Audiobookshelf|`si/audiobookshelf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/audiobookshelf.svg)|
+|Audioboom|`si/audioboom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/audioboom.svg)|
+|Audiomack|`si/audiomack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/audiomack.svg)|
+|Aurelia|`si/aurelia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/aurelia.svg)|
+|Autentique|`si/autentique`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autentique.svg)|
+|Auth0|`si/auth0`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/auth0.svg)|
+|Authelia|`si/authelia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/authelia.svg)|
+|Authentik|`si/authentik`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/authentik.svg)|
+|AutoCAD|`si/autocad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autocad.svg)|
+|AutoCannon|`si/autocannon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autocannon.svg)|
+|Autodesk|`si/autodesk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autodesk.svg)|
+|Autodesk Maya|`si/autodeskmaya`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autodeskmaya.svg)|
+|Autodesk Revit|`si/autodeskrevit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autodeskrevit.svg)|
+|AutoHotkey|`si/autohotkey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autohotkey.svg)|
+|AutoIt|`si/autoit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autoit.svg)|
+|Automattic|`si/automattic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/automattic.svg)|
+|Autoprefixer|`si/autoprefixer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autoprefixer.svg)|
+|AutoZone|`si/autozone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/autozone.svg)|
+|avajs|`si/avajs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/avajs.svg)|
+|AvaloniaUI|`si/avaloniaui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/avaloniaui.svg)|
+|Avast|`si/avast`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/avast.svg)|
+|avianca|`si/avianca`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/avianca.svg)|
+|Avira|`si/avira`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/avira.svg)|
+|AVM|`si/avm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/avm.svg)|
+|Awesome Lists|`si/awesomelists`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/awesomelists.svg)|
+|awesomeWM|`si/awesomewm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/awesomewm.svg)|
+|Awwwards|`si/awwwards`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/awwwards.svg)|
+|Axios|`si/axios`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/axios.svg)|
+|Axis Bank|`si/axisbank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/axisbank.svg)|
+|B&R Automation|`si/bandrautomation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bandrautomation.svg)|
+|B4X|`si/b4x`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/b4x.svg)|
+|Babel|`si/babel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/babel.svg)|
+|Babelio|`si/babelio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/babelio.svg)|
+|Babylon.js|`si/babylondotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/babylondotjs.svg)|
+|Backblaze|`si/backblaze`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/backblaze.svg)|
+|Backbone|`si/backbone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/backbone.svg)|
+|Backbone.js|`si/backbonedotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/backbonedotjs.svg)|
+|Backendless|`si/backendless`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/backendless.svg)|
+|Backstage|`si/backstage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/backstage.svg)|
+|Backstage|`si/backstage_casting`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/backstage_casting.svg)|
+|Badoo|`si/badoo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/badoo.svg)|
+|Baidu|`si/baidu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/baidu.svg)|
+|Bakaláři|`si/bakalari`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bakalari.svg)|
+|Bamboo|`si/bamboo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bamboo.svg)|
+|Bambu Lab|`si/bambulab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bambulab.svg)|
+|Bandcamp|`si/bandcamp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bandcamp.svg)|
+|BandLab|`si/bandlab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bandlab.svg)|
+|Bandsintown|`si/bandsintown`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bandsintown.svg)|
+|Bank of America|`si/bankofamerica`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bankofamerica.svg)|
+|Barclays|`si/barclays`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/barclays.svg)|
+|Baremetrics|`si/baremetrics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/baremetrics.svg)|
+|Barmenia|`si/barmenia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/barmenia.svg)|
+|Base UI|`si/baseui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/baseui.svg)|
+|Basecamp|`si/basecamp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/basecamp.svg)|
+|Baserow|`si/baserow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/baserow.svg)|
+|Basic Attention Token|`si/basicattentiontoken`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/basicattentiontoken.svg)|
+|Bastyon|`si/bastyon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bastyon.svg)|
+|bat|`si/bat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bat.svg)|
+|Bata|`si/bata`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bata.svg)|
+|Battle.net|`si/battledotnet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/battledotnet.svg)|
+|Bazel|`si/bazel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bazel.svg)|
+|Beatport|`si/beatport`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/beatport.svg)|
+|Beats|`si/beats`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/beats.svg)|
+|Beats by Dre|`si/beatsbydre`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/beatsbydre.svg)|
+|BeatStars|`si/beatstars`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/beatstars.svg)|
+|Beekeeper Studio|`si/beekeeperstudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/beekeeperstudio.svg)|
+|Behance|`si/behance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/behance.svg)|
+|Beijing Subway|`si/beijingsubway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/beijingsubway.svg)|
+|BEM|`si/bem`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bem.svg)|
+|Bentley|`si/bentley`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bentley.svg)|
+|Bento|`si/bento`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bento.svg)|
+|BentoBox|`si/bentobox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bentobox.svg)|
+|BentoML|`si/bentoml`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bentoml.svg)|
+|BeReal|`si/bereal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bereal.svg)|
+|Betfair|`si/betfair`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/betfair.svg)|
+|Better Auth|`si/betterauth`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/betterauth.svg)|
+|Better Stack|`si/betterstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/betterstack.svg)|
+|BetterDiscord|`si/betterdiscord`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/betterdiscord.svg)|
+|Bevy|`si/bevy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bevy.svg)|
+|Big Cartel|`si/bigcartel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bigcartel.svg)|
+|bigbasket|`si/bigbasket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bigbasket.svg)|
+|BigBlueButton|`si/bigbluebutton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bigbluebutton.svg)|
+|BigCommerce|`si/bigcommerce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bigcommerce.svg)|
+|Bilibili|`si/bilibili`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bilibili.svg)|
+|Billboard|`si/billboard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/billboard.svg)|
+|BIM|`si/bim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bim.svg)|
+|Binance|`si/binance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/binance.svg)|
+|Bio Link|`si/biolink`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/biolink.svg)|
+|Bioconductor|`si/bioconductor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bioconductor.svg)|
+|Biome|`si/biome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/biome.svg)|
+|BisectHosting|`si/bisecthosting`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bisecthosting.svg)|
+|Bit|`si/bit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bit.svg)|
+|Bitbucket|`si/bitbucket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitbucket.svg)|
+|Bitcoin|`si/bitcoin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitcoin.svg)|
+|Bitcoin Cash|`si/bitcoincash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitcoincash.svg)|
+|Bitcoin SV|`si/bitcoinsv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitcoinsv.svg)|
+|BitComet|`si/bitcomet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitcomet.svg)|
+|Bitdefender|`si/bitdefender`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitdefender.svg)|
+|Bitly|`si/bitly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitly.svg)|
+|Bitrise|`si/bitrise`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitrise.svg)|
+|Bitsy|`si/bitsy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitsy.svg)|
+|BitTorrent|`si/bittorrent`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bittorrent.svg)|
+|Bitwarden|`si/bitwarden`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitwarden.svg)|
+|Bitwig|`si/bitwig`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bitwig.svg)|
+|Black|`si/black`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/black.svg)|
+|Blackberry|`si/blackberry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blackberry.svg)|
+|Blackmagic Design|`si/blackmagicdesign`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blackmagicdesign.svg)|
+|Blazemeter|`si/blazemeter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blazemeter.svg)|
+|Blazor|`si/blazor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blazor.svg)|
+|Blender|`si/blender`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blender.svg)|
+|Blibli|`si/blibli`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blibli.svg)|
+|Blockbench|`si/blockbench`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blockbench.svg)|
+|Blockchain.com|`si/blockchaindotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blockchaindotcom.svg)|
+|Blogger|`si/blogger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blogger.svg)|
+|Bloglovin|`si/bloglovin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bloglovin.svg)|
+|Blueprint|`si/blueprint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/blueprint.svg)|
+|Bluesky|`si/bluesky`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bluesky.svg)|
+|Bluesound|`si/bluesound`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bluesound.svg)|
+|Bluetooth|`si/bluetooth`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bluetooth.svg)|
+|BMC Software|`si/bmcsoftware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bmcsoftware.svg)|
+|BMW|`si/bmw`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bmw.svg)|
+|BNB Chain|`si/bnbchain`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bnbchain.svg)|
+|BoardGameGeek|`si/boardgamegeek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boardgamegeek.svg)|
+|boAt|`si/boat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boat.svg)|
+|Boehringer Ingelheim|`si/boehringeringelheim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boehringeringelheim.svg)|
+|Boeing|`si/boeing`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boeing.svg)|
+|Bohemia Interactive|`si/bohemiainteractive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bohemiainteractive.svg)|
+|Bombardier|`si/bombardier`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bombardier.svg)|
+|Bookalope|`si/bookalope`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bookalope.svg)|
+|BookBub|`si/bookbub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bookbub.svg)|
+|Booking.com|`si/bookingdotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bookingdotcom.svg)|
+|Bookmeter|`si/bookmeter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bookmeter.svg)|
+|BookMyShow|`si/bookmyshow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bookmyshow.svg)|
+|BookStack|`si/bookstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bookstack.svg)|
+|Boost|`si/boost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boost.svg)|
+|Boosty|`si/boosty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boosty.svg)|
+|Boots|`si/boots`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boots.svg)|
+|Bootstrap|`si/bootstrap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bootstrap.svg)|
+|BorgBackup|`si/borgbackup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/borgbackup.svg)|
+|Bosch|`si/bosch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bosch.svg)|
+|Bose|`si/bose`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bose.svg)|
+|Botble CMS|`si/botblecms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/botblecms.svg)|
+|boulanger|`si/boulanger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boulanger.svg)|
+|Bower|`si/bower`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bower.svg)|
+|Box|`si/box`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/box.svg)|
+|Boxy SVG|`si/boxysvg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/boxysvg.svg)|
+|Braintree|`si/braintree`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/braintree.svg)|
+|Braintrust|`si/braintrust`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/braintrust.svg)|
+|Brandfetch|`si/brandfetch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/brandfetch.svg)|
+|Brandfolder|`si/brandfolder`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/brandfolder.svg)|
+|Brave|`si/brave`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/brave.svg)|
+|Breaker|`si/breaker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/breaker.svg)|
+|Brenntag|`si/brenntag`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/brenntag.svg)|
+|Brevo|`si/brevo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/brevo.svg)|
+|Brex|`si/brex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/brex.svg)|
+|Bricks|`si/bricks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bricks.svg)|
+|British Airways|`si/britishairways`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/britishairways.svg)|
+|Broadcom|`si/broadcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/broadcom.svg)|
+|Bruno|`si/bruno`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bruno.svg)|
+|BSD|`si/bsd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bsd.svg)|
+|bspwm|`si/bspwm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bspwm.svg)|
+|BT|`si/bt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bt.svg)|
+|Buddy|`si/buddy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buddy.svg)|
+|Budibase|`si/budibase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/budibase.svg)|
+|Buefy|`si/buefy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buefy.svg)|
+|Buffer|`si/buffer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buffer.svg)|
+|Bugatti|`si/bugatti`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bugatti.svg)|
+|Bugcrowd|`si/bugcrowd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bugcrowd.svg)|
+|Buhl|`si/buhl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buhl.svg)|
+|Buildkite|`si/buildkite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buildkite.svg)|
+|BuiltByBit|`si/builtbybit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/builtbybit.svg)|
+|Bukalapak|`si/bukalapak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bukalapak.svg)|
+|Bulma|`si/bulma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bulma.svg)|
+|Bun|`si/bun`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bun.svg)|
+|Bungie|`si/bungie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bungie.svg)|
+|bunny.net|`si/bunnydotnet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bunnydotnet.svg)|
+|bunq|`si/bunq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bunq.svg)|
+|Burger King|`si/burgerking`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/burgerking.svg)|
+|Burp Suite|`si/burpsuite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/burpsuite.svg)|
+|Burton|`si/burton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/burton.svg)|
+|Buy Me A Coffee|`si/buymeacoffee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buymeacoffee.svg)|
+|BuySellAds|`si/buysellads`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buysellads.svg)|
+|BuzzFeed|`si/buzzfeed`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/buzzfeed.svg)|
+|BVG|`si/bvg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bvg.svg)|
+|Byju's|`si/byjus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/byjus.svg)|
+|ByteDance|`si/bytedance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/bytedance.svg)|
+|C|`si/c`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/c.svg)|
+|C++|`si/cplusplus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cplusplus.svg)|
+|C++ Builder|`si/cplusplusbuilder`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cplusplusbuilder.svg)|
+|Cachet|`si/cachet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cachet.svg)|
+|CachyOS|`si/cachyos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cachyos.svg)|
+|Caddy|`si/caddy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/caddy.svg)|
+|Cadillac|`si/cadillac`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cadillac.svg)|
+|CafePress|`si/cafepress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cafepress.svg)|
+|Cairo Graphics|`si/cairographics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cairographics.svg)|
+|Cairo Metro|`si/cairometro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cairometro.svg)|
+|CaixaBank|`si/caixabank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/caixabank.svg)|
+|CakePHP|`si/cakephp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cakephp.svg)|
+|Cal.com|`si/caldotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/caldotcom.svg)|
+|Calendly|`si/calendly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/calendly.svg)|
+|Calibre-Web|`si/calibreweb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/calibreweb.svg)|
+|Campaign Monitor|`si/campaignmonitor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/campaignmonitor.svg)|
+|Camunda|`si/camunda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/camunda.svg)|
+|Canonical|`si/canonical`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/canonical.svg)|
+|Canvas|`si/canvas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/canvas.svg)|
+|Capacitor|`si/capacitor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/capacitor.svg)|
+|CapRover|`si/caprover`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/caprover.svg)|
+|Car Throttle|`si/carthrottle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/carthrottle.svg)|
+|Cardano|`si/cardano`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cardano.svg)|
+|Cardmarket|`si/cardmarket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cardmarket.svg)|
+|Carlsberg Group|`si/carlsberggroup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/carlsberggroup.svg)|
+|Carrd|`si/carrd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/carrd.svg)|
+|Carrefour|`si/carrefour`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/carrefour.svg)|
+|Carto|`si/carto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/carto.svg)|
+|Cash App|`si/cashapp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cashapp.svg)|
+|Castbox|`si/castbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/castbox.svg)|
+|Castorama|`si/castorama`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/castorama.svg)|
+|Castro|`si/castro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/castro.svg)|
+|Caterpillar|`si/caterpillar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/caterpillar.svg)|
+|CBC|`si/cbc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cbc.svg)|
+|CBS|`si/cbs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cbs.svg)|
+|CCC|`si/ccc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ccc.svg)|
+|CCleaner|`si/ccleaner`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ccleaner.svg)|
+|CD Projekt|`si/cdprojekt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cdprojekt.svg)|
+|CE|`si/ce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ce.svg)|
+|Celery|`si/celery`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/celery.svg)|
+|Celestron|`si/celestron`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/celestron.svg)|
+|CentOS|`si/centos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/centos.svg)|
+|Ceph|`si/ceph`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ceph.svg)|
+|Cesium|`si/cesium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cesium.svg)|
+|Chai|`si/chai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chai.svg)|
+|Chainguard|`si/chainguard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chainguard.svg)|
+|Chainlink|`si/chainlink`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chainlink.svg)|
+|Chakra UI|`si/chakraui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chakraui.svg)|
+|Change Detection|`si/changedetection`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/changedetection.svg)|
+|Channel 4|`si/channel4`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/channel4.svg)|
+|Charles|`si/charles`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/charles.svg)|
+|Chart.js|`si/chartdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chartdotjs.svg)|
+|ChartMogul|`si/chartmogul`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chartmogul.svg)|
+|Chase|`si/chase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chase.svg)|
+|ChatBot|`si/chatbot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chatbot.svg)|
+|Chatwoot|`si/chatwoot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chatwoot.svg)|
+|CheckiO|`si/checkio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/checkio.svg)|
+|Checkmarx|`si/checkmarx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/checkmarx.svg)|
+|Checkmk|`si/checkmk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/checkmk.svg)|
+|Chedraui|`si/chedraui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chedraui.svg)|
+|Cheerio|`si/cheerio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cheerio.svg)|
+|Chef|`si/chef`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chef.svg)|
+|Chemex|`si/chemex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chemex.svg)|
+|Chess.com|`si/chessdotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chessdotcom.svg)|
+|Chevrolet|`si/chevrolet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chevrolet.svg)|
+|Chia Network|`si/chianetwork`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chianetwork.svg)|
+|China Eastern Airlines|`si/chinaeasternairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chinaeasternairlines.svg)|
+|China Railway|`si/chinarailway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chinarailway.svg)|
+|China Southern Airlines|`si/chinasouthernairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chinasouthernairlines.svg)|
+|Chocolatey|`si/chocolatey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chocolatey.svg)|
+|Chromatic|`si/chromatic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chromatic.svg)|
+|Chrome Web Store|`si/chromewebstore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chromewebstore.svg)|
+|Chrysler|`si/chrysler`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chrysler.svg)|
+|Chupa Chups|`si/chupachups`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/chupachups.svg)|
+|Cilium|`si/cilium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cilium.svg)|
+|Cinema 4D|`si/cinema4d`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cinema4d.svg)|
+|Cinnamon|`si/cinnamon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cinnamon.svg)|
+|Circle|`si/circle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/circle.svg)|
+|CircleCI|`si/circleci`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/circleci.svg)|
+|CircuitVerse|`si/circuitverse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/circuitverse.svg)|
+|Cirrus CI|`si/cirrusci`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cirrusci.svg)|
+|Cisco|`si/cisco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cisco.svg)|
+|Citrix|`si/citrix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/citrix.svg)|
+|Citroën|`si/citroen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/citroen.svg)|
+|CiviCRM|`si/civicrm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/civicrm.svg)|
+|Civo|`si/civo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/civo.svg)|
+|Clarifai|`si/clarifai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clarifai.svg)|
+|Claris|`si/claris`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/claris.svg)|
+|Clarivate|`si/clarivate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clarivate.svg)|
+|Claude|`si/claude`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/claude.svg)|
+|Clerk|`si/clerk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clerk.svg)|
+|Clever Cloud|`si/clevercloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clevercloud.svg)|
+|ClickHouse|`si/clickhouse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clickhouse.svg)|
+|ClickUp|`si/clickup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clickup.svg)|
+|Cline|`si/cline`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cline.svg)|
+|CLion|`si/clion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clion.svg)|
+|Clockify|`si/clockify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clockify.svg)|
+|Clojure|`si/clojure`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clojure.svg)|
+|Cloud 66|`si/cloud66`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloud66.svg)|
+|Cloud Foundry|`si/cloudfoundry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudfoundry.svg)|
+|Cloud Native Build|`si/cloudnativebuild`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudnativebuild.svg)|
+|CloudBees|`si/cloudbees`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudbees.svg)|
+|CloudCannon|`si/cloudcannon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudcannon.svg)|
+|Cloudera|`si/cloudera`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudera.svg)|
+|Cloudflare|`si/cloudflare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudflare.svg)|
+|Cloudflare Pages|`si/cloudflarepages`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudflarepages.svg)|
+|Cloudflare Workers|`si/cloudflareworkers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudflareworkers.svg)|
+|Cloudinary|`si/cloudinary`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudinary.svg)|
+|Cloudron|`si/cloudron`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudron.svg)|
+|Cloudsmith|`si/cloudsmith`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudsmith.svg)|
+|Cloudways|`si/cloudways`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cloudways.svg)|
+|Clubforce|`si/clubforce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clubforce.svg)|
+|Clubhouse|`si/clubhouse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clubhouse.svg)|
+|Clyp|`si/clyp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/clyp.svg)|
+|CMake|`si/cmake`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cmake.svg)|
+|CNCF|`si/cncf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cncf.svg)|
+|CNES|`si/cnes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cnes.svg)|
+|CNET|`si/cnet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cnet.svg)|
+|CNN|`si/cnn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cnn.svg)|
+|Co-op|`si/coop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coop.svg)|
+|cobalt|`si/cobalt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cobalt.svg)|
+|Coca-Cola|`si/cocacola`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cocacola.svg)|
+|Cockpit|`si/cockpit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cockpit.svg)|
+|Cockroach Labs|`si/cockroachlabs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cockroachlabs.svg)|
+|CocoaPods|`si/cocoapods`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cocoapods.svg)|
+|Cocos|`si/cocos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cocos.svg)|
+|Coda|`si/coda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coda.svg)|
+|Codacy|`si/codacy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codacy.svg)|
+|Code Climate|`si/codeclimate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeclimate.svg)|
+|Code::Blocks|`si/codeblocks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeblocks.svg)|
+|Codeberg|`si/codeberg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeberg.svg)|
+|Codecademy|`si/codecademy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codecademy.svg)|
+|CodeceptJS|`si/codeceptjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeceptjs.svg)|
+|CodeChef|`si/codechef`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codechef.svg)|
+|Codecov|`si/codecov`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codecov.svg)|
+|CodeCrafters|`si/codecrafters`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codecrafters.svg)|
+|CodeFactor|`si/codefactor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codefactor.svg)|
+|Codeforces|`si/codeforces`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeforces.svg)|
+|Codefresh|`si/codefresh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codefresh.svg)|
+|CodeIgniter|`si/codeigniter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeigniter.svg)|
+|Codemagic|`si/codemagic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codemagic.svg)|
+|Codementor|`si/codementor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codementor.svg)|
+|CodeMirror|`si/codemirror`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codemirror.svg)|
+|CodeNewbie|`si/codenewbie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codenewbie.svg)|
+|CodeProject|`si/codeproject`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeproject.svg)|
+|Coder|`si/coder`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coder.svg)|
+|CodeRabbit|`si/coderabbit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coderabbit.svg)|
+|CodersRank|`si/codersrank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codersrank.svg)|
+|Coderwall|`si/coderwall`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coderwall.svg)|
+|CodeSandbox|`si/codesandbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codesandbox.svg)|
+|Codeship|`si/codeship`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codeship.svg)|
+|CodeSignal|`si/codesignal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codesignal.svg)|
+|CodeStream|`si/codestream`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codestream.svg)|
+|Codewars|`si/codewars`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codewars.svg)|
+|Coding Ninjas|`si/codingninjas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codingninjas.svg)|
+|CodinGame|`si/codingame`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codingame.svg)|
+|Codio|`si/codio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/codio.svg)|
+|CoffeeScript|`si/coffeescript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coffeescript.svg)|
+|Coggle|`si/coggle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coggle.svg)|
+|Coinbase|`si/coinbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coinbase.svg)|
+|CoinMarketCap|`si/coinmarketcap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coinmarketcap.svg)|
+|Collabora Online|`si/collaboraonline`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/collaboraonline.svg)|
+|ComicFury|`si/comicfury`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/comicfury.svg)|
+|comma|`si/comma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/comma.svg)|
+|Commerzbank|`si/commerzbank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/commerzbank.svg)|
+|commitlint|`si/commitlint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/commitlint.svg)|
+|Commodore|`si/commodore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/commodore.svg)|
+|Common Lisp|`si/commonlisp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/commonlisp.svg)|
+|Common Workflow Language|`si/commonworkflowlanguage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/commonworkflowlanguage.svg)|
+|Compiler Explorer|`si/compilerexplorer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/compilerexplorer.svg)|
+|Composer|`si/composer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/composer.svg)|
+|CompTIA|`si/comptia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/comptia.svg)|
+|Comsol|`si/comsol`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/comsol.svg)|
+|Conan|`si/conan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/conan.svg)|
+|Concourse|`si/concourse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/concourse.svg)|
+|Conda-Forge|`si/condaforge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/condaforge.svg)|
+|Conekta|`si/conekta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/conekta.svg)|
+|Confluence|`si/confluence`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/confluence.svg)|
+|Construct 3|`si/construct3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/construct3.svg)|
+|Consul|`si/consul`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/consul.svg)|
+|Contabo|`si/contabo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/contabo.svg)|
+|Contactless Payment|`si/contactlesspayment`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/contactlesspayment.svg)|
+|containerd|`si/containerd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/containerd.svg)|
+|Contao|`si/contao`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/contao.svg)|
+|Contensis|`si/contensis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/contensis.svg)|
+|Contentful|`si/contentful`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/contentful.svg)|
+|Contentstack|`si/contentstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/contentstack.svg)|
+|Continente|`si/continente`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/continente.svg)|
+|Contributor Covenant|`si/contributorcovenant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/contributorcovenant.svg)|
+|Conventional Commits|`si/conventionalcommits`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/conventionalcommits.svg)|
+|Convertio|`si/convertio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/convertio.svg)|
+|Convex|`si/convex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/convex.svg)|
+|Cookiecutter|`si/cookiecutter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cookiecutter.svg)|
+|Cooler Master|`si/coolermaster`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coolermaster.svg)|
+|Coolify|`si/coolify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coolify.svg)|
+|Copa Airlines|`si/copaairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/copaairlines.svg)|
+|Coppel|`si/coppel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coppel.svg)|
+|Cora|`si/cora`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cora.svg)|
+|Coreboot|`si/coreboot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coreboot.svg)|
+|CorelDRAW|`si/coreldraw`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coreldraw.svg)|
+|Corona Engine|`si/coronaengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coronaengine.svg)|
+|Corona Renderer|`si/coronarenderer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coronarenderer.svg)|
+|Corsair|`si/corsair`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/corsair.svg)|
+|Couchbase|`si/couchbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/couchbase.svg)|
+|Counter-Strike|`si/counterstrike`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/counterstrike.svg)|
+|CountingWorks PRO|`si/countingworkspro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/countingworkspro.svg)|
+|Coursera|`si/coursera`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coursera.svg)|
+|Coveralls|`si/coveralls`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coveralls.svg)|
+|Coze|`si/coze`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/coze.svg)|
+|cPanel|`si/cpanel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cpanel.svg)|
+|Craft CMS|`si/craftcms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/craftcms.svg)|
+|Craftsman|`si/craftsman`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/craftsman.svg)|
+|CrateDB|`si/cratedb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cratedb.svg)|
+|Crayon|`si/crayon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crayon.svg)|
+|Creality|`si/creality`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/creality.svg)|
+|Create React App|`si/createreactapp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/createreactapp.svg)|
+|Creative Commons|`si/creativecommons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/creativecommons.svg)|
+|Creative Technology|`si/creativetechnology`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/creativetechnology.svg)|
+|Credly|`si/credly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/credly.svg)|
+|Crehana|`si/crehana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crehana.svg)|
+|Crew United|`si/crewunited`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crewunited.svg)|
+|CrewAI|`si/crewai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crewai.svg)|
+|Critical Role|`si/criticalrole`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/criticalrole.svg)|
+|Crowdin|`si/crowdin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crowdin.svg)|
+|Crowdsource|`si/crowdsource`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crowdsource.svg)|
+|Crunchbase|`si/crunchbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crunchbase.svg)|
+|Crunchyroll|`si/crunchyroll`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crunchyroll.svg)|
+|CRYENGINE|`si/cryengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cryengine.svg)|
+|Cryptomator|`si/cryptomator`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cryptomator.svg)|
+|CryptPad|`si/cryptpad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cryptpad.svg)|
+|Crystal|`si/crystal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/crystal.svg)|
+|CSDN|`si/csdn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/csdn.svg)|
+|CSS|`si/css`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/css.svg)|
+|CSS Design Awards|`si/cssdesignawards`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cssdesignawards.svg)|
+|CSS Modules|`si/cssmodules`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cssmodules.svg)|
+|CSS Wizardry|`si/csswizardry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/csswizardry.svg)|
+|CTS|`si/cts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cts.svg)|
+|Cucumber|`si/cucumber`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cucumber.svg)|
+|Cultura|`si/cultura`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cultura.svg)|
+|curl|`si/curl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/curl.svg)|
+|CurseForge|`si/curseforge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/curseforge.svg)|
+|Cursor|`si/cursor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cursor.svg)|
+|Custom Ink|`si/customink`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/customink.svg)|
+|CyberDefenders|`si/cyberdefenders`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cyberdefenders.svg)|
+|Cycling '74|`si/cycling74`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cycling74.svg)|
+|Cypress|`si/cypress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cypress.svg)|
+|Cytoscape.js|`si/cytoscapedotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/cytoscapedotjs.svg)|
+|D|`si/d`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/d.svg)|
+|D-EDGE|`si/dedge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dedge.svg)|
+|D-Wave Systems|`si/dwavesystems`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dwavesystems.svg)|
+|D3|`si/d3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/d3.svg)|
+|Dacia|`si/dacia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dacia.svg)|
+|DAF|`si/daf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/daf.svg)|
+|daily.dev|`si/dailydotdev`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dailydotdev.svg)|
+|Dailymotion|`si/dailymotion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dailymotion.svg)|
+|daisyUI|`si/daisyui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/daisyui.svg)|
+|Dapr|`si/dapr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dapr.svg)|
+|Dark Reader|`si/darkreader`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/darkreader.svg)|
+|Dart|`si/dart`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dart.svg)|
+|Darty|`si/darty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/darty.svg)|
+|Das Erste|`si/daserste`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/daserste.svg)|
+|Dash|`si/dash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dash.svg)|
+|Dash0|`si/dash0`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dash0.svg)|
+|Dashlane|`si/dashlane`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dashlane.svg)|
+|Dask|`si/dask`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dask.svg)|
+|Dassault Systèmes|`si/dassaultsystemes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dassaultsystemes.svg)|
+|data.ai|`si/datadotai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datadotai.svg)|
+|Databricks|`si/databricks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/databricks.svg)|
+|DataCamp|`si/datacamp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datacamp.svg)|
+|Datadog|`si/datadog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datadog.svg)|
+|DataGrip|`si/datagrip`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datagrip.svg)|
+|Dataiku|`si/dataiku`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dataiku.svg)|
+|DataStax|`si/datastax`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datastax.svg)|
+|date-fns|`si/datefns`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datefns.svg)|
+|DATEV|`si/datev`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datev.svg)|
+|DatoCMS|`si/datocms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datocms.svg)|
+|Datto|`si/datto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/datto.svg)|
+|DaVinci Resolve|`si/davinciresolve`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/davinciresolve.svg)|
+|Dazhong Dianping|`si/dazhongdianping`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dazhongdianping.svg)|
+|DAZN|`si/dazn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dazn.svg)|
+|DBeaver|`si/dbeaver`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dbeaver.svg)|
+|dblp|`si/dblp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dblp.svg)|
+|DC Entertainment|`si/dcentertainment`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dcentertainment.svg)|
+|De'Longhi|`si/delonghi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/delonghi.svg)|
+|Debian|`si/debian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/debian.svg)|
+|Debrid-Link|`si/debridlink`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/debridlink.svg)|
+|Decap CMS|`si/decapcms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/decapcms.svg)|
+|Decentraland|`si/decentraland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/decentraland.svg)|
+|DeepCool|`si/deepcool`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deepcool.svg)|
+|Deepgram|`si/deepgram`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deepgram.svg)|
+|deepin|`si/deepin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deepin.svg)|
+|DeepL|`si/deepl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deepl.svg)|
+|DeepMind|`si/deepmind`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deepmind.svg)|
+|Deepnote|`si/deepnote`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deepnote.svg)|
+|DeepSeek|`si/deepseek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deepseek.svg)|
+|Deezer|`si/deezer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deezer.svg)|
+|Deliveroo|`si/deliveroo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deliveroo.svg)|
+|Dell|`si/dell`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dell.svg)|
+|Delphi|`si/delphi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/delphi.svg)|
+|Delta|`si/delta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/delta.svg)|
+|Deluge|`si/deluge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deluge.svg)|
+|Deno|`si/deno`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deno.svg)|
+|Deno Deploy|`si/denodeploy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/denodeploy.svg)|
+|Denon|`si/denon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/denon.svg)|
+|Dependabot|`si/dependabot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dependabot.svg)|
+|Depositphotos|`si/depositphotos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/depositphotos.svg)|
+|Der Spiegel|`si/derspiegel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/derspiegel.svg)|
+|Deutsche Bahn|`si/deutschebahn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deutschebahn.svg)|
+|Deutsche Bank|`si/deutschebank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deutschebank.svg)|
+|Deutsche Post|`si/deutschepost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deutschepost.svg)|
+|Deutsche Telekom|`si/deutschetelekom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deutschetelekom.svg)|
+|Deutsche Welle|`si/deutschewelle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deutschewelle.svg)|
+|dev.to|`si/devdotto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/devdotto.svg)|
+|Devbox|`si/devbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/devbox.svg)|
+|Development Containers|`si/developmentcontainers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/developmentcontainers.svg)|
+|DevExpress|`si/devexpress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/devexpress.svg)|
+|DeviantArt|`si/deviantart`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/deviantart.svg)|
+|Devpost|`si/devpost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/devpost.svg)|
+|devRant|`si/devrant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/devrant.svg)|
+|Devuan|`si/devuan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/devuan.svg)|
+|Dgraph|`si/dgraph`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dgraph.svg)|
+|DHL|`si/dhl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dhl.svg)|
+|diagrams.net|`si/diagramsdotnet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/diagramsdotnet.svg)|
+|Dialogflow|`si/dialogflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dialogflow.svg)|
+|Diaspora|`si/diaspora`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/diaspora.svg)|
+|DiceBear|`si/dicebear`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dicebear.svg)|
+|Dictionary.com|`si/dictionarydotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dictionarydotcom.svg)|
+|Dify|`si/dify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dify.svg)|
+|Digg|`si/digg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/digg.svg)|
+|Digi-Key Electronics|`si/digikeyelectronics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/digikeyelectronics.svg)|
+|DigitalOcean|`si/digitalocean`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/digitalocean.svg)|
+|Diners Club|`si/dinersclub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dinersclub.svg)|
+|Dior|`si/dior`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dior.svg)|
+|Directus|`si/directus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/directus.svg)|
+|Discogs|`si/discogs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/discogs.svg)|
+|Discord|`si/discord`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/discord.svg)|
+|discord.js|`si/discorddotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/discorddotjs.svg)|
+|Discourse|`si/discourse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/discourse.svg)|
+|Discover|`si/discover`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/discover.svg)|
+|Disqus|`si/disqus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/disqus.svg)|
+|Disroot|`si/disroot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/disroot.svg)|
+|Distrobox|`si/distrobox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/distrobox.svg)|
+|Distrokid|`si/distrokid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/distrokid.svg)|
+|Django|`si/django`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/django.svg)|
+|DJI|`si/dji`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dji.svg)|
+|Dlib|`si/dlib`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dlib.svg)|
+|DLNA|`si/dlna`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dlna.svg)|
+|dlthub|`si/dlthub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dlthub.svg)|
+|dm|`si/dm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dm.svg)|
+|DMM|`si/dmm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dmm.svg)|
+|Docker|`si/docker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/docker.svg)|
+|Docs.rs|`si/docsdotrs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/docsdotrs.svg)|
+|Docsify|`si/docsify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/docsify.svg)|
+|Doctrine|`si/doctrine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/doctrine.svg)|
+|Docusaurus|`si/docusaurus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/docusaurus.svg)|
+|Dodo Payments|`si/dodopayments`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dodopayments.svg)|
+|Dogecoin|`si/dogecoin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dogecoin.svg)|
+|DOI|`si/doi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/doi.svg)|
+|Dolby|`si/dolby`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dolby.svg)|
+|Dolibarr|`si/dolibarr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dolibarr.svg)|
+|Dolphin|`si/dolphin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dolphin.svg)|
+|DoorDash|`si/doordash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/doordash.svg)|
+|Dota 2|`si/dota2`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dota2.svg)|
+|Douban|`si/douban`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/douban.svg)|
+|Douban Read|`si/doubanread`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/doubanread.svg)|
+|Dovecot|`si/dovecot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dovecot.svg)|
+|Dovetail|`si/dovetail`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dovetail.svg)|
+|Downdetector|`si/downdetector`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/downdetector.svg)|
+|Doxygen|`si/doxygen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/doxygen.svg)|
+|DPD|`si/dpd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dpd.svg)|
+|Dragonframe|`si/dragonframe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dragonframe.svg)|
+|Draugiem.lv|`si/draugiemdotlv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/draugiemdotlv.svg)|
+|Dreamstime|`si/dreamstime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dreamstime.svg)|
+|Dribbble|`si/dribbble`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dribbble.svg)|
+|Drizzle|`si/drizzle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/drizzle.svg)|
+|Drone|`si/drone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/drone.svg)|
+|Drooble|`si/drooble`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/drooble.svg)|
+|Dropbox|`si/dropbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dropbox.svg)|
+|Drupal|`si/drupal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/drupal.svg)|
+|DS Automobiles|`si/dsautomobiles`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dsautomobiles.svg)|
+|DTS|`si/dts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dts.svg)|
+|DTube|`si/dtube`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dtube.svg)|
+|Ducati|`si/ducati`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ducati.svg)|
+|DuckDB|`si/duckdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/duckdb.svg)|
+|DuckDuckGo|`si/duckduckgo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/duckduckgo.svg)|
+|Dungeons & Dragons|`si/dungeonsanddragons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dungeonsanddragons.svg)|
+|Dunked|`si/dunked`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dunked.svg)|
+|Dunzo|`si/dunzo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dunzo.svg)|
+|Duolingo|`si/duolingo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/duolingo.svg)|
+|Duplicati|`si/duplicati`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/duplicati.svg)|
+|DVC|`si/dvc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dvc.svg)|
+|dwm|`si/dwm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dwm.svg)|
+|Dynatrace|`si/dynatrace`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dynatrace.svg)|
+|E.Leclerc|`si/edotleclerc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/edotleclerc.svg)|
+|E3|`si/e3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/e3.svg)|
+|EA|`si/ea`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ea.svg)|
+|EAC|`si/eac`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eac.svg)|
+|Eagle|`si/eagle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eagle.svg)|
+|EasyEDA|`si/easyeda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/easyeda.svg)|
+|easyJet|`si/easyjet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/easyjet.svg)|
+|eBay|`si/ebay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ebay.svg)|
+|EBOX|`si/ebox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ebox.svg)|
+|Eclipse Adoptium|`si/eclipseadoptium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eclipseadoptium.svg)|
+|Eclipse Che|`si/eclipseche`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eclipseche.svg)|
+|Eclipse IDE|`si/eclipseide`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eclipseide.svg)|
+|Eclipse Jetty|`si/eclipsejetty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eclipsejetty.svg)|
+|Eclipse Mosquitto|`si/eclipsemosquitto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eclipsemosquitto.svg)|
+|Eclipse Vert.x|`si/eclipsevertdotx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eclipsevertdotx.svg)|
+|Ecosia|`si/ecosia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ecosia.svg)|
+|Ecovacs|`si/ecovacs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ecovacs.svg)|
+|EDEKA|`si/edeka`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/edeka.svg)|
+|Edge Impulse|`si/edgeimpulse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/edgeimpulse.svg)|
+|EditorConfig|`si/editorconfig`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/editorconfig.svg)|
+|Educative|`si/educative`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/educative.svg)|
+|edX|`si/edx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/edx.svg)|
+|Effect|`si/effect`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/effect.svg)|
+|egghead|`si/egghead`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/egghead.svg)|
+|Egnyte|`si/egnyte`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/egnyte.svg)|
+|Eight|`si/eight`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eight.svg)|
+|Eight Sleep|`si/eightsleep`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eightsleep.svg)|
+|EJS|`si/ejs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ejs.svg)|
+|Elastic|`si/elastic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elastic.svg)|
+|Elastic Cloud|`si/elasticcloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elasticcloud.svg)|
+|Elastic Stack|`si/elasticstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elasticstack.svg)|
+|Elasticsearch|`si/elasticsearch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elasticsearch.svg)|
+|Elavon|`si/elavon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elavon.svg)|
+|Electron|`si/electron`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/electron.svg)|
+|Electron Fiddle|`si/electronfiddle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/electronfiddle.svg)|
+|electron-builder|`si/electronbuilder`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/electronbuilder.svg)|
+|Elegoo|`si/elegoo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elegoo.svg)|
+|Element|`si/element`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/element.svg)|
+|elementary|`si/elementary`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elementary.svg)|
+|Elementor|`si/elementor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elementor.svg)|
+|ElevenLabs|`si/elevenlabs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elevenlabs.svg)|
+|Eleventy|`si/eleventy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eleventy.svg)|
+|Elgato|`si/elgato`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elgato.svg)|
+|Elixir|`si/elixir`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elixir.svg)|
+|Elk|`si/elk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elk.svg)|
+|Elm|`si/elm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elm.svg)|
+|Elsevier|`si/elsevier`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/elsevier.svg)|
+|Embarcadero|`si/embarcadero`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/embarcadero.svg)|
+|Embark|`si/embark`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/embark.svg)|
+|Ember.js|`si/emberdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/emberdotjs.svg)|
+|Emby|`si/emby`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/emby.svg)|
+|Emirates|`si/emirates`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/emirates.svg)|
+|Emlakjet|`si/emlakjet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/emlakjet.svg)|
+|EndeavourOS|`si/endeavouros`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/endeavouros.svg)|
+|Enpass|`si/enpass`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/enpass.svg)|
+|ENS|`si/ens`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ens.svg)|
+|Ente|`si/ente`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ente.svg)|
+|EnterpriseDB|`si/enterprisedb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/enterprisedb.svg)|
+|Envato|`si/envato`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/envato.svg)|
+|Envoy Proxy|`si/envoyproxy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/envoyproxy.svg)|
+|EPEL|`si/epel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/epel.svg)|
+|Epic Games|`si/epicgames`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/epicgames.svg)|
+|Epson|`si/epson`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/epson.svg)|
+|Equinix Metal|`si/equinixmetal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/equinixmetal.svg)|
+|Eraser|`si/eraser`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eraser.svg)|
+|Ericsson|`si/ericsson`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ericsson.svg)|
+|Erlang|`si/erlang`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/erlang.svg)|
+|ERPNext|`si/erpnext`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/erpnext.svg)|
+|esbuild|`si/esbuild`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/esbuild.svg)|
+|ESEA|`si/esea`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/esea.svg)|
+|ESLGaming|`si/eslgaming`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eslgaming.svg)|
+|ESLint|`si/eslint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eslint.svg)|
+|Esoteric Software|`si/esotericsoftware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/esotericsoftware.svg)|
+|ESPHome|`si/esphome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/esphome.svg)|
+|Espressif|`si/espressif`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/espressif.svg)|
+|ESRI|`si/esri`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/esri.svg)|
+|etcd|`si/etcd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/etcd.svg)|
+|Ethereum|`si/ethereum`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ethereum.svg)|
+|Ethers|`si/ethers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ethers.svg)|
+|Ethiopian Airlines|`si/ethiopianairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ethiopianairlines.svg)|
+|Etihad Airways|`si/etihadairways`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/etihadairways.svg)|
+|Etsy|`si/etsy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/etsy.svg)|
+|European Union|`si/europeanunion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/europeanunion.svg)|
+|Event Store|`si/eventstore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eventstore.svg)|
+|Evernote|`si/evernote`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/evernote.svg)|
+|Every.org|`si/everydotorg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/everydotorg.svg)|
+|Excalidraw|`si/excalidraw`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/excalidraw.svg)|
+|Exercism|`si/exercism`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/exercism.svg)|
+|Exordo|`si/exordo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/exordo.svg)|
+|Exoscale|`si/exoscale`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/exoscale.svg)|
+|Expedia|`si/expedia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/expedia.svg)|
+|Expensify|`si/expensify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/expensify.svg)|
+|Experts Exchange|`si/expertsexchange`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/expertsexchange.svg)|
+|Expo|`si/expo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/expo.svg)|
+|Express|`si/express`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/express.svg)|
+|Express.com|`si/expressdotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/expressdotcom.svg)|
+|ExpressVPN|`si/expressvpn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/expressvpn.svg)|
+|EyeEm|`si/eyeem`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/eyeem.svg)|
+|F-Droid|`si/fdroid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fdroid.svg)|
+|F#|`si/fsharp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fsharp.svg)|
+|F1|`si/f1`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/f1.svg)|
+|F5|`si/f5`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/f5.svg)|
+|Facebook|`si/facebook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/facebook.svg)|
+|Facebook Gaming|`si/facebookgaming`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/facebookgaming.svg)|
+|Facebook Live|`si/facebooklive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/facebooklive.svg)|
+|FACEIT|`si/faceit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/faceit.svg)|
+|Facepunch|`si/facepunch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/facepunch.svg)|
+|Fairphone|`si/fairphone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fairphone.svg)|
+|Faker|`si/faker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/faker.svg)|
+|Falco|`si/falco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/falco.svg)|
+|Falcon|`si/falcon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/falcon.svg)|
+|FamPay|`si/fampay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fampay.svg)|
+|Fandango|`si/fandango`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fandango.svg)|
+|Fandom|`si/fandom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fandom.svg)|
+|Fanfou|`si/fanfou`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fanfou.svg)|
+|Fantom|`si/fantom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fantom.svg)|
+|Farcaster|`si/farcaster`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/farcaster.svg)|
+|FareHarbor|`si/fareharbor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fareharbor.svg)|
+|FARFETCH|`si/farfetch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/farfetch.svg)|
+|FastAPI|`si/fastapi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fastapi.svg)|
+|Fastify|`si/fastify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fastify.svg)|
+|Fastlane|`si/fastlane`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fastlane.svg)|
+|Fastly|`si/fastly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fastly.svg)|
+|Fathom|`si/fathom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fathom.svg)|
+|Fauna|`si/fauna`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fauna.svg)|
+|Favro|`si/favro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/favro.svg)|
+|FCC|`si/fcc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fcc.svg)|
+|FedEx|`si/fedex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fedex.svg)|
+|Fedora|`si/fedora`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fedora.svg)|
+|Feedly|`si/feedly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/feedly.svg)|
+|Ferrari|`si/ferrari`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ferrari.svg)|
+|Ferrari N.V.|`si/ferrarinv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ferrarinv.svg)|
+|FerretDB|`si/ferretdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ferretdb.svg)|
+|FFmpeg|`si/ffmpeg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ffmpeg.svg)|
+|Fi|`si/fi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fi.svg)|
+|Fiat|`si/fiat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fiat.svg)|
+|Fido Alliance|`si/fidoalliance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fidoalliance.svg)|
+|FIFA|`si/fifa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fifa.svg)|
+|Fig|`si/fig`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fig.svg)|
+|Figma|`si/figma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/figma.svg)|
+|figshare|`si/figshare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/figshare.svg)|
+|Fila|`si/fila`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fila.svg)|
+|Filament|`si/filament`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/filament.svg)|
+|File.io|`si/filedotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/filedotio.svg)|
+|Filen|`si/filen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/filen.svg)|
+|Files|`si/files`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/files.svg)|
+|FileZilla|`si/filezilla`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/filezilla.svg)|
+|Fillout|`si/fillout`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fillout.svg)|
+|Fineco|`si/fineco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fineco.svg)|
+|Fing|`si/fing`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fing.svg)|
+|Firebase|`si/firebase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/firebase.svg)|
+|Firefish|`si/firefish`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/firefish.svg)|
+|Firefly III|`si/fireflyiii`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fireflyiii.svg)|
+|Firefox|`si/firefox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/firefox.svg)|
+|Firefox Browser|`si/firefoxbrowser`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/firefoxbrowser.svg)|
+|Fireship|`si/fireship`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fireship.svg)|
+|Firewalla|`si/firewalla`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/firewalla.svg)|
+|FIRST|`si/first`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/first.svg)|
+|Fish Audio|`si/fishaudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fishaudio.svg)|
+|fish shell|`si/fishshell`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fishshell.svg)|
+|Fitbit|`si/fitbit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fitbit.svg)|
+|FiveM|`si/fivem`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fivem.svg)|
+|Fiverr|`si/fiverr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fiverr.svg)|
+|Fizz|`si/fizz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fizz.svg)|
+|Flashforge|`si/flashforge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flashforge.svg)|
+|Flask|`si/flask`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flask.svg)|
+|Flat|`si/flat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flat.svg)|
+|Flathub|`si/flathub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flathub.svg)|
+|Flatpak|`si/flatpak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flatpak.svg)|
+|Flickr|`si/flickr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flickr.svg)|
+|Flightaware|`si/flightaware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flightaware.svg)|
+|Flipboard|`si/flipboard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flipboard.svg)|
+|Floatplane|`si/floatplane`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/floatplane.svg)|
+|Flood|`si/flood`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flood.svg)|
+|Floorp|`si/floorp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/floorp.svg)|
+|Flower|`si/flower`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flower.svg)|
+|Fluent Bit|`si/fluentbit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fluentbit.svg)|
+|Fluentd|`si/fluentd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fluentd.svg)|
+|Fluke|`si/fluke`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fluke.svg)|
+|Flutter|`si/flutter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flutter.svg)|
+|Flux|`si/flux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flux.svg)|
+|Fluxer|`si/fluxer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fluxer.svg)|
+|Fly.io|`si/flydotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flydotio.svg)|
+|Flyway|`si/flyway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/flyway.svg)|
+|FMOD|`si/fmod`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fmod.svg)|
+|Fnac|`si/fnac`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fnac.svg)|
+|Folium|`si/folium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/folium.svg)|
+|Folo|`si/folo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/folo.svg)|
+|Fonoma|`si/fonoma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fonoma.svg)|
+|Font Awesome|`si/fontawesome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fontawesome.svg)|
+|FontBase|`si/fontbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fontbase.svg)|
+|FontForge|`si/fontforge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fontforge.svg)|
+|foobar2000|`si/foobar2000`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/foobar2000.svg)|
+|foodpanda|`si/foodpanda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/foodpanda.svg)|
+|Ford|`si/ford`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ford.svg)|
+|Forgejo|`si/forgejo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/forgejo.svg)|
+|Formbricks|`si/formbricks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/formbricks.svg)|
+|Formik|`si/formik`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/formik.svg)|
+|Formspree|`si/formspree`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/formspree.svg)|
+|Formstack|`si/formstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/formstack.svg)|
+|Fortinet|`si/fortinet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fortinet.svg)|
+|Fortnite|`si/fortnite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fortnite.svg)|
+|Fortran|`si/fortran`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fortran.svg)|
+|Fossa|`si/fossa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fossa.svg)|
+|Fossil SCM|`si/fossilscm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fossilscm.svg)|
+|Foundry Virtual Tabletop|`si/foundryvirtualtabletop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/foundryvirtualtabletop.svg)|
+|Foursquare|`si/foursquare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/foursquare.svg)|
+|FOX|`si/fox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fox.svg)|
+|Foxtel|`si/foxtel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/foxtel.svg)|
+|Fozzy|`si/fozzy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fozzy.svg)|
+|Framer|`si/framer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/framer.svg)|
+|Framework|`si/framework`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/framework.svg)|
+|Framework7|`si/framework7`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/framework7.svg)|
+|Franprix|`si/franprix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/franprix.svg)|
+|Frappe|`si/frappe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/frappe.svg)|
+|Fraunhofer-Gesellschaft|`si/fraunhofergesellschaft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fraunhofergesellschaft.svg)|
+|FreeBSD|`si/freebsd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freebsd.svg)|
+|FreeCAD|`si/freecad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freecad.svg)|
+|freeCodeCamp|`si/freecodecamp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freecodecamp.svg)|
+|freedesktop.org|`si/freedesktopdotorg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freedesktopdotorg.svg)|
+|Freelancer|`si/freelancer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freelancer.svg)|
+|freelancermap|`si/freelancermap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freelancermap.svg)|
+|FreeNAS|`si/freenas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freenas.svg)|
+|freenet|`si/freenet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freenet.svg)|
+|Freepik|`si/freepik`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freepik.svg)|
+|FreeTube|`si/freetube`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freetube.svg)|
+|Fresh|`si/fresh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fresh.svg)|
+|FreshRSS|`si/freshrss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/freshrss.svg)|
+|Frigate|`si/frigate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/frigate.svg)|
+|FRITZ!|`si/fritz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fritz.svg)|
+|Frontend Mentor|`si/frontendmentor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/frontendmentor.svg)|
+|Frontify|`si/frontify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/frontify.svg)|
+|Fubo|`si/fubo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fubo.svg)|
+|Fueler|`si/fueler`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fueler.svg)|
+|Fuga Cloud|`si/fugacloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fugacloud.svg)|
+|Fujifilm|`si/fujifilm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fujifilm.svg)|
+|Fujitsu|`si/fujitsu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fujitsu.svg)|
+|Fur Affinity|`si/furaffinity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/furaffinity.svg)|
+|Furry Network|`si/furrynetwork`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/furrynetwork.svg)|
+|FusionAuth|`si/fusionauth`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fusionauth.svg)|
+|FutureLearn|`si/futurelearn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/futurelearn.svg)|
+|Fyle|`si/fyle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/fyle.svg)|
+|G2|`si/g2`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/g2.svg)|
+|G2A|`si/g2a`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/g2a.svg)|
+|G2G|`si/g2g`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/g2g.svg)|
+|Galaxus|`si/galaxus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/galaxus.svg)|
+|Game Developer|`si/gamedeveloper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gamedeveloper.svg)|
+|Game Jolt|`si/gamejolt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gamejolt.svg)|
+|Game Science|`si/gamescience`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gamescience.svg)|
+|GameBanana|`si/gamebanana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gamebanana.svg)|
+|Gameloft|`si/gameloft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gameloft.svg)|
+|Gamemaker|`si/gamemaker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gamemaker.svg)|
+|Gandi|`si/gandi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gandi.svg)|
+|Garmin|`si/garmin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/garmin.svg)|
+|Garuda Linux|`si/garudalinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/garudalinux.svg)|
+|Gatling|`si/gatling`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gatling.svg)|
+|Gatsby|`si/gatsby`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gatsby.svg)|
+|Gcore|`si/gcore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gcore.svg)|
+|GDAL|`si/gdal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gdal.svg)|
+|GeeksforGeeks|`si/geeksforgeeks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/geeksforgeeks.svg)|
+|General Electric|`si/generalelectric`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/generalelectric.svg)|
+|General Motors|`si/generalmotors`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/generalmotors.svg)|
+|Genius|`si/genius`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/genius.svg)|
+|Gentoo|`si/gentoo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gentoo.svg)|
+|Geocaching|`si/geocaching`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/geocaching.svg)|
+|Geode|`si/geode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/geode.svg)|
+|GeoPandas|`si/geopandas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/geopandas.svg)|
+|Gerrit|`si/gerrit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gerrit.svg)|
+|GetX|`si/getx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/getx.svg)|
+|Ghost|`si/ghost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ghost.svg)|
+|Ghostery|`si/ghostery`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ghostery.svg)|
+|Ghostfolio|`si/ghostfolio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ghostfolio.svg)|
+|Ghostty|`si/ghostty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ghostty.svg)|
+|GIMP|`si/gimp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gimp.svg)|
+|Gin|`si/gin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gin.svg)|
+|GIPHY|`si/giphy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/giphy.svg)|
+|Git|`si/git`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/git.svg)|
+|Git Extensions|`si/gitextensions`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitextensions.svg)|
+|Git for Windows|`si/gitforwindows`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitforwindows.svg)|
+|Git LFS|`si/gitlfs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitlfs.svg)|
+|GitBook|`si/gitbook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitbook.svg)|
+|GitCode|`si/gitcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitcode.svg)|
+|Gitconnected|`si/gitconnected`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitconnected.svg)|
+|Gitea|`si/gitea`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitea.svg)|
+|Gitee|`si/gitee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitee.svg)|
+|GitHub|`si/github`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/github.svg)|
+|GitHub Actions|`si/githubactions`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/githubactions.svg)|
+|GitHub Copilot|`si/githubcopilot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/githubcopilot.svg)|
+|GitHub Pages|`si/githubpages`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/githubpages.svg)|
+|GitHub Sponsors|`si/githubsponsors`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/githubsponsors.svg)|
+|gitignore.io|`si/gitignoredotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitignoredotio.svg)|
+|GitKraken|`si/gitkraken`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitkraken.svg)|
+|GitLab|`si/gitlab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitlab.svg)|
+|Gitpod|`si/gitpod`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitpod.svg)|
+|Gitter|`si/gitter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gitter.svg)|
+|GL.iNet|`si/gldotinet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gldotinet.svg)|
+|Glance|`si/glance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/glance.svg)|
+|Glassdoor|`si/glassdoor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/glassdoor.svg)|
+|Gleam|`si/gleam`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gleam.svg)|
+|Glide|`si/glide`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/glide.svg)|
+|Glitch|`si/glitch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/glitch.svg)|
+|Globus|`si/globus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/globus.svg)|
+|Glovo|`si/glovo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/glovo.svg)|
+|glTF|`si/gltf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gltf.svg)|
+|Gmail|`si/gmail`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gmail.svg)|
+|GMX|`si/gmx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gmx.svg)|
+|GNOME|`si/gnome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnome.svg)|
+|GNOME Terminal|`si/gnometerminal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnometerminal.svg)|
+|GNU|`si/gnu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnu.svg)|
+|GNU Bash|`si/gnubash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnubash.svg)|
+|GNU Emacs|`si/gnuemacs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnuemacs.svg)|
+|GNU IceCat|`si/gnuicecat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnuicecat.svg)|
+|GNU Privacy Guard|`si/gnuprivacyguard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnuprivacyguard.svg)|
+|GNU social|`si/gnusocial`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gnusocial.svg)|
+|Go|`si/go`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/go.svg)|
+|GoCD|`si/gocd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gocd.svg)|
+|GoDaddy|`si/godaddy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/godaddy.svg)|
+|Godot Engine|`si/godotengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/godotengine.svg)|
+|GoFundMe|`si/gofundme`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gofundme.svg)|
+|GOG.com|`si/gogdotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gogdotcom.svg)|
+|Gojek|`si/gojek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gojek.svg)|
+|GoLand|`si/goland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/goland.svg)|
+|Goldman Sachs|`si/goldmansachs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/goldmansachs.svg)|
+|Goodreads|`si/goodreads`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/goodreads.svg)|
+|Google|`si/google`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/google.svg)|
+|Google AdMob|`si/googleadmob`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleadmob.svg)|
+|Google Ads|`si/googleads`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleads.svg)|
+|Google AdSense|`si/googleadsense`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleadsense.svg)|
+|Google Analytics|`si/googleanalytics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleanalytics.svg)|
+|Google Apps Script|`si/googleappsscript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleappsscript.svg)|
+|Google Assistant|`si/googleassistant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleassistant.svg)|
+|Google Authenticator|`si/googleauthenticator`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleauthenticator.svg)|
+|Google BigQuery|`si/googlebigquery`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlebigquery.svg)|
+|Google Bigtable|`si/googlebigtable`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlebigtable.svg)|
+|Google Calendar|`si/googlecalendar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecalendar.svg)|
+|Google Campaign Manager 360|`si/googlecampaignmanager360`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecampaignmanager360.svg)|
+|Google Cardboard|`si/googlecardboard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecardboard.svg)|
+|Google Cast|`si/googlecast`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecast.svg)|
+|Google Chat|`si/googlechat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlechat.svg)|
+|Google Chrome|`si/googlechrome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlechrome.svg)|
+|Google Chronicle|`si/googlechronicle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlechronicle.svg)|
+|Google Classroom|`si/googleclassroom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleclassroom.svg)|
+|Google Cloud|`si/googlecloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecloud.svg)|
+|Google Cloud Composer|`si/googlecloudcomposer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecloudcomposer.svg)|
+|Google Cloud Spanner|`si/googlecloudspanner`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecloudspanner.svg)|
+|Google Cloud Storage|`si/googlecloudstorage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecloudstorage.svg)|
+|Google Colab|`si/googlecolab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecolab.svg)|
+|Google Container Optimized OS|`si/googlecontaineroptimizedos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlecontaineroptimizedos.svg)|
+|Google Dataflow|`si/googledataflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googledataflow.svg)|
+|Google Dataproc|`si/googledataproc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googledataproc.svg)|
+|Google Display & Video 360|`si/googledisplayandvideo360`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googledisplayandvideo360.svg)|
+|Google Docs|`si/googledocs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googledocs.svg)|
+|Google Drive|`si/googledrive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googledrive.svg)|
+|Google Earth|`si/googleearth`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleearth.svg)|
+|Google Earth Engine|`si/googleearthengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleearthengine.svg)|
+|Google Fonts|`si/googlefonts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlefonts.svg)|
+|Google Forms|`si/googleforms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleforms.svg)|
+|Google Gemini|`si/googlegemini`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlegemini.svg)|
+|Google Home|`si/googlehome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlehome.svg)|
+|Google Jules|`si/googlejules`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlejules.svg)|
+|Google Keep|`si/googlekeep`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlekeep.svg)|
+|Google Lens|`si/googlelens`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlelens.svg)|
+|Google Maps|`si/googlemaps`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlemaps.svg)|
+|Google Marketing Platform|`si/googlemarketingplatform`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlemarketingplatform.svg)|
+|Google Meet|`si/googlemeet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlemeet.svg)|
+|Google Messages|`si/googlemessages`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlemessages.svg)|
+|Google Nearby|`si/googlenearby`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlenearby.svg)|
+|Google News|`si/googlenews`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlenews.svg)|
+|Google Pay|`si/googlepay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlepay.svg)|
+|Google Photos|`si/googlephotos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlephotos.svg)|
+|Google Play|`si/googleplay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleplay.svg)|
+|Google Pub/Sub|`si/googlepubsub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlepubsub.svg)|
+|Google Scholar|`si/googlescholar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlescholar.svg)|
+|Google Search Console|`si/googlesearchconsole`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlesearchconsole.svg)|
+|Google Sheets|`si/googlesheets`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlesheets.svg)|
+|Google Slides|`si/googleslides`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googleslides.svg)|
+|Google Street View|`si/googlestreetview`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlestreetview.svg)|
+|Google Summer of Code|`si/googlesummerofcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googlesummerofcode.svg)|
+|Google Tag Manager|`si/googletagmanager`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googletagmanager.svg)|
+|Google Tasks|`si/googletasks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googletasks.svg)|
+|Google Translate|`si/googletranslate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googletranslate.svg)|
+|Google TV|`si/googletv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/googletv.svg)|
+|GoToMeeting|`si/gotomeeting`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gotomeeting.svg)|
+|GPLv3|`si/gplv3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gplv3.svg)|
+|Grab|`si/grab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grab.svg)|
+|Gradio|`si/gradio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gradio.svg)|
+|Gradle|`si/gradle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gradle.svg)|
+|Gradle Play Publisher|`si/gradleplaypublisher`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gradleplaypublisher.svg)|
+|Grafana|`si/grafana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grafana.svg)|
+|Grammarly|`si/grammarly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grammarly.svg)|
+|Grand Frais|`si/grandfrais`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grandfrais.svg)|
+|GrapheneOS|`si/grapheneos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grapheneos.svg)|
+|Graphite|`si/graphite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/graphite.svg)|
+|Graphite|`si/graphite_editor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/graphite_editor.svg)|
+|GraphQL|`si/graphql`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/graphql.svg)|
+|Grav|`si/grav`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grav.svg)|
+|Gravatar|`si/gravatar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gravatar.svg)|
+|Graylog|`si/graylog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/graylog.svg)|
+|Greasy Fork|`si/greasyfork`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/greasyfork.svg)|
+|Great Learning|`si/greatlearning`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/greatlearning.svg)|
+|Greenhouse|`si/greenhouse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/greenhouse.svg)|
+|GreenSock|`si/greensock`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/greensock.svg)|
+|GreptimeDB|`si/greptimedb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/greptimedb.svg)|
+|Grid.ai|`si/griddotai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/griddotai.svg)|
+|Gridsome|`si/gridsome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gridsome.svg)|
+|Grocy|`si/grocy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grocy.svg)|
+|GroupMe|`si/groupme`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/groupme.svg)|
+|Groupon|`si/groupon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/groupon.svg)|
+|Grunt|`si/grunt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/grunt.svg)|
+|GSAP|`si/gsap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gsap.svg)|
+|GSK|`si/gsk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gsk.svg)|
+|GSMA|`si/gsma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gsma.svg)|
+|GSMArena.com|`si/gsmarenadotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gsmarenadotcom.svg)|
+|GStreamer|`si/gstreamer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gstreamer.svg)|
+|GTK|`si/gtk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gtk.svg)|
+|Guangzhou Metro|`si/guangzhoumetro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/guangzhoumetro.svg)|
+|Guilded|`si/guilded`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/guilded.svg)|
+|Guitar Pro|`si/guitarpro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/guitarpro.svg)|
+|gulp|`si/gulp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gulp.svg)|
+|Gumroad|`si/gumroad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gumroad.svg)|
+|Gumtree|`si/gumtree`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gumtree.svg)|
+|Gunicorn|`si/gunicorn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gunicorn.svg)|
+|Gurobi|`si/gurobi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gurobi.svg)|
+|Gusto|`si/gusto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gusto.svg)|
+|Gutenberg|`si/gutenberg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/gutenberg.svg)|
+|H&M|`si/handm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/handm.svg)|
+|H2 Database|`si/h2database`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/h2database.svg)|
+|H3|`si/h3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/h3.svg)|
+|Habr|`si/habr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/habr.svg)|
+|Hack Club|`si/hackclub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackclub.svg)|
+|Hack The Box|`si/hackthebox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackthebox.svg)|
+|Hackaday|`si/hackaday`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackaday.svg)|
+|Hacker Noon|`si/hackernoon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackernoon.svg)|
+|HackerEarth|`si/hackerearth`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackerearth.svg)|
+|HackerOne|`si/hackerone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackerone.svg)|
+|HackerRank|`si/hackerrank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackerrank.svg)|
+|HackMD|`si/hackmd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackmd.svg)|
+|Hackster|`si/hackster`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hackster.svg)|
+|HAL|`si/hal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hal.svg)|
+|Handlebars.js|`si/handlebarsdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/handlebarsdotjs.svg)|
+|Handshake|`si/handshake`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/handshake.svg)|
+|Handshake|`si/handshake_protocol`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/handshake_protocol.svg)|
+|HappyCow|`si/happycow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/happycow.svg)|
+|Harbor|`si/harbor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/harbor.svg)|
+|HarmonyOS|`si/harmonyos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/harmonyos.svg)|
+|Hashcat|`si/hashcat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hashcat.svg)|
+|HashiCorp|`si/hashicorp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hashicorp.svg)|
+|Hashnode|`si/hashnode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hashnode.svg)|
+|Haskell|`si/haskell`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/haskell.svg)|
+|Hasura|`si/hasura`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hasura.svg)|
+|Hatena Bookmark|`si/hatenabookmark`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hatenabookmark.svg)|
+|Have I Been Pwned|`si/haveibeenpwned`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/haveibeenpwned.svg)|
+|Havells|`si/havells`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/havells.svg)|
+|Haxe|`si/haxe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/haxe.svg)|
+|Haystack|`si/haystack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/haystack.svg)|
+|HBO|`si/hbo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hbo.svg)|
+|HBO Max|`si/hbomax`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hbomax.svg)|
+|HCL|`si/hcl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hcl.svg)|
+|HDFC Bank|`si/hdfcbank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hdfcbank.svg)|
+|Headless UI|`si/headlessui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/headlessui.svg)|
+|Headphone Zone|`si/headphonezone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/headphonezone.svg)|
+|Headspace|`si/headspace`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/headspace.svg)|
+|Hearth|`si/hearth`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hearth.svg)|
+|hearthis.at|`si/hearthisdotat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hearthisdotat.svg)|
+|Hedera|`si/hedera`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hedera.svg)|
+|HedgeDoc|`si/hedgedoc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hedgedoc.svg)|
+|Helium|`si/helium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/helium.svg)|
+|Helix|`si/helix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/helix.svg)|
+|HelloFresh|`si/hellofresh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hellofresh.svg)|
+|Helly Hansen|`si/hellyhansen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hellyhansen.svg)|
+|Helm|`si/helm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/helm.svg)|
+|Help Scout|`si/helpscout`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/helpscout.svg)|
+|HelpDesk|`si/helpdesk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/helpdesk.svg)|
+|Hepsiemlak|`si/hepsiemlak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hepsiemlak.svg)|
+|HERE|`si/here`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/here.svg)|
+|Hermes|`si/hermes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hermes.svg)|
+|Heroic Games Launcher|`si/heroicgameslauncher`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/heroicgameslauncher.svg)|
+|HeroUI|`si/heroui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/heroui.svg)|
+|Hetzner|`si/hetzner`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hetzner.svg)|
+|Hevy|`si/hevy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hevy.svg)|
+|Hexlet|`si/hexlet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hexlet.svg)|
+|Hexo|`si/hexo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hexo.svg)|
+|HEY|`si/hey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hey.svg)|
+|Hi Bob|`si/hibob`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hibob.svg)|
+|Hibernate|`si/hibernate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hibernate.svg)|
+|Hilton|`si/hilton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hilton.svg)|
+|Hilton Hotels & Resorts|`si/hiltonhotelsandresorts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hiltonhotelsandresorts.svg)|
+|Hitachi|`si/hitachi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hitachi.svg)|
+|Hive|`si/hive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hive.svg)|
+|Hive|`si/hive_blockchain`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hive_blockchain.svg)|
+|HiveMQ|`si/hivemq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hivemq.svg)|
+|Homarr|`si/homarr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homarr.svg)|
+|Home Assistant|`si/homeassistant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homeassistant.svg)|
+|Home Assistant Community Store|`si/homeassistantcommunitystore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homeassistantcommunitystore.svg)|
+|HomeAdvisor|`si/homeadvisor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homeadvisor.svg)|
+|Homebrew|`si/homebrew`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homebrew.svg)|
+|Homebridge|`si/homebridge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homebridge.svg)|
+|Homepage|`si/homepage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homepage.svg)|
+|homify|`si/homify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/homify.svg)|
+|Honda|`si/honda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/honda.svg)|
+|Honey|`si/honey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/honey.svg)|
+|Honeybadger|`si/honeybadger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/honeybadger.svg)|
+|Honeygain|`si/honeygain`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/honeygain.svg)|
+|Hono|`si/hono`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hono.svg)|
+|Honor|`si/honor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/honor.svg)|
+|Hootsuite|`si/hootsuite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hootsuite.svg)|
+|Hoppscotch|`si/hoppscotch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hoppscotch.svg)|
+|Hostinger|`si/hostinger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hostinger.svg)|
+|Hotels.com|`si/hotelsdotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hotelsdotcom.svg)|
+|Hotjar|`si/hotjar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hotjar.svg)|
+|Hotwire|`si/hotwire`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hotwire.svg)|
+|Houdini|`si/houdini`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/houdini.svg)|
+|Houzz|`si/houzz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/houzz.svg)|
+|HP|`si/hp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hp.svg)|
+|HSBC|`si/hsbc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hsbc.svg)|
+|HTC|`si/htc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/htc.svg)|
+|HTC Vive|`si/htcvive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/htcvive.svg)|
+|HTML Academy|`si/htmlacademy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/htmlacademy.svg)|
+|HTML5|`si/html5`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/html5.svg)|
+|htmx|`si/htmx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/htmx.svg)|
+|htop|`si/htop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/htop.svg)|
+|HTTPie|`si/httpie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/httpie.svg)|
+|Huawei|`si/huawei`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/huawei.svg)|
+|HubSpot|`si/hubspot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hubspot.svg)|
+|Hugging Face|`si/huggingface`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/huggingface.svg)|
+|Hugo|`si/hugo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hugo.svg)|
+|Humble Bundle|`si/humblebundle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/humblebundle.svg)|
+|HumHub|`si/humhub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/humhub.svg)|
+|Hungry Jack's|`si/hungryjacks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hungryjacks.svg)|
+|Husqvarna|`si/husqvarna`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/husqvarna.svg)|
+|Hyper|`si/hyper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hyper.svg)|
+|Hyperskill|`si/hyperskill`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hyperskill.svg)|
+|HyperX|`si/hyperx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hyperx.svg)|
+|Hypothesis|`si/hypothesis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hypothesis.svg)|
+|Hyprland|`si/hyprland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hyprland.svg)|
+|Hyundai|`si/hyundai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/hyundai.svg)|
+|i18next|`si/i18next`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/i18next.svg)|
+|i3|`si/i3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/i3.svg)|
+|IATA|`si/iata`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iata.svg)|
+|iBeacon|`si/ibeacon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ibeacon.svg)|
+|Iberia|`si/iberia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iberia.svg)|
+|Iced|`si/iced`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iced.svg)|
+|Iceland|`si/iceland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iceland.svg)|
+|ICICI Bank|`si/icicibank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/icicibank.svg)|
+|Icinga|`si/icinga`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/icinga.svg)|
+|iCloud|`si/icloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/icloud.svg)|
+|IcoMoon|`si/icomoon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/icomoon.svg)|
+|ICON|`si/icon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/icon.svg)|
+|Iconfinder|`si/iconfinder`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iconfinder.svg)|
+|Iconify|`si/iconify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iconify.svg)|
+|IconJar|`si/iconjar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iconjar.svg)|
+|Icons8|`si/icons8`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/icons8.svg)|
+|ICQ|`si/icq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/icq.svg)|
+|IEEE|`si/ieee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ieee.svg)|
+|iFixit|`si/ifixit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ifixit.svg)|
+|iFood|`si/ifood`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ifood.svg)|
+|IFTTT|`si/ifttt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ifttt.svg)|
+|IGDB|`si/igdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/igdb.svg)|
+|IGN|`si/ign`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ign.svg)|
+|iHeartRadio|`si/iheartradio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iheartradio.svg)|
+|IKEA|`si/ikea`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ikea.svg)|
+|Île-de-France Mobilités|`si/iledefrancemobilites`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iledefrancemobilites.svg)|
+|iLovePDF|`si/ilovepdf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ilovepdf.svg)|
+|Image Toolbox|`si/imagetoolbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/imagetoolbox.svg)|
+|Image.sc|`si/imagedotsc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/imagedotsc.svg)|
+|ImageJ|`si/imagej`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/imagej.svg)|
+|IMDb|`si/imdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/imdb.svg)|
+|iMessage|`si/imessage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/imessage.svg)|
+|Imgur|`si/imgur`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/imgur.svg)|
+|Immer|`si/immer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/immer.svg)|
+|Immersive Translate|`si/immersivetranslate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/immersivetranslate.svg)|
+|Immich|`si/immich`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/immich.svg)|
+|Imou|`si/imou`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/imou.svg)|
+|ImprovMX|`si/improvmx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/improvmx.svg)|
+|Indeed|`si/indeed`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/indeed.svg)|
+|Indian Super League|`si/indiansuperleague`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/indiansuperleague.svg)|
+|Indie Hackers|`si/indiehackers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/indiehackers.svg)|
+|IndieWeb|`si/indieweb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/indieweb.svg)|
+|IndiGo|`si/indigo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/indigo.svg)|
+|Inductive Automation|`si/inductiveautomation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/inductiveautomation.svg)|
+|Inertia|`si/inertia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/inertia.svg)|
+|INFINITI|`si/infiniti`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/infiniti.svg)|
+|InfinityFree|`si/infinityfree`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/infinityfree.svg)|
+|InfluxDB|`si/influxdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/influxdb.svg)|
+|Infomaniak|`si/infomaniak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/infomaniak.svg)|
+|InfoQ|`si/infoq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/infoq.svg)|
+|Infosys|`si/infosys`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/infosys.svg)|
+|Infracost|`si/infracost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/infracost.svg)|
+|Infuse|`si/infuse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/infuse.svg)|
+|Ingress|`si/ingress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ingress.svg)|
+|Inkdrop|`si/inkdrop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/inkdrop.svg)|
+|Inkscape|`si/inkscape`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/inkscape.svg)|
+|Inoreader|`si/inoreader`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/inoreader.svg)|
+|Inquirer|`si/inquirer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/inquirer.svg)|
+|Insomnia|`si/insomnia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/insomnia.svg)|
+|INSPIRE|`si/inspire`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/inspire.svg)|
+|Insta360|`si/insta360`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/insta360.svg)|
+|Instacart|`si/instacart`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/instacart.svg)|
+|Instagram|`si/instagram`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/instagram.svg)|
+|Instapaper|`si/instapaper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/instapaper.svg)|
+|Instatus|`si/instatus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/instatus.svg)|
+|Instructables|`si/instructables`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/instructables.svg)|
+|Instructure|`si/instructure`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/instructure.svg)|
+|Intel|`si/intel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/intel.svg)|
+|IntelliJ IDEA|`si/intellijidea`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/intellijidea.svg)|
+|Interaction Design Foundation|`si/interactiondesignfoundation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/interactiondesignfoundation.svg)|
+|InteractJS|`si/interactjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/interactjs.svg)|
+|Interbase|`si/interbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/interbase.svg)|
+|Intercom|`si/intercom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/intercom.svg)|
+|Intermarche|`si/intermarche`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/intermarche.svg)|
+|Internet Archive|`si/internetarchive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/internetarchive.svg)|
+|Internet Computer|`si/internetcomputer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/internetcomputer.svg)|
+|Intigriti|`si/intigriti`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/intigriti.svg)|
+|Intuit|`si/intuit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/intuit.svg)|
+|Invidious|`si/invidious`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/invidious.svg)|
+|Invoice Ninja|`si/invoiceninja`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/invoiceninja.svg)|
+|ioBroker|`si/iobroker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iobroker.svg)|
+|Ionic|`si/ionic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ionic.svg)|
+|Ionos|`si/ionos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ionos.svg)|
+|iOS|`si/ios`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ios.svg)|
+|IOTA|`si/iota`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iota.svg)|
+|IPFS|`si/ipfs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ipfs.svg)|
+|IRIS|`si/iris`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iris.svg)|
+|iRobot|`si/irobot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/irobot.svg)|
+|ISC2|`si/isc2`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/isc2.svg)|
+|ISRO|`si/isro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/isro.svg)|
+|Issuu|`si/issuu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/issuu.svg)|
+|Istio|`si/istio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/istio.svg)|
+|Itch.io|`si/itchdotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/itchdotio.svg)|
+|iTerm2|`si/iterm2`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iterm2.svg)|
+|iTunes|`si/itunes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/itunes.svg)|
+|ITVx|`si/itvx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/itvx.svg)|
+|IVECO|`si/iveco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/iveco.svg)|
+|Jabber|`si/jabber`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jabber.svg)|
+|Jaeger|`si/jaeger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jaeger.svg)|
+|Jameson|`si/jameson`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jameson.svg)|
+|Jamstack|`si/jamstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jamstack.svg)|
+|Japan Airlines|`si/japanairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/japanairlines.svg)|
+|Jasmine|`si/jasmine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jasmine.svg)|
+|JavaScript|`si/javascript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/javascript.svg)|
+|JBL|`si/jbl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jbl.svg)|
+|JCB|`si/jcb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jcb.svg)|
+|JDoodle|`si/jdoodle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jdoodle.svg)|
+|Jeep|`si/jeep`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jeep.svg)|
+|Jekyll|`si/jekyll`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jekyll.svg)|
+|Jellyfin|`si/jellyfin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jellyfin.svg)|
+|Jenkins|`si/jenkins`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jenkins.svg)|
+|Jest|`si/jest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jest.svg)|
+|JET|`si/jet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jet.svg)|
+|JetBlue|`si/jetblue`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jetblue.svg)|
+|JetBrains|`si/jetbrains`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jetbrains.svg)|
+|Jetpack Compose|`si/jetpackcompose`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jetpackcompose.svg)|
+|JFrog|`si/jfrog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jfrog.svg)|
+|JFrog Pipelines|`si/jfrogpipelines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jfrogpipelines.svg)|
+|JHipster|`si/jhipster`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jhipster.svg)|
+|Jinja|`si/jinja`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jinja.svg)|
+|Jio|`si/jio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jio.svg)|
+|Jira|`si/jira`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jira.svg)|
+|Jira Software|`si/jirasoftware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jirasoftware.svg)|
+|JitPack|`si/jitpack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jitpack.svg)|
+|Jitsi|`si/jitsi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jitsi.svg)|
+|John Deere|`si/johndeere`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/johndeere.svg)|
+|Joomla|`si/joomla`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/joomla.svg)|
+|Joplin|`si/joplin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/joplin.svg)|
+|Jordan|`si/jordan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jordan.svg)|
+|JOUAV|`si/jouav`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jouav.svg)|
+|Jovian|`si/jovian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jovian.svg)|
+|JPEG|`si/jpeg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jpeg.svg)|
+|jQuery|`si/jquery`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jquery.svg)|
+|JR Group|`si/jrgroup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jrgroup.svg)|
+|jsDelivr|`si/jsdelivr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jsdelivr.svg)|
+|JSFiddle|`si/jsfiddle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jsfiddle.svg)|
+|JSON|`si/json`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/json.svg)|
+|JSON Web Tokens|`si/jsonwebtokens`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jsonwebtokens.svg)|
+|JSR|`si/jsr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jsr.svg)|
+|JSS|`si/jss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jss.svg)|
+|JUCE|`si/juce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/juce.svg)|
+|Juejin|`si/juejin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/juejin.svg)|
+|JUKE|`si/juke`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/juke.svg)|
+|Julia|`si/julia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/julia.svg)|
+|Juniper Networks|`si/junipernetworks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/junipernetworks.svg)|
+|JUnit5|`si/junit5`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/junit5.svg)|
+|Jupyter|`si/jupyter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/jupyter.svg)|
+|Just|`si/just`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/just.svg)|
+|Just Eat|`si/justeat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/justeat.svg)|
+|JustGiving|`si/justgiving`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/justgiving.svg)|
+|K3s|`si/k3s`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/k3s.svg)|
+|k6|`si/k6`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/k6.svg)|
+|Kaggle|`si/kaggle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kaggle.svg)|
+|Kagi|`si/kagi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kagi.svg)|
+|Kahoot!|`si/kahoot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kahoot.svg)|
+|KaiOS|`si/kaios`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kaios.svg)|
+|Kakao|`si/kakao`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kakao.svg)|
+|KakaoTalk|`si/kakaotalk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kakaotalk.svg)|
+|Kali Linux|`si/kalilinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kalilinux.svg)|
+|Kamailio|`si/kamailio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kamailio.svg)|
+|Kando|`si/kando`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kando.svg)|
+|Kaniko|`si/kaniko`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kaniko.svg)|
+|Karakeep|`si/karakeep`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/karakeep.svg)|
+|Karlsruher Verkehrsverbund|`si/karlsruherverkehrsverbund`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/karlsruherverkehrsverbund.svg)|
+|Kasa Smart|`si/kasasmart`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kasasmart.svg)|
+|KashFlow|`si/kashflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kashflow.svg)|
+|Kaspersky|`si/kaspersky`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kaspersky.svg)|
+|Katana|`si/katana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/katana.svg)|
+|Kaufland|`si/kaufland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kaufland.svg)|
+|KDE|`si/kde`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kde.svg)|
+|KDE neon|`si/kdeneon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kdeneon.svg)|
+|KDE Plasma|`si/kdeplasma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kdeplasma.svg)|
+|Kdenlive|`si/kdenlive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kdenlive.svg)|
+|Kedro|`si/kedro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kedro.svg)|
+|Keenetic|`si/keenetic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keenetic.svg)|
+|Keep a Changelog|`si/keepachangelog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keepachangelog.svg)|
+|KeePassXC|`si/keepassxc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keepassxc.svg)|
+|Keeper|`si/keeper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keeper.svg)|
+|KeeWeb|`si/keeweb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keeweb.svg)|
+|Kenmei|`si/kenmei`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kenmei.svg)|
+|Kentico|`si/kentico`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kentico.svg)|
+|Keploy|`si/keploy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keploy.svg)|
+|Keras|`si/keras`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keras.svg)|
+|Keybase|`si/keybase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keybase.svg)|
+|KeyCDN|`si/keycdn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keycdn.svg)|
+|Keycloak|`si/keycloak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keycloak.svg)|
+|Keystone|`si/keystone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/keystone.svg)|
+|KFC|`si/kfc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kfc.svg)|
+|Khan Academy|`si/khanacademy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/khanacademy.svg)|
+|Khronos Group|`si/khronosgroup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/khronosgroup.svg)|
+|Kia|`si/kia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kia.svg)|
+|Kibana|`si/kibana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kibana.svg)|
+|KiCad|`si/kicad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kicad.svg)|
+|Kick|`si/kick`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kick.svg)|
+|Kickstarter|`si/kickstarter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kickstarter.svg)|
+|Kik|`si/kik`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kik.svg)|
+|Kingston Technology|`si/kingstontechnology`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kingstontechnology.svg)|
+|Kinopoisk|`si/kinopoisk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kinopoisk.svg)|
+|Kinsta|`si/kinsta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kinsta.svg)|
+|Kirby|`si/kirby`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kirby.svg)|
+|Kit|`si/kit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kit.svg)|
+|Kitsu|`si/kitsu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kitsu.svg)|
+|Kiwix|`si/kiwix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kiwix.svg)|
+|Klarna|`si/klarna`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/klarna.svg)|
+|Kleinanzeigen|`si/kleinanzeigen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kleinanzeigen.svg)|
+|KLM|`si/klm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/klm.svg)|
+|Klook|`si/klook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/klook.svg)|
+|Knative|`si/knative`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/knative.svg)|
+|Knex.js|`si/knexdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/knexdotjs.svg)|
+|KNIME|`si/knime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/knime.svg)|
+|Knip|`si/knip`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/knip.svg)|
+|KnowledgeBase|`si/knowledgebase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/knowledgebase.svg)|
+|Known|`si/known`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/known.svg)|
+|Ko-fi|`si/kofi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kofi.svg)|
+|Koa|`si/koa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/koa.svg)|
+|Koc|`si/koc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/koc.svg)|
+|Kodak|`si/kodak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kodak.svg)|
+|Kodi|`si/kodi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kodi.svg)|
+|Kodular|`si/kodular`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kodular.svg)|
+|Koenigsegg|`si/koenigsegg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/koenigsegg.svg)|
+|Kofax|`si/kofax`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kofax.svg)|
+|Komoot|`si/komoot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/komoot.svg)|
+|Konami|`si/konami`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/konami.svg)|
+|Kong|`si/kong`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kong.svg)|
+|Kongregate|`si/kongregate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kongregate.svg)|
+|Konva|`si/konva`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/konva.svg)|
+|KOReader|`si/koreader`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/koreader.svg)|
+|Kotlin|`si/kotlin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kotlin.svg)|
+|Koyeb|`si/koyeb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/koyeb.svg)|
+|Kred|`si/kred`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kred.svg)|
+|Krita|`si/krita`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/krita.svg)|
+|KTM|`si/ktm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ktm.svg)|
+|Ktor|`si/ktor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ktor.svg)|
+|Kuaishou|`si/kuaishou`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kuaishou.svg)|
+|Kubernetes|`si/kubernetes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kubernetes.svg)|
+|Kubespray|`si/kubespray`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kubespray.svg)|
+|Kubuntu|`si/kubuntu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kubuntu.svg)|
+|KuCoin|`si/kucoin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kucoin.svg)|
+|Kueski|`si/kueski`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kueski.svg)|
+|Kuma|`si/kuma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kuma.svg)|
+|Kununu|`si/kununu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kununu.svg)|
+|Kuula|`si/kuula`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kuula.svg)|
+|KX|`si/kx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kx.svg)|
+|Kyocera|`si/kyocera`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/kyocera.svg)|
+|L'Équipe|`si/lequipe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lequipe.svg)|
+|LabEx|`si/labex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/labex.svg)|
+|LabVIEW|`si/labview`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/labview.svg)|
+|LADA|`si/lada`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lada.svg)|
+|Lamborghini|`si/lamborghini`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lamborghini.svg)|
+|LangChain|`si/langchain`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/langchain.svg)|
+|Langflow|`si/langflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/langflow.svg)|
+|LangGraph|`si/langgraph`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/langgraph.svg)|
+|LanguageTool|`si/languagetool`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/languagetool.svg)|
+|Lapce|`si/lapce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lapce.svg)|
+|Laragon|`si/laragon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/laragon.svg)|
+|Laravel|`si/laravel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/laravel.svg)|
+|Laravel Horizon|`si/laravelhorizon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/laravelhorizon.svg)|
+|Laravel Nova|`si/laravelnova`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/laravelnova.svg)|
+|Last.fm|`si/lastdotfm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lastdotfm.svg)|
+|LastPass|`si/lastpass`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lastpass.svg)|
+|LaTeX|`si/latex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/latex.svg)|
+|Launchpad|`si/launchpad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/launchpad.svg)|
+|Lazarus|`si/lazarus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lazarus.svg)|
+|LazyVim|`si/lazyvim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lazyvim.svg)|
+|LBRY|`si/lbry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lbry.svg)|
+|Leader Price|`si/leaderprice`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leaderprice.svg)|
+|Leaflet|`si/leaflet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leaflet.svg)|
+|League of Legends|`si/leagueoflegends`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leagueoflegends.svg)|
+|Leanpub|`si/leanpub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leanpub.svg)|
+|LeetCode|`si/leetcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leetcode.svg)|
+|Lefthook|`si/lefthook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lefthook.svg)|
+|Legacy Games|`si/legacygames`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/legacygames.svg)|
+|Leica|`si/leica`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leica.svg)|
+|Lemmy|`si/lemmy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lemmy.svg)|
+|Lemon Squeezy|`si/lemonsqueezy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lemonsqueezy.svg)|
+|Lenovo|`si/lenovo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lenovo.svg)|
+|Lens|`si/lens`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lens.svg)|
+|Leptos|`si/leptos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leptos.svg)|
+|Lerna|`si/lerna`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lerna.svg)|
+|Leroy Merlin|`si/leroymerlin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leroymerlin.svg)|
+|Les libraires|`si/leslibraires`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/leslibraires.svg)|
+|Less|`si/less`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/less.svg)|
+|Let's Encrypt|`si/letsencrypt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/letsencrypt.svg)|
+|Letterboxd|`si/letterboxd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/letterboxd.svg)|
+|levels.fyi|`si/levelsdotfyi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/levelsdotfyi.svg)|
+|LG|`si/lg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lg.svg)|
+|Li-Ning|`si/lining`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lining.svg)|
+|Libera.Chat|`si/liberadotchat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/liberadotchat.svg)|
+|Liberapay|`si/liberapay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/liberapay.svg)|
+|Libraries.io|`si/librariesdotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/librariesdotio.svg)|
+|LibraryThing|`si/librarything`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/librarything.svg)|
+|LibreOffice|`si/libreoffice`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libreoffice.svg)|
+|LibreOffice Base|`si/libreofficebase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libreofficebase.svg)|
+|LibreOffice Calc|`si/libreofficecalc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libreofficecalc.svg)|
+|LibreOffice Draw|`si/libreofficedraw`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libreofficedraw.svg)|
+|LibreOffice Impress|`si/libreofficeimpress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libreofficeimpress.svg)|
+|LibreOffice Math|`si/libreofficemath`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libreofficemath.svg)|
+|LibreOffice Writer|`si/libreofficewriter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libreofficewriter.svg)|
+|LibreTranslate|`si/libretranslate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libretranslate.svg)|
+|LibreTube|`si/libretube`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libretube.svg)|
+|LibreWolf|`si/librewolf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/librewolf.svg)|
+|libuv|`si/libuv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/libuv.svg)|
+|Lichess|`si/lichess`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lichess.svg)|
+|Lidl|`si/lidl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lidl.svg)|
+|LIFX|`si/lifx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lifx.svg)|
+|LightBurn|`si/lightburn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lightburn.svg)|
+|Lighthouse|`si/lighthouse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lighthouse.svg)|
+|Lightning|`si/lightning`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lightning.svg)|
+|LimeSurvey|`si/limesurvey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/limesurvey.svg)|
+|LINE|`si/line`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/line.svg)|
+|LineageOS|`si/lineageos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lineageos.svg)|
+|Linear|`si/linear`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linear.svg)|
+|Linkerd|`si/linkerd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linkerd.svg)|
+|Linkfire|`si/linkfire`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linkfire.svg)|
+|Linksys|`si/linksys`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linksys.svg)|
+|Linktree|`si/linktree`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linktree.svg)|
+|Linkvertise|`si/linkvertise`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linkvertise.svg)|
+|Linphone|`si/linphone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linphone.svg)|
+|LintCode|`si/lintcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lintcode.svg)|
+|Linux|`si/linux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linux.svg)|
+|Linux Containers|`si/linuxcontainers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linuxcontainers.svg)|
+|Linux Foundation|`si/linuxfoundation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linuxfoundation.svg)|
+|Linux Mint|`si/linuxmint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linuxmint.svg)|
+|Linux Professional Institute|`si/linuxprofessionalinstitute`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linuxprofessionalinstitute.svg)|
+|LinuxServer|`si/linuxserver`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/linuxserver.svg)|
+|Lion Air|`si/lionair`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lionair.svg)|
+|Liquibase|`si/liquibase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/liquibase.svg)|
+|ListenHub|`si/listenhub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/listenhub.svg)|
+|listmonk|`si/listmonk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/listmonk.svg)|
+|Lit|`si/lit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lit.svg)|
+|Litecoin|`si/litecoin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/litecoin.svg)|
+|Literal|`si/literal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/literal.svg)|
+|LITIENGINE|`si/litiengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/litiengine.svg)|
+|LiveChat|`si/livechat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/livechat.svg)|
+|LiveJournal|`si/livejournal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/livejournal.svg)|
+|LiveKit|`si/livekit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/livekit.svg)|
+|Livewire|`si/livewire`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/livewire.svg)|
+|LLVM|`si/llvm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/llvm.svg)|
+|LMMS|`si/lmms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lmms.svg)|
+|Lobsters|`si/lobsters`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lobsters.svg)|
+|Local|`si/local`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/local.svg)|
+|LocalSend|`si/localsend`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/localsend.svg)|
+|LocalXpose|`si/localxpose`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/localxpose.svg)|
+|Locust|`si/locust`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/locust.svg)|
+|Lodash|`si/lodash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lodash.svg)|
+|LogMeIn|`si/logmein`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/logmein.svg)|
+|Logseq|`si/logseq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/logseq.svg)|
+|Logstash|`si/logstash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/logstash.svg)|
+|Longhorn|`si/longhorn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/longhorn.svg)|
+|Looker|`si/looker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/looker.svg)|
+|Loom|`si/loom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/loom.svg)|
+|Loop|`si/loop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/loop.svg)|
+|LoopBack|`si/loopback`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/loopback.svg)|
+|Loops|`si/loops`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/loops.svg)|
+|Loot Crate|`si/lootcrate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lootcrate.svg)|
+|Lospec|`si/lospec`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lospec.svg)|
+|LOT Polish Airlines|`si/lotpolishairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lotpolishairlines.svg)|
+|LottieFiles|`si/lottiefiles`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lottiefiles.svg)|
+|LTspice|`si/ltspice`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ltspice.svg)|
+|Lua|`si/lua`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lua.svg)|
+|Luanti|`si/luanti`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/luanti.svg)|
+|Luau|`si/luau`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/luau.svg)|
+|Lubuntu|`si/lubuntu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lubuntu.svg)|
+|Lucia|`si/lucia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lucia.svg)|
+|Lucid|`si/lucid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lucid.svg)|
+|Lucide|`si/lucide`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lucide.svg)|
+|Ludwig|`si/ludwig`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ludwig.svg)|
+|Lufthansa|`si/lufthansa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lufthansa.svg)|
+|Lumen|`si/lumen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lumen.svg)|
+|Lunacy|`si/lunacy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lunacy.svg)|
+|Luogu|`si/luogu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/luogu.svg)|
+|Lutris|`si/lutris`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lutris.svg)|
+|LVGL|`si/lvgl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lvgl.svg)|
+|Lydia|`si/lydia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lydia.svg)|
+|Lyft|`si/lyft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/lyft.svg)|
+|MAAS|`si/maas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maas.svg)|
+|macOS|`si/macos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/macos.svg)|
+|MacPaw|`si/macpaw`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/macpaw.svg)|
+|MacPorts|`si/macports`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/macports.svg)|
+|Macy's|`si/macys`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/macys.svg)|
+|Magasins U|`si/magasinsu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/magasinsu.svg)|
+|Magic|`si/magic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/magic.svg)|
+|Magisk|`si/magisk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/magisk.svg)|
+|Mahindra|`si/mahindra`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mahindra.svg)|
+|mail.com|`si/maildotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maildotcom.svg)|
+|Mail.Ru|`si/maildotru`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maildotru.svg)|
+|mailbox|`si/mailbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mailbox.svg)|
+|MailChimp|`si/mailchimp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mailchimp.svg)|
+|Mailgun|`si/mailgun`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mailgun.svg)|
+|Mailtrap|`si/mailtrap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mailtrap.svg)|
+|MainWP|`si/mainwp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mainwp.svg)|
+|Major League Hacking|`si/majorleaguehacking`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/majorleaguehacking.svg)|
+|Make|`si/make`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/make.svg)|
+|MakerBot|`si/makerbot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/makerbot.svg)|
+|Malt|`si/malt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/malt.svg)|
+|Malwarebytes|`si/malwarebytes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/malwarebytes.svg)|
+|Mamba UI|`si/mambaui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mambaui.svg)|
+|MAMP|`si/mamp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mamp.svg)|
+|MAN|`si/man`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/man.svg)|
+|ManageIQ|`si/manageiq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/manageiq.svg)|
+|Mangacollec|`si/mangacollec`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mangacollec.svg)|
+|MangaUpdates|`si/mangaupdates`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mangaupdates.svg)|
+|Manjaro|`si/manjaro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/manjaro.svg)|
+|Mantine|`si/mantine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mantine.svg)|
+|Mapbox|`si/mapbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mapbox.svg)|
+|Mapillary|`si/mapillary`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mapillary.svg)|
+|MapLibre|`si/maplibre`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maplibre.svg)|
+|MapTiler|`si/maptiler`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maptiler.svg)|
+|MariaDB|`si/mariadb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mariadb.svg)|
+|MariaDB Foundation|`si/mariadbfoundation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mariadbfoundation.svg)|
+|Markdown|`si/markdown`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/markdown.svg)|
+|Marko|`si/marko`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/marko.svg)|
+|Marriott|`si/marriott`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/marriott.svg)|
+|MarvelApp|`si/marvelapp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/marvelapp.svg)|
+|Maserati|`si/maserati`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maserati.svg)|
+|MasterCard|`si/mastercard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mastercard.svg)|
+|mastercomfig|`si/mastercomfig`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mastercomfig.svg)|
+|Mastodon|`si/mastodon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mastodon.svg)|
+|Material Design|`si/materialdesign`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/materialdesign.svg)|
+|Material Design Icons|`si/materialdesignicons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/materialdesignicons.svg)|
+|Material for MkDocs|`si/materialformkdocs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/materialformkdocs.svg)|
+|Matillion|`si/matillion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/matillion.svg)|
+|Matomo|`si/matomo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/matomo.svg)|
+|Matrix|`si/matrix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/matrix.svg)|
+|Matter.js|`si/matterdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/matterdotjs.svg)|
+|Mattermost|`si/mattermost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mattermost.svg)|
+|Matternet|`si/matternet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/matternet.svg)|
+|Mautic|`si/mautic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mautic.svg)|
+|Max|`si/max`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/max.svg)|
+|Max-Planck-Gesellschaft|`si/maxplanckgesellschaft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maxplanckgesellschaft.svg)|
+|Maytag|`si/maytag`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maytag.svg)|
+|Mazda|`si/mazda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mazda.svg)|
+|Maze|`si/maze`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/maze.svg)|
+|McAfee|`si/mcafee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mcafee.svg)|
+|McDonald's|`si/mcdonalds`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mcdonalds.svg)|
+|McLaren|`si/mclaren`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mclaren.svg)|
+|MDBList|`si/mdblist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mdblist.svg)|
+|mdBook|`si/mdbook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mdbook.svg)|
+|MDN Web Docs|`si/mdnwebdocs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mdnwebdocs.svg)|
+|MDX|`si/mdx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mdx.svg)|
+|Mealie|`si/mealie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mealie.svg)|
+|MediaFire|`si/mediafire`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mediafire.svg)|
+|MediaMarkt|`si/mediamarkt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mediamarkt.svg)|
+|MediaPipe|`si/mediapipe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mediapipe.svg)|
+|MediaTek|`si/mediatek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mediatek.svg)|
+|MediBang Paint|`si/medibangpaint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/medibangpaint.svg)|
+|Medium|`si/medium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/medium.svg)|
+|Medusa|`si/medusa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/medusa.svg)|
+|Meetup|`si/meetup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/meetup.svg)|
+|MEGA|`si/mega`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mega.svg)|
+|Meilisearch|`si/meilisearch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/meilisearch.svg)|
+|Meituan|`si/meituan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/meituan.svg)|
+|Meizu|`si/meizu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/meizu.svg)|
+|Mendeley|`si/mendeley`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mendeley.svg)|
+|MentorCruise|`si/mentorcruise`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mentorcruise.svg)|
+|Mercado Pago|`si/mercadopago`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mercadopago.svg)|
+|Merck|`si/merck`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/merck.svg)|
+|Mercurial|`si/mercurial`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mercurial.svg)|
+|Mermaid|`si/mermaid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mermaid.svg)|
+|Messenger|`si/messenger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/messenger.svg)|
+|Meta|`si/meta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/meta.svg)|
+|Metabase|`si/metabase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metabase.svg)|
+|Metacritic|`si/metacritic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metacritic.svg)|
+|MetaFilter|`si/metafilter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metafilter.svg)|
+|MetaGer|`si/metager`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metager.svg)|
+|Metasploit|`si/metasploit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metasploit.svg)|
+|Meteor|`si/meteor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/meteor.svg)|
+|Metro|`si/metro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metro.svg)|
+|Metro de la Ciudad de México|`si/metrodelaciudaddemexico`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metrodelaciudaddemexico.svg)|
+|Metro de Madrid|`si/metrodemadrid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metrodemadrid.svg)|
+|Métro de Paris|`si/metrodeparis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/metrodeparis.svg)|
+|MeWe|`si/mewe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mewe.svg)|
+|Mezmo|`si/mezmo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mezmo.svg)|
+|MG|`si/mg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mg.svg)|
+|Micro Editor|`si/microeditor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/microeditor.svg)|
+|micro:bit|`si/microbit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/microbit.svg)|
+|Micro.blog|`si/microdotblog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/microdotblog.svg)|
+|MicroPython|`si/micropython`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/micropython.svg)|
+|Microstation|`si/microstation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/microstation.svg)|
+|MicroStrategy|`si/microstrategy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/microstrategy.svg)|
+|MIDI|`si/midi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/midi.svg)|
+|Migadu|`si/migadu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/migadu.svg)|
+|Mihon|`si/mihon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mihon.svg)|
+|miHoYo|`si/mihoyo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mihoyo.svg)|
+|MikroTik|`si/mikrotik`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mikrotik.svg)|
+|Milanote|`si/milanote`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/milanote.svg)|
+|Milvus|`si/milvus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/milvus.svg)|
+|Minds|`si/minds`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/minds.svg)|
+|MinGW-w64|`si/mingww64`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mingww64.svg)|
+|Mini|`si/mini`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mini.svg)|
+|MiniMax|`si/minimax`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/minimax.svg)|
+|MinIO|`si/minio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/minio.svg)|
+|Mintlify|`si/mintlify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mintlify.svg)|
+|Minutemailer|`si/minutemailer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/minutemailer.svg)|
+|Miraheze|`si/miraheze`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/miraheze.svg)|
+|Miro|`si/miro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/miro.svg)|
+|Misskey|`si/misskey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/misskey.svg)|
+|Mistral AI|`si/mistralai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mistralai.svg)|
+|Mitsubishi|`si/mitsubishi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mitsubishi.svg)|
+|Mix|`si/mix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mix.svg)|
+|Mixcloud|`si/mixcloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mixcloud.svg)|
+|Mixpanel|`si/mixpanel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mixpanel.svg)|
+|MLB|`si/mlb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mlb.svg)|
+|MLflow|`si/mlflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mlflow.svg)|
+|MobX|`si/mobx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mobx.svg)|
+|MobX-State-Tree|`si/mobxstatetree`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mobxstatetree.svg)|
+|Mocha|`si/mocha`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mocha.svg)|
+|Mock Service Worker|`si/mockserviceworker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mockserviceworker.svg)|
+|Modal|`si/modal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/modal.svg)|
+|Model Context Protocol|`si/modelcontextprotocol`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/modelcontextprotocol.svg)|
+|ModelScope|`si/modelscope`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/modelscope.svg)|
+|Modin|`si/modin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/modin.svg)|
+|Modrinth|`si/modrinth`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/modrinth.svg)|
+|MODX|`si/modx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/modx.svg)|
+|Mojeek|`si/mojeek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mojeek.svg)|
+|Moleculer|`si/moleculer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moleculer.svg)|
+|Momenteo|`si/momenteo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/momenteo.svg)|
+|Monero|`si/monero`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monero.svg)|
+|MoneyGram|`si/moneygram`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moneygram.svg)|
+|MongoDB|`si/mongodb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mongodb.svg)|
+|Mongoose|`si/mongoose`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mongoose.svg)|
+|Mongoose|`si/mongoosedotws`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mongoosedotws.svg)|
+|Monica|`si/monica`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monica.svg)|
+|monkey tie|`si/monkeytie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monkeytie.svg)|
+|Monkeytype|`si/monkeytype`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monkeytype.svg)|
+|MonoGame|`si/monogame`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monogame.svg)|
+|Monoprix|`si/monoprix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monoprix.svg)|
+|Monster|`si/monster`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monster.svg)|
+|Monzo|`si/monzo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/monzo.svg)|
+|Moo|`si/moo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moo.svg)|
+|Moodle|`si/moodle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moodle.svg)|
+|Moonrepo|`si/moonrepo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moonrepo.svg)|
+|Moonshot AI|`si/moonshotai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moonshotai.svg)|
+|Moq|`si/moq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moq.svg)|
+|Moqups|`si/moqups`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moqups.svg)|
+|Morrisons|`si/morrisons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/morrisons.svg)|
+|Moscow Metro|`si/moscowmetro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/moscowmetro.svg)|
+|Motorola|`si/motorola`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/motorola.svg)|
+|Movistar|`si/movistar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/movistar.svg)|
+|Mozilla|`si/mozilla`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mozilla.svg)|
+|mpv|`si/mpv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mpv.svg)|
+|MQTT|`si/mqtt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mqtt.svg)|
+|MSI|`si/msi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/msi.svg)|
+|MSI Business|`si/msibusiness`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/msibusiness.svg)|
+|MTA|`si/mta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mta.svg)|
+|MTR|`si/mtr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mtr.svg)|
+|MUBI|`si/mubi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mubi.svg)|
+|MUI|`si/mui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mui.svg)|
+|Müller|`si/muller`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/muller.svg)|
+|Mullvad|`si/mullvad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mullvad.svg)|
+|Multisim|`si/multisim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/multisim.svg)|
+|Mumble|`si/mumble`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mumble.svg)|
+|MUO|`si/muo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/muo.svg)|
+|Mural|`si/mural`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mural.svg)|
+|MusicBrainz|`si/musicbrainz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/musicbrainz.svg)|
+|MX Linux|`si/mxlinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mxlinux.svg)|
+|MyAnimeList|`si/myanimelist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/myanimelist.svg)|
+|MyGet|`si/myget`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/myget.svg)|
+|MYOB|`si/myob`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/myob.svg)|
+|MyShows|`si/myshows`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/myshows.svg)|
+|Myspace|`si/myspace`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/myspace.svg)|
+|MySQL|`si/mysql`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/mysql.svg)|
+|N26|`si/n26`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/n26.svg)|
+|n8n|`si/n8n`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/n8n.svg)|
+|Namebase|`si/namebase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/namebase.svg)|
+|Namecheap|`si/namecheap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/namecheap.svg)|
+|NameMC|`si/namemc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/namemc.svg)|
+|NameSilo|`si/namesilo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/namesilo.svg)|
+|Namu Wiki|`si/namuwiki`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/namuwiki.svg)|
+|Nano|`si/nano`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nano.svg)|
+|Nano Stores|`si/nanostores`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nanostores.svg)|
+|Napster|`si/napster`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/napster.svg)|
+|NASA|`si/nasa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nasa.svg)|
+|National Grid|`si/nationalgrid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nationalgrid.svg)|
+|National Rail|`si/nationalrail`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nationalrail.svg)|
+|NativeScript|`si/nativescript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nativescript.svg)|
+|NATS.io|`si/natsdotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/natsdotio.svg)|
+|Naver|`si/naver`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/naver.svg)|
+|NBA|`si/nba`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nba.svg)|
+|NBB|`si/nbb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nbb.svg)|
+|NBC|`si/nbc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nbc.svg)|
+|NDI|`si/ndi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ndi.svg)|
+|NDR|`si/ndr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ndr.svg)|
+|NEAR|`si/near`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/near.svg)|
+|Nebula|`si/nebula`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nebula.svg)|
+|NEC|`si/nec`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nec.svg)|
+|Nederlandse Spoorwegen|`si/nederlandsespoorwegen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nederlandsespoorwegen.svg)|
+|Neo4j|`si/neo4j`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/neo4j.svg)|
+|Neon|`si/neon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/neon.svg)|
+|Neovim|`si/neovim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/neovim.svg)|
+|Neptune|`si/neptune`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/neptune.svg)|
+|NestJS|`si/nestjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nestjs.svg)|
+|NetApp|`si/netapp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netapp.svg)|
+|NetBSD|`si/netbsd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netbsd.svg)|
+|netcup|`si/netcup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netcup.svg)|
+|Netdata|`si/netdata`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netdata.svg)|
+|NetEase Cloud Music|`si/neteasecloudmusic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/neteasecloudmusic.svg)|
+|Netflix|`si/netflix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netflix.svg)|
+|NETGEAR|`si/netgear`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netgear.svg)|
+|Netim|`si/netim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netim.svg)|
+|Netlify|`si/netlify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netlify.svg)|
+|Nette|`si/nette`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nette.svg)|
+|Netto|`si/netto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/netto.svg)|
+|Neutralinojs|`si/neutralinojs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/neutralinojs.svg)|
+|New Balance|`si/newbalance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/newbalance.svg)|
+|New Japan Pro-Wrestling|`si/newjapanprowrestling`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/newjapanprowrestling.svg)|
+|New Relic|`si/newrelic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/newrelic.svg)|
+|New York Times|`si/newyorktimes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/newyorktimes.svg)|
+|Newegg|`si/newegg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/newegg.svg)|
+|Newgrounds|`si/newgrounds`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/newgrounds.svg)|
+|NewPipe|`si/newpipe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/newpipe.svg)|
+|NEXON|`si/nexon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nexon.svg)|
+|Next.js|`si/nextdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextdotjs.svg)|
+|nextbike|`si/nextbike`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextbike.svg)|
+|NextBillion.ai|`si/nextbilliondotai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextbilliondotai.svg)|
+|Nextcloud|`si/nextcloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextcloud.svg)|
+|NextDNS|`si/nextdns`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextdns.svg)|
+|Nextdoor|`si/nextdoor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextdoor.svg)|
+|Nextflow|`si/nextflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextflow.svg)|
+|Nextra|`si/nextra`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nextra.svg)|
+|nf-core|`si/nfcore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nfcore.svg)|
+|NFC|`si/nfc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nfc.svg)|
+|NGINX|`si/nginx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nginx.svg)|
+|Nginx Proxy Manager|`si/nginxproxymanager`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nginxproxymanager.svg)|
+|ngrok|`si/ngrok`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ngrok.svg)|
+|NgRx|`si/ngrx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ngrx.svg)|
+|NHL|`si/nhl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nhl.svg)|
+|Nhost|`si/nhost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nhost.svg)|
+|NiceHash|`si/nicehash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nicehash.svg)|
+|niconico|`si/niconico`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/niconico.svg)|
+|Nike|`si/nike`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nike.svg)|
+|Nikon|`si/nikon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nikon.svg)|
+|Nim|`si/nim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nim.svg)|
+|niri|`si/niri`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/niri.svg)|
+|Nissan|`si/nissan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nissan.svg)|
+|NixOS|`si/nixos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nixos.svg)|
+|Nobara Linux|`si/nobaralinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nobaralinux.svg)|
+|Node-RED|`si/nodered`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nodered.svg)|
+|Node.js|`si/nodedotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nodedotjs.svg)|
+|NodeBB|`si/nodebb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nodebb.svg)|
+|NodeGui|`si/nodegui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nodegui.svg)|
+|Nodemon|`si/nodemon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nodemon.svg)|
+|Nokia|`si/nokia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nokia.svg)|
+|Nomad|`si/nomad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nomad.svg)|
+|Norco|`si/norco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/norco.svg)|
+|Nordic Semiconductor|`si/nordicsemiconductor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nordicsemiconductor.svg)|
+|NordVPN|`si/nordvpn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nordvpn.svg)|
+|Normalize.css|`si/normalizedotcss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/normalizedotcss.svg)|
+|Norton|`si/norton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/norton.svg)|
+|Norwegian|`si/norwegian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/norwegian.svg)|
+|Note|`si/note`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/note.svg)|
+|NotebookLM|`si/notebooklm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/notebooklm.svg)|
+|Notepad++|`si/notepadplusplus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/notepadplusplus.svg)|
+|Notion|`si/notion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/notion.svg)|
+|Notist|`si/notist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/notist.svg)|
+|Noun Project|`si/nounproject`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nounproject.svg)|
+|Novu|`si/novu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/novu.svg)|
+|NOW|`si/now`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/now.svg)|
+|npm|`si/npm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/npm.svg)|
+|Nrwl|`si/nrwl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nrwl.svg)|
+|NSIS|`si/nsis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nsis.svg)|
+|ntfy|`si/ntfy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ntfy.svg)|
+|Nubank|`si/nubank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nubank.svg)|
+|Nucleo|`si/nucleo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nucleo.svg)|
+|NuGet|`si/nuget`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nuget.svg)|
+|Nuke|`si/nuke`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nuke.svg)|
+|Numba|`si/numba`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/numba.svg)|
+|NumPy|`si/numpy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/numpy.svg)|
+|Nunjucks|`si/nunjucks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nunjucks.svg)|
+|Nushell|`si/nushell`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nushell.svg)|
+|Nutanix|`si/nutanix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nutanix.svg)|
+|Nuxt|`si/nuxt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nuxt.svg)|
+|NVIDIA|`si/nvidia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nvidia.svg)|
+|nvm|`si/nvm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nvm.svg)|
+|Nx|`si/nx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nx.svg)|
+|NXP|`si/nxp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nxp.svg)|
+|NZXT|`si/nzxt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/nzxt.svg)|
+|O'Reilly|`si/oreilly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oreilly.svg)|
+|O2|`si/o2`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/o2.svg)|
+|ÖBB|`si/obb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/obb.svg)|
+|OBS Studio|`si/obsstudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/obsstudio.svg)|
+|Observable|`si/observable`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/observable.svg)|
+|Obsidian|`si/obsidian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/obsidian.svg)|
+|Obtainium|`si/obtainium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/obtainium.svg)|
+|OCaml|`si/ocaml`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ocaml.svg)|
+|OCLC|`si/oclc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oclc.svg)|
+|oclif|`si/oclif`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oclif.svg)|
+|Octane Render|`si/octanerender`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/octanerender.svg)|
+|Octave|`si/octave`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/octave.svg)|
+|October CMS|`si/octobercms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/octobercms.svg)|
+|OctoPrint|`si/octoprint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/octoprint.svg)|
+|Octopus Deploy|`si/octopusdeploy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/octopusdeploy.svg)|
+|Oculus|`si/oculus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oculus.svg)|
+|Odido|`si/odido`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/odido.svg)|
+|Odin|`si/odin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/odin.svg)|
+|Odnoklassniki|`si/odnoklassniki`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/odnoklassniki.svg)|
+|Odoo|`si/odoo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/odoo.svg)|
+|Odysee|`si/odysee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/odysee.svg)|
+|Oh Dear|`si/ohdear`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ohdear.svg)|
+|okcupid|`si/okcupid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/okcupid.svg)|
+|Okta|`si/okta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/okta.svg)|
+|OKX|`si/okx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/okx.svg)|
+|Ollama|`si/ollama`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ollama.svg)|
+|Omada Cloud|`si/omadacloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/omadacloud.svg)|
+|Omarchy|`si/omarchy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/omarchy.svg)|
+|OnePlus|`si/oneplus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oneplus.svg)|
+|OneStream|`si/onestream`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/onestream.svg)|
+|OnlyFans|`si/onlyfans`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/onlyfans.svg)|
+|ONLYOFFICE|`si/onlyoffice`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/onlyoffice.svg)|
+|ONNX|`si/onnx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/onnx.svg)|
+|OnStar|`si/onstar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/onstar.svg)|
+|Opel|`si/opel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opel.svg)|
+|Open Access|`si/openaccess`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openaccess.svg)|
+|Open Badges|`si/openbadges`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openbadges.svg)|
+|Open Bug Bounty|`si/openbugbounty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openbugbounty.svg)|
+|Open Collective|`si/opencollective`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opencollective.svg)|
+|Open Containers Initiative|`si/opencontainersinitiative`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opencontainersinitiative.svg)|
+|Open Source Hardware|`si/opensourcehardware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opensourcehardware.svg)|
+|Open Source Initiative|`si/opensourceinitiative`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opensourceinitiative.svg)|
+|Open3D|`si/open3d`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/open3d.svg)|
+|OpenAI Gym|`si/openaigym`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openaigym.svg)|
+|OpenAPI Initiative|`si/openapiinitiative`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openapiinitiative.svg)|
+|OpenBao|`si/openbao`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openbao.svg)|
+|OpenBSD|`si/openbsd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openbsd.svg)|
+|OpenCage|`si/opencage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opencage.svg)|
+|OpenCritic|`si/opencritic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opencritic.svg)|
+|OpenCV|`si/opencv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opencv.svg)|
+|OpenFaaS|`si/openfaas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openfaas.svg)|
+|OpenGL|`si/opengl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opengl.svg)|
+|openHAB|`si/openhab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openhab.svg)|
+|OpenID|`si/openid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openid.svg)|
+|OpenJDK|`si/openjdk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openjdk.svg)|
+|OpenJS Foundation|`si/openjsfoundation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openjsfoundation.svg)|
+|Openlayers|`si/openlayers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openlayers.svg)|
+|openmediavault|`si/openmediavault`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openmediavault.svg)|
+|OpenMined|`si/openmined`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openmined.svg)|
+|OpenNebula|`si/opennebula`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opennebula.svg)|
+|OpenProject|`si/openproject`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openproject.svg)|
+|OpenRouter|`si/openrouter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openrouter.svg)|
+|OpenSCAD|`si/openscad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openscad.svg)|
+|OpenSea|`si/opensea`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opensea.svg)|
+|OpenSearch|`si/opensearch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opensearch.svg)|
+|OpenSSL|`si/openssl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openssl.svg)|
+|OpenStack|`si/openstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openstack.svg)|
+|OpenStreetMap|`si/openstreetmap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openstreetmap.svg)|
+|openSUSE|`si/opensuse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opensuse.svg)|
+|OpenTelemetry|`si/opentelemetry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opentelemetry.svg)|
+|OpenText|`si/opentext`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opentext.svg)|
+|OpenTofu|`si/opentofu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opentofu.svg)|
+|Openverse|`si/openverse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openverse.svg)|
+|OpenVPN|`si/openvpn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openvpn.svg)|
+|OpenWrt|`si/openwrt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openwrt.svg)|
+|OpenZeppelin|`si/openzeppelin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openzeppelin.svg)|
+|OpenZFS|`si/openzfs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/openzfs.svg)|
+|Opera|`si/opera`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opera.svg)|
+|Opera GX|`si/operagx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/operagx.svg)|
+|OPNsense|`si/opnsense`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opnsense.svg)|
+|OPPO|`si/oppo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oppo.svg)|
+|Opsgenie|`si/opsgenie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opsgenie.svg)|
+|OpsLevel|`si/opslevel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/opslevel.svg)|
+|Optimism|`si/optimism`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/optimism.svg)|
+|Optuna|`si/optuna`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/optuna.svg)|
+|Orange|`si/orange`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/orange.svg)|
+|Orchard Core|`si/orchardcore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/orchardcore.svg)|
+|ORCID|`si/orcid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/orcid.svg)|
+|Org|`si/org`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/org.svg)|
+|Organic Maps|`si/organicmaps`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/organicmaps.svg)|
+|Origin|`si/origin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/origin.svg)|
+|Ory|`si/ory`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ory.svg)|
+|Osano|`si/osano`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/osano.svg)|
+|OSF|`si/osf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/osf.svg)|
+|OSGeo|`si/osgeo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/osgeo.svg)|
+|Oshkosh|`si/oshkosh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oshkosh.svg)|
+|OsmAnd|`si/osmand`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/osmand.svg)|
+|OSMC|`si/osmc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/osmc.svg)|
+|osu!|`si/osu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/osu.svg)|
+|Otto|`si/otto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/otto.svg)|
+|Outline|`si/outline`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/outline.svg)|
+|Overcast|`si/overcast`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/overcast.svg)|
+|Overleaf|`si/overleaf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/overleaf.svg)|
+|OVH|`si/ovh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ovh.svg)|
+|OWASP|`si/owasp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/owasp.svg)|
+|OWASP Dependency-Check|`si/dependencycheck`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/dependencycheck.svg)|
+|ownCloud|`si/owncloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/owncloud.svg)|
+|Oxc|`si/oxc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oxc.svg)|
+|Oxygen|`si/oxygen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oxygen.svg)|
+|OYO|`si/oyo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/oyo.svg)|
+|p5.js|`si/p5dotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/p5dotjs.svg)|
+|Packagist|`si/packagist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/packagist.svg)|
+|Packer|`si/packer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/packer.svg)|
+|Packt|`si/packt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/packt.svg)|
+|Paddle|`si/paddle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paddle.svg)|
+|PaddlePaddle|`si/paddlepaddle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paddlepaddle.svg)|
+|Paddy Power|`si/paddypower`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paddypower.svg)|
+|Padlet|`si/padlet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/padlet.svg)|
+|Pagekit|`si/pagekit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pagekit.svg)|
+|PagerDuty|`si/pagerduty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pagerduty.svg)|
+|PageSpeed Insights|`si/pagespeedinsights`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pagespeedinsights.svg)|
+|PagSeguro|`si/pagseguro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pagseguro.svg)|
+|Palantir|`si/palantir`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/palantir.svg)|
+|Palo Alto Networks|`si/paloaltonetworks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paloaltonetworks.svg)|
+|Palo Alto Software|`si/paloaltosoftware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paloaltosoftware.svg)|
+|Panasonic|`si/panasonic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/panasonic.svg)|
+|pandas|`si/pandas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pandas.svg)|
+|Pandoc|`si/pandoc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pandoc.svg)|
+|Pandora|`si/pandora`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pandora.svg)|
+|Pangolin|`si/pangolin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pangolin.svg)|
+|Pantheon|`si/pantheon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pantheon.svg)|
+|Paperless-ngx|`si/paperlessngx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paperlessngx.svg)|
+|Papers With Code|`si/paperswithcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paperswithcode.svg)|
+|Paperspace|`si/paperspace`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paperspace.svg)|
+|Paradox Interactive|`si/paradoxinteractive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paradoxinteractive.svg)|
+|Paramount+|`si/paramountplus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paramountplus.svg)|
+|Parity Substrate|`si/paritysubstrate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paritysubstrate.svg)|
+|Parrot Security|`si/parrotsecurity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/parrotsecurity.svg)|
+|Parse.ly|`si/parsedotly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/parsedotly.svg)|
+|Passbolt|`si/passbolt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/passbolt.svg)|
+|Passport|`si/passport`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/passport.svg)|
+|Pastebin|`si/pastebin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pastebin.svg)|
+|Patreon|`si/patreon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/patreon.svg)|
+|PAYBACK|`si/payback`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/payback.svg)|
+|Paychex|`si/paychex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paychex.svg)|
+|Payhip|`si/payhip`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/payhip.svg)|
+|Payload CMS|`si/payloadcms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/payloadcms.svg)|
+|Payoneer|`si/payoneer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/payoneer.svg)|
+|PayPal|`si/paypal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paypal.svg)|
+|Paysafe|`si/paysafe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paysafe.svg)|
+|Paytm|`si/paytm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/paytm.svg)|
+|PCGamingWiki|`si/pcgamingwiki`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pcgamingwiki.svg)|
+|PDM|`si/pdm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pdm.svg)|
+|PDQ|`si/pdq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pdq.svg)|
+|Peak Design|`si/peakdesign`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/peakdesign.svg)|
+|Pearson|`si/pearson`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pearson.svg)|
+|Peerlist|`si/peerlist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/peerlist.svg)|
+|PeerTube|`si/peertube`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/peertube.svg)|
+|Pegasus Airlines|`si/pegasusairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pegasusairlines.svg)|
+|Pelican|`si/pelican`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pelican.svg)|
+|Peloton|`si/peloton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/peloton.svg)|
+|Penny|`si/penny`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/penny.svg)|
+|Penpot|`si/penpot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/penpot.svg)|
+|Percy|`si/percy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/percy.svg)|
+|Perforce|`si/perforce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/perforce.svg)|
+|Perl|`si/perl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/perl.svg)|
+|Perplexity|`si/perplexity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/perplexity.svg)|
+|Persistent|`si/persistent`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/persistent.svg)|
+|Personio|`si/personio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/personio.svg)|
+|Pets at Home|`si/petsathome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/petsathome.svg)|
+|Peugeot|`si/peugeot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/peugeot.svg)|
+|Pexels|`si/pexels`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pexels.svg)|
+|pfSense|`si/pfsense`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pfsense.svg)|
+|Phabricator|`si/phabricator`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/phabricator.svg)|
+|Philips Hue|`si/philipshue`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/philipshue.svg)|
+|Phoenix Framework|`si/phoenixframework`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/phoenixframework.svg)|
+|PhonePe|`si/phonepe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/phonepe.svg)|
+|Phosphor Icons|`si/phosphoricons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/phosphoricons.svg)|
+|Photobucket|`si/photobucket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/photobucket.svg)|
+|Photocrowd|`si/photocrowd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/photocrowd.svg)|
+|Photon|`si/photon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/photon.svg)|
+|Photopea|`si/photopea`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/photopea.svg)|
+|PHP|`si/php`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/php.svg)|
+|phpBB|`si/phpbb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/phpbb.svg)|
+|phpMyAdmin|`si/phpmyadmin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/phpmyadmin.svg)|
+|PhpStorm|`si/phpstorm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/phpstorm.svg)|
+|Pi Network|`si/pinetwork`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pinetwork.svg)|
+|Pi-hole|`si/pihole`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pihole.svg)|
+|Piaggio Group|`si/piaggiogroup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/piaggiogroup.svg)|
+|Piapro|`si/piapro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/piapro.svg)|
+|Picard Surgelés|`si/picardsurgeles`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/picardsurgeles.svg)|
+|Picarto.TV|`si/picartodottv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/picartodottv.svg)|
+|Picnic|`si/picnic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/picnic.svg)|
+|PicPay|`si/picpay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/picpay.svg)|
+|Picrew|`si/picrew`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/picrew.svg)|
+|Picsart|`si/picsart`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/picsart.svg)|
+|Picxy|`si/picxy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/picxy.svg)|
+|Pimcore|`si/pimcore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pimcore.svg)|
+|Pinboard|`si/pinboard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pinboard.svg)|
+|Pine Script|`si/pinescript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pinescript.svg)|
+|Pingdom|`si/pingdom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pingdom.svg)|
+|Pinia|`si/pinia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pinia.svg)|
+|pino|`si/pino`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pino.svg)|
+|Pinterest|`si/pinterest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pinterest.svg)|
+|Pioneer DJ|`si/pioneerdj`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pioneerdj.svg)|
+|Pipecat|`si/pipecat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pipecat.svg)|
+|Piped|`si/piped`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/piped.svg)|
+|pipx|`si/pipx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pipx.svg)|
+|Pivotal Tracker|`si/pivotaltracker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pivotaltracker.svg)|
+|Piwigo|`si/piwigo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/piwigo.svg)|
+|Pix|`si/pix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pix.svg)|
+|Pixabay|`si/pixabay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pixabay.svg)|
+|Pixelfed|`si/pixelfed`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pixelfed.svg)|
+|pixiv|`si/pixiv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pixiv.svg)|
+|Pixlr|`si/pixlr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pixlr.svg)|
+|pkgsrc|`si/pkgsrc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pkgsrc.svg)|
+|Plane|`si/plane`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plane.svg)|
+|Planet|`si/planet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/planet.svg)|
+|PlanetScale|`si/planetscale`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/planetscale.svg)|
+|PlanGrid|`si/plangrid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plangrid.svg)|
+|Platform.sh|`si/platformdotsh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/platformdotsh.svg)|
+|PlatformIO|`si/platformio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/platformio.svg)|
+|Platzi|`si/platzi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/platzi.svg)|
+|Plausible Analytics|`si/plausibleanalytics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plausibleanalytics.svg)|
+|PlayCanvas|`si/playcanvas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playcanvas.svg)|
+|Player FM|`si/playerfm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playerfm.svg)|
+|Player.me|`si/playerdotme`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playerdotme.svg)|
+|PlayStation|`si/playstation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playstation.svg)|
+|PlayStation 2|`si/playstation2`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playstation2.svg)|
+|PlayStation 3|`si/playstation3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playstation3.svg)|
+|PlayStation 4|`si/playstation4`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playstation4.svg)|
+|PlayStation 5|`si/playstation5`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playstation5.svg)|
+|PlayStation Portable|`si/playstationportable`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playstationportable.svg)|
+|PlayStation Vita|`si/playstationvita`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/playstationvita.svg)|
+|Pleroma|`si/pleroma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pleroma.svg)|
+|Plesk|`si/plesk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plesk.svg)|
+|Plex|`si/plex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plex.svg)|
+|Plotly|`si/plotly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plotly.svg)|
+|Plume|`si/plume`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plume.svg)|
+|Pluralsight|`si/pluralsight`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pluralsight.svg)|
+|Plurk|`si/plurk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/plurk.svg)|
+|PM2|`si/pm2`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pm2.svg)|
+|pnpm|`si/pnpm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pnpm.svg)|
+|Pocket Casts|`si/pocketcasts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pocketcasts.svg)|
+|PocketBase|`si/pocketbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pocketbase.svg)|
+|Podcast Addict|`si/podcastaddict`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/podcastaddict.svg)|
+|Podcast Index|`si/podcastindex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/podcastindex.svg)|
+|Podman|`si/podman`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/podman.svg)|
+|Poe|`si/poe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/poe.svg)|
+|Poetry|`si/poetry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/poetry.svg)|
+|Polars|`si/polars`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/polars.svg)|
+|Polestar|`si/polestar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/polestar.svg)|
+|Polkadot|`si/polkadot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/polkadot.svg)|
+|Poly|`si/poly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/poly.svg)|
+|Polygon|`si/polygon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/polygon.svg)|
+|Polymer Project|`si/polymerproject`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/polymerproject.svg)|
+|Polywork|`si/polywork`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/polywork.svg)|
+|Pomerium|`si/pomerium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pomerium.svg)|
+|Pond5|`si/pond5`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pond5.svg)|
+|Pop!_OS|`si/popos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/popos.svg)|
+|Porkbun|`si/porkbun`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/porkbun.svg)|
+|Porsche|`si/porsche`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/porsche.svg)|
+|PortableApps.com|`si/portableappsdotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/portableappsdotcom.svg)|
+|Portainer|`si/portainer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/portainer.svg)|
+|PortSwigger|`si/portswigger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/portswigger.svg)|
+|Posit|`si/posit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/posit.svg)|
+|PostCSS|`si/postcss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/postcss.svg)|
+|PostgreSQL|`si/postgresql`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/postgresql.svg)|
+|PostHog|`si/posthog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/posthog.svg)|
+|Postiz|`si/postiz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/postiz.svg)|
+|Postman|`si/postman`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/postman.svg)|
+|Postmates|`si/postmates`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/postmates.svg)|
+|POWERS|`si/powers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/powers.svg)|
+|pr.co|`si/prdotco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prdotco.svg)|
+|pre-commit|`si/precommit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/precommit.svg)|
+|Preact|`si/preact`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/preact.svg)|
+|Prefect|`si/prefect`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prefect.svg)|
+|prek|`si/prek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prek.svg)|
+|PreMiD|`si/premid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/premid.svg)|
+|Premier League|`si/premierleague`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/premierleague.svg)|
+|PrepBytes|`si/prepbytes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prepbytes.svg)|
+|PrestaShop|`si/prestashop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prestashop.svg)|
+|Presto|`si/presto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/presto.svg)|
+|Prettier|`si/prettier`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prettier.svg)|
+|Pretzel|`si/pretzel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pretzel.svg)|
+|Prevention|`si/prevention`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prevention.svg)|
+|Prezi|`si/prezi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prezi.svg)|
+|PrimeFaces|`si/primefaces`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/primefaces.svg)|
+|PrimeNG|`si/primeng`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/primeng.svg)|
+|PrimeReact|`si/primereact`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/primereact.svg)|
+|PrimeVue|`si/primevue`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/primevue.svg)|
+|Printables|`si/printables`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/printables.svg)|
+|Prisma|`si/prisma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prisma.svg)|
+|Prismic|`si/prismic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prismic.svg)|
+|Private Division|`si/privatedivision`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/privatedivision.svg)|
+|Private Internet Access|`si/privateinternetaccess`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/privateinternetaccess.svg)|
+|Pro Tools|`si/protools`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protools.svg)|
+|Probot|`si/probot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/probot.svg)|
+|Processing Foundation|`si/processingfoundation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/processingfoundation.svg)|
+|ProcessOn|`si/processon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/processon.svg)|
+|ProcessWire|`si/processwire`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/processwire.svg)|
+|Product Hunt|`si/producthunt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/producthunt.svg)|
+|Progate|`si/progate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/progate.svg)|
+|Progress|`si/progress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/progress.svg)|
+|Prometheus|`si/prometheus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prometheus.svg)|
+|Pronouns.page|`si/pronounsdotpage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pronounsdotpage.svg)|
+|ProseMirror|`si/prosemirror`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prosemirror.svg)|
+|ProSieben|`si/prosieben`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/prosieben.svg)|
+|Proteus|`si/proteus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/proteus.svg)|
+|Proto.io|`si/protodotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protodotio.svg)|
+|protocols.io|`si/protocolsdotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protocolsdotio.svg)|
+|Proton|`si/proton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/proton.svg)|
+|Proton Calendar|`si/protoncalendar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protoncalendar.svg)|
+|Proton Drive|`si/protondrive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protondrive.svg)|
+|Proton Mail|`si/protonmail`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protonmail.svg)|
+|Proton VPN|`si/protonvpn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protonvpn.svg)|
+|ProtonDB|`si/protondb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protondb.svg)|
+|Protractor|`si/protractor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/protractor.svg)|
+|Proxmox|`si/proxmox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/proxmox.svg)|
+|Pterodactyl|`si/pterodactyl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pterodactyl.svg)|
+|PUBG|`si/pubg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pubg.svg)|
+|Publons|`si/publons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/publons.svg)|
+|PubMed|`si/pubmed`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pubmed.svg)|
+|Pug|`si/pug`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pug.svg)|
+|Pulumi|`si/pulumi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pulumi.svg)|
+|Puma|`si/puma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/puma.svg)|
+|Puppet|`si/puppet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/puppet.svg)|
+|Puppeteer|`si/puppeteer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/puppeteer.svg)|
+|PureScript|`si/purescript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/purescript.svg)|
+|PurgeCSS|`si/purgecss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/purgecss.svg)|
+|Purism|`si/purism`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/purism.svg)|
+|Pushbullet|`si/pushbullet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pushbullet.svg)|
+|Pusher|`si/pusher`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pusher.svg)|
+|PWA|`si/pwa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pwa.svg)|
+|PyCharm|`si/pycharm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pycharm.svg)|
+|PyCQA|`si/pycqa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pycqa.svg)|
+|Pydantic|`si/pydantic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pydantic.svg)|
+|PyG|`si/pyg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pyg.svg)|
+|PyPI|`si/pypi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pypi.svg)|
+|PyPy|`si/pypy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pypy.svg)|
+|PyScaffold|`si/pyscaffold`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pyscaffold.svg)|
+|PySyft|`si/pysyft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pysyft.svg)|
+|Pytest|`si/pytest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pytest.svg)|
+|Python|`si/python`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/python.svg)|
+|PythonAnywhere|`si/pythonanywhere`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pythonanywhere.svg)|
+|PyTorch|`si/pytorch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pytorch.svg)|
+|PyUp|`si/pyup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/pyup.svg)|
+|Qantas|`si/qantas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qantas.svg)|
+|Qase|`si/qase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qase.svg)|
+|Qatar Airways|`si/qatarairways`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qatarairways.svg)|
+|qbittorrent|`si/qbittorrent`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qbittorrent.svg)|
+|Qdrant|`si/qdrant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qdrant.svg)|
+|QEMU|`si/qemu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qemu.svg)|
+|QGIS|`si/qgis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qgis.svg)|
+|Qi|`si/qi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qi.svg)|
+|Qiita|`si/qiita`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qiita.svg)|
+|Qiskit|`si/qiskit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qiskit.svg)|
+|QIWI|`si/qiwi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qiwi.svg)|
+|Qlik|`si/qlik`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qlik.svg)|
+|Qlty|`si/qlty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qlty.svg)|
+|QMK|`si/qmk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qmk.svg)|
+|QNAP|`si/qnap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qnap.svg)|
+|Qodo|`si/qodo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qodo.svg)|
+|QQ|`si/qq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qq.svg)|
+|Qt|`si/qt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qt.svg)|
+|Quad9|`si/quad9`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quad9.svg)|
+|Qualcomm|`si/qualcomm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qualcomm.svg)|
+|Qualtrics|`si/qualtrics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qualtrics.svg)|
+|Qualys|`si/qualys`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qualys.svg)|
+|Quantcast|`si/quantcast`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quantcast.svg)|
+|QuantConnect|`si/quantconnect`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quantconnect.svg)|
+|Quarkus|`si/quarkus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quarkus.svg)|
+|Quarto|`si/quarto`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quarto.svg)|
+|Quasar|`si/quasar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quasar.svg)|
+|Qubes OS|`si/qubesos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qubesos.svg)|
+|Quest|`si/quest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quest.svg)|
+|QuickBooks|`si/quickbooks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quickbooks.svg)|
+|QuickLook|`si/quicklook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quicklook.svg)|
+|QuickTime|`si/quicktime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quicktime.svg)|
+|quicktype|`si/quicktype`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quicktype.svg)|
+|Quizlet|`si/quizlet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quizlet.svg)|
+|Quora|`si/quora`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/quora.svg)|
+|Qwant|`si/qwant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qwant.svg)|
+|QWen|`si/qwen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qwen.svg)|
+|Qwik|`si/qwik`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qwik.svg)|
+|Qwiklabs|`si/qwiklabs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qwiklabs.svg)|
+|Qzone|`si/qzone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/qzone.svg)|
+|R|`si/r`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/r.svg)|
+|R3|`si/r3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/r3.svg)|
+|RabbitMQ|`si/rabbitmq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rabbitmq.svg)|
+|Racket|`si/racket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/racket.svg)|
+|RAD Studio|`si/radstudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/radstudio.svg)|
+|Radar|`si/radar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/radar.svg)|
+|radarr|`si/radarr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/radarr.svg)|
+|Radio France|`si/radiofrance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/radiofrance.svg)|
+|Radix UI|`si/radixui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/radixui.svg)|
+|Railway|`si/railway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/railway.svg)|
+|Rainmeter|`si/rainmeter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rainmeter.svg)|
+|RainYun|`si/rainyun`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rainyun.svg)|
+|Rakuten|`si/rakuten`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rakuten.svg)|
+|Rakuten Kobo|`si/rakutenkobo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rakutenkobo.svg)|
+|Ram|`si/ram`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ram.svg)|
+|Rancher|`si/rancher`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rancher.svg)|
+|Rapid|`si/rapid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rapid.svg)|
+|Rarible|`si/rarible`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rarible.svg)|
+|Rasa|`si/rasa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rasa.svg)|
+|Raspberry Pi|`si/raspberrypi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/raspberrypi.svg)|
+|Ratatui|`si/ratatui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ratatui.svg)|
+|Ravelry|`si/ravelry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ravelry.svg)|
+|Ray|`si/ray`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ray.svg)|
+|Raycast|`si/raycast`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/raycast.svg)|
+|Raylib|`si/raylib`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/raylib.svg)|
+|Razer|`si/razer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/razer.svg)|
+|Razorpay|`si/razorpay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/razorpay.svg)|
+|Rclone|`si/rclone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rclone.svg)|
+|React|`si/react`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/react.svg)|
+|React Bootstrap|`si/reactbootstrap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reactbootstrap.svg)|
+|React Hook Form|`si/reacthookform`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reacthookform.svg)|
+|React Query|`si/reactquery`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reactquery.svg)|
+|React Router|`si/reactrouter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reactrouter.svg)|
+|React Table|`si/reacttable`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reacttable.svg)|
+|Reactive Resume|`si/reactiveresume`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reactiveresume.svg)|
+|ReactiveX|`si/reactivex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reactivex.svg)|
+|ReactOS|`si/reactos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reactos.svg)|
+|Read the Docs|`si/readthedocs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/readthedocs.svg)|
+|Read.cv|`si/readdotcv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/readdotcv.svg)|
+|ReadMe|`si/readme`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/readme.svg)|
+|Reason|`si/reason`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reason.svg)|
+|Reason Studios|`si/reasonstudios`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reasonstudios.svg)|
+|Recoil|`si/recoil`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/recoil.svg)|
+|Red|`si/red`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/red.svg)|
+|Red Bull|`si/redbull`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redbull.svg)|
+|Red Candle Games|`si/redcandlegames`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redcandlegames.svg)|
+|Red Hat|`si/redhat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redhat.svg)|
+|Red Hat Open Shift|`si/redhatopenshift`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redhatopenshift.svg)|
+|Redash|`si/redash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redash.svg)|
+|Redbubble|`si/redbubble`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redbubble.svg)|
+|Reddit|`si/reddit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reddit.svg)|
+|Redis|`si/redis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redis.svg)|
+|Redmine|`si/redmine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redmine.svg)|
+|Redox|`si/redox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redox.svg)|
+|Redragon|`si/redragon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redragon.svg)|
+|Redsys|`si/redsys`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redsys.svg)|
+|Redux|`si/redux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redux.svg)|
+|Redux-Saga|`si/reduxsaga`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reduxsaga.svg)|
+|RedwoodJS|`si/redwoodjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/redwoodjs.svg)|
+|Reebok|`si/reebok`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reebok.svg)|
+|Refine|`si/refine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/refine.svg)|
+|Refined GitHub|`si/refinedgithub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/refinedgithub.svg)|
+|Reflex|`si/reflex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reflex.svg)|
+|Reka UI|`si/rekaui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rekaui.svg)|
+|Relay|`si/relay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/relay.svg)|
+|Reliance Industries Limited|`si/relianceindustrieslimited`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/relianceindustrieslimited.svg)|
+|remark|`si/remark`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/remark.svg)|
+|Remedy Entertainment|`si/remedyentertainment`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/remedyentertainment.svg)|
+|Remix|`si/remix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/remix.svg)|
+|remove.bg|`si/removedotbg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/removedotbg.svg)|
+|Ren'Py|`si/renpy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/renpy.svg)|
+|Renault|`si/renault`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/renault.svg)|
+|Render|`si/render`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/render.svg)|
+|Renovate|`si/renovate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/renovate.svg)|
+|Renren|`si/renren`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/renren.svg)|
+|Replicate|`si/replicate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/replicate.svg)|
+|Replit|`si/replit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/replit.svg)|
+|Republic of Gamers|`si/republicofgamers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/republicofgamers.svg)|
+|ReScript|`si/rescript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rescript.svg)|
+|RescueTime|`si/rescuetime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rescuetime.svg)|
+|ResearchGate|`si/researchgate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/researchgate.svg)|
+|Resend|`si/resend`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/resend.svg)|
+|ReSharper|`si/resharper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/resharper.svg)|
+|Resurrection Remix OS|`si/resurrectionremixos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/resurrectionremixos.svg)|
+|Retool|`si/retool`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/retool.svg)|
+|Retro Achievements|`si/retroachievements`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/retroachievements.svg)|
+|RetroArch|`si/retroarch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/retroarch.svg)|
+|RetroPie|`si/retropie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/retropie.svg)|
+|ReVanced|`si/revanced`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/revanced.svg)|
+|reveal.js|`si/revealdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/revealdotjs.svg)|
+|RevenueCat|`si/revenuecat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/revenuecat.svg)|
+|ReverbNation|`si/reverbnation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/reverbnation.svg)|
+|Revolt.chat|`si/revoltdotchat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/revoltdotchat.svg)|
+|Revolut|`si/revolut`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/revolut.svg)|
+|REWE|`si/rewe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rewe.svg)|
+|Rezgo|`si/rezgo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rezgo.svg)|
+|Rhinoceros|`si/rhinoceros`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rhinoceros.svg)|
+|Rich|`si/rich`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rich.svg)|
+|Rider|`si/rider`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rider.svg)|
+|Rimac Automobili|`si/rimacautomobili`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rimacautomobili.svg)|
+|Rime|`si/rime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rime.svg)|
+|Ring|`si/ring`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ring.svg)|
+|Riot Games|`si/riotgames`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/riotgames.svg)|
+|Ripple|`si/ripple`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ripple.svg)|
+|RISC-V|`si/riscv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/riscv.svg)|
+|Riseup|`si/riseup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/riseup.svg)|
+|Ritz Carlton|`si/ritzcarlton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ritzcarlton.svg)|
+|Rive|`si/rive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rive.svg)|
+|roadmap.sh|`si/roadmapdotsh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roadmapdotsh.svg)|
+|Roam Research|`si/roamresearch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roamresearch.svg)|
+|Robinhood|`si/robinhood`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/robinhood.svg)|
+|Roblox|`si/roblox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roblox.svg)|
+|Roblox Studio|`si/robloxstudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/robloxstudio.svg)|
+|Roboflow|`si/roboflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roboflow.svg)|
+|Robot Framework|`si/robotframework`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/robotframework.svg)|
+|Rocket|`si/rocket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rocket.svg)|
+|Rocket.Chat|`si/rocketdotchat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rocketdotchat.svg)|
+|RocksDB|`si/rocksdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rocksdb.svg)|
+|Rockstar Games|`si/rockstargames`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rockstargames.svg)|
+|Rockwell Automation|`si/rockwellautomation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rockwellautomation.svg)|
+|Rocky Linux|`si/rockylinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rockylinux.svg)|
+|Roku|`si/roku`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roku.svg)|
+|Roll20|`si/roll20`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roll20.svg)|
+|Rollbar|`si/rollbar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rollbar.svg)|
+|Rolldown|`si/rolldown`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rolldown.svg)|
+|Rolls-Royce|`si/rollsroyce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rollsroyce.svg)|
+|rollup.js|`si/rollupdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rollupdotjs.svg)|
+|Rook|`si/rook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rook.svg)|
+|Roon|`si/roon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roon.svg)|
+|ROOT|`si/root`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/root.svg)|
+|Root Me|`si/rootme`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rootme.svg)|
+|Roots|`si/roots`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roots.svg)|
+|Roots Bedrock|`si/rootsbedrock`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rootsbedrock.svg)|
+|Roots Sage|`si/rootssage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rootssage.svg)|
+|ROS|`si/ros`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ros.svg)|
+|Rossmann|`si/rossmann`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rossmann.svg)|
+|Rotary International|`si/rotaryinternational`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rotaryinternational.svg)|
+|Rotten Tomatoes|`si/rottentomatoes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rottentomatoes.svg)|
+|Roundcube|`si/roundcube`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/roundcube.svg)|
+|RSocket|`si/rsocket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rsocket.svg)|
+|RSS|`si/rss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rss.svg)|
+|RStudio IDE|`si/rstudioide`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rstudioide.svg)|
+|RTÉ|`si/rte`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rte.svg)|
+|RTL|`si/rtl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rtl.svg)|
+|RTLZWEI|`si/rtlzwei`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rtlzwei.svg)|
+|RTM|`si/rtm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rtm.svg)|
+|RuboCop|`si/rubocop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rubocop.svg)|
+|Ruby|`si/ruby`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ruby.svg)|
+|Ruby on Rails|`si/rubyonrails`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rubyonrails.svg)|
+|Ruby Sinatra|`si/rubysinatra`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rubysinatra.svg)|
+|RubyGems|`si/rubygems`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rubygems.svg)|
+|RubyMine|`si/rubymine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rubymine.svg)|
+|Ruff|`si/ruff`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ruff.svg)|
+|Rumahweb|`si/rumahweb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rumahweb.svg)|
+|Rumble|`si/rumble`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rumble.svg)|
+|Rundeck|`si/rundeck`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rundeck.svg)|
+|Runkeeper|`si/runkeeper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/runkeeper.svg)|
+|RunKit|`si/runkit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/runkit.svg)|
+|Runrun.it|`si/runrundotit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/runrundotit.svg)|
+|Rust|`si/rust`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rust.svg)|
+|RustDesk|`si/rustdesk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rustdesk.svg)|
+|RustFS|`si/rustfs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rustfs.svg)|
+|RxDB|`si/rxdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rxdb.svg)|
+|Ryanair|`si/ryanair`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ryanair.svg)|
+|Rye|`si/rye`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/rye.svg)|
+|S7 Airlines|`si/s7airlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/s7airlines.svg)|
+|Sabanci|`si/sabanci`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sabanci.svg)|
+|Safari|`si/safari`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/safari.svg)|
+|Sage|`si/sage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sage.svg)|
+|SageMath|`si/sagemath`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sagemath.svg)|
+|Sahibinden|`si/sahibinden`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sahibinden.svg)|
+|Sailfish OS|`si/sailfishos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sailfishos.svg)|
+|Sails.js|`si/sailsdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sailsdotjs.svg)|
+|Salla|`si/salla`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/salla.svg)|
+|Salt Project|`si/saltproject`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/saltproject.svg)|
+|Sam's Club|`si/samsclub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/samsclub.svg)|
+|Samsung|`si/samsung`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/samsung.svg)|
+|Samsung Pay|`si/samsungpay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/samsungpay.svg)|
+|San Francisco Municipal Railway|`si/sanfranciscomunicipalrailway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sanfranciscomunicipalrailway.svg)|
+|Sanic|`si/sanic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sanic.svg)|
+|Sanity|`si/sanity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sanity.svg)|
+|São Paulo Metro|`si/saopaulometro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/saopaulometro.svg)|
+|SAP|`si/sap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sap.svg)|
+|Sartorius|`si/sartorius`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sartorius.svg)|
+|Sass|`si/sass`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sass.svg)|
+|Sat.1|`si/sat1`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sat1.svg)|
+|Satellite|`si/satellite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/satellite.svg)|
+|Saturn|`si/saturn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/saturn.svg)|
+|Sauce Labs|`si/saucelabs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/saucelabs.svg)|
+|Saudia|`si/saudia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/saudia.svg)|
+|Scala|`si/scala`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scala.svg)|
+|Scalar|`si/scalar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scalar.svg)|
+|Scaleway|`si/scaleway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scaleway.svg)|
+|Scan|`si/scan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scan.svg)|
+|Scania|`si/scania`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scania.svg)|
+|Schneider Electric|`si/schneiderelectric`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/schneiderelectric.svg)|
+|scikit-learn|`si/scikitlearn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scikitlearn.svg)|
+|Scilab|`si/scilab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scilab.svg)|
+|SciPy|`si/scipy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scipy.svg)|
+|Scopus|`si/scopus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scopus.svg)|
+|SCP Foundation|`si/scpfoundation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scpfoundation.svg)|
+|Scrapbox|`si/scrapbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scrapbox.svg)|
+|Scrapy|`si/scrapy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scrapy.svg)|
+|Scratch|`si/scratch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scratch.svg)|
+|Screencastify|`si/screencastify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/screencastify.svg)|
+|Scrimba|`si/scrimba`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scrimba.svg)|
+|ScrollReveal|`si/scrollreveal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scrollreveal.svg)|
+|Scrum Alliance|`si/scrumalliance`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scrumalliance.svg)|
+|Scrutinizer CI|`si/scrutinizerci`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scrutinizerci.svg)|
+|ScyllaDB|`si/scylladb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/scylladb.svg)|
+|Seafile|`si/seafile`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/seafile.svg)|
+|Seagate|`si/seagate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/seagate.svg)|
+|SearXNG|`si/searxng`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/searxng.svg)|
+|SEAT|`si/seat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/seat.svg)|
+|SeatGeek|`si/seatgeek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/seatgeek.svg)|
+|SecurityScorecard|`si/securityscorecard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/securityscorecard.svg)|
+|Sefaria|`si/sefaria`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sefaria.svg)|
+|Sega|`si/sega`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sega.svg)|
+|Selenium|`si/selenium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/selenium.svg)|
+|Sellfy|`si/sellfy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sellfy.svg)|
+|Semantic Scholar|`si/semanticscholar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semanticscholar.svg)|
+|Semantic UI|`si/semanticui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semanticui.svg)|
+|Semantic UI React|`si/semanticuireact`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semanticuireact.svg)|
+|Semantic Web|`si/semanticweb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semanticweb.svg)|
+|semantic-release|`si/semanticrelease`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semanticrelease.svg)|
+|Semaphore CI|`si/semaphoreci`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semaphoreci.svg)|
+|Semrush|`si/semrush`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semrush.svg)|
+|SemVer|`si/semver`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/semver.svg)|
+|Sencha|`si/sencha`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sencha.svg)|
+|Sennheiser|`si/sennheiser`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sennheiser.svg)|
+|Sensu|`si/sensu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sensu.svg)|
+|Sentry|`si/sentry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sentry.svg)|
+|SEPA|`si/sepa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sepa.svg)|
+|Sequelize|`si/sequelize`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sequelize.svg)|
+|ServBay|`si/servbay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/servbay.svg)|
+|Server Fault|`si/serverfault`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/serverfault.svg)|
+|Serverless|`si/serverless`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/serverless.svg)|
+|Session|`si/session`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/session.svg)|
+|Sessionize|`si/sessionize`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sessionize.svg)|
+|Setapp|`si/setapp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/setapp.svg)|
+|Setuptools|`si/setuptools`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/setuptools.svg)|
+|SFML|`si/sfml`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sfml.svg)|
+|shadcn/ui|`si/shadcnui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shadcnui.svg)|
+|Shadow|`si/shadow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shadow.svg)|
+|Shanghai Metro|`si/shanghaimetro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shanghaimetro.svg)|
+|ShareX|`si/sharex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sharex.svg)|
+|sharp|`si/sharp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sharp.svg)|
+|Shazam|`si/shazam`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shazam.svg)|
+|Shell|`si/shell`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shell.svg)|
+|Shelly|`si/shelly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shelly.svg)|
+|Shenzhen Metro|`si/shenzhenmetro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shenzhenmetro.svg)|
+|Shields.io|`si/shieldsdotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shieldsdotio.svg)|
+|Shikimori|`si/shikimori`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shikimori.svg)|
+|Shopee|`si/shopee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shopee.svg)|
+|Shopify|`si/shopify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shopify.svg)|
+|Shopware|`si/shopware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shopware.svg)|
+|Shortcut|`si/shortcut`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/shortcut.svg)|
+|Showpad|`si/showpad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/showpad.svg)|
+|Showtime|`si/showtime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/showtime.svg)|
+|Showwcase|`si/showwcase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/showwcase.svg)|
+|Sidekiq|`si/sidekiq`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sidekiq.svg)|
+|SideQuest|`si/sidequest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sidequest.svg)|
+|Siemens|`si/siemens`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/siemens.svg)|
+|SiFive|`si/sifive`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sifive.svg)|
+|Signal|`si/signal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/signal.svg)|
+|Silver Airways|`si/silverairways`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/silverairways.svg)|
+|Similarweb|`si/similarweb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/similarweb.svg)|
+|Simkl|`si/simkl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/simkl.svg)|
+|Simple Analytics|`si/simpleanalytics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/simpleanalytics.svg)|
+|Simple Icons|`si/simpleicons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/simpleicons.svg)|
+|SimpleLocalize|`si/simplelocalize`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/simplelocalize.svg)|
+|SimpleLogin|`si/simplelogin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/simplelogin.svg)|
+|Simplenote|`si/simplenote`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/simplenote.svg)|
+|SimpleX|`si/simplex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/simplex.svg)|
+|Sina Weibo|`si/sinaweibo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sinaweibo.svg)|
+|Singapore Airlines|`si/singaporeairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/singaporeairlines.svg)|
+|SingleStore|`si/singlestore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/singlestore.svg)|
+|Sitecore|`si/sitecore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sitecore.svg)|
+|SitePoint|`si/sitepoint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sitepoint.svg)|
+|SiYuan|`si/siyuan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/siyuan.svg)|
+|Skaffold|`si/skaffold`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/skaffold.svg)|
+|Skeleton|`si/skeleton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/skeleton.svg)|
+|Sketch|`si/sketch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sketch.svg)|
+|Sketchfab|`si/sketchfab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sketchfab.svg)|
+|SketchUp|`si/sketchup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sketchup.svg)|
+|Skillshare|`si/skillshare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/skillshare.svg)|
+|ŠKODA|`si/skoda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/skoda.svg)|
+|Sky|`si/sky`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sky.svg)|
+|Skypack|`si/skypack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/skypack.svg)|
+|Slackware|`si/slackware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/slackware.svg)|
+|Slashdot|`si/slashdot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/slashdot.svg)|
+|SlickPic|`si/slickpic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/slickpic.svg)|
+|Slides|`si/slides`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/slides.svg)|
+|SlideShare|`si/slideshare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/slideshare.svg)|
+|Slint|`si/slint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/slint.svg)|
+|smart|`si/smart`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/smart.svg)|
+|SmartThings|`si/smartthings`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/smartthings.svg)|
+|Smashing Magazine|`si/smashingmagazine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/smashingmagazine.svg)|
+|Smoothcomp|`si/smoothcomp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/smoothcomp.svg)|
+|SMRT|`si/smrt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/smrt.svg)|
+|SmugMug|`si/smugmug`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/smugmug.svg)|
+|Snapchat|`si/snapchat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/snapchat.svg)|
+|Snapcraft|`si/snapcraft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/snapcraft.svg)|
+|Snapdragon|`si/snapdragon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/snapdragon.svg)|
+|SNCF|`si/sncf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sncf.svg)|
+|Snort|`si/snort`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/snort.svg)|
+|Snowflake|`si/snowflake`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/snowflake.svg)|
+|Snowpack|`si/snowpack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/snowpack.svg)|
+|Snyk|`si/snyk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/snyk.svg)|
+|Social Blade|`si/socialblade`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/socialblade.svg)|
+|Society6|`si/society6`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/society6.svg)|
+|Socket|`si/socket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/socket.svg)|
+|Socket.io|`si/socketdotio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/socketdotio.svg)|
+|Softcatalà|`si/softcatala`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/softcatala.svg)|
+|Softpedia|`si/softpedia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/softpedia.svg)|
+|Sogou|`si/sogou`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sogou.svg)|
+|Solana|`si/solana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/solana.svg)|
+|Solid|`si/solid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/solid.svg)|
+|Solidity|`si/solidity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/solidity.svg)|
+|Sololearn|`si/sololearn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sololearn.svg)|
+|Solus|`si/solus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/solus.svg)|
+|solved.ac|`si/solveddotac`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/solveddotac.svg)|
+|Sonar|`si/sonar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonar.svg)|
+|SonarQube Cloud|`si/sonarqubecloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonarqubecloud.svg)|
+|SonarQube for IDE|`si/sonarqubeforide`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonarqubeforide.svg)|
+|SonarQube Server|`si/sonarqubeserver`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonarqubeserver.svg)|
+|sonarr|`si/sonarr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonarr.svg)|
+|Sonatype|`si/sonatype`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonatype.svg)|
+|Songkick|`si/songkick`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/songkick.svg)|
+|Songoda|`si/songoda`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/songoda.svg)|
+|SonicWall|`si/sonicwall`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonicwall.svg)|
+|Sonos|`si/sonos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sonos.svg)|
+|Sony|`si/sony`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sony.svg)|
+|Soriana|`si/soriana`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/soriana.svg)|
+|Soundcharts|`si/soundcharts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/soundcharts.svg)|
+|SoundCloud|`si/soundcloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/soundcloud.svg)|
+|Source Engine|`si/sourceengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sourceengine.svg)|
+|SourceForge|`si/sourceforge`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sourceforge.svg)|
+|SourceHut|`si/sourcehut`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sourcehut.svg)|
+|Sourcetree|`si/sourcetree`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sourcetree.svg)|
+|Southwest Airlines|`si/southwestairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/southwestairlines.svg)|
+|Spacemacs|`si/spacemacs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spacemacs.svg)|
+|Spaceship|`si/spaceship`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spaceship.svg)|
+|SpaceX|`si/spacex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spacex.svg)|
+|spaCy|`si/spacy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spacy.svg)|
+|Spark AR|`si/sparkar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sparkar.svg)|
+|Sparkasse|`si/sparkasse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sparkasse.svg)|
+|SparkFun|`si/sparkfun`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sparkfun.svg)|
+|SparkPost|`si/sparkpost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sparkpost.svg)|
+|SPDX|`si/spdx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spdx.svg)|
+|Speaker Deck|`si/speakerdeck`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/speakerdeck.svg)|
+|Spectrum|`si/spectrum`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spectrum.svg)|
+|Speedtest|`si/speedtest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/speedtest.svg)|
+|SpeedyPage|`si/speedypage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/speedypage.svg)|
+|Sphere Online Judge|`si/spoj`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spoj.svg)|
+|Sphinx|`si/sphinx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sphinx.svg)|
+|SpiderMonkey|`si/spidermonkey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spidermonkey.svg)|
+|SpigotMC|`si/spigotmc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spigotmc.svg)|
+|Spine|`si/spine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spine.svg)|
+|Spinnaker|`si/spinnaker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spinnaker.svg)|
+|Splunk|`si/splunk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/splunk.svg)|
+|Spond|`si/spond`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spond.svg)|
+|Spotify|`si/spotify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spotify.svg)|
+|Spotlight|`si/spotlight`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spotlight.svg)|
+|Spreadshirt|`si/spreadshirt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spreadshirt.svg)|
+|Spreaker|`si/spreaker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spreaker.svg)|
+|Spring|`si/spring`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spring.svg)|
+|Spring|`si/spring_creators`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spring_creators.svg)|
+|Spring Boot|`si/springboot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/springboot.svg)|
+|Spring Security|`si/springsecurity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/springsecurity.svg)|
+|Spyder IDE|`si/spyderide`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/spyderide.svg)|
+|SQLAlchemy|`si/sqlalchemy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sqlalchemy.svg)|
+|SQLite|`si/sqlite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sqlite.svg)|
+|Square|`si/square`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/square.svg)|
+|Square Enix|`si/squareenix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/squareenix.svg)|
+|Squarespace|`si/squarespace`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/squarespace.svg)|
+|SRG SSR|`si/srgssr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/srgssr.svg)|
+|SSRN|`si/ssrn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ssrn.svg)|
+|SST|`si/sst`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sst.svg)|
+|Stack Exchange|`si/stackexchange`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stackexchange.svg)|
+|Stack Overflow|`si/stackoverflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stackoverflow.svg)|
+|Stackbit|`si/stackbit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stackbit.svg)|
+|StackBlitz|`si/stackblitz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stackblitz.svg)|
+|StackEdit|`si/stackedit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stackedit.svg)|
+|StackHawk|`si/stackhawk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stackhawk.svg)|
+|StackShare|`si/stackshare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stackshare.svg)|
+|Stadia|`si/stadia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stadia.svg)|
+|Staffbase|`si/staffbase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/staffbase.svg)|
+|Stagetimer|`si/stagetimer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stagetimer.svg)|
+|Standard Resume|`si/standardresume`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/standardresume.svg)|
+|StandardJS|`si/standardjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/standardjs.svg)|
+|Star Trek|`si/startrek`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/startrek.svg)|
+|Starbucks|`si/starbucks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/starbucks.svg)|
+|Stardock|`si/stardock`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stardock.svg)|
+|Starling Bank|`si/starlingbank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/starlingbank.svg)|
+|Starship|`si/starship`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/starship.svg)|
+|start.gg|`si/startdotgg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/startdotgg.svg)|
+|Startpage|`si/startpage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/startpage.svg)|
+|STARZ|`si/starz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/starz.svg)|
+|Statamic|`si/statamic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/statamic.svg)|
+|Statista|`si/statista`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/statista.svg)|
+|Statuspage|`si/statuspage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/statuspage.svg)|
+|Statuspal|`si/statuspal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/statuspal.svg)|
+|Steam|`si/steam`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steam.svg)|
+|Steam Deck|`si/steamdeck`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steamdeck.svg)|
+|SteamDB|`si/steamdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steamdb.svg)|
+|Steamworks|`si/steamworks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steamworks.svg)|
+|Steelseries|`si/steelseries`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steelseries.svg)|
+|Steem|`si/steem`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steem.svg)|
+|Steemit|`si/steemit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steemit.svg)|
+|Steinberg|`si/steinberg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/steinberg.svg)|
+|Stellar|`si/stellar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stellar.svg)|
+|Stencil|`si/stencil`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stencil.svg)|
+|Stencyl|`si/stencyl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stencyl.svg)|
+|Stimulus|`si/stimulus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stimulus.svg)|
+|STMicroelectronics|`si/stmicroelectronics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stmicroelectronics.svg)|
+|StockX|`si/stockx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stockx.svg)|
+|StopStalk|`si/stopstalk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stopstalk.svg)|
+|Storyblok|`si/storyblok`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/storyblok.svg)|
+|Storybook|`si/storybook`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/storybook.svg)|
+|Strapi|`si/strapi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/strapi.svg)|
+|Strava|`si/strava`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/strava.svg)|
+|Streamlabs|`si/streamlabs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/streamlabs.svg)|
+|Streamlit|`si/streamlit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/streamlit.svg)|
+|StreamRunners|`si/streamrunners`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/streamrunners.svg)|
+|Stremio|`si/stremio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stremio.svg)|
+|Stripe|`si/stripe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stripe.svg)|
+|strongSwan|`si/strongswan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/strongswan.svg)|
+|Stryker|`si/stryker`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stryker.svg)|
+|StubHub|`si/stubhub`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stubhub.svg)|
+|Studio 3T|`si/studio3t`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/studio3t.svg)|
+|styled-components|`si/styledcomponents`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/styledcomponents.svg)|
+|stylelint|`si/stylelint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stylelint.svg)|
+|StyleShare|`si/styleshare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/styleshare.svg)|
+|Stylus|`si/stylus`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/stylus.svg)|
+|Subaru|`si/subaru`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/subaru.svg)|
+|Sublime Text|`si/sublimetext`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sublimetext.svg)|
+|Substack|`si/substack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/substack.svg)|
+|Subtitle Edit|`si/subtitleedit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/subtitleedit.svg)|
+|Subversion|`si/subversion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/subversion.svg)|
+|suckless|`si/suckless`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/suckless.svg)|
+|Sui|`si/sui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sui.svg)|
+|Suitest|`si/suitest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/suitest.svg)|
+|Sumo Logic|`si/sumologic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sumologic.svg)|
+|Suno|`si/suno`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/suno.svg)|
+|Sunrise|`si/sunrise`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sunrise.svg)|
+|Supabase|`si/supabase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/supabase.svg)|
+|Super User|`si/superuser`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/superuser.svg)|
+|Supercell|`si/supercell`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/supercell.svg)|
+|Supercrease|`si/supercrease`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/supercrease.svg)|
+|Supermicro|`si/supermicro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/supermicro.svg)|
+|Surfshark|`si/surfshark`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/surfshark.svg)|
+|SurrealDB|`si/surrealdb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/surrealdb.svg)|
+|SurveyMonkey|`si/surveymonkey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/surveymonkey.svg)|
+|SUSE|`si/suse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/suse.svg)|
+|Suzuki|`si/suzuki`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/suzuki.svg)|
+|Svelte|`si/svelte`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/svelte.svg)|
+|SVG|`si/svg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/svg.svg)|
+|SVG.js|`si/svgdotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/svgdotjs.svg)|
+|SVGO|`si/svgo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/svgo.svg)|
+|SvgTrace|`si/svgtrace`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/svgtrace.svg)|
+|Swagger|`si/swagger`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swagger.svg)|
+|Swarm|`si/swarm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swarm.svg)|
+|Sway|`si/sway`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sway.svg)|
+|SWC|`si/swc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swc.svg)|
+|Swift|`si/swift`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swift.svg)|
+|Swiggy|`si/swiggy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swiggy.svg)|
+|Swiper|`si/swiper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swiper.svg)|
+|Swisscows|`si/swisscows`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swisscows.svg)|
+|SWR|`si/swr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/swr.svg)|
+|Symantec|`si/symantec`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/symantec.svg)|
+|Symbolab|`si/symbolab`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/symbolab.svg)|
+|Symfony|`si/symfony`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/symfony.svg)|
+|Symphony|`si/symphony`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/symphony.svg)|
+|SymPy|`si/sympy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/sympy.svg)|
+|Syncthing|`si/syncthing`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/syncthing.svg)|
+|Synology|`si/synology`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/synology.svg)|
+|System76|`si/system76`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/system76.svg)|
+|Tabelog|`si/tabelog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tabelog.svg)|
+|TableCheck|`si/tablecheck`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tablecheck.svg)|
+|Taco Bell|`si/tacobell`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tacobell.svg)|
+|tado°|`si/tado`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tado.svg)|
+|Taichi Graphics|`si/taichigraphics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/taichigraphics.svg)|
+|Taichi Lang|`si/taichilang`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/taichilang.svg)|
+|Tails|`si/tails`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tails.svg)|
+|Tailscale|`si/tailscale`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tailscale.svg)|
+|Tailwind CSS|`si/tailwindcss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tailwindcss.svg)|
+|Taipy|`si/taipy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/taipy.svg)|
+|Take-Two Interactive Software|`si/taketwointeractivesoftware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/taketwointeractivesoftware.svg)|
+|Talend|`si/talend`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/talend.svg)|
+|Talenthouse|`si/talenthouse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/talenthouse.svg)|
+|Talos|`si/talos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/talos.svg)|
+|Tamiya|`si/tamiya`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tamiya.svg)|
+|Tampermonkey|`si/tampermonkey`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tampermonkey.svg)|
+|TanStack|`si/tanstack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tanstack.svg)|
+|Taobao|`si/taobao`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/taobao.svg)|
+|Tapas|`si/tapas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tapas.svg)|
+|Target|`si/target`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/target.svg)|
+|TAROM|`si/tarom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tarom.svg)|
+|Tarteaucitron|`si/tarteaucitron`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tarteaucitron.svg)|
+|Task|`si/task`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/task.svg)|
+|Tasmota|`si/tasmota`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tasmota.svg)|
+|Tata|`si/tata`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tata.svg)|
+|Tata Consultancy Services|`si/tcs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tcs.svg)|
+|Tauri|`si/tauri`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tauri.svg)|
+|TaxBuzz|`si/taxbuzz`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/taxbuzz.svg)|
+|Teal|`si/teal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teal.svg)|
+|TeamCity|`si/teamcity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teamcity.svg)|
+|TeamSpeak|`si/teamspeak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teamspeak.svg)|
+|TeamViewer|`si/teamviewer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teamviewer.svg)|
+|TechCrunch|`si/techcrunch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/techcrunch.svg)|
+|TED|`si/ted`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ted.svg)|
+|TeePublic|`si/teepublic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teepublic.svg)|
+|Teespring|`si/teespring`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teespring.svg)|
+|Tekton|`si/tekton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tekton.svg)|
+|TELE 5|`si/tele5`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tele5.svg)|
+|Télé-Québec|`si/telequebec`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/telequebec.svg)|
+|Telefónica|`si/telefonica`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/telefonica.svg)|
+|Telegram|`si/telegram`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/telegram.svg)|
+|Telegraph|`si/telegraph`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/telegraph.svg)|
+|Telenor|`si/telenor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/telenor.svg)|
+|Temporal|`si/temporal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/temporal.svg)|
+|TensorFlow|`si/tensorflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tensorflow.svg)|
+|Teradata|`si/teradata`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teradata.svg)|
+|teratail|`si/teratail`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/teratail.svg)|
+|Termius|`si/termius`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/termius.svg)|
+|Terraform|`si/terraform`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/terraform.svg)|
+|Tesco|`si/tesco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tesco.svg)|
+|Tesla|`si/tesla`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tesla.svg)|
+|TestCafe|`si/testcafe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/testcafe.svg)|
+|Testin|`si/testin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/testin.svg)|
+|Testing Library|`si/testinglibrary`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/testinglibrary.svg)|
+|TestRail|`si/testrail`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/testrail.svg)|
+|Tether|`si/tether`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tether.svg)|
+|Textpattern|`si/textpattern`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/textpattern.svg)|
+|Textual|`si/textual`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/textual.svg)|
+|TGA|`si/tga`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tga.svg)|
+|Thangs|`si/thangs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thangs.svg)|
+|Thanos|`si/thanos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thanos.svg)|
+|The Algorithms|`si/thealgorithms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thealgorithms.svg)|
+|The Boring Company|`si/theboringcompany`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theboringcompany.svg)|
+|The Conversation|`si/theconversation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theconversation.svg)|
+|THE FINALS|`si/thefinals`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thefinals.svg)|
+|The Guardian|`si/theguardian`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theguardian.svg)|
+|The Irish Times|`si/theirishtimes`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theirishtimes.svg)|
+|The Mighty|`si/themighty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/themighty.svg)|
+|The Models Resource|`si/themodelsresource`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/themodelsresource.svg)|
+|The Movie Database|`si/themoviedatabase`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/themoviedatabase.svg)|
+|The North Face|`si/thenorthface`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thenorthface.svg)|
+|The Odin Project|`si/theodinproject`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theodinproject.svg)|
+|The Planetary Society|`si/theplanetarysociety`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theplanetarysociety.svg)|
+|The Register|`si/theregister`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theregister.svg)|
+|The Sounds Resource|`si/thesoundsresource`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thesoundsresource.svg)|
+|The Spriters Resource|`si/thespritersresource`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thespritersresource.svg)|
+|The StoryGraph|`si/thestorygraph`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thestorygraph.svg)|
+|The Washington Post|`si/thewashingtonpost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thewashingtonpost.svg)|
+|The Weather Channel|`si/theweatherchannel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/theweatherchannel.svg)|
+|Thingiverse|`si/thingiverse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thingiverse.svg)|
+|Things|`si/things`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/things.svg)|
+|ThinkPad|`si/thinkpad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thinkpad.svg)|
+|thirdweb|`si/thirdweb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thirdweb.svg)|
+|Threadless|`si/threadless`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/threadless.svg)|
+|Threads|`si/threads`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/threads.svg)|
+|Three.js|`si/threedotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/threedotjs.svg)|
+|Threema|`si/threema`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/threema.svg)|
+|Thumbtack|`si/thumbtack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thumbtack.svg)|
+|Thunderbird|`si/thunderbird`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thunderbird.svg)|
+|Thunderstore|`si/thunderstore`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thunderstore.svg)|
+|Thurgauer Kantonalbank|`si/thurgauerkantonalbank`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thurgauerkantonalbank.svg)|
+|Thymeleaf|`si/thymeleaf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/thymeleaf.svg)|
+|Ticketmaster|`si/ticketmaster`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ticketmaster.svg)|
+|TickTick|`si/ticktick`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ticktick.svg)|
+|TIDAL|`si/tidal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tidal.svg)|
+|TiDB|`si/tidb`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tidb.svg)|
+|TiddlyWiki|`si/tiddlywiki`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tiddlywiki.svg)|
+|Tide|`si/tide`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tide.svg)|
+|Tidyverse|`si/tidyverse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tidyverse.svg)|
+|TietoEVRY|`si/tietoevry`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tietoevry.svg)|
+|TikTok|`si/tiktok`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tiktok.svg)|
+|Tilda Publishing|`si/tildapublishing`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tildapublishing.svg)|
+|Tile|`si/tile`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tile.svg)|
+|Timescale|`si/timescale`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/timescale.svg)|
+|Tina|`si/tina`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tina.svg)|
+|Tinder|`si/tinder`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tinder.svg)|
+|Tindie|`si/tindie`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tindie.svg)|
+|Tinkercad|`si/tinkercad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tinkercad.svg)|
+|tinygrad|`si/tinygrad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tinygrad.svg)|
+|TinyLetter|`si/tinyletter`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tinyletter.svg)|
+|Tistory|`si/tistory`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tistory.svg)|
+|tldraw|`si/tldraw`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tldraw.svg)|
+|tmux|`si/tmux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tmux.svg)|
+|Todoist|`si/todoist`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/todoist.svg)|
+|Toggl|`si/toggl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/toggl.svg)|
+|Toggl Track|`si/toggltrack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/toggltrack.svg)|
+|Tokio|`si/tokio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tokio.svg)|
+|Tokyo Metro|`si/tokyometro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tokyometro.svg)|
+|Toll|`si/toll`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/toll.svg)|
+|TOML|`si/toml`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/toml.svg)|
+|Tomorrowland|`si/tomorrowland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tomorrowland.svg)|
+|TomTom|`si/tomtom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tomtom.svg)|
+|TON|`si/ton`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ton.svg)|
+|Top.gg|`si/topdotgg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/topdotgg.svg)|
+|Topcoder|`si/topcoder`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/topcoder.svg)|
+|Toptal|`si/toptal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/toptal.svg)|
+|Tor Browser|`si/torbrowser`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/torbrowser.svg)|
+|Tor Project|`si/torproject`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/torproject.svg)|
+|Torizon|`si/torizon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/torizon.svg)|
+|Toshiba|`si/toshiba`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/toshiba.svg)|
+|TOTVS|`si/totvs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/totvs.svg)|
+|TourBox|`si/tourbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tourbox.svg)|
+|Tower|`si/tower`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tower.svg)|
+|Toyota|`si/toyota`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/toyota.svg)|
+|TP-Link|`si/tplink`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tplink.svg)|
+|tqdm|`si/tqdm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tqdm.svg)|
+|Traccar|`si/traccar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/traccar.svg)|
+|TradingView|`si/tradingview`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tradingview.svg)|
+|Traefik Mesh|`si/traefikmesh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/traefikmesh.svg)|
+|Traefik Proxy|`si/traefikproxy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/traefikproxy.svg)|
+|Trailforks|`si/trailforks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trailforks.svg)|
+|TrainerRoad|`si/trainerroad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trainerroad.svg)|
+|Trakt|`si/trakt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trakt.svg)|
+|Transifex|`si/transifex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/transifex.svg)|
+|Transmission|`si/transmission`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/transmission.svg)|
+|Transport for Ireland|`si/transportforireland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/transportforireland.svg)|
+|Transport for London|`si/transportforlondon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/transportforlondon.svg)|
+|Travis CI|`si/travisci`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/travisci.svg)|
+|Treehouse|`si/treehouse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/treehouse.svg)|
+|Trello|`si/trello`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trello.svg)|
+|Trend Micro|`si/trendmicro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trendmicro.svg)|
+|Tresorit|`si/tresorit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tresorit.svg)|
+|Treyarch|`si/treyarch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/treyarch.svg)|
+|Trezor|`si/trezor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trezor.svg)|
+|Tricentis|`si/tricentis`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tricentis.svg)|
+|Trilium|`si/trilium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trilium.svg)|
+|Triller|`si/triller`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/triller.svg)|
+|TrillerTV|`si/trillertv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trillertv.svg)|
+|Trimble|`si/trimble`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trimble.svg)|
+|Trino|`si/trino`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trino.svg)|
+|Trip.com|`si/tripdotcom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tripdotcom.svg)|
+|Tripadvisor|`si/tripadvisor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tripadvisor.svg)|
+|trivago|`si/trivago`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trivago.svg)|
+|Trivy|`si/trivy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trivy.svg)|
+|TRMNL|`si/trmnl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trmnl.svg)|
+|Trove|`si/trove`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trove.svg)|
+|tRPC|`si/trpc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trpc.svg)|
+|TrueNAS|`si/truenas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/truenas.svg)|
+|TrueUp|`si/trueup`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trueup.svg)|
+|trulia|`si/trulia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trulia.svg)|
+|Trusted Shops|`si/trustedshops`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trustedshops.svg)|
+|Trustpilot|`si/trustpilot`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/trustpilot.svg)|
+|Try It Online|`si/tryitonline`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tryitonline.svg)|
+|TryHackMe|`si/tryhackme`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tryhackme.svg)|
+|ts-node|`si/tsnode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tsnode.svg)|
+|Tubi|`si/tubi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tubi.svg)|
+|TUI|`si/tui`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tui.svg)|
+|Tumblr|`si/tumblr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tumblr.svg)|
+|Turbo|`si/turbo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/turbo.svg)|
+|Turborepo|`si/turborepo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/turborepo.svg)|
+|TurboSquid|`si/turbosquid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/turbosquid.svg)|
+|Turkish Airlines|`si/turkishairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/turkishairlines.svg)|
+|Turso|`si/turso`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/turso.svg)|
+|Tuta|`si/tuta`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tuta.svg)|
+|TUXEDO Computers|`si/tuxedocomputers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tuxedocomputers.svg)|
+|TV Time|`si/tvtime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tvtime.svg)|
+|TV4 Play|`si/tv4play`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/tv4play.svg)|
+|Twenty|`si/twenty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/twenty.svg)|
+|Twinkly|`si/twinkly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/twinkly.svg)|
+|Twinmotion|`si/twinmotion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/twinmotion.svg)|
+|Twitch|`si/twitch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/twitch.svg)|
+|ty|`si/ty`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ty.svg)|
+|Typeform|`si/typeform`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/typeform.svg)|
+|TypeORM|`si/typeorm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/typeorm.svg)|
+|Typer|`si/typer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/typer.svg)|
+|TypeScript|`si/typescript`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/typescript.svg)|
+|TYPO3|`si/typo3`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/typo3.svg)|
+|Typst|`si/typst`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/typst.svg)|
+|U.S. News|`si/udotsdotnews`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/udotsdotnews.svg)|
+|Uber|`si/uber`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uber.svg)|
+|Uber Eats|`si/ubereats`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ubereats.svg)|
+|Ubiquiti|`si/ubiquiti`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ubiquiti.svg)|
+|Ubisoft|`si/ubisoft`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ubisoft.svg)|
+|uBlock Origin|`si/ublockorigin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ublockorigin.svg)|
+|Ubuntu|`si/ubuntu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ubuntu.svg)|
+|Ubuntu MATE|`si/ubuntumate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ubuntumate.svg)|
+|Udacity|`si/udacity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/udacity.svg)|
+|Udemy|`si/udemy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/udemy.svg)|
+|UFC|`si/ufc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ufc.svg)|
+|UIkit|`si/uikit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uikit.svg)|
+|UiPath|`si/uipath`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uipath.svg)|
+|UKCA|`si/ukca`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ukca.svg)|
+|Ultralytics|`si/ultralytics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ultralytics.svg)|
+|Ulule|`si/ulule`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ulule.svg)|
+|Umami|`si/umami`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/umami.svg)|
+|Umbraco|`si/umbraco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/umbraco.svg)|
+|Umbrel|`si/umbrel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/umbrel.svg)|
+|UML|`si/uml`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uml.svg)|
+|Unacademy|`si/unacademy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unacademy.svg)|
+|Under Armour|`si/underarmour`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/underarmour.svg)|
+|Underscore.js|`si/underscoredotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/underscoredotjs.svg)|
+|Undertale|`si/undertale`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/undertale.svg)|
+|Unicode|`si/unicode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unicode.svg)|
+|Unilever|`si/unilever`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unilever.svg)|
+|Uniqlo|`si/uniqlo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uniqlo.svg)|
+|Uniqlo|`si/uniqlo_ja`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uniqlo_ja.svg)|
+|United Airlines|`si/unitedairlines`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unitedairlines.svg)|
+|United Nations|`si/unitednations`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unitednations.svg)|
+|Unity|`si/unity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unity.svg)|
+|UnJS|`si/unjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unjs.svg)|
+|Unlicense|`si/unlicense`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unlicense.svg)|
+|UnoCSS|`si/unocss`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unocss.svg)|
+|unpkg|`si/unpkg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unpkg.svg)|
+|Unraid|`si/unraid`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unraid.svg)|
+|Unreal Engine|`si/unrealengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unrealengine.svg)|
+|Unsplash|`si/unsplash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unsplash.svg)|
+|Unstop|`si/unstop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/unstop.svg)|
+|Untappd|`si/untappd`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/untappd.svg)|
+|UpCloud|`si/upcloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/upcloud.svg)|
+|Uphold|`si/uphold`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uphold.svg)|
+|UpLabs|`si/uplabs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uplabs.svg)|
+|Upptime|`si/upptime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/upptime.svg)|
+|UPS|`si/ups`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ups.svg)|
+|Upstash|`si/upstash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/upstash.svg)|
+|Uptime Kuma|`si/uptimekuma`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uptimekuma.svg)|
+|Upwork|`si/upwork`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/upwork.svg)|
+|UserVoice|`si/uservoice`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uservoice.svg)|
+|USPS|`si/usps`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/usps.svg)|
+|uTorrent|`si/utorrent`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/utorrent.svg)|
+|uv|`si/uv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/uv.svg)|
+|V|`si/v`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/v.svg)|
+|v0|`si/v0`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/v0.svg)|
+|V2EX|`si/v2ex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/v2ex.svg)|
+|V8|`si/v8`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/v8.svg)|
+|Vaadin|`si/vaadin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vaadin.svg)|
+|Vagrant|`si/vagrant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vagrant.svg)|
+|Vala|`si/vala`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vala.svg)|
+|Valorant|`si/valorant`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/valorant.svg)|
+|Valve|`si/valve`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/valve.svg)|
+|Vanilla Extract|`si/vanillaextract`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vanillaextract.svg)|
+|Vapor|`si/vapor`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vapor.svg)|
+|Vault|`si/vault`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vault.svg)|
+|Vaultwarden|`si/vaultwarden`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vaultwarden.svg)|
+|Vauxhall|`si/vauxhall`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vauxhall.svg)|
+|vBulletin|`si/vbulletin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vbulletin.svg)|
+|Vectary|`si/vectary`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vectary.svg)|
+|Vector Logo Zone|`si/vectorlogozone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vectorlogozone.svg)|
+|Vectorworks|`si/vectorworks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vectorworks.svg)|
+|Veeam|`si/veeam`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/veeam.svg)|
+|VEED|`si/veed`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/veed.svg)|
+|Veepee|`si/veepee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/veepee.svg)|
+|Vega|`si/vega`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vega.svg)|
+|VEGAS|`si/vegas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vegas.svg)|
+|Velocity|`si/velocity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/velocity.svg)|
+|Velog|`si/velog`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/velog.svg)|
+|Vencord|`si/vencord`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vencord.svg)|
+|Venmo|`si/venmo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/venmo.svg)|
+|Vercel|`si/vercel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vercel.svg)|
+|Verdaccio|`si/verdaccio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/verdaccio.svg)|
+|Veritas|`si/veritas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/veritas.svg)|
+|Verizon|`si/verizon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/verizon.svg)|
+|Vespa|`si/vespa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vespa.svg)|
+|Vestel|`si/vestel`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vestel.svg)|
+|VEXXHOST|`si/vexxhost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vexxhost.svg)|
+|vFairs|`si/vfairs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vfairs.svg)|
+|Viadeo|`si/viadeo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/viadeo.svg)|
+|Viaplay|`si/viaplay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/viaplay.svg)|
+|Viber|`si/viber`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/viber.svg)|
+|Viblo|`si/viblo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/viblo.svg)|
+|VictoriaMetrics|`si/victoriametrics`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/victoriametrics.svg)|
+|Victron Energy|`si/victronenergy`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/victronenergy.svg)|
+|Vikunja|`si/vikunja`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vikunja.svg)|
+|Vim|`si/vim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vim.svg)|
+|Vimeo|`si/vimeo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vimeo.svg)|
+|Vimeo Livestream|`si/vimeolivestream`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vimeolivestream.svg)|
+|Vinted|`si/vinted`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vinted.svg)|
+|Virgin|`si/virgin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/virgin.svg)|
+|Virgin Atlantic|`si/virginatlantic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/virginatlantic.svg)|
+|Virgin Media|`si/virginmedia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/virginmedia.svg)|
+|VirtualBox|`si/virtualbox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/virtualbox.svg)|
+|VirusTotal|`si/virustotal`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/virustotal.svg)|
+|Visa|`si/visa`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/visa.svg)|
+|Visual Paradigm|`si/visualparadigm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/visualparadigm.svg)|
+|visx|`si/visx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/visx.svg)|
+|Vite|`si/vite`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vite.svg)|
+|VitePress|`si/vitepress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vitepress.svg)|
+|Vitess|`si/vitess`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vitess.svg)|
+|Vitest|`si/vitest`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vitest.svg)|
+|Viva Wallet|`si/vivawallet`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vivawallet.svg)|
+|Vivaldi|`si/vivaldi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vivaldi.svg)|
+|Vivino|`si/vivino`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vivino.svg)|
+|Vivint|`si/vivint`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vivint.svg)|
+|vivo|`si/vivo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vivo.svg)|
+|VK|`si/vk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vk.svg)|
+|VLC media player|`si/vlcmediaplayer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vlcmediaplayer.svg)|
+|vLLM|`si/vllm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vllm.svg)|
+|VMware|`si/vmware`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vmware.svg)|
+|Vodafone|`si/vodafone`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vodafone.svg)|
+|voelkner|`si/voelkner`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/voelkner.svg)|
+|Void Linux|`si/voidlinux`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/voidlinux.svg)|
+|VoIP.ms|`si/voipdotms`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/voipdotms.svg)|
+|Volkswagen|`si/volkswagen`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/volkswagen.svg)|
+|Volvo|`si/volvo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/volvo.svg)|
+|Vonage|`si/vonage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vonage.svg)|
+|Voron Design|`si/vorondesign`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vorondesign.svg)|
+|Vowpal Wabbit|`si/vowpalwabbit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vowpalwabbit.svg)|
+|VOX|`si/vox`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vox.svg)|
+|VRChat|`si/vrchat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vrchat.svg)|
+|VSCO|`si/vsco`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vsco.svg)|
+|VSCodium|`si/vscodium`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vscodium.svg)|
+|VTEX|`si/vtex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vtex.svg)|
+|Vue.js|`si/vuedotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vuedotjs.svg)|
+|Vuetify|`si/vuetify`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vuetify.svg)|
+|VueUse|`si/vueuse`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vueuse.svg)|
+|Vulkan|`si/vulkan`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vulkan.svg)|
+|Vultr|`si/vultr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vultr.svg)|
+|Vyond|`si/vyond`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/vyond.svg)|
+|W3Schools|`si/w3schools`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/w3schools.svg)|
+|Wacom|`si/wacom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wacom.svg)|
+|Wagmi|`si/wagmi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wagmi.svg)|
+|Wagtail|`si/wagtail`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wagtail.svg)|
+|Wails|`si/wails`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wails.svg)|
+|WakaTime|`si/wakatime`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wakatime.svg)|
+|WALKMAN|`si/walkman`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/walkman.svg)|
+|Wallabag|`si/wallabag`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wallabag.svg)|
+|WalletConnect|`si/walletconnect`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/walletconnect.svg)|
+|Wantedly|`si/wantedly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wantedly.svg)|
+|Wappalyzer|`si/wappalyzer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wappalyzer.svg)|
+|Warp|`si/warp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/warp.svg)|
+|Wasabi|`si/wasabi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wasabi.svg)|
+|wasmCloud|`si/wasmcloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wasmcloud.svg)|
+|Wasmer|`si/wasmer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wasmer.svg)|
+|Watchtower|`si/watchtower`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/watchtower.svg)|
+|Wattpad|`si/wattpad`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wattpad.svg)|
+|Wayland|`si/wayland`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wayland.svg)|
+|Waze|`si/waze`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/waze.svg)|
+|WazirX|`si/wazirx`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wazirx.svg)|
+|Wear OS|`si/wearos`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wearos.svg)|
+|Weasyl|`si/weasyl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/weasyl.svg)|
+|Web Awesome|`si/webawesome`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webawesome.svg)|
+|WEB.DE|`si/webdotde`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webdotde.svg)|
+|Web3.js|`si/web3dotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/web3dotjs.svg)|
+|WebAssembly|`si/webassembly`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webassembly.svg)|
+|WebAuthn|`si/webauthn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webauthn.svg)|
+|webcomponents.org|`si/webcomponentsdotorg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webcomponentsdotorg.svg)|
+|WebdriverIO|`si/webdriverio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webdriverio.svg)|
+|Webex|`si/webex`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webex.svg)|
+|Webflow|`si/webflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webflow.svg)|
+|WebGL|`si/webgl`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webgl.svg)|
+|WebGPU|`si/webgpu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webgpu.svg)|
+|Weblate|`si/weblate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/weblate.svg)|
+|Webmin|`si/webmin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webmin.svg)|
+|WebMoney|`si/webmoney`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webmoney.svg)|
+|Webpack|`si/webpack`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webpack.svg)|
+|WebRTC|`si/webrtc`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webrtc.svg)|
+|WebStorm|`si/webstorm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webstorm.svg)|
+|WEBTOON|`si/webtoon`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webtoon.svg)|
+|webtrees|`si/webtrees`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/webtrees.svg)|
+|WeChat|`si/wechat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wechat.svg)|
+|WeGame|`si/wegame`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wegame.svg)|
+|Weights & Biases|`si/weightsandbiases`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/weightsandbiases.svg)|
+|Welcome to the Jungle|`si/welcometothejungle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/welcometothejungle.svg)|
+|Wellfound|`si/wellfound`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wellfound.svg)|
+|Wells Fargo|`si/wellsfargo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wellsfargo.svg)|
+|WEMO|`si/wemo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wemo.svg)|
+|WeRead|`si/weread`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/weread.svg)|
+|Western Union|`si/westernunion`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/westernunion.svg)|
+|WeTransfer|`si/wetransfer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wetransfer.svg)|
+|WezTerm|`si/wezterm`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wezterm.svg)|
+|wgpu|`si/wgpu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wgpu.svg)|
+|what3words|`si/what3words`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/what3words.svg)|
+|WhatsApp|`si/whatsapp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/whatsapp.svg)|
+|When I Work|`si/wheniwork`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wheniwork.svg)|
+|wiki.gg|`si/wikidotgg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikidotgg.svg)|
+|Wiki.js|`si/wikidotjs`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikidotjs.svg)|
+|Wikibooks|`si/wikibooks`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikibooks.svg)|
+|Wikidata|`si/wikidata`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikidata.svg)|
+|Wikimedia Commons|`si/wikimediacommons`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikimediacommons.svg)|
+|Wikimedia Foundation|`si/wikimediafoundation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikimediafoundation.svg)|
+|Wikipedia|`si/wikipedia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikipedia.svg)|
+|Wikiquote|`si/wikiquote`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikiquote.svg)|
+|Wikisource|`si/wikisource`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikisource.svg)|
+|Wikiversity|`si/wikiversity`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikiversity.svg)|
+|Wikivoyage|`si/wikivoyage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wikivoyage.svg)|
+|Winamp|`si/winamp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/winamp.svg)|
+|Windsurf|`si/windsurf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/windsurf.svg)|
+|Wine|`si/wine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wine.svg)|
+|Wipro|`si/wipro`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wipro.svg)|
+|Wire|`si/wire`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wire.svg)|
+|WireGuard|`si/wireguard`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wireguard.svg)|
+|Wireshark|`si/wireshark`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wireshark.svg)|
+|Wise|`si/wise`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wise.svg)|
+|Wish|`si/wish`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wish.svg)|
+|Wistia|`si/wistia`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wistia.svg)|
+|Wix|`si/wix`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wix.svg)|
+|Wizz Air|`si/wizzair`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wizzair.svg)|
+|Wolfram|`si/wolfram`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wolfram.svg)|
+|Wolfram Language|`si/wolframlanguage`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wolframlanguage.svg)|
+|Wolfram Mathematica|`si/wolframmathematica`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wolframmathematica.svg)|
+|Wondershare|`si/wondershare`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wondershare.svg)|
+|Wondershare Filmora|`si/wondersharefilmora`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wondersharefilmora.svg)|
+|Woo|`si/woo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/woo.svg)|
+|WooCommerce|`si/woocommerce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/woocommerce.svg)|
+|WordPress|`si/wordpress`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wordpress.svg)|
+|Workplace|`si/workplace`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/workplace.svg)|
+|World Health Organization|`si/worldhealthorganization`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/worldhealthorganization.svg)|
+|WP Engine|`si/wpengine`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wpengine.svg)|
+|WP Rocket|`si/wprocket`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wprocket.svg)|
+|WPExplorer|`si/wpexplorer`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wpexplorer.svg)|
+|Write.as|`si/writedotas`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/writedotas.svg)|
+|WWE|`si/wwe`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wwe.svg)|
+|Wwise|`si/wwise`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wwise.svg)|
+|WXT|`si/wxt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wxt.svg)|
+|Wykop|`si/wykop`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wykop.svg)|
+|Wyze|`si/wyze`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/wyze.svg)|
+|X|`si/x`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/x.svg)|
+|X.Org|`si/xdotorg`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xdotorg.svg)|
+|XAMPP|`si/xampp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xampp.svg)|
+|Xcode|`si/xcode`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xcode.svg)|
+|XDA Developers|`si/xdadevelopers`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xdadevelopers.svg)|
+|Xendit|`si/xendit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xendit.svg)|
+|Xero|`si/xero`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xero.svg)|
+|XFCE|`si/xfce`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xfce.svg)|
+|Xiaohongshu|`si/xiaohongshu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xiaohongshu.svg)|
+|Xiaomi|`si/xiaomi`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xiaomi.svg)|
+|Xing|`si/xing`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xing.svg)|
+|XML|`si/xml`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xml.svg)|
+|XMPP|`si/xmpp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xmpp.svg)|
+|XO|`si/xo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xo.svg)|
+|XRP|`si/xrp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xrp.svg)|
+|XSplit|`si/xsplit`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xsplit.svg)|
+|XState|`si/xstate`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xstate.svg)|
+|Xubuntu|`si/xubuntu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xubuntu.svg)|
+|xyflow|`si/xyflow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/xyflow.svg)|
+|Y Combinator|`si/ycombinator`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ycombinator.svg)|
+|Yaak|`si/yaak`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yaak.svg)|
+|yabai|`si/yabai`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yabai.svg)|
+|Yale|`si/yale`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yale.svg)|
+|Yamaha Corporation|`si/yamahacorporation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yamahacorporation.svg)|
+|Yamaha Motor Corporation|`si/yamahamotorcorporation`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yamahamotorcorporation.svg)|
+|YAML|`si/yaml`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yaml.svg)|
+|Yandex Cloud|`si/yandexcloud`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yandexcloud.svg)|
+|Yarn|`si/yarn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yarn.svg)|
+|Yelp|`si/yelp`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yelp.svg)|
+|Yeti|`si/yeti`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yeti.svg)|
+|Yew|`si/yew`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yew.svg)|
+|Yii|`si/yii`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yii.svg)|
+|Yoast|`si/yoast`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yoast.svg)|
+|YOLO|`si/yolo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yolo.svg)|
+|YouHodler|`si/youhodler`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youhodler.svg)|
+|YouTube|`si/youtube`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youtube.svg)|
+|YouTube Gaming|`si/youtubegaming`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youtubegaming.svg)|
+|YouTube Kids|`si/youtubekids`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youtubekids.svg)|
+|YouTube Music|`si/youtubemusic`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youtubemusic.svg)|
+|YouTube Shorts|`si/youtubeshorts`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youtubeshorts.svg)|
+|YouTube Studio|`si/youtubestudio`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youtubestudio.svg)|
+|YouTube TV|`si/youtubetv`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/youtubetv.svg)|
+|Yr|`si/yr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yr.svg)|
+|Yubico|`si/yubico`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yubico.svg)|
+|YunoHost|`si/yunohost`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/yunohost.svg)|
+|Żabka|`si/zabka`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zabka.svg)|
+|Zaim|`si/zaim`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zaim.svg)|
+|Zalando|`si/zalando`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zalando.svg)|
+|Zalo|`si/zalo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zalo.svg)|
+|ZAP|`si/zap`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zap.svg)|
+|Zapier|`si/zapier`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zapier.svg)|
+|Zara|`si/zara`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zara.svg)|
+|Zazzle|`si/zazzle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zazzle.svg)|
+|Zcash|`si/zcash`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zcash.svg)|
+|ZCOOL|`si/zcool`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zcool.svg)|
+|ZDF|`si/zdf`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zdf.svg)|
+|ZebPay|`si/zebpay`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zebpay.svg)|
+|Zebra Technologies|`si/zebratechnologies`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zebratechnologies.svg)|
+|Zed Industries|`si/zedindustries`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zedindustries.svg)|
+|Zelle|`si/zelle`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zelle.svg)|
+|Zen Browser|`si/zenbrowser`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zenbrowser.svg)|
+|Zend|`si/zend`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zend.svg)|
+|Zendesk|`si/zendesk`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zendesk.svg)|
+|Zenn|`si/zenn`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zenn.svg)|
+|Zenodo|`si/zenodo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zenodo.svg)|
+|Zensar|`si/zensar`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zensar.svg)|
+|Zerodha|`si/zerodha`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zerodha.svg)|
+|ZeroTier|`si/zerotier`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zerotier.svg)|
+|Zettlr|`si/zettlr`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zettlr.svg)|
+|Zhihu|`si/zhihu`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zhihu.svg)|
+|Zig|`si/zig`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zig.svg)|
+|Zigbee|`si/zigbee`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zigbee.svg)|
+|Zigbee2MQTT|`si/zigbee2mqtt`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zigbee2mqtt.svg)|
+|Ziggo|`si/ziggo`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/ziggo.svg)|
+|Zilch|`si/zilch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zilch.svg)|
+|Zillow|`si/zillow`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zillow.svg)|
+|ZincSearch|`si/zincsearch`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zincsearch.svg)|
+|Zingat|`si/zingat`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zingat.svg)|
+|Zod|`si/zod`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zod.svg)|
+|Zoho|`si/zoho`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zoho.svg)|
+|Zoiper|`si/zoiper`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zoiper.svg)|
+|Zola|`si/zola`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zola.svg)|
+|Zomato|`si/zomato`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zomato.svg)|
+|Zoom|`si/zoom`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zoom.svg)|
+|Zorin|`si/zorin`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zorin.svg)|
+|Zotero|`si/zotero`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zotero.svg)|
+|Zsh|`si/zsh`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zsh.svg)|
+|Zulip|`si/zulip`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zulip.svg)|
+|Zyte|`si/zyte`|[Preview](https://raw.githubusercontent.com/simple-icons/simple-icons/refs/tags/16.18.1/icons/zyte.svg)|

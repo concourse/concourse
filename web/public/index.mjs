@@ -1,11 +1,12 @@
 import "./d3.v7.min.js";
-import { Graph, GraphNode } from './graph.mjs';
+import { Graph, GraphNode } from "./graph.mjs";
 
-const iconsModulePromise = import("./mdi-svg.min.js");
+const mdIconsModulePromise = import("./mdi-svg.min.js");
+const simpleIconsModulePromise = import("./si-svg.min.js");
 
-export function renderPipeline(jobs, resources, newUrl){
+export function renderPipeline(jobs, resources, newUrl) {
   const foundSvg = d3.select(".pipeline-graph");
-  const svg = createPipelineSvg(foundSvg)
+  const svg = createPipelineSvg(foundSvg);
   if (svg.node() != null) {
     draw(svg, jobs, resources, newUrl);
   }
@@ -20,7 +21,7 @@ function draw(svg, jobs, resources, newUrl) {
 }
 
 function redrawFunction(svg, jobs, resources, newUrl) {
-  return function() {
+  return function () {
     // reset viewbox so calculations are done from a blank slate.
     //
     // without this text and boxes jump around on every redraw,
@@ -32,67 +33,72 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     svg.selectAll("g.edge").remove();
     svg.selectAll("g.node").remove();
 
-    var svgEdges = svg.selectAll("g.edge")
-      .data(graph.edges());
+    var svgEdges = svg.selectAll("g.edge").data(graph.edges());
 
     svgEdges.exit().remove();
 
-    var svgNodes = svg.selectAll("g.node")
-      .data(graph.nodes());
+    var svgNodes = svg.selectAll("g.node").data(graph.nodes());
 
     svgNodes.exit().remove();
 
-    var svgEdge = svgEdges.enter().append("g")
-      .attr("class", function(edge) { return "edge " + edge.source.node.status })
+    var svgEdge = svgEdges
+      .enter()
+      .append("g")
+      .attr("class", function (edge) {
+        return "edge " + edge.source.node.status;
+      });
     svgEdges = svgEdge.merge(svgEdges);
 
-    svgEdges.each(function(edge, i, nodes) {
+    svgEdges.each(function (edge, i, nodes) {
       if (edge.customData !== null && edge.customData.trigger !== true) {
-        d3.select(this).classed("trigger-false", true)
+        d3.select(this).classed("trigger-false", true);
       }
-    })
+    });
 
     function highlight(event, thing) {
       if (!thing.key) {
-        return
+        return;
       }
 
       currentHighlight = thing.key;
 
-      svgEdges.each(function(edge, i, nodes) {
+      svgEdges.each(function (edge, i, nodes) {
         if (edge.source.key === thing.key) {
-          d3.select(this).classed("active", true)
+          d3.select(this).classed("active", true);
         }
-      })
+      });
 
-      svgNodes.each(function(node, i, nodes) {
+      svgNodes.each(function (node, i, nodes) {
         if (node.key === thing.key) {
-          d3.select(this).classed("active", true)
+          d3.select(this).classed("active", true);
         }
-      })
+      });
     }
 
     function lowlight(event, thing) {
       if (!thing.key) {
-        return
+        return;
       }
 
       currentHighlight = undefined;
 
-      svgEdges.classed("active", false)
-      svgNodes.classed("active", false)
+      svgEdges.classed("active", false);
+      svgNodes.classed("active", false);
     }
 
-    var svgNode = svgNodes.enter().append("g")
-      .attr("id", node => "node-" + node.id)
-      .attr("class", node => "node " + node.class)
+    var svgNode = svgNodes
+      .enter()
+      .append("g")
+      .attr("id", (node) => "node-" + node.id)
+      .attr("class", (node) => "node " + node.class)
       .on("mouseover", highlight)
-      .on("mouseout", lowlight)
+      .on("mouseout", lowlight);
     svgNodes = svgNode.merge(svgNodes);
 
-    var nodeLink = svgNode.append("svg:a")
-      .attr("xlink:href", node => node.url)
-      .on("click", function(event, node) {
+    var nodeLink = svgNode
+      .append("svg:a")
+      .attr("xlink:href", (node) => node.url)
+      .on("click", function (event, node) {
         if (event.defaultPrevented) return; // dragged
 
         if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
@@ -105,103 +111,168 @@ function redrawFunction(svg, jobs, resources, newUrl) {
 
         event.preventDefault();
         newUrl.send(node.url);
-      })
+      });
 
-    var jobStatusBackground = nodeLink.append("rect")
-      .attr("height", function(node) { return node.height() })
+    var jobStatusBackground = nodeLink
+      .append("rect")
+      .attr("height", function (node) {
+        return node.height();
+      });
 
-
-    var animatableBackground = nodeLink.append("foreignObject")
+    var animatableBackground = nodeLink
+      .append("foreignObject")
       .attr("class", "js-animation-wrapper")
-      .attr("height", function(node) { return node.height() + (2 * node.animationRadius()) })
-      .attr("x", function(node) { return -node.animationRadius()})
-      .attr("y", function(node) { return -node.animationRadius()})
-
-    var animationPadding = animatableBackground.append("xhtml:div")
-      .style("padding", function(node) {
-        return node.animationRadius() + "px";
+      .attr("height", function (node) {
+        return node.height() + 2 * node.animationRadius();
       })
+      .attr("x", function (node) {
+        return -node.animationRadius();
+      })
+      .attr("y", function (node) {
+        return -node.animationRadius();
+      });
 
-    animationPadding.style("height", function(node) { return node.height() + "px" })
+    var animationPadding = animatableBackground
+      .append("xhtml:div")
+      .style("padding", function (node) {
+        return node.animationRadius() + "px";
+      });
 
-    var animationTarget = animationPadding.append("xhtml:div")
+    animationPadding.style("height", function (node) {
+      return node.height() + "px";
+    });
 
-    animationTarget.attr("class", "animation")
-    animationTarget.style("height", function(node) { return node.height() + "px" })
+    var animationTarget = animationPadding.append("xhtml:div");
+
+    animationTarget.attr("class", "animation");
+    animationTarget.style("height", function (node) {
+      return node.height() + "px";
+    });
 
     var pinIconWidth = 6;
     var pinIconHeight = 9.75;
-    nodeLink.filter(node => node.pinned()).append("image")
-        .attr("xlink:href", "/public/images/pin-ic-white.svg")
-        .attr("width", pinIconWidth)
-        .attr("y", function(node) { return node.height() / 2 - pinIconHeight / 2 })
-        .attr("x", function(node) { return node.padding() })
+    nodeLink
+      .filter((node) => node.pinned())
+      .append("image")
+      .attr("xlink:href", "/public/images/pin-ic-white.svg")
+      .attr("width", pinIconWidth)
+      .attr("y", function (node) {
+        return node.height() / 2 - pinIconHeight / 2;
+      })
+      .attr("x", function (node) {
+        return node.padding();
+      });
 
     var iconSize = 12;
-    nodeLink.filter(node => node.has_icon()).append("use")
-      .attr("xlink:href", function(node) { return "#" + node.id + "-svg-icon" })
+    nodeLink
+      .filter((node) => node.has_icon())
+      .append("use")
+      .attr("xlink:href", function (node) {
+        return "#" + node.id + "-svg-icon";
+      })
       .attr("width", iconSize)
       .attr("height", iconSize)
       .attr("fill", "white")
-      .attr("y", function(node) { return node.height() / 2 - iconSize / 2 })
-      .attr("x", function(node) { return node.padding() + (node.pinned() ? pinIconWidth + node.padding() : 0) })
+      .attr("y", function (node) {
+        return node.height() / 2 - iconSize / 2;
+      })
+      .attr("x", function (node) {
+        return (
+          node.padding() + (node.pinned() ? pinIconWidth + node.padding() : 0)
+        );
+      });
 
-    nodeLink.append("text")
-      .text(function(node) { return node.name })
+    nodeLink
+      .append("text")
+      .text(function (node) {
+        return node.name;
+      })
       .attr("dominant-baseline", "middle")
-      .attr("text-anchor", function(node) { return node.pinned() || node.has_icon() ? "end" : "middle" })
-      .attr("x", function(node) { return node.pinned() || node.has_icon() ? node.width() - node.padding() : node.width() / 2 })
-      .attr("y", function(node) { return node.height() / 2 })
+      .attr("text-anchor", function (node) {
+        return node.pinned() || node.has_icon() ? "end" : "middle";
+      })
+      .attr("x", function (node) {
+        return node.pinned() || node.has_icon()
+          ? node.width() - node.padding()
+          : node.width() / 2;
+      })
+      .attr("y", function (node) {
+        return node.height() / 2;
+      });
 
-    jobStatusBackground.attr("width", function(node) { return node.width() })
-    animatableBackground.attr("width", function(node) { return node.width() + (2 * node.animationRadius()) })
-    animationTarget.style("width", function(node) { return node.width() + "px" })
-    animationPadding.style("width", function(node) { return node.width() + "px" })
+    jobStatusBackground.attr("width", function (node) {
+      return node.width();
+    });
+    animatableBackground.attr("width", function (node) {
+      return node.width() + 2 * node.animationRadius();
+    });
+    animationTarget.style("width", function (node) {
+      return node.width() + "px";
+    });
+    animationPadding.style("width", function (node) {
+      return node.width() + "px";
+    });
 
-    graph.layout()
+    graph.layout();
 
-    var failureCenters = []
-    var epsilon = 2
-    var graphNodes = graph.nodes()
+    var failureCenters = [];
+    var epsilon = 2;
+    var graphNodes = graph.nodes();
     for (var i in graphNodes) {
       if (graphNodes[i].status == "failed") {
-        var xCenter = graphNodes[i].position().x + (graphNodes[i].width() / 2)
-        var found = false
+        var xCenter = graphNodes[i].position().x + graphNodes[i].width() / 2;
+        var found = false;
         for (var j in failureCenters) {
           if (Math.abs(xCenter - failureCenters[j]) < epsilon) {
-            found = true
-            break
+            found = true;
+            break;
           }
         }
-        if(!found) {
-          failureCenters.push(xCenter)
+        if (!found) {
+          failureCenters.push(xCenter);
         }
       }
     }
 
-    svg.selectAll("g.fail-triangle-node").remove()
-    const failTriangleBottom = 20
-    const failTriangleHeight = 24
+    svg.selectAll("g.fail-triangle-node").remove();
+    const failTriangleBottom = 20;
+    const failTriangleHeight = 24;
     for (var i in failureCenters) {
-      var triangleNode = svg.append("g")
-        .attr("class", "fail-triangle-node")
-      var triangleOutline = triangleNode.append("path")
+      var triangleNode = svg.append("g").attr("class", "fail-triangle-node");
+      var triangleOutline = triangleNode
+        .append("path")
         .attr("class", "fail-triangle-outline")
-        .attr("d", "M191.62,136.3778H179.7521a5,5,0,0,1-4.3309-7.4986l5.9337-10.2851a5,5,0,0,1,8.6619,0l5.9337,10.2851A5,5,0,0,1,191.62,136.3778Z")
-        .attr("transform", "translate(-174.7446 -116.0927)")
-      var triangle = triangleNode.append("path")
+        .attr(
+          "d",
+          "M191.62,136.3778H179.7521a5,5,0,0,1-4.3309-7.4986l5.9337-10.2851a5,5,0,0,1,8.6619,0l5.9337,10.2851A5,5,0,0,1,191.62,136.3778Z",
+        )
+        .attr("transform", "translate(-174.7446 -116.0927)");
+      var triangle = triangleNode
+        .append("path")
         .attr("class", "fail-triangle")
-        .attr("d", "M191.4538,133.0821H179.9179a2,2,0,0,1-1.7324-2.9994l5.7679-9.9978a2,2,0,0,1,3.4647,0l5.7679,9.9978A2,2,0,0,1,191.4538,133.0821Z")
-        .attr("transform", "translate(-174.7446 -116.0927)")
-      var triangleBBox = triangleNode.node().getBBox()
-      var triangleScale = failTriangleHeight / triangleBBox.height
-      var triangleWidth = triangleBBox.width * triangleScale
-      var triangleX = failureCenters[i] - (triangleWidth / 2)
-      var triangleY = -failTriangleBottom - failTriangleHeight
-      triangleNode.attr("transform", "translate(" + triangleX + ", " + triangleY + ") scale(" + triangleScale + ")")
+        .attr(
+          "d",
+          "M191.4538,133.0821H179.9179a2,2,0,0,1-1.7324-2.9994l5.7679-9.9978a2,2,0,0,1,3.4647,0l5.7679,9.9978A2,2,0,0,1,191.4538,133.0821Z",
+        )
+        .attr("transform", "translate(-174.7446 -116.0927)");
+      var triangleBBox = triangleNode.node().getBBox();
+      var triangleScale = failTriangleHeight / triangleBBox.height;
+      var triangleWidth = triangleBBox.width * triangleScale;
+      var triangleX = failureCenters[i] - triangleWidth / 2;
+      var triangleY = -failTriangleBottom - failTriangleHeight;
+      triangleNode.attr(
+        "transform",
+        "translate(" +
+          triangleX +
+          ", " +
+          triangleY +
+          ") scale(" +
+          triangleScale +
+          ")",
+      );
     }
 
-    nodeLink.attr("class", function(node) {
+    nodeLink.attr("class", function (node) {
       var classes = [];
 
       if (node.debugMarked) {
@@ -215,20 +286,23 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       return classes.join(" ");
     });
 
-    svgNode.attr("transform", function(node) {
+    svgNode.attr("transform", function (node) {
       var position = node.position();
-      return "translate("+position.x+", "+position.y+")"
-    })
+      return "translate(" + position.x + ", " + position.y + ")";
+    });
 
-    svgEdge.append("path")
-      .attr("d", function(edge) { return edge.path() })
+    svgEdge
+      .append("path")
+      .attr("d", function (edge) {
+        return edge.path();
+      })
       .on("mouseover", highlight)
-      .on("mouseout", lowlight)
+      .on("mouseout", lowlight);
 
     let first = true;
     let minX, minY, maxX, maxY;
     for (const node of graph.nodes()) {
-      const {x, y} = node.position();
+      const { x, y } = node.position();
       const x2 = x + node.width();
       const y2 = y + node.height();
       if (first) {
@@ -246,34 +320,43 @@ function redrawFunction(svg, jobs, resources, newUrl) {
     }
     const width = maxX - minX;
     const height = maxY - minY;
-    d3.select(svg.node().parentNode)
-      .attr("viewBox", "" + (minX - 20) + " " + (minY - 20) + " " + (width + 40) + " " + (height + 40))
+    d3.select(svg.node().parentNode).attr(
+      "viewBox",
+      "" +
+        (minX - 20) +
+        " " +
+        (minY - 20) +
+        " " +
+        (width + 40) +
+        " " +
+        (height + 40),
+    );
 
     const originalJobs = [...document.querySelectorAll(".job")];
-    const jobAnimations = originalJobs.map(el => el.cloneNode(true));
-    jobAnimations.forEach(el => {
-      const foreignObject = el.querySelector('foreignObject');
+    const jobAnimations = originalJobs.map((el) => el.cloneNode(true));
+    jobAnimations.forEach((el) => {
+      const foreignObject = el.querySelector("foreignObject");
       if (foreignObject != null) {
         removeElement(foreignObject);
       }
-      el.classList.remove('job');
-      el.classList.add('job-animation-node');
-      el.querySelectorAll('a').forEach(removeElement);
+      el.classList.remove("job");
+      el.classList.add("job-animation-node");
+      el.querySelectorAll("a").forEach(removeElement);
       el.appendChild(foreignObject);
 
-      el.querySelectorAll('text').forEach(removeElement);
+      el.querySelectorAll("text").forEach(removeElement);
     });
-    originalJobs.forEach(el => 
-      el.querySelectorAll('.js-animation-wrapper').forEach(removeElement)
+    originalJobs.forEach((el) =>
+      el.querySelectorAll(".js-animation-wrapper").forEach(removeElement),
     );
-    const canvas = document.querySelector('svg > g');
+    const canvas = document.querySelector("svg > g");
     if (canvas != null) {
       canvas.prepend(...jobAnimations);
     }
 
     const largestEdge = Math.max(width, height);
-    const animations = document.querySelectorAll('.animation');
-    animations.forEach(el => {
+    const animations = document.querySelectorAll(".animation");
+    animations.forEach((el) => {
       if (largestEdge < 500) {
         el.classList.add("animation-small");
       } else if (largestEdge < 1500) {
@@ -283,22 +366,22 @@ function redrawFunction(svg, jobs, resources, newUrl) {
       } else {
         el.classList.add("animation-xlarge");
       }
-    })
+    });
 
     if (currentHighlight) {
-      svgNodes.each(function(node) {
+      svgNodes.each(function (node) {
         if (node.key === currentHighlight) {
-          highlight(null, node)
+          highlight(null, node);
         }
       });
 
-      svgEdges.each(function(node) {
+      svgEdges.each(function (node) {
         if (node.key === currentHighlight) {
-          highlight(null, node)
+          highlight(null, node);
         }
       });
     }
-  }
+  };
 }
 
 function removeElement(el) {
@@ -314,28 +397,45 @@ function removeElement(el) {
 var shouldResetPipelineFocus = false;
 
 function createPipelineSvg(svg) {
-  var g = d3.select("g.test")
+  var g = d3.select("g.test");
   if (g.empty()) {
-    svg.append("defs").append("filter")
+    svg
+      .append("defs")
+      .append("filter")
       .attr("id", "embiggen")
       .append("feMorphology")
       .attr("operator", "dilate")
       .attr("radius", "4");
 
-    g = svg.append("g").attr("class", "test")
-    svg.on("mousedown", function (event) {
-      if (event.button || event.ctrlKey)
-        event.stopImmediatePropagation();
-    }).call(d3.zoom().scaleExtent([0.5, 10]).on("zoom", function (event) {
-      if (shouldResetPipelineFocus) {
-        shouldResetPipelineFocus = false;
-        resetPipelineFocus();
-      } else {
-        g.attr("transform", "translate(" + event.transform.x + "," + event.transform.y + ") scale(" + event.transform.k + ")");
-      }
-    }));
+    g = svg.append("g").attr("class", "test");
+    svg
+      .on("mousedown", function (event) {
+        if (event.button || event.ctrlKey) event.stopImmediatePropagation();
+      })
+      .call(
+        d3
+          .zoom()
+          .scaleExtent([0.5, 10])
+          .on("zoom", function (event) {
+            if (shouldResetPipelineFocus) {
+              shouldResetPipelineFocus = false;
+              resetPipelineFocus();
+            } else {
+              g.attr(
+                "transform",
+                "translate(" +
+                  event.transform.x +
+                  "," +
+                  event.transform.y +
+                  ") scale(" +
+                  event.transform.k +
+                  ")",
+              );
+            }
+          }),
+      );
   }
-  return g
+  return g;
 }
 
 export function resetPipelineFocus() {
@@ -345,22 +445,22 @@ export function resetPipelineFocus() {
     g.attr("transform", "");
     g.call(d3.zoom().transform, d3.zoomIdentity);
   } else {
-    shouldResetPipelineFocus = true
+    shouldResetPipelineFocus = true;
   }
 
-  return g
+  return g;
 }
 
 function instanceVarsQuery() {
   const filtered = window.location.search
     .substring(1)
-    .split('&')
-    .filter(s => s.startsWith('vars.') || s.startsWith('vars='))
-    .join('&');
+    .split("&")
+    .filter((s) => s.startsWith("vars.") || s.startsWith("vars="))
+    .join("&");
   if (filtered === "") {
     return "";
   }
-  return '?' + filtered;
+  return "?" + filtered;
 }
 
 function createGraph(svg, jobs, resources) {
@@ -375,7 +475,14 @@ function createGraph(svg, jobs, resources) {
 
   for (var i in resources) {
     var resource = resources[i];
-    resourceURLs[resource.name] = "/teams/"+resource.team_name+"/pipelines/"+resource.pipeline_name+"/resources/"+encodeURIComponent(resource.name) + query;
+    resourceURLs[resource.name] =
+      "/teams/" +
+      resource.team_name +
+      "/pipelines/" +
+      resource.pipeline_name +
+      "/resources/" +
+      encodeURIComponent(resource.name) +
+      query;
     resourceBuild[resource.name] = resource.build;
     resourcePinned[resource.name] = resource.pinned_version;
     resourceIcons[resource.name] = resource.icon;
@@ -388,13 +495,35 @@ function createGraph(svg, jobs, resources) {
 
     var classes = ["job"];
 
-    var url = "/teams/"+job.team_name+"/pipelines/"+job.pipeline_name+"/jobs/"+encodeURIComponent(job.name);
+    var url =
+      "/teams/" +
+      job.team_name +
+      "/pipelines/" +
+      job.pipeline_name +
+      "/jobs/" +
+      encodeURIComponent(job.name);
     if (job.next_build) {
-      var build = job.next_build
-      url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+encodeURIComponent(build.job_name)+"/builds/"+build.name;
+      var build = job.next_build;
+      url =
+        "/teams/" +
+        build.team_name +
+        "/pipelines/" +
+        build.pipeline_name +
+        "/jobs/" +
+        encodeURIComponent(build.job_name) +
+        "/builds/" +
+        build.name;
     } else if (job.finished_build) {
-      var build = job.finished_build
-      url = "/teams/"+build.team_name+"/pipelines/"+build.pipeline_name+"/jobs/"+encodeURIComponent(build.job_name)+"/builds/"+build.name;
+      var build = job.finished_build;
+      url =
+        "/teams/" +
+        build.team_name +
+        "/pipelines/" +
+        build.pipeline_name +
+        "/jobs/" +
+        encodeURIComponent(build.job_name) +
+        "/builds/" +
+        build.name;
     }
     url += query;
 
@@ -402,7 +531,7 @@ function createGraph(svg, jobs, resources) {
     if (job.paused) {
       status = "paused";
     } else if (job.finished_build) {
-      status = job.finished_build.status
+      status = job.finished_build.status;
     } else {
       status = "no-builds";
     }
@@ -413,14 +542,17 @@ function createGraph(svg, jobs, resources) {
       classes.push(job.next_build.status);
     }
 
-    graph.setNode(id, new GraphNode({
-      id: id,
-      name: job.name,
-      class: classes.join(" "),
-      status: status,
-      url: url,
-      svg: svg,
-    }));
+    graph.setNode(
+      id,
+      new GraphNode({
+        id: id,
+        name: job.name,
+        class: classes.join(" "),
+        status: status,
+        url: url,
+        svg: svg,
+      }),
+    );
   }
 
   var resourceStatus = function (resource) {
@@ -456,13 +588,13 @@ function createGraph(svg, jobs, resources) {
           class: "resource output" + resourceStatus(output.resource),
           repeatable: true,
           url: resourceURLs[output.resource],
-          svg: svg
+          svg: svg,
         });
 
         graph.setNode(outputId, jobOutputNode);
       }
 
-      graph.addEdge(id, outputId, output.resource, null)
+      graph.addEdge(id, outputId, output.resource, null);
     }
   }
 
@@ -489,26 +621,38 @@ function createGraph(svg, jobs, resources) {
           } else {
             if (!graph.node(sourceInputNode)) {
               addIcon(resourceIcons[input.resource], sourceInputNode);
-              graph.setNode(sourceInputNode, new GraphNode({
-                id: sourceInputNode,
-                name: input.resource,
-                icon: resourceIcons[input.resource],
-                key: input.resource,
-                class: "resource constrained-input" + resourceStatus(input.resource),
-                repeatable: true,
-                url: resourceURLs[input.resource],
-                svg: svg
-              }));
+              graph.setNode(
+                sourceInputNode,
+                new GraphNode({
+                  id: sourceInputNode,
+                  name: input.resource,
+                  icon: resourceIcons[input.resource],
+                  key: input.resource,
+                  class:
+                    "resource constrained-input" +
+                    resourceStatus(input.resource),
+                  repeatable: true,
+                  url: resourceURLs[input.resource],
+                  svg: svg,
+                }),
+              );
             }
 
             if (graph.node(sourceJobNode)) {
-              graph.addEdge(sourceJobNode, sourceInputNode, input.resource, null);
+              graph.addEdge(
+                sourceJobNode,
+                sourceInputNode,
+                input.resource,
+                null,
+              );
             }
 
             sourceNode = sourceInputNode;
           }
 
-          graph.addEdge(sourceNode, id, input.resource, {trigger: input.trigger});
+          graph.addEdge(sourceNode, id, input.resource, {
+            trigger: input.trigger,
+          });
         }
       }
     }
@@ -528,25 +672,28 @@ function createGraph(svg, jobs, resources) {
       var status = "";
 
       if (!input.passed || input.passed.length === 0) {
-        var inputId = inputNode(job.name, input.resource+"-unconstrained");
+        var inputId = inputNode(job.name, input.resource + "-unconstrained");
 
         if (!graph.node(inputId)) {
           addIcon(resourceIcons[input.resource], inputId);
-          graph.setNode(inputId, new GraphNode({
-            id: inputId,
-            name: input.resource,
-            icon: resourceIcons[input.resource],
-            key: input.resource,
-            class: "resource input" + resourceStatus(input.resource),
-            status: status,
-            repeatable: true,
-            url: resourceURLs[input.resource],
-            svg: svg,
-            equivalentBy: input.resource+"-unconstrained",
-          }));
+          graph.setNode(
+            inputId,
+            new GraphNode({
+              id: inputId,
+              name: input.resource,
+              icon: resourceIcons[input.resource],
+              key: input.resource,
+              class: "resource input" + resourceStatus(input.resource),
+              status: status,
+              repeatable: true,
+              url: resourceURLs[input.resource],
+              svg: svg,
+              equivalentBy: input.resource + "-unconstrained",
+            }),
+          );
         }
 
-        graph.addEdge(inputId, id, input.resource, {trigger: input.trigger})
+        graph.addEdge(inputId, id, input.resource, { trigger: input.trigger });
       }
     }
   }
@@ -559,24 +706,36 @@ function createGraph(svg, jobs, resources) {
 }
 
 export function addIcon(iconName, nodeId) {
-  iconsModulePromise.then(icons => {
-    var id = nodeId + "-svg-icon";
-    if (document.getElementById(id) === null) {
-      var svg = icons.svg(iconName, id);
-      var template = document.createElement('template');
-      template.innerHTML = svg;
-      var icon = template.content.firstChild;
-      var iconStore = document.getElementById("icon-store");
-      if (iconStore == null) {
-        iconStore = createIconStore();
-      }
-      iconStore.appendChild(icon)
+  var addGenericIcon = (svg, id) => {
+    var template = document.createElement("template");
+    template.innerHTML = svg;
+    var icon = template.content.firstChild;
+    if (id) {
+      icon.id = id;
     }
-  })
+    var iconStore = document.getElementById("icon-store") || createIconStore();
+    iconStore.appendChild(icon);
+  };
+
+  var id = `${nodeId}-svg-icon`;
+
+  if (iconName.startsWith("si/")) {
+    simpleIconsModulePromise.then((icons) => {
+      if (document.getElementById(id) === null) {
+        addGenericIcon(icons.svg(iconName), id);
+      }
+    });
+  } else {
+    mdIconsModulePromise.then((icons) => {
+      if (document.getElementById(id) === null) {
+        addGenericIcon(icons.svg(iconName, id));
+      }
+    });
+  }
 }
 
 function createIconStore() {
-  const iconStore = document.createElement('div');
+  const iconStore = document.createElement("div");
   iconStore.id = "icon-store";
   iconStore.style.display = "none";
   document.body.appendChild(iconStore);
@@ -584,21 +743,21 @@ function createIconStore() {
 }
 
 function groupNode(name) {
-  return "group-"+name;
+  return "group-" + name;
 }
 
 function jobNode(name) {
-  return "job-"+name;
+  return "job-" + name;
 }
 
 function gatewayNode(jobNames) {
-  return "gateway-"+jobNames.sort().join("-");
+  return "gateway-" + jobNames.sort().join("-");
 }
 
 function outputNode(jobName, resourceName) {
-  return "job-"+jobName+"-output-"+resourceName;
+  return "job-" + jobName + "-output-" + resourceName;
 }
 
 function inputNode(jobName, resourceName) {
-  return "job-"+jobName+"-input-"+resourceName;
+  return "job-" + jobName + "-input-" + resourceName;
 }

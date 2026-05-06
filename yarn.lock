@@ -4760,6 +4760,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"simple-icons@npm:^16.18.1":
+  version: 16.18.1
+  resolution: "simple-icons@npm:16.18.1"
+  checksum: 10c0/b028c80d2f77046ab8749596a0d7b5a06ea6bee168aee39be97308418fdd1998a2ca3f2173c25be4f0e76e823bc4f8b77aefe2946bf4c69a38ad0ec90563a492
+  languageName: node
+  linkType: hard
+
 "smart-buffer@npm:^4.2.0":
   version: 4.2.0
   resolution: "smart-buffer@npm:4.2.0"
@@ -5351,6 +5358,7 @@ __metadata:
     less-plugin-autoprefix: "npm:2.0.0"
     puppeteer: "npm:^24.37.3"
     request: "npm:^2.88.2"
+    simple-icons: "npm:^16.18.1"
     uglify-js: "npm:^3.19.3"
     uuid: "npm:^14.0.0"
     webpack: "npm:^5.105.2"
