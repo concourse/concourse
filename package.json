@@ -24,6 +24,7 @@
     "less": "4.6.4",
     "less-plugin-autoprefix": "2.0.0",
     "puppeteer": "^24.37.3",
+    "simple-icons": "^16.18.1",
     "uglify-js": "^3.19.3",
     "webpack": "^5.105.2",
     "webpack-cli": "7.0.2"
@@ -43,6 +44,7 @@
     "build-elm": "cd web/elm && elm make --optimize --output ../public/elm.js src/Main.elm && uglifyjs ../public/elm.js --compress \"pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe\" | uglifyjs --mangle --output ../public/elm.min.js",
     "build-elm-debug": "cd web/elm && elm make --debug --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" | tr -d '\n' > web/public/mdi-svg.min.js",
+    "update-si-svg": "go run ./hack/update-si-svg/",
     "benchmark": "cd web/elm && elm make --optimize --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"
   },
   "packageManager": "yarn@4.14.1"
