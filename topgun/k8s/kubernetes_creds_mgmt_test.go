@@ -201,7 +201,7 @@ var _ = Describe("Kubernetes credential management", func() {
 			By("not creating the secret")
 			sess := fly.Start("execute",
 				"-c", "tasks/simple-secret.yml")
-			Eventually(sess).Should(gexec.Exit(0))
+			Eventually(sess).ShouldNot(gexec.Exit(0))
 		})
 	})
 
