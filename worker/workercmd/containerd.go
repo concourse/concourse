@@ -53,6 +53,7 @@ disabled_plugins = [
 	"io.containerd.grpc.v1.sandboxes",
 	"io.containerd.service.v1.snapshots-service",
 	"io.containerd.grpc.v1.snapshots",
+	"io.containerd.differ.v1.erofs",
 	"io.containerd.snapshotter.v1.aufs",
 	"io.containerd.snapshotter.v1.btrfs",
 	"io.containerd.snapshotter.v1.zfs",

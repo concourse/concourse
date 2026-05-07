@@ -491,7 +491,7 @@ func (n cniNetwork) generateResolvConfContents() ([]byte, error) {
 	var err error
 
 	if len(n.nameServers) == 0 {
-		resolvConfEntries, err = ParseHostResolveConf("/etc/resolv.conf")
+		resolvConfEntries, err = ParseHostResolveConf(defaultHostResolvConfPath)
 	}
 
 	contents = strings.Join(resolvConfEntries, "\n") + "\n"
