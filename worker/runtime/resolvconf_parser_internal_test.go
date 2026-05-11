@@ -64,3 +64,24 @@ func TestParseHostResolveConf_FallsBackToLocalIPWhenSystemdResolvedUnavailable(t
 	require.NoError(t, err)
 	require.Equal(t, []string{"nameserver 10.5.6.11"}, entries)
 }
+
+func TestParseHostResolveConf_FallsBackToLocalIPForAnyIPv4LoopbackNameserver(t *testing.T) {
+	oldReadFileFn := readFileFn
+	oldLocalIPFn := localIPFn
+	defer func() {
+		readFileFn = oldReadFileFn
+		localIPFn = oldLocalIPFn
+	}()
+
+	readFileFn = func(path string) ([]byte, error) {
+		return []byte("nameserver 127.1.2.3\n"), nil
+	}
+
+	localIPFn = func() (string, error) {
+		return "10.5.6.11", nil
+	}
+
+	entries, err := ParseHostResolveConf("/tmp/resolv.conf")
+	require.NoError(t, err)
+	require.Equal(t, []string{"nameserver 10.5.6.11"}, entries)
+}
