@@ -18,7 +18,7 @@ var (
 	localIPFn                     = localip.LocalIP
 
 	// Regular expressions used for DNS resolution parsing
-	loopbackNameserverRegexp = regexp.MustCompile(`(?m)^\s*nameserver\s+(?:127\.0\.0\.\d+|::1)\s*$`)
+	loopbackNameserverRegexp = regexp.MustCompile(`(?m)^\s*nameserver\s+(?:127\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1)\s*$`)
 	loopbackIPRegexp         = regexp.MustCompile(`(?:127\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1)`)
 )
 
