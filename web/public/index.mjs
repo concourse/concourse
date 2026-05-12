@@ -719,6 +719,10 @@ export function addIcon(iconName, nodeId) {
 
   var id = `${nodeId}-svg-icon`;
 
+  if (!iconName) {
+    return;
+  }
+
   if (iconName.startsWith("si/")) {
     simpleIconsModulePromise.then((icons) => {
       if (document.getElementById(id) === null) {
