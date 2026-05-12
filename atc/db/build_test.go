@@ -2336,8 +2336,6 @@ var _ = Describe("Build", func() {
 
 			scenario = dbtest.Setup(
 				builder.WithPipeline(pipelineConfig),
-				builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
-				builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
 				builder.WithPendingJobBuild(&build, "some-job"),
 			)
 		})
@@ -2345,8 +2343,8 @@ var _ = Describe("Build", func() {
 		Context("when all the resources in the build have been checked", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource", time.Minute),
-					builder.WithResourceVersions("some-other-resource", time.Minute),
+					builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
+					builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
 				)
 			})
 
@@ -2359,9 +2357,9 @@ var _ = Describe("Build", func() {
 
 		Context("when a resource in the build has not been checked", func() {
 			BeforeEach(func() {
-				By("not checking some-other-resource")
+				By("not checking 'some-other-resource'")
 				scenario.Run(
-					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
 				)
 			})
 			It("returns false", func() {
@@ -2374,7 +2372,8 @@ var _ = Describe("Build", func() {
 		Context("when a pinned resource in the build has not been checked", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
+					builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
 				)
 
 				rcv := scenario.ResourceVersion("some-other-resource", atc.Version{"some": "other-version"})

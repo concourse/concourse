@@ -525,9 +525,9 @@ func (b *build) ResourcesChecked() (bool, error) {
 			SELECT 1
 			FROM resources r
 			JOIN job_inputs ji ON ji.resource_id = r.id
-			JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
+			LEFT JOIN resource_config_scopes rs ON r.resource_config_scope_id = rs.id
 			WHERE ji.job_id = $1 AND ji.passed_job_id IS NULL
-			AND rs.last_check_end_time < $2
+			AND (rs.last_check_end_time < $2 OR rs.id IS NULL)
 			AND NOT EXISTS (
 				SELECT
 				FROM resource_pins
