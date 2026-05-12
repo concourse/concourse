@@ -155,25 +155,23 @@ var _ = Describe("Database secrets encryption", func() {
 					var deploy *gexec.Session
 					var boshLogs *gexec.Session
 
-					BeforeEach(func() {
-						boshLogs = SpawnBosh("logs", "-f")
-
-						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
-						Eventually(deploy).Should(gexec.Exit(1))
-					})
-
 					AfterEach(func() {
-						boshLogs.Signal(os.Interrupt)
+						boshLogs.Interrupt()
 						Eventually(boshLogs).Should(gexec.Exit())
 					})
 
 					AfterEach(func() {
+						deploy.Interrupt()
+						Eventually(deploy).Should(gexec.Exit())
 						Deploy("deployments/concourse.yml", "-o", "operations/encryption.yml")
 					})
 
 					It("fails to deploy with a useful message", func() {
-						Expect(deploy).To(gbytes.Say("Review logs for failed jobs: web"))
-						Expect(boshLogs).To(gbytes.Say("row encrypted with neither old nor new key"))
+						boshLogs = SpawnBosh("logs", "-f")
+						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
+
+						Eventually(deploy).To(gbytes.Say("Review logs for failed jobs: web"))
+						Eventually(boshLogs).To(gbytes.Say("row encrypted with neither old nor new key"))
 					})
 				})
 
