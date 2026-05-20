@@ -782,8 +782,8 @@ github.com/cncf/xds/go v0.0.0-20230105202645-06c439db220b/go.mod h1:eXthEFrGJvWH
 github.com/cncf/xds/go v0.0.0-20230310173818-32f1caf87195/go.mod h1:eXthEFrGJvWHgFFCl3hGmgk+/aYT6PnTQLykKQRLhEs=
 github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 h1:6xNmx7iTtyBRev0+D/Tv1FZd4SCg8axKApyNyRsAt/w=
 github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5/go.mod h1:KdCmV+x/BuvyMxRnYBlmVaq4OLiKW6iRQfvC62cvdkI=
-github.com/concourse/dex v1.13.0 h1:PpITVTA0b0BBKRP3e8w60XzOTYGWPj85hdw45dz37rQ=
-github.com/concourse/dex v1.13.0/go.mod h1:5u3U3LFS4NXfbTQtOjByJxIWDDYSD7gBPEH1gE1YlHY=
+github.com/concourse/dex v1.14.0 h1:tLj8v9BIXpML3eShQno83M2U2l5U4ivgvFSDOLIWLJE=
+github.com/concourse/dex v1.14.0/go.mod h1:5u3U3LFS4NXfbTQtOjByJxIWDDYSD7gBPEH1gE1YlHY=
 github.com/concourse/go-archive v1.0.1 h1:6jQk0VDiE4G6lNJQ0mLZ7XmxbqI3spO4x0wgVwk4pfo=
 github.com/concourse/go-archive v1.0.1/go.mod h1:Xfo080IPQBmVz3I5ehjCddW3phA2mwv0NFwlpjf5CO8=
 github.com/concourse/houdini v1.3.0 h1:JzxY0p0algYdydonCG/7SSAkDOWNXpaG37TRbVwY2Io=
