@@ -1,6 +1,6 @@
 module github.com/concourse/concourse
 
-go 1.26.2
+go 1.26.3
 
 require (
 	charm.land/bubbles/v2 v2.1.0
@@ -28,8 +28,8 @@ require (
 	github.com/concourse/dex v1.14.0
 	github.com/concourse/houdini v1.3.0
 	github.com/concourse/retryhttp v1.3.0
-	github.com/containerd/containerd/api v1.11.0
-	github.com/containerd/containerd/v2 v2.3.0
+	github.com/containerd/containerd/api v1.11.1
+	github.com/containerd/containerd/v2 v2.3.1
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/go-cni v1.1.13
 	github.com/containerd/typeurl/v2 v2.2.3
