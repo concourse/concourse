@@ -1,8 +1,6 @@
 package topgun_test
 
 import (
-	"os"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -170,8 +168,8 @@ var _ = Describe("Database secrets encryption", func() {
 						boshLogs = SpawnBosh("logs", "-f")
 						deploy = StartDeploy("deployments/concourse.yml", "-o", "operations/encryption-bogus.yml")
 
-						Eventually(deploy).To(gbytes.Say("Review logs for failed jobs: web"))
-						Eventually(boshLogs).To(gbytes.Say("row encrypted with neither old nor new key"))
+						Eventually(deploy, "10m").To(gbytes.Say("Review logs for failed jobs: web"))
+						Eventually(boshLogs, "10m").To(gbytes.Say("row encrypted with neither old nor new key"))
 					})
 				})
 

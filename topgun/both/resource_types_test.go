@@ -21,22 +21,22 @@ var _ = Describe("A pipeline-provided resource type", func() {
 		buildSession := Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
 		Eventually(buildSession).Should(gexec.Exit(1))
 
-		By("expecting a container for the resource check, resource type check and task image check")
-		Expect(ContainersBy("type", "check")).To(HaveLen(3))
+		By("expecting a container for the resource check and task image check. Containers for resource types are GC'd quickly.")
+		Expect(ContainersBy("type", "check")).To(HaveLen(2))
 
-		By("expecting a container for resource type check, resource type get, resource check, resource get in get step. expecting a container for image check, image get and task run in task step. In total 7 containers.")
-		expectedContainersBefore := 7
+		By("expecting a container for resource check and get from get step. Expecting a container for task image check and get, and task run in task step. In total 5 containers.")
+		expectedContainersBefore := 5
 		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore))
 
 		By("triggering the build again")
 		buildSession = Fly.Start("trigger-job", "-w", "-j", "pipe/get-10m")
 		Eventually(buildSession).Should(gexec.Exit(1))
 
-		By("expecting 2 additional check containers for the task's image check and resource type check")
-		Expect(ContainersBy("type", "check")).To(HaveLen(5))
+		By("expecting 1 additional check containers for the task's image check")
+		Expect(ContainersBy("type", "check")).To(HaveLen(3))
 
-		By("expecting to only have new containers for build task image check, build task run and resource type check")
-		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore + 3))
+		By("expecting to only have new containers for build task image check and build task run")
+		Expect(FlyTable("containers")).Should(HaveLen(expectedContainersBefore + 2))
 	})
 })
 

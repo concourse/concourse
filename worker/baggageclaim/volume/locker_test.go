@@ -125,24 +125,19 @@ var _ = Describe("KeyedLock", func() {
 			})
 
 			It("cleans up locks that are no longer in use", func() {
-				// This test verifies that we don't leak memory by keeping unused locks
-
-				// Create and use 100 different locks
-				for i := range 100 {
-					key := fmt.Sprintf("temp-key-%d", i)
-					lockManager.Lock(key)
-					lockManager.Unlock(key)
-				}
-
-				// Now verify we can still create and use a new lock
-				lockAcquiredCh := make(chan struct{})
-				go func() {
-					lockManager.Lock("final-key")
-					close(lockAcquiredCh)
-					lockManager.Unlock("final-key")
-				}()
-
-				Eventually(lockAcquiredCh).Should(BeClosed())
+				By("creating a bunch of locks and immediatly releasing them", func() {
+					for i := range 100 {
+						key := fmt.Sprintf("temp-key-%d", i)
+						lockManager.Lock(key)
+						lockManager.Unlock(key)
+					}
+				})
+				By("verifying the locks no longer exist by catching the panic from Unlock()", func() {
+					for i := range 100 {
+						key := fmt.Sprintf("temp-key-%d", i)
+						Expect(func() { lockManager.Unlock(key) }).To(Panic())
+					}
+				})
 			})
 		})
 	})
