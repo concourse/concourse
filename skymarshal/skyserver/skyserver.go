@@ -162,14 +162,46 @@ func (s *SkyServer) Callback(w http.ResponseWriter, r *http.Request) {
 func (s *SkyServer) Redirect(w http.ResponseWriter, r *http.Request, oauth2Token *oauth2.Token, redirectURI string) {
 	logger := s.config.Logger.Session("redirect")
 
-	redirectURL, err := url.ParseRequestURI("/" + strings.TrimLeft(redirectURI, "/"))
+	// Iteratively unescape so stacked encodings (e.g. %25252F -> %252F -> %2F)
+	// cannot sneak a "/" past the TrimLeft check below.
+	uri := redirectURI
+	unescaped := false
+	for range 5 { // Cap at 5 times so we don't get stuck in here forever
+		decoded, err := url.QueryUnescape(uri)
+		if err != nil {
+			logger.Error("failed-to-unescape-redirect-url", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if decoded == uri {
+			unescaped = true
+			break
+		}
+		uri = decoded
+	}
+
+	if !unescaped {
+		logger.Error("failed-to-unescape-redirect-url", fmt.Errorf("escaped the URI a max of 5 times: %s", redirectURI))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// Some browsers and proxies normalise "\" to "/", which would turn
+	// /\example.com into //example.com (protocol-relative) after the redirect.
+	if strings.Contains(uri, `\`) {
+		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	redirectURL, err := url.ParseRequestURI("/" + strings.TrimLeft(uri, "/"))
 	if err != nil {
 		logger.Error("failed-to-parse-redirect-url", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if redirectURL.Host != "" || redirectURL.Scheme != "" {
+	if redirectURL.Host != "" || redirectURL.Scheme != "" || strings.HasPrefix(redirectURL.Path, "//") {
 		logger.Error("invalid-redirect", fmt.Errorf("Unsupported redirect uri: %s", redirectURI))
 		w.WriteHeader(http.StatusBadRequest)
 		return
