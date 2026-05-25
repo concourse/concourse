@@ -501,6 +501,145 @@ var _ = Describe("Sky Server API", func() {
 							})
 						})
 
+						Context("when redirect URI is single-encoded", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("/%2Fexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("normalises to a same-origin path", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+								locationURL, err := response.Request.Response.Location()
+								Expect(err).NotTo(HaveOccurred())
+								Expect(locationURL.Path).To(Equal("/example.com"))
+							})
+						})
+
+						Context("when redirect URI is double-encoded", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("/%252Fexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("normalises to a same-origin path", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+								locationURL, err := response.Request.Response.Location()
+								Expect(err).NotTo(HaveOccurred())
+								Expect(locationURL.Path).To(Equal("/example.com"))
+							})
+						})
+
+						Context("when redirect URI is triple-encoded", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("%25252Fexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("normalises to a same-origin path (regression for multi-encoding bypass)", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+								locationURL, err := response.Request.Response.Location()
+								Expect(err).NotTo(HaveOccurred())
+								Expect(locationURL.Path).To(Equal("/example.com"))
+							})
+						})
+
+						Context("when redirect URI is encoded more than 5 times", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("%25252525252525252525252525252525252525252Fexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("returns 400", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when redirect URI is encoded protocol-relative", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("%2F%2Fexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("normalises to a same-origin path", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+								locationURL, err := response.Request.Response.Location()
+								Expect(err).NotTo(HaveOccurred())
+								Expect(locationURL.Path).To(Equal("/example.com"))
+							})
+						})
+
+						Context("when redirect URI uses mixed-case percent-hex", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("/%2fexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("normalises to a same-origin path", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+								locationURL, err := response.Request.Response.Location()
+								Expect(err).NotTo(HaveOccurred())
+								Expect(locationURL.Path).To(Equal("/example.com"))
+							})
+						})
+
+						Context("when redirect URI contains a literal backslash", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken(`/\example.com`, time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("returns 400", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when redirect URI is encoded-backslash", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("/%5Cexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("returns 400", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when redirect URI is double-encoded backslash", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("/%255Cexample.com", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("returns 400", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when redirect URI is two backslashes", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken(`\\example.com`, time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("returns 400", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+							})
+						})
+
+						Context("when redirect URI contains a legitimate %20 space", func() {
+							BeforeEach(func() {
+								stateToken := signStateToken("/teams/main/pipelines/my%20pipeline", time.Now().Unix())
+								request.URL.RawQuery = "code=some-code&state=" + stateToken
+							})
+
+							It("preserves the path and redirects", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+								locationURL, err := response.Request.Response.Location()
+								Expect(err).NotTo(HaveOccurred())
+								Expect(locationURL.Path).To(Equal("/teams/main/pipelines/my pipeline"))
+							})
+						})
+
 						Context("when redirecting to the ATC", func() {
 							BeforeEach(func() {
 								stateToken := signStateToken("/valid-redirect", time.Now().Unix())
