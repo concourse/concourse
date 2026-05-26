@@ -38,10 +38,11 @@ type FakeSetPipelineStepDelegate struct {
 	buildStartTimeReturnsOnCall map[int]struct {
 		result1 time.Time
 	}
-	CheckRunSetPipelinePolicyStub        func(*atc.Config) error
+	CheckRunSetPipelinePolicyStub        func(string, *atc.Config) error
 	checkRunSetPipelinePolicyMutex       sync.RWMutex
 	checkRunSetPipelinePolicyArgsForCall []struct {
-		arg1 *atc.Config
+		arg1 string
+		arg2 *atc.Config
 	}
 	checkRunSetPipelinePolicyReturns struct {
 		result1 error
@@ -300,18 +301,19 @@ func (fake *FakeSetPipelineStepDelegate) BuildStartTimeReturnsOnCall(i int, resu
 	}{result1}
 }
 
-func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicy(arg1 *atc.Config) error {
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicy(arg1 string, arg2 *atc.Config) error {
 	fake.checkRunSetPipelinePolicyMutex.Lock()
 	ret, specificReturn := fake.checkRunSetPipelinePolicyReturnsOnCall[len(fake.checkRunSetPipelinePolicyArgsForCall)]
 	fake.checkRunSetPipelinePolicyArgsForCall = append(fake.checkRunSetPipelinePolicyArgsForCall, struct {
-		arg1 *atc.Config
-	}{arg1})
+		arg1 string
+		arg2 *atc.Config
+	}{arg1, arg2})
 	stub := fake.CheckRunSetPipelinePolicyStub
 	fakeReturns := fake.checkRunSetPipelinePolicyReturns
-	fake.recordInvocation("CheckRunSetPipelinePolicy", []interface{}{arg1})
+	fake.recordInvocation("CheckRunSetPipelinePolicy", []interface{}{arg1, arg2})
 	fake.checkRunSetPipelinePolicyMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -325,17 +327,17 @@ func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyCallCount() in
 	return len(fake.checkRunSetPipelinePolicyArgsForCall)
 }
 
-func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyCalls(stub func(*atc.Config) error) {
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyCalls(stub func(string, *atc.Config) error) {
 	fake.checkRunSetPipelinePolicyMutex.Lock()
 	defer fake.checkRunSetPipelinePolicyMutex.Unlock()
 	fake.CheckRunSetPipelinePolicyStub = stub
 }
 
-func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyArgsForCall(i int) *atc.Config {
+func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyArgsForCall(i int) (string, *atc.Config) {
 	fake.checkRunSetPipelinePolicyMutex.RLock()
 	defer fake.checkRunSetPipelinePolicyMutex.RUnlock()
 	argsForCall := fake.checkRunSetPipelinePolicyArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeSetPipelineStepDelegate) CheckRunSetPipelinePolicyReturns(result1 error) {
