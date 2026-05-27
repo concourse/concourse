@@ -214,6 +214,7 @@ func NewHandler(
 		atc.DownloadCLI:  http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:      http.HandlerFunc(infoServer.Info),
 		atc.GetInfoCreds: http.HandlerFunc(infoServer.Creds),
+		atc.GetHealth:    http.HandlerFunc(http.NotFound),
 
 		atc.GetUser:              http.HandlerFunc(usersServer.GetUser),
 		atc.ListActiveUsersSince: http.HandlerFunc(usersServer.GetUsersSince),
