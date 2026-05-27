@@ -19,7 +19,6 @@ func (handler SecurityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	if handler.StrictTransportSecurity != "" {
 		w.Header().Set("Strict-Transport-Security", handler.StrictTransportSecurity)
 	}
-	w.Header().Set("X-XSS-Protection", "1; mode=block")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Download-Options", "noopen")
 	w.Header().Set("Cache-Control", "no-store, private")

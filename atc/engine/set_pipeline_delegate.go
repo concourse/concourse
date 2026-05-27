@@ -50,15 +50,16 @@ func (delegate *setPipelineStepDelegate) SetPipelineChanged(logger lager.Logger,
 	logger.Debug("set pipeline changed")
 }
 
-func (delegate *setPipelineStepDelegate) CheckRunSetPipelinePolicy(atcConfig *atc.Config) error {
+func (delegate *setPipelineStepDelegate) CheckRunSetPipelinePolicy(targetPipeline string, atcConfig *atc.Config) error {
 	if !delegate.policyChecker.ShouldCheckAction(policy.ActionRunSetPipeline) {
 		return nil
 	}
 
 	return delegate.checkPolicy(policy.PolicyCheckInput{
-		Action:   policy.ActionRunSetPipeline,
-		Team:     delegate.build.TeamName(),
-		Pipeline: delegate.build.PipelineName(),
-		Data:     atcConfig,
+		Action:         policy.ActionRunSetPipeline,
+		Team:           delegate.build.TeamName(),
+		Pipeline:       targetPipeline,
+		OriginPipeline: delegate.build.PipelineName(),
+		Data:           atcConfig,
 	})
 }

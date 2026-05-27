@@ -83,7 +83,7 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 				},
 			}
 
-			checkErr = delegate.CheckRunSetPipelinePolicy(&pipelineConfig)
+			checkErr = delegate.CheckRunSetPipelinePolicy("target-pipeline", &pipelineConfig)
 		})
 
 		Context("when the action does not need to be checked", func() {
@@ -110,10 +110,11 @@ var _ = Describe("SetPipelineStepDelegate", func() {
 
 				input := fakePolicyChecker.CheckArgsForCall(0)
 				Expect(input).To(Equal(policy.PolicyCheckInput{
-					Action:   policy.ActionRunSetPipeline,
-					Team:     "some-team",
-					Pipeline: "some-pipeline",
-					Data:     &pipelineConfig,
+					Action:         policy.ActionRunSetPipeline,
+					Team:           "some-team",
+					Pipeline:       "target-pipeline",
+					OriginPipeline: "some-pipeline",
+					Data:           &pipelineConfig,
 				}))
 			})
 

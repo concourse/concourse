@@ -43,6 +43,7 @@ type PolicyCheckInput struct {
 	Team           string   `json:"team,omitempty"`
 	Roles          []string `json:"roles,omitempty"`
 	Pipeline       string   `json:"pipeline,omitempty"`
+	OriginPipeline string   `json:"origin_pipeline,omitempty"`
 	Data           any      `json:"data,omitempty"`
 }
 
