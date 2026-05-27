@@ -73,4 +73,3 @@ var _ = Describe("Health", func() {
 		})
 	})
 })
-

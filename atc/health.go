@@ -28,4 +28,3 @@ const (
 	HealthStatusUnhealthy = "unhealthy"
 	HealthStatusDegraded  = "degraded"
 )
-
