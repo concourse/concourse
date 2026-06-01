@@ -52,6 +52,8 @@ type VolumeRepository interface {
 
 const noTeam = 0
 
+var _ VolumeRepository = (*volumeRepository)(nil)
+
 type volumeRepository struct {
 	conn DbConn
 }

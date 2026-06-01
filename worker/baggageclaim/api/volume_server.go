@@ -716,8 +716,12 @@ func (vs *VolumeServer) doCreate(ctx context.Context, w http.ResponseWriter, req
 		ctx,
 		handle,
 		strategy,
-		volume.Properties(request.Properties),
-		request.Privileged,
+		volume.VolumeOpts{
+			Privileged: request.Privileged,
+			Properties: volume.Properties(request.Properties),
+			Uid:        request.Uid,
+			Gid:        request.Gid,
+		},
 	)
 
 	if err != nil {

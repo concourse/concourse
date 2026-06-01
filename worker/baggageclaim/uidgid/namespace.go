@@ -12,6 +12,7 @@ import (
 //counterfeiter:generate . Namespacer
 type Namespacer interface {
 	NamespacePath(logger lager.Logger, path string) error
+	NamespacePathToUser(logger lager.Logger, path string, uid, gid int) error
 	NamespaceCommand(cmd *exec.Cmd)
 }
 
@@ -37,6 +38,23 @@ func (n *UidNamespacer) NamespacePath(logger lager.Logger, rootfsPath string) er
 	return nil
 }
 
+func (n *UidNamespacer) NamespacePathToUser(logger lager.Logger, rootfsPath string, uid, gid int) error {
+	log := logger.Session("namespace", lager.Data{
+		"path": rootfsPath,
+		"uid":  uid,
+		"gid":  gid,
+	})
+
+	log.Debug("start")
+	defer log.Debug("done")
+
+	if err := filepath.WalkDir(rootfsPath, n.Translator.TranslatePathToUser(uid, gid)); err != nil {
+		log.Error("failed-to-walk-and-translate", err)
+	}
+
+	return nil
+}
+
 func (n *UidNamespacer) NamespaceCommand(cmd *exec.Cmd) {
 	n.Translator.TranslateCommand(cmd)
 }
@@ -45,5 +63,6 @@ var _ Namespacer = (*NoopNamespacer)(nil)
 
 type NoopNamespacer struct{}
 
-func (NoopNamespacer) NamespacePath(lager.Logger, string) error { return nil }
-func (NoopNamespacer) NamespaceCommand(cmd *exec.Cmd)           {}
+func (NoopNamespacer) NamespacePath(lager.Logger, string) error                 { return nil }
+func (NoopNamespacer) NamespacePathToUser(lager.Logger, string, int, int) error { return nil }
+func (NoopNamespacer) NamespaceCommand(cmd *exec.Cmd)                           {}

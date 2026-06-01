@@ -41,7 +41,16 @@ func (worker *Worker) fetchImageForContainer(
 	logger := lagerctx.FromContext(ctx)
 
 	if imageSpec.ImageArtifact != nil {
-		volume, err := worker.findOrStreamVolume(ctx, imageSpec.Privileged, teamID, container, imageSpec.ImageArtifact, "/", delegate)
+		volume, err := worker.findOrStreamVolume(
+			ctx,
+			imageSpec.Privileged,
+			teamID,
+			container,
+			imageSpec.ImageArtifact,
+			"/",
+			runtime.VolumeOwnership{Uid: runtime.ExistingOwner, Gid: runtime.ExistingGroup},
+			delegate,
+		)
 		if err != nil {
 			logger.Error("failed-to-find-or-stream-volume-for-image", err)
 			return FetchedImage{}, fmt.Errorf("find or stream volume: %w", err)
@@ -54,6 +63,7 @@ func (worker *Worker) fetchImageForContainer(
 			volume,
 			teamID,
 			"/",
+			runtime.VolumeOwnership{Uid: runtime.ExistingOwner, Gid: runtime.ExistingGroup},
 		)
 		if err != nil {
 			logger.Error("failed-to-create-cow-volume-for-image", err)
@@ -122,6 +132,7 @@ func (worker *Worker) imageFromBaseResourceType(
 		importVolume,
 		teamID,
 		"/",
+		runtime.VolumeOwnership{Uid: runtime.ExistingOwner, Gid: runtime.ExistingGroup},
 	)
 	if err != nil {
 		return FetchedImage{}, err

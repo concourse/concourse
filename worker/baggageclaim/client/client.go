@@ -86,6 +86,8 @@ func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec bag
 		Strategy:   strategy.Encode(),
 		Properties: volumeSpec.Properties,
 		Privileged: volumeSpec.Privileged,
+		Uid:        volumeSpec.Uid,
+		Gid:        volumeSpec.Gid,
 	})
 
 	request, err := c.generateRequest(ctx, baggageclaim.CreateVolumeAsync, nil, buffer)

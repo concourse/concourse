@@ -15,6 +15,8 @@ type Strategizer interface {
 var ErrNoStrategy = errors.New("no strategy given")
 var ErrUnknownStrategy = errors.New("unknown strategy")
 
+var _ Strategizer = (*strategizer)(nil)
+
 type strategizer struct{}
 
 func NewStrategizer() Strategizer {

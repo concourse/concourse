@@ -18,6 +18,8 @@ const userPropertyName = "user"
 
 const exitStatusPropertyName = "concourse:exit-status"
 
+var _ runtime.Container = (*Container)(nil)
+
 type Container struct {
 	DBContainer_    db.CreatedContainer
 	GardenContainer gclient.Container
