@@ -26,9 +26,7 @@ import (
 
 var ErrVolumeDeletion = errors.New("failed-to-delete-volume")
 
-type Client interface {
-	baggageclaim.Client
-}
+var _ baggageclaim.Client = (*client)(nil)
 
 type client struct {
 	requestGenerator *rata.RequestGenerator
@@ -39,7 +37,7 @@ type client struct {
 	givenHttpClient *http.Client
 }
 
-func New(apiURL string, nestedRoundTripper http.RoundTripper) Client {
+func New(apiURL string, nestedRoundTripper http.RoundTripper) baggageclaim.Client {
 	return &client{
 		requestGenerator: rata.NewRequestGenerator(apiURL, baggageclaim.Routes),
 
@@ -49,7 +47,7 @@ func New(apiURL string, nestedRoundTripper http.RoundTripper) Client {
 	}
 }
 
-func NewWithHTTPClient(apiURL string, httpClient *http.Client) Client {
+func NewWithHTTPClient(apiURL string, httpClient *http.Client) baggageclaim.Client {
 	return &client{
 		givenHttpClient:  httpClient,
 		requestGenerator: rata.NewRequestGenerator(apiURL, baggageclaim.Routes),
