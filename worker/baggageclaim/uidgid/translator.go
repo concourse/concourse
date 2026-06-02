@@ -12,6 +12,8 @@ type Translator interface {
 	TranslateCommand(*exec.Cmd)
 }
 
+var _ Translator = (*translator)(nil)
+
 type translator struct {
 	mapper Mapper
 	chown  func(path string, uid int, gid int) error

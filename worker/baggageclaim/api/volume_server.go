@@ -524,10 +524,9 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		var errExceedStreamLimit volume.ErrExceedStreamLimit
-		if errors.As(err, &errExceedStreamLimit) {
-			hLog.Error("exceeded-stream-limit", err)
-			RespondWithError(w, err, http.StatusForbidden)
+		if streamLimitErr, ok := errors.AsType[volume.ErrExceedStreamLimit](err); ok {
+			hLog.Error("exceeded-stream-limit", streamLimitErr)
+			RespondWithError(w, streamLimitErr, http.StatusForbidden)
 			return
 		}
 

@@ -49,6 +49,8 @@ type Repository interface {
 	CleanupOrphanedVolumes(ctx context.Context) error
 }
 
+var _ Repository = (*repository)(nil)
+
 type repository struct {
 	filesystem Filesystem
 

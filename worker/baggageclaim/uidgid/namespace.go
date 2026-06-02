@@ -15,6 +15,8 @@ type Namespacer interface {
 	NamespaceCommand(cmd *exec.Cmd)
 }
 
+var _ Namespacer = (*UidNamespacer)(nil)
+
 type UidNamespacer struct {
 	Translator Translator
 	Logger     lager.Logger
@@ -38,6 +40,8 @@ func (n *UidNamespacer) NamespacePath(logger lager.Logger, rootfsPath string) er
 func (n *UidNamespacer) NamespaceCommand(cmd *exec.Cmd) {
 	n.Translator.TranslateCommand(cmd)
 }
+
+var _ Namespacer = (*NoopNamespacer)(nil)
 
 type NoopNamespacer struct{}
 

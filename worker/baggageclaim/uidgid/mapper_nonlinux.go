@@ -6,6 +6,8 @@ import (
 	"os/exec"
 )
 
+var _ Mapper = (*noopMapper)(nil)
+
 type noopMapper struct{}
 
 func NewPrivilegedMapper() Mapper {

@@ -5,6 +5,8 @@ import (
 	"syscall"
 )
 
+var _ Mapper = (*uidGidMapper)(nil)
+
 type uidGidMapper struct {
 	uids []syscall.SysProcIDMap
 	gids []syscall.SysProcIDMap
