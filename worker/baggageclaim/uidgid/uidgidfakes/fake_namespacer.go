@@ -27,6 +27,20 @@ type FakeNamespacer struct {
 	namespacePathReturnsOnCall map[int]struct {
 		result1 error
 	}
+	NamespacePathToUserStub        func(lager.Logger, string, int, int) error
+	namespacePathToUserMutex       sync.RWMutex
+	namespacePathToUserArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 int
+		arg4 int
+	}
+	namespacePathToUserReturns struct {
+		result1 error
+	}
+	namespacePathToUserReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -121,6 +135,70 @@ func (fake *FakeNamespacer) NamespacePathReturnsOnCall(i int, result1 error) {
 		})
 	}
 	fake.namespacePathReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNamespacer) NamespacePathToUser(arg1 lager.Logger, arg2 string, arg3 int, arg4 int) error {
+	fake.namespacePathToUserMutex.Lock()
+	ret, specificReturn := fake.namespacePathToUserReturnsOnCall[len(fake.namespacePathToUserArgsForCall)]
+	fake.namespacePathToUserArgsForCall = append(fake.namespacePathToUserArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 int
+		arg4 int
+	}{arg1, arg2, arg3, arg4})
+	stub := fake.NamespacePathToUserStub
+	fakeReturns := fake.namespacePathToUserReturns
+	fake.recordInvocation("NamespacePathToUser", []interface{}{arg1, arg2, arg3, arg4})
+	fake.namespacePathToUserMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeNamespacer) NamespacePathToUserCallCount() int {
+	fake.namespacePathToUserMutex.RLock()
+	defer fake.namespacePathToUserMutex.RUnlock()
+	return len(fake.namespacePathToUserArgsForCall)
+}
+
+func (fake *FakeNamespacer) NamespacePathToUserCalls(stub func(lager.Logger, string, int, int) error) {
+	fake.namespacePathToUserMutex.Lock()
+	defer fake.namespacePathToUserMutex.Unlock()
+	fake.NamespacePathToUserStub = stub
+}
+
+func (fake *FakeNamespacer) NamespacePathToUserArgsForCall(i int) (lager.Logger, string, int, int) {
+	fake.namespacePathToUserMutex.RLock()
+	defer fake.namespacePathToUserMutex.RUnlock()
+	argsForCall := fake.namespacePathToUserArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeNamespacer) NamespacePathToUserReturns(result1 error) {
+	fake.namespacePathToUserMutex.Lock()
+	defer fake.namespacePathToUserMutex.Unlock()
+	fake.NamespacePathToUserStub = nil
+	fake.namespacePathToUserReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeNamespacer) NamespacePathToUserReturnsOnCall(i int, result1 error) {
+	fake.namespacePathToUserMutex.Lock()
+	defer fake.namespacePathToUserMutex.Unlock()
+	fake.NamespacePathToUserStub = nil
+	if fake.namespacePathToUserReturnsOnCall == nil {
+		fake.namespacePathToUserReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.namespacePathToUserReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
