@@ -2328,6 +2328,7 @@ all =
                                     [ style "margin-right" "5px"
                                     , style "width" "25px"
                                     , style "height" "25px"
+                                    , style "flex-shrink" "0"
                                     , style "background-repeat" "no-repeat"
                                     , style "background-position" "50% 50%"
                                     ]
@@ -2343,6 +2344,7 @@ all =
                                     [ style "margin-right" "5px"
                                     , style "width" "25px"
                                     , style "height" "25px"
+                                    , style "flex-shrink" "0"
                                     , style "background-repeat" "no-repeat"
                                     , style "background-position" "50% 50%"
                                     ]
