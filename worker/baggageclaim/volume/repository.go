@@ -237,11 +237,9 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 	initialized = true
 
 	return Volume{
-		Handle: liveVolume.Handle(),
-		Path:   liveVolume.DataPath(),
-		VolumeOpts: VolumeOpts{
-			Properties: opts.Properties,
-		},
+		Handle:     liveVolume.Handle(),
+		Path:       liveVolume.DataPath(),
+		VolumeOpts: opts,
 	}, nil
 }
 
