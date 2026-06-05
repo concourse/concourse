@@ -795,15 +795,7 @@ func (worker *Worker) getUserInfo(
 		taskUser = imageMetadata.User
 	}
 
-	if taskUser == "root" {
-		// short-circut for most common case and skip streaming files
-		return runtime.VolumeOwnship{
-			Uid: runtime.ExistingOwner,
-			Gid: runtime.ExistingGroup,
-		}
-	}
-
-	if taskUser != "" {
+	if taskUser != "" && taskUser != "root" {
 		// Don't return errors so images that don't contain /etc/{passwd,group}
 		// don't fail. If we returned errors, these images would be unusable
 		// with Concourse (e.g. `FROM scratch` images)

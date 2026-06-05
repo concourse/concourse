@@ -221,7 +221,7 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 			return Volume{}, err
 		}
 	} else {
-		err = repo.namespacer(opts.Privileged).NamespacePath(logger, initVolume.DataPath())
+		err = namespacer.NamespacePath(logger, initVolume.DataPath())
 		if err != nil {
 			logger.Error("failed-to-namespace-data", err)
 			return Volume{}, err

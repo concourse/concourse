@@ -58,8 +58,8 @@ var _ = Describe("Repository", func() {
 			opts = volume.VolumeOpts{
 				Properties: volume.Properties{"some": "properties"},
 				Privileged: false,
-				Uid:        -1,
-				Gid:        -1,
+				Uid:        new(-1),
+				Gid:        new(-1),
 			}
 		})
 
@@ -184,6 +184,63 @@ var _ = Describe("Repository", func() {
 
 							It("destroys the initializing volume", func() {
 								Expect(fakeInitVolume.DestroyCallCount()).To(Equal(1))
+							})
+						})
+					})
+
+					Context("when uid and gid are set to specific values", func() {
+						BeforeEach(func() {
+							opts.Uid = new(1234)
+							opts.Gid = new(5678)
+						})
+
+						Context("when the volume is unprivileged", func() {
+							BeforeEach(func() {
+								opts.Privileged = false
+							})
+
+							It("namespaces the data path to the requested user via the unprivileged namespacer", func() {
+								Expect(fakeUnprivilegedNamespacer.NamespacePathCallCount()).To(Equal(0))
+								Expect(fakePrivilegedNamespacer.NamespacePathToUserCallCount()).To(Equal(0))
+								Expect(fakeUnprivilegedNamespacer.NamespacePathToUserCallCount()).To(Equal(1))
+
+								_, path, uid, gid := fakeUnprivilegedNamespacer.NamespacePathToUserArgsForCall(0)
+								Expect(path).To(Equal("init-data-path"))
+								Expect(uid).To(Equal(1234))
+								Expect(gid).To(Equal(5678))
+							})
+
+							Context("when namespacing fails", func() {
+								disaster := errors.New("nope")
+
+								BeforeEach(func() {
+									fakeUnprivilegedNamespacer.NamespacePathToUserReturns(disaster)
+								})
+
+								It("returns the error", func() {
+									Expect(createErr).To(Equal(disaster))
+								})
+
+								It("destroys the initializing volume", func() {
+									Expect(fakeInitVolume.DestroyCallCount()).To(Equal(1))
+								})
+							})
+						})
+
+						Context("when the volume is privileged", func() {
+							BeforeEach(func() {
+								opts.Privileged = true
+							})
+
+							It("namespaces the data path to the requested user via the privileged namespacer", func() {
+								Expect(fakePrivilegedNamespacer.NamespacePathCallCount()).To(Equal(0))
+								Expect(fakeUnprivilegedNamespacer.NamespacePathToUserCallCount()).To(Equal(0))
+								Expect(fakePrivilegedNamespacer.NamespacePathToUserCallCount()).To(Equal(1))
+
+								_, path, uid, gid := fakePrivilegedNamespacer.NamespacePathToUserArgsForCall(0)
+								Expect(path).To(Equal("init-data-path"))
+								Expect(uid).To(Equal(1234))
+								Expect(gid).To(Equal(5678))
 							})
 						})
 					})

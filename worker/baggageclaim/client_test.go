@@ -186,6 +186,51 @@ var _ = Describe("Baggage Claim Client", func() {
 					Expect(err.Error()).To(Equal("lost baggage"))
 				})
 			})
+
+			Context("when the volume spec sets uid and gid", func() {
+				It("encodes uid and gid into the create request body", func() {
+					reqChan := make(chan baggageclaim.VolumeRequest, 1)
+
+					bcServer.AppendHandlers(
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("POST", "/volumes-async"),
+							func(w http.ResponseWriter, r *http.Request) {
+								var req baggageclaim.VolumeRequest
+								Expect(json.NewDecoder(r.Body).Decode(&req)).To(Succeed())
+								reqChan <- req
+							},
+							ghttp.RespondWithJSONEncoded(http.StatusCreated, baggageclaim.VolumeFutureResponse{
+								Handle: "some-handle",
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/volumes-async/some-handle"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
+								Handle: "some-handle",
+								Path:   "some-path",
+								VolumeOpts: volume.VolumeOpts{
+									Properties: volume.Properties{},
+								},
+							}),
+						),
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("DELETE", "/volumes-async/some-handle"),
+							ghttp.RespondWith(http.StatusNoContent, ""),
+						),
+					)
+
+					_, err := bcClient.CreateVolume(context.Background(), "some-handle", baggageclaim.VolumeSpec{
+						Uid: new(1234),
+						Gid: new(5678),
+					})
+					Expect(err).ToNot(HaveOccurred())
+
+					var captured baggageclaim.VolumeRequest
+					Expect(reqChan).To(Receive(&captured))
+					Expect(*captured.Uid).To(Equal(1234))
+					Expect(*captured.Gid).To(Equal(5678))
+				})
+			})
 		})
 
 		Describe("Stream in a volume", func() {
