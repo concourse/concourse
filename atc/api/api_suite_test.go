@@ -59,6 +59,7 @@ var (
 	dbWorkerFactory         *dbfakes.FakeWorkerFactory
 	dbWorkerTeamFactory     *dbfakes.FakeTeamFactory
 	dbWorkerLifecycle       *dbfakes.FakeWorkerLifecycle
+	fakeDbConn              *dbfakes.FakeDbConn
 	build                   *dbfakes.FakeBuild
 	dbBuildFactory          *dbfakes.FakeBuildFactory
 	dbUserFactory           *dbfakes.FakeUserFactory
@@ -138,6 +139,7 @@ var _ = BeforeEach(func() {
 
 	dbWorkerFactory = new(dbfakes.FakeWorkerFactory)
 	dbWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
+	fakeDbConn = new(dbfakes.FakeDbConn)
 
 	fakeWorkerPool = new(apifakes.FakePool)
 
@@ -209,6 +211,8 @@ var _ = BeforeEach(func() {
 		dbResourceConfigFactory,
 		dbUserFactory,
 		dbComponentFactory,
+		fakeDbConn,
+		1, // minWorkerCount
 
 		constructedEventHandler.Construct,
 
