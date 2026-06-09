@@ -212,7 +212,8 @@ var _ = BeforeEach(func() {
 		dbUserFactory,
 		dbComponentFactory,
 		fakeDbConn,
-		1, // minWorkerCount
+		1,   // minWorkerCount
+		2.0, // componentStaleMultiplier
 
 		constructedEventHandler.Construct,
 

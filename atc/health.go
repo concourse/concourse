@@ -4,10 +4,11 @@ import "time"
 
 // Health represents the overall health status of the Concourse ATC instance.
 type Health struct {
-	Status    string         `json:"status"`
-	Timestamp time.Time      `json:"timestamp"`
-	Database  DatabaseHealth `json:"database"`
-	Workers   WorkerHealth   `json:"workers"`
+	Status     string            `json:"status"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Database   DatabaseHealth    `json:"database"`
+	Workers    WorkerHealth      `json:"workers"`
+	Components []ComponentHealth `json:"components"`
 }
 
 // DatabaseHealth represents the health of the database connection.
@@ -23,6 +24,15 @@ type WorkerHealth struct {
 	Running int    `json:"running"`
 }
 
+// ComponentHealth represents the health of a single ATC component.
+type ComponentHealth struct {
+	Name    string    `json:"name"`
+	Status  string    `json:"status"`
+	Paused  bool      `json:"paused"`
+	LastRan time.Time `json:"last_ran"`
+	Stale   bool      `json:"stale"`
+}
+
 // Overall health status values — used in Health.Status.
 const (
 	HealthStatusOK       = "ok"
@@ -30,7 +40,7 @@ const (
 	HealthStatusFailing  = "failing"
 )
 
-// Per-subsystem status values — used in DatabaseHealth.Status and WorkerHealth.Status.
+// Per-subsystem status values — used in DatabaseHealth.Status, WorkerHealth.Status, ComponentHealth.Status.
 const (
 	HealthStatusHealthy   = "healthy"
 	HealthStatusUnhealthy = "unhealthy"

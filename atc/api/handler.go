@@ -69,6 +69,7 @@ func NewHandler(
 	dbComponentFactory db.ComponentFactory,
 	dbConn db.DbConn,
 	minWorkerCount int,
+	componentStaleMultiplier float64,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -115,7 +116,7 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
-	healthServer := healthserver.NewServer(logger, dbConn, dbWorkerFactory, minWorkerCount)
+	healthServer := healthserver.NewServer(logger, dbConn, dbWorkerFactory, dbComponentFactory, minWorkerCount, componentStaleMultiplier)
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)

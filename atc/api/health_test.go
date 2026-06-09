@@ -43,6 +43,15 @@ func makeWorker(state db.WorkerState) *dbfakes.FakeWorker {
 	return w
 }
 
+func makeComponent(name string, interval time.Duration, lastRan time.Time, paused bool) *dbfakes.FakeComponent {
+	c := new(dbfakes.FakeComponent)
+	c.NameReturns(name)
+	c.IntervalReturns(interval)
+	c.LastRanReturns(lastRan)
+	c.PausedReturns(paused)
+	return c
+}
+
 func dbHealthyStub(_ context.Context, _ string, _ ...any) sq.RowScanner {
 	return &fakeRowScanner{val: false} // pg_is_in_recovery = false → writable
 }
@@ -234,6 +243,155 @@ var _ = Describe("Health API", func() {
 				Expect(json.Unmarshal(body, &health)).To(Succeed())
 				Expect(health.Status).To(Equal(atc.HealthStatusFailing))
 				Expect(health.Workers.Status).To(Equal(atc.HealthStatusUnhealthy))
+			})
+		})
+
+		Context("when a runtime component is stale", func() {
+			BeforeEach(func() {
+				fakeDbConn.QueryRowContextStub = dbHealthyStub
+				dbWorkerFactory.WorkersReturns([]db.Worker{
+					makeWorker(db.WorkerStateRunning),
+				}, nil)
+				// scheduler last ran 10 minutes ago, interval is 1 minute → 10x > 2x multiplier → stale
+				dbComponentFactory.AllReturns([]db.Component{
+					makeComponent(atc.ComponentScheduler, time.Minute, time.Now().Add(-10*time.Minute), false),
+					makeComponent(atc.ComponentBuildTracker, time.Minute, time.Now().Add(-30*time.Second), false),
+				}, nil)
+			})
+
+			It("returns 200 (degraded is not failing)", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("reports overall status as degraded", func() {
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+				Expect(health.Status).To(Equal(atc.HealthStatusDegraded))
+			})
+
+			It("marks the stale scheduler component as unhealthy", func() {
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+
+				var scheduler *atc.ComponentHealth
+				for i := range health.Components {
+					if health.Components[i].Name == atc.ComponentScheduler {
+						scheduler = &health.Components[i]
+					}
+				}
+				Expect(scheduler).NotTo(BeNil())
+				Expect(scheduler.Stale).To(BeTrue())
+				Expect(scheduler.Status).To(Equal(atc.HealthStatusUnhealthy))
+			})
+
+			It("marks the healthy tracker component as healthy", func() {
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+
+				var tracker *atc.ComponentHealth
+				for i := range health.Components {
+					if health.Components[i].Name == atc.ComponentBuildTracker {
+						tracker = &health.Components[i]
+					}
+				}
+				Expect(tracker).NotTo(BeNil())
+				Expect(tracker.Stale).To(BeFalse())
+				Expect(tracker.Status).To(Equal(atc.HealthStatusHealthy))
+			})
+		})
+
+		Context("when only a GC component is stale", func() {
+			BeforeEach(func() {
+				fakeDbConn.QueryRowContextStub = dbHealthyStub
+				dbWorkerFactory.WorkersReturns([]db.Worker{
+					makeWorker(db.WorkerStateRunning),
+				}, nil)
+				// collector_volumes last ran 1 hour ago, interval is 1 minute → stale, but GC only
+				dbComponentFactory.AllReturns([]db.Component{
+					makeComponent(atc.ComponentScheduler, time.Minute, time.Now().Add(-30*time.Second), false),
+					makeComponent(atc.ComponentCollectorVolumes, time.Minute, time.Now().Add(-time.Hour), false),
+				}, nil)
+			})
+
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("reports overall status as ok", func() {
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+				Expect(health.Status).To(Equal(atc.HealthStatusOK))
+			})
+
+			It("marks the stale GC component as unhealthy in the JSON", func() {
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+
+				var collector *atc.ComponentHealth
+				for i := range health.Components {
+					if health.Components[i].Name == atc.ComponentCollectorVolumes {
+						collector = &health.Components[i]
+					}
+				}
+				Expect(collector).NotTo(BeNil())
+				Expect(collector.Stale).To(BeTrue())
+				Expect(collector.Status).To(Equal(atc.HealthStatusUnhealthy))
+			})
+		})
+
+		Context("when a component is paused", func() {
+			BeforeEach(func() {
+				fakeDbConn.QueryRowContextStub = dbHealthyStub
+				dbWorkerFactory.WorkersReturns([]db.Worker{
+					makeWorker(db.WorkerStateRunning),
+				}, nil)
+				// scheduler is paused and hasn't run — should not be considered stale
+				dbComponentFactory.AllReturns([]db.Component{
+					makeComponent(atc.ComponentScheduler, time.Minute, time.Now().Add(-time.Hour), true),
+				}, nil)
+			})
+
+			It("returns 200 with status ok", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+				Expect(health.Status).To(Equal(atc.HealthStatusOK))
+			})
+
+			It("reports the component as paused and not stale", func() {
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+
+				Expect(health.Components).To(HaveLen(1))
+				Expect(health.Components[0].Paused).To(BeTrue())
+				Expect(health.Components[0].Stale).To(BeFalse())
+				Expect(health.Components[0].Status).To(Equal(atc.HealthStatusHealthy))
+			})
+		})
+
+		Context("when component factory returns an error", func() {
+			BeforeEach(func() {
+				fakeDbConn.QueryRowContextStub = dbHealthyStub
+				dbWorkerFactory.WorkersReturns([]db.Worker{
+					makeWorker(db.WorkerStateRunning),
+				}, nil)
+				dbComponentFactory.AllReturns(nil, errors.New("db error"))
+			})
+
+			It("returns 200 with status ok and empty components list", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+				Expect(health.Status).To(Equal(atc.HealthStatusOK))
+				Expect(health.Components).To(BeEmpty())
 			})
 		})
 	})

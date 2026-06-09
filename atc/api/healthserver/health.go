@@ -17,21 +17,21 @@ func (s *Server) GetHealth(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().UTC(),
 	}
 
-	// --- Database health ---
 	dbHealth := s.checkDatabase(r.Context())
 	health.Database = dbHealth
 
-	// --- Worker health ---
 	workerHealth := s.checkWorkers()
 	health.Workers = workerHealth
 
-	// --- Overall status ---
+	componentHealths, runtimeDegraded := s.checkComponents()
+	health.Components = componentHealths
+
 	switch {
 	case dbHealth.Status == atc.HealthStatusUnhealthy:
 		health.Status = atc.HealthStatusFailing
 	case workerHealth.Status == atc.HealthStatusUnhealthy:
 		health.Status = atc.HealthStatusFailing
-	case workerHealth.Status == atc.HealthStatusDegraded:
+	case workerHealth.Status == atc.HealthStatusDegraded || runtimeDegraded:
 		health.Status = atc.HealthStatusDegraded
 	default:
 		health.Status = atc.HealthStatusOK
@@ -73,9 +73,7 @@ func (s *Server) checkDatabase(ctx context.Context) atc.DatabaseHealth {
 func (s *Server) checkWorkers() atc.WorkerHealth {
 	workers, err := s.workerFactory.Workers()
 	if err != nil {
-		return atc.WorkerHealth{
-			Status: atc.HealthStatusUnhealthy,
-		}
+		return atc.WorkerHealth{Status: atc.HealthStatusUnhealthy}
 	}
 
 	total := len(workers)
@@ -83,24 +81,60 @@ func (s *Server) checkWorkers() atc.WorkerHealth {
 
 	switch {
 	case total == 0 || running == 0:
-		return atc.WorkerHealth{
-			Status:  atc.HealthStatusUnhealthy,
-			Total:   total,
-			Running: running,
-		}
+		return atc.WorkerHealth{Status: atc.HealthStatusUnhealthy, Total: total, Running: running}
 	case running < s.minWorkerCount:
-		return atc.WorkerHealth{
-			Status:  atc.HealthStatusDegraded,
-			Total:   total,
-			Running: running,
-		}
+		return atc.WorkerHealth{Status: atc.HealthStatusDegraded, Total: total, Running: running}
 	default:
-		return atc.WorkerHealth{
-			Status:  atc.HealthStatusHealthy,
-			Total:   total,
-			Running: running,
-		}
+		return atc.WorkerHealth{Status: atc.HealthStatusHealthy, Total: total, Running: running}
 	}
+}
+
+// checkComponents fetches all components and checks their staleness.
+// Returns the per-component health list and whether any runtime component is stale.
+func (s *Server) checkComponents() ([]atc.ComponentHealth, bool) {
+	components, err := s.componentFactory.All()
+	if err != nil {
+		return nil, false
+	}
+
+	runtimeSet := make(map[string]struct{}, len(atc.ComponentsRuntime))
+	for _, name := range atc.ComponentsRuntime {
+		runtimeSet[name] = struct{}{}
+	}
+
+	var healths []atc.ComponentHealth
+	runtimeDegraded := false
+
+	for _, c := range components {
+		stale := isStale(c, s.componentStaleMultiplier)
+		status := atc.HealthStatusHealthy
+		if stale {
+			status = atc.HealthStatusUnhealthy
+			if _, isRuntime := runtimeSet[c.Name()]; isRuntime {
+				runtimeDegraded = true
+			}
+		}
+
+		healths = append(healths, atc.ComponentHealth{
+			Name:    c.Name(),
+			Status:  status,
+			Paused:  c.Paused(),
+			LastRan: c.LastRan(),
+			Stale:   stale,
+		})
+	}
+
+	return healths, runtimeDegraded
+}
+
+// isStale returns true if the component has not run within the stale window.
+// Paused components and components that have never run are never considered stale.
+func isStale(c db.Component, multiplier float64) bool {
+	if c.Paused() || c.LastRan().IsZero() {
+		return false
+	}
+	staleWindow := time.Duration(float64(c.Interval()) * multiplier)
+	return time.Since(c.LastRan()) > staleWindow
 }
 
 func countWorkers(workers []db.Worker, state db.WorkerState) int {

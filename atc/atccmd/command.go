@@ -205,7 +205,8 @@ type RunCommand struct {
 	} `group:"Web Server"`
 
 	Health struct {
-		MinWorkerCount int `long:"health-min-worker-count" default:"1" description:"Minimum number of running workers for the health endpoint to report healthy. Below this threshold the status is degraded (still 200). Zero workers is always failing."`
+		MinWorkerCount         int     `long:"health-min-worker-count" default:"1" description:"Minimum number of running workers for the health endpoint to report healthy. Below this threshold the status is degraded (still 200). Zero workers is always failing."`
+		ComponentStaleMultiplier float64 `long:"health-component-stale-multiplier" default:"2.0" description:"A component is considered stale when it has not run for more than this multiplier times its interval. Stale runtime components (scheduler, tracker, scanner) cause degraded status."`
 	} `group:"Health Endpoint"`
 
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
@@ -2160,6 +2161,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbComponentFactory,
 		dbConn,
 		cmd.Health.MinWorkerCount,
+		cmd.Health.ComponentStaleMultiplier,
 
 		buildserver.NewEventHandler,
 
