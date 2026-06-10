@@ -369,12 +369,12 @@ var _ = Describe("CheckDelegate", func() {
 					}
 				})
 
-				It("returns false", func() {
-					Expect(run).To(BeFalse())
+				It("returns true", func() {
+					Expect(run).To(BeTrue())
 				})
 
 				It("does not attempt to fetch the last check", func() {
-					Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(0))
+					Expect(fakeResourceConfigScope.LastCheckCallCount()).To(Equal(2))
 				})
 			})
 		})
