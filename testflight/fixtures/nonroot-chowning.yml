@@ -11,6 +11,15 @@ resources:
     source:
       no_initial_version: true
 
+  - name: input
+    type: mock
+    source:
+      create_files:
+        file.yml: |
+          foo: bar
+    version:
+      version: mock
+
 jobs:
   - name: root
     plan:
@@ -262,3 +271,44 @@ jobs:
                 echo './empty/file is still owned by root'
                 test "$(stat -c '%U' ./empty/file)" = "nonroot"
                 echo "written by root" >> ./empty/file
+
+  - name: nonroot-and-root-same-parent-volume
+    plan:
+      - get: image
+      - get: input
+      - task: nonroot
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: input
+          run:
+            user: nonroot
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "nonroot"
+                test "$(stat -c '%U' ./input)" = "nonroot"
+                test "$(stat -c '%U' ./input/file.yml)" = "nonroot"
+                echo "written by nonroot" > ./input/file-new
+
+      - task: root
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: input
+          run:
+            user: root
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "root"
+                test "$(stat -c '%U' ./input)" = "root"
+                test "$(stat -c '%U' ./input/file.yml)" = "root"

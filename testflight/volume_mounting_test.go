@@ -87,4 +87,9 @@ var _ = Describe("Containers with nonroot users have their volume mounts chown'd
 		sess := fly("trigger-job", "-j", inPipeline("nonroot-to-root"), "-w")
 		Expect(sess).To(gexec.Exit(0))
 	}, DefaultSpecTimeout)
+
+	It("parent volume is correctly COW'd and only chown'd for the nonroot task", func(ctx SpecContext) {
+		sess := fly("trigger-job", "-j", inPipeline("nonroot-and-root-same-parent-volume"), "-w")
+		Expect(sess).To(gexec.Exit(0))
+	}, DefaultSpecTimeout)
 })
