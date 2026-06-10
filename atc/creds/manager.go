@@ -2,7 +2,6 @@ package creds
 
 import (
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/jessevdk/go-flags"
 )
 
 type Manager interface {
@@ -16,8 +15,24 @@ type Manager interface {
 }
 
 type ManagerFactory interface {
-	AddConfig(*flags.Group) Manager
 	NewInstance(any) (Manager, error)
+
+	// NewConfig returns a fresh flag-bearing manager for command-line
+	// configuration, along with the flag namespace its fields live under.
+	// An empty namespace means the manager exposes no flags.
+	NewConfig() ManagerConfig
+}
+
+type ManagerConfig struct {
+	// Namespace prefixes every flag of the manager, e.g. "vault" for
+	// --vault-url and CONCOURSE_VAULT_URL. Empty means no flags.
+	Namespace string
+
+	// Description is the heading the manager's flags appear under in
+	// --help output, e.g. "Vault Credential Management".
+	Description string
+
+	Manager Manager
 }
 
 type Managers map[string]Manager

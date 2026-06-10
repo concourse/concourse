@@ -215,6 +215,19 @@ func (con *Connector) ID() string {
 	return con.id
 }
 
+// Config exposes the connector's flag-bearing config struct so the
+// concourse commands can bind its flags under the connector's namespace.
+// fly keeps using WireConnectors/WireTeamConnectors with go-flags.
+func (con *Connector) Config() Config {
+	return con.config
+}
+
+// TeamConfig exposes the connector's flag-bearing team config struct,
+// bound under the main-team namespace by the concourse web command.
+func (con *Connector) TeamConfig() TeamConfig {
+	return con.teamConfig
+}
+
 func (con *Connector) Name() string {
 	return con.config.Name()
 }

@@ -152,7 +152,7 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 }
 
 // This won't detect flags listed in the GdnBinaryFlags struct because those get unset by the
-// twentythousandtonnesofcrudeoil package when passing relevant envs to go-flags
+// flag binder's registry after it consumes the registered CONCOURSE_* env vars
 func getGdnFlagsFromEnv(logger lager.Logger) []string {
 	env := os.Environ()
 
@@ -185,7 +185,7 @@ func getGdnFlagsFromEnv(logger lager.Logger) []string {
 			flags = append(flags, "--"+flag, v)
 		}
 
-		// clear out env (as twentythousandtonnesofcrudeoil does)
+		// clear out env (as the flag binder does for registered vars)
 		_ = os.Unsetenv(name)
 	}
 

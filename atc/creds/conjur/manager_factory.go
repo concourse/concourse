@@ -2,7 +2,6 @@ package conjur
 
 import (
 	"github.com/concourse/concourse/atc/creds"
-	flags "github.com/jessevdk/go-flags"
 )
 
 type managerFactory struct{}
@@ -18,14 +17,12 @@ func (manager managerFactory) Health() (any, error) {
 	return nil, nil
 }
 
-func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
-	manager := &Manager{}
-	subGroup, err := group.AddGroup("Conjur Credential Management", "", manager)
-	if err != nil {
-		panic(err)
+func (factory *managerFactory) NewConfig() creds.ManagerConfig {
+	return creds.ManagerConfig{
+		Namespace:   "conjur",
+		Description: "Conjur Credential Management",
+		Manager:     &Manager{},
 	}
-	subGroup.Namespace = "conjur"
-	return manager
 }
 
 func (factory *managerFactory) NewInstance(any) (creds.Manager, error) {

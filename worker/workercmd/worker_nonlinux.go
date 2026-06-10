@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/flag"
-	"github.com/jessevdk/go-flags"
+	"github.com/concourse/concourse/flag/binder"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -27,9 +27,9 @@ type ContainerdRuntime struct {
 
 type Certs struct{}
 
-func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
+func (cmd WorkerCommand) LessenRequirements(prefix string, b *binder.Binder) {
 	// created in the work-dir
-	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
+	b.Lessen(prefix + "baggageclaim-volumes")
 }
 
 func (cmd *WorkerCommand) gardenServerRunner(logger lager.Logger) (atc.Worker, ifrit.Runner, error) {

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/jessevdk/go-flags"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -101,13 +100,11 @@ func RegisterAgent(factory AgentFactory) {
 	agentFactories = append(agentFactories, factory)
 }
 
-func WireCheckers(group *flags.Group) {
-	for _, factory := range agentFactories {
-		_, err := group.AddGroup(fmt.Sprintf("Policy Check Agent (%s)", factory.Description()), "", factory)
-		if err != nil {
-			panic(err)
-		}
-	}
+// AgentFactories exposes the registered policy check agent factories so
+// commands can bind their flags. Each factory is itself the flag-bearing
+// config struct, with fully-qualified flag names (e.g. --opa-url).
+func AgentFactories() []AgentFactory {
+	return agentFactories
 }
 
 var (

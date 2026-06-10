@@ -9,7 +9,6 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	"github.com/concourse/concourse/atc/db"
-	flags "github.com/jessevdk/go-flags"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -104,13 +103,11 @@ func (m *Monitor) RegisterEmitter(factory EmitterFactory) {
 	m.emitterFactories = append(m.emitterFactories, factory)
 }
 
-func (m *Monitor) WireEmitters(group *flags.Group) {
-	for _, factory := range m.emitterFactories {
-		_, err := group.AddGroup(fmt.Sprintf("Metric Emitter (%s)", factory.Description()), "", factory)
-		if err != nil {
-			panic(err)
-		}
-	}
+// EmitterFactories exposes the registered emitter factories so commands
+// can bind their flags. Each factory is itself the flag-bearing config
+// struct, with fully-qualified flag names (e.g. --influxdb-url).
+func (m *Monitor) EmitterFactories() []EmitterFactory {
+	return m.emitterFactories
 }
 
 type eventEmission struct {

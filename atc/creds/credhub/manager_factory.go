@@ -2,7 +2,6 @@ package credhub
 
 import (
 	"github.com/concourse/concourse/atc/creds"
-	flags "github.com/jessevdk/go-flags"
 )
 
 type credhubManagerFactory struct{}
@@ -15,17 +14,12 @@ func NewCredHubManagerFactory() creds.ManagerFactory {
 	return &credhubManagerFactory{}
 }
 
-func (factory *credhubManagerFactory) AddConfig(group *flags.Group) creds.Manager {
-	manager := &CredHubManager{}
-
-	subGroup, err := group.AddGroup("CredHub Credential Management", "", manager)
-	if err != nil {
-		panic(err)
+func (factory *credhubManagerFactory) NewConfig() creds.ManagerConfig {
+	return creds.ManagerConfig{
+		Namespace:   "credhub",
+		Description: "CredHub Credential Management",
+		Manager:     &CredHubManager{},
 	}
-
-	subGroup.Namespace = "credhub"
-
-	return manager
 }
 
 func (factory *credhubManagerFactory) NewInstance(any) (creds.Manager, error) {

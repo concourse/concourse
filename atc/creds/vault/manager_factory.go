@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/atc/creds"
-	"github.com/jessevdk/go-flags"
 )
 
 type vaultManagerFactory struct{}
@@ -17,17 +16,12 @@ func NewVaultManagerFactory() creds.ManagerFactory {
 	return &vaultManagerFactory{}
 }
 
-func (factory *vaultManagerFactory) AddConfig(group *flags.Group) creds.Manager {
-	manager := &VaultManager{}
-
-	subGroup, err := group.AddGroup("Vault Credential Management", "", manager)
-	if err != nil {
-		panic(err)
+func (factory *vaultManagerFactory) NewConfig() creds.ManagerConfig {
+	return creds.ManagerConfig{
+		Namespace:   "vault",
+		Description: "Vault Credential Management",
+		Manager:     &VaultManager{},
 	}
-
-	subGroup.Namespace = "vault"
-
-	return manager
 }
 
 func (factory *vaultManagerFactory) NewInstance(config any) (creds.Manager, error) {

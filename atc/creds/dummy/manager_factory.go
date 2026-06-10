@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/concourse/concourse/atc/creds"
-	flags "github.com/jessevdk/go-flags"
 )
 
 type managerFactory struct{}
@@ -17,17 +16,12 @@ func NewManagerFactory() creds.ManagerFactory {
 	return &managerFactory{}
 }
 
-func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
-	manager := &Manager{}
-
-	subGroup, err := group.AddGroup("Dummy Credential Management", "", manager)
-	if err != nil {
-		panic(err)
+func (factory *managerFactory) NewConfig() creds.ManagerConfig {
+	return creds.ManagerConfig{
+		Namespace:   "dummy-creds",
+		Description: "Dummy Credential Management",
+		Manager:     &Manager{},
 	}
-
-	subGroup.Namespace = "dummy-creds"
-
-	return manager
 }
 
 func (factory *managerFactory) NewInstance(config any) (creds.Manager, error) {

@@ -9,12 +9,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -54,6 +56,7 @@ import (
 	"github.com/concourse/concourse/atc/worker"
 	"github.com/concourse/concourse/atc/wrappa"
 	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/flag/binder"
 	"github.com/concourse/concourse/skymarshal/dexserver"
 	"github.com/concourse/concourse/skymarshal/legacyserver"
 	"github.com/concourse/concourse/skymarshal/skycmd"
@@ -65,7 +68,6 @@ import (
 	"github.com/cppforlife/go-semi-semantic/version"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/hashicorp/go-multierror"
-	"github.com/jessevdk/go-flags"
 	gocache "github.com/patrickmn/go-cache"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
@@ -105,11 +107,6 @@ var retryingDriverName = "retrying"
 
 var flyClientID = "fly"
 var flyClientSecret = "Zmx5"
-
-type ATCCommand struct {
-	RunCommand RunCommand `command:"run"`
-	Migration  Migration  `command:"migrate"`
-}
 
 type RunCommand struct {
 	Logger flag.Lager
@@ -462,74 +459,36 @@ func (cmd *Migration) migrateToLatestVersion() error {
 	return helper.MigrateToVersion(version)
 }
 
-func (cmd *ATCCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	cmd.RunCommand.WireDynamicFlags(commandFlags)
-}
-
-func (cmd *RunCommand) WireDynamicFlags(commandFlags *flags.Command) {
-	var (
-		metricsGroup      *flags.Group
-		policyChecksGroup *flags.Group
-		credsGroup        *flags.Group
-		authGroup         *flags.Group
-	)
-
-	groups := commandFlags.Groups()
-	for i := 0; i < len(groups); i++ {
-		group := groups[i]
-
-		if credsGroup == nil && group.ShortDescription == "Credential Management" {
-			credsGroup = group
-		}
-
-		if metricsGroup == nil && group.ShortDescription == "Metrics & Diagnostics" {
-			metricsGroup = group
-		}
-
-		if policyChecksGroup == nil && group.ShortDescription == "Policy Checking" {
-			policyChecksGroup = group
-		}
-
-		if authGroup == nil && group.ShortDescription == "Authentication" {
-			authGroup = group
-		}
-
-		if metricsGroup != nil && credsGroup != nil && authGroup != nil && policyChecksGroup != nil {
-			break
-		}
-
-		groups = append(groups, group.Groups()...)
-	}
-
-	if metricsGroup == nil {
-		panic("could not find Metrics & Diagnostics group for registering emitters")
-	}
-
-	if policyChecksGroup == nil {
-		panic("could not find Policy Checking group for registering policy checkers")
-	}
-
-	if credsGroup == nil {
-		panic("could not find Credential Management group for registering managers")
-	}
-
-	if authGroup == nil {
-		panic("could not find Authentication group for registering connectors")
-	}
-
+// BindDynamicFlags registers the flags of everything that wires itself up
+// at runtime — credential managers, metric emitters, policy check agents
+// and auth connectors — under the given prefix (e.g. "" for web, also ""
+// for quickstart, whose web flags are not namespaced).
+func (cmd *RunCommand) BindDynamicFlags(b *binder.Binder, prefix string) {
 	managerConfigs := make(creds.Managers)
-	for name, p := range creds.ManagerFactories() {
-		managerConfigs[name] = p.AddConfig(credsGroup)
+	for _, name := range slices.Sorted(maps.Keys(creds.ManagerFactories())) {
+		config := creds.ManagerFactories()[name].NewConfig()
+		if config.Namespace != "" {
+			b.MustBindGroup(config.Description, config.Manager, prefix+config.Namespace+"-")
+		}
+		managerConfigs[name] = config.Manager
 	}
 
 	cmd.CredentialManagers = managerConfigs
 
-	metric.Metrics.WireEmitters(metricsGroup)
+	for _, factory := range metric.Metrics.EmitterFactories() {
+		b.MustBindGroup(fmt.Sprintf("Metric Emitter (%s)", factory.Description()), factory, prefix)
+	}
 
-	policy.WireCheckers(policyChecksGroup)
+	for _, factory := range policy.AgentFactories() {
+		b.MustBindGroup(fmt.Sprintf("Policy Check Agent (%s)", factory.Description()), factory, prefix)
+	}
 
-	skycmd.WireConnectors(authGroup)
-	skycmd.WireTeamConnectors(authGroup.Find("Authentication (Main Team)"))
+	for _, connector := range skycmd.GetConnectors() {
+		b.MustBindGroup(fmt.Sprintf("Authentication (%s)", connector.Name()),
+			connector.Config(), prefix+connector.ID()+"-")
+		b.MustBindGroup(fmt.Sprintf("Authentication (Main Team) (%s)", connector.Name()),
+			connector.TeamConfig(), prefix+"main-team-"+connector.ID()+"-")
+	}
 }
 
 func (cmd *RunCommand) Execute(args []string) error {

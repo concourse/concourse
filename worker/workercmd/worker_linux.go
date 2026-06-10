@@ -14,9 +14,9 @@ import (
 	"github.com/concourse/concourse/atc"
 	concourseCmd "github.com/concourse/concourse/cmd"
 	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/flag/binder"
 	"github.com/concourse/concourse/worker/network"
 	bespec "github.com/concourse/concourse/worker/runtime/spec"
-	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )
 
@@ -72,9 +72,9 @@ const containerdRuntime = "containerd"
 const guardianRuntime = "guardian"
 const houdiniRuntime = "houdini"
 
-func (cmd WorkerCommand) LessenRequirements(prefix string, command *flags.Command) {
+func (cmd WorkerCommand) LessenRequirements(prefix string, b *binder.Binder) {
 	// configured as work-dir/volumes
-	command.FindOptionByLongName(prefix + "baggageclaim-volumes").Required = false
+	b.Lessen(prefix + "baggageclaim-volumes")
 }
 
 // Chooses the appropriate runtime based on CONCOURSE_RUNTIME_TYPE.

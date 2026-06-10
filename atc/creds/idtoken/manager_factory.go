@@ -5,7 +5,6 @@ import (
 
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
-	flags "github.com/jessevdk/go-flags"
 )
 
 type ManagerFactory struct {
@@ -21,9 +20,9 @@ func NewManagerFactory() creds.ManagerFactory {
 	return &ManagerFactory{}
 }
 
-func (factory *ManagerFactory) AddConfig(group *flags.Group) creds.Manager {
+func (factory *ManagerFactory) NewConfig() creds.ManagerConfig {
 	// can not be configured via atc settings
-	return &Manager{}
+	return creds.ManagerConfig{Manager: &Manager{}}
 }
 
 func (factory *ManagerFactory) SetIssuer(issuer string) {
