@@ -68,8 +68,8 @@ var _ = Describe("Health", func() {
 				Database:  atc.DatabaseHealth{Status: atc.HealthStatusHealthy},
 				Workers:   atc.WorkerHealth{Status: atc.HealthStatusHealthy, Total: 1, Running: 1},
 				Components: []atc.ComponentHealth{
-					{Name: atc.ComponentScheduler, Status: atc.HealthStatusUnhealthy, Paused: false, LastRan: lastRan, Stale: true},
-					{Name: atc.ComponentCollectorVolumes, Status: atc.HealthStatusUnhealthy, Paused: false, LastRan: lastRan, Stale: true},
+					{Name: atc.ComponentScheduler, Status: atc.HealthStatusUnhealthy, Paused: false, LastRan: lastRan},
+					{Name: atc.ComponentCollectorVolumes, Status: atc.HealthStatusUnhealthy, Paused: false, LastRan: lastRan},
 				},
 			}
 
@@ -80,7 +80,7 @@ var _ = Describe("Health", func() {
 			Expect(json.Unmarshal(jsonBytes, &unmarshaled)).To(Succeed())
 			Expect(unmarshaled.Components).To(HaveLen(2))
 			Expect(unmarshaled.Components[0].Name).To(Equal(atc.ComponentScheduler))
-			Expect(unmarshaled.Components[0].Stale).To(BeTrue())
+			Expect(unmarshaled.Components[0].Status).To(Equal(atc.HealthStatusUnhealthy))
 			Expect(unmarshaled.Components[1].Name).To(Equal(atc.ComponentCollectorVolumes))
 		})
 

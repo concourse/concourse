@@ -270,7 +270,7 @@ var _ = Describe("Health API", func() {
 				Expect(health.Status).To(Equal(atc.HealthStatusDegraded))
 			})
 
-			It("marks the stale scheduler component as unhealthy", func() {
+			It("marks the scheduler component as unhealthy", func() {
 				body, _ := io.ReadAll(response.Body)
 				var health atc.Health
 				Expect(json.Unmarshal(body, &health)).To(Succeed())
@@ -282,7 +282,6 @@ var _ = Describe("Health API", func() {
 					}
 				}
 				Expect(scheduler).NotTo(BeNil())
-				Expect(scheduler.Stale).To(BeTrue())
 				Expect(scheduler.Status).To(Equal(atc.HealthStatusUnhealthy))
 			})
 
@@ -298,7 +297,6 @@ var _ = Describe("Health API", func() {
 					}
 				}
 				Expect(tracker).NotTo(BeNil())
-				Expect(tracker.Stale).To(BeFalse())
 				Expect(tracker.Status).To(Equal(atc.HealthStatusHealthy))
 			})
 		})
@@ -327,7 +325,7 @@ var _ = Describe("Health API", func() {
 				Expect(health.Status).To(Equal(atc.HealthStatusOK))
 			})
 
-			It("marks the stale GC component as unhealthy in the JSON", func() {
+			It("marks the GC component as unhealthy in the JSON", func() {
 				body, _ := io.ReadAll(response.Body)
 				var health atc.Health
 				Expect(json.Unmarshal(body, &health)).To(Succeed())
@@ -339,7 +337,6 @@ var _ = Describe("Health API", func() {
 					}
 				}
 				Expect(collector).NotTo(BeNil())
-				Expect(collector.Stale).To(BeTrue())
 				Expect(collector.Status).To(Equal(atc.HealthStatusUnhealthy))
 			})
 		})
@@ -364,14 +361,13 @@ var _ = Describe("Health API", func() {
 				Expect(health.Status).To(Equal(atc.HealthStatusOK))
 			})
 
-			It("reports the component as paused and not stale", func() {
+			It("reports the component as paused and healthy", func() {
 				body, _ := io.ReadAll(response.Body)
 				var health atc.Health
 				Expect(json.Unmarshal(body, &health)).To(Succeed())
 
 				Expect(health.Components).To(HaveLen(1))
 				Expect(health.Components[0].Paused).To(BeTrue())
-				Expect(health.Components[0].Stale).To(BeFalse())
 				Expect(health.Components[0].Status).To(Equal(atc.HealthStatusHealthy))
 			})
 		})

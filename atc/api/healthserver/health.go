@@ -120,7 +120,6 @@ func (s *Server) checkComponents() ([]atc.ComponentHealth, bool) {
 			Status:  status,
 			Paused:  c.Paused(),
 			LastRan: c.LastRan(),
-			Stale:   stale,
 		})
 	}
 

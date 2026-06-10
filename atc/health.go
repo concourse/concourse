@@ -30,7 +30,6 @@ type ComponentHealth struct {
 	Status  string    `json:"status"`
 	Paused  bool      `json:"paused"`
 	LastRan time.Time `json:"last_ran"`
-	Stale   bool      `json:"stale"`
 }
 
 // Overall health status values — used in Health.Status.
