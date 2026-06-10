@@ -1,3 +1,67 @@
+@keyframes pipeline-running {
+  0% { background-position-x: -53.5px; }
+  100% { background-position-x: 0; }
+}
+
+@-webkit-keyframes pipeline-running {
+  0% { background-position-x: -53.5px; }
+  100% { background-position-x: 0; }
+}
+
+@-webkit-keyframes container-rotate {
+  to { -webkit-transform: rotate(360deg) }
+}
+
+@keyframes container-rotate {
+  to { transform: rotate(360deg) }
+}
+
+@-webkit-keyframes fill-unfill-rotate {
+  12.5% { -webkit-transform: rotate(135deg);  }
+  25%   { -webkit-transform: rotate(270deg);  }
+  37.5% { -webkit-transform: rotate(405deg);  }
+  50%   { -webkit-transform: rotate(540deg);  }
+  62.5% { -webkit-transform: rotate(675deg);  }
+  75%   { -webkit-transform: rotate(810deg);  }
+  87.5% { -webkit-transform: rotate(945deg);  }
+  to    { -webkit-transform: rotate(1080deg); }
+}
+
+@keyframes fill-unfill-rotate {
+  12.5% { transform: rotate(135deg);  }
+  25%   { transform: rotate(270deg);  }
+  37.5% { transform: rotate(405deg);  }
+  50%   { transform: rotate(540deg);  }
+  62.5% { transform: rotate(675deg);  }
+  75%   { transform: rotate(810deg);  }
+  87.5% { transform: rotate(945deg);  }
+  to    { transform: rotate(1080deg); }
+}
+
+@-webkit-keyframes left-spin {
+  from { -webkit-transform: rotate(130deg); }
+  50%  { -webkit-transform: rotate(-5deg); }
+  to   { -webkit-transform: rotate(130deg); }
+}
+
+@keyframes left-spin {
+  from { transform: rotate(130deg); }
+  50%  { transform: rotate(-5deg); }
+  to   { transform: rotate(130deg); }
+}
+
+@-webkit-keyframes right-spin {
+  from { -webkit-transform: rotate(-130deg); }
+  50%  { -webkit-transform: rotate(5deg); }
+  to   { -webkit-transform: rotate(-130deg); }
+}
+
+@keyframes right-spin {
+  from { transform: rotate(-130deg); }
+  50%  { transform: rotate(5deg); }
+  to   { transform: rotate(-130deg); }
+}
+
 .running-animation(@color1, @color2) {
   .striped-background(@color2, @color1);
 

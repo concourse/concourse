@@ -8,7 +8,14 @@ if (node === null) {
 
 const app = Elm.Main.init({
   node: node,
-  flags: window.elmFlags,
+  flags: {
+    turbulenceImgSrc: document.querySelector('meta[name="turbulence-img-src"]').content,
+    notFoundImgSrc: document.querySelector('meta[name="not-found-img-src"]').content,
+    csrfToken: document.querySelector('meta[name="csrf-token"]').content,
+    authToken: document.querySelector('meta[name="auth-token"]').content,
+    pipelineRunningKeyframes: "pipeline-running",
+    featureFlags: JSON.parse(document.querySelector('meta[name="feature-flags"]').content),
+  },
 });
 
 var resizeTimer;
