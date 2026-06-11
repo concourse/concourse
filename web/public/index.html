@@ -10,76 +10,15 @@
     <link rel="stylesheet" type="text/css" href="{{asset "main.css"}}" />
     <link rel="icon" type="image/png" sizes="32x32" id="favicon" href="{{asset "images/favicon.png"}}" />
     <link rel="manifest" href="{{asset "manifest.webmanifest"}}" />
-    <style>
-        @keyframes pipeline-running {
-          0% { background-position-x: -53.5px; }
-          100% { background-position-x: 0; }
-        }
-        @-webkit-keyframes pipeline-running {
-          0% { background-position-x: -53.5px; }
-          100% { background-position-x: 0; }
-        }
-        @-webkit-keyframes container-rotate {
-          to { -webkit-transform: rotate(360deg) }
-        }
-        @keyframes container-rotate {
-          to { transform: rotate(360deg) }
-        }
-        @-webkit-keyframes fill-unfill-rotate {
-          12.5% { -webkit-transform: rotate(135deg);  } /* 0.5 * ARCSIZE */
-          25%   { -webkit-transform: rotate(270deg);  } /* 1   * ARCSIZE */
-          37.5% { -webkit-transform: rotate(405deg);  } /* 1.5 * ARCSIZE */
-          50%   { -webkit-transform: rotate(540deg);  } /* 2   * ARCSIZE */
-          62.5% { -webkit-transform: rotate(675deg);  } /* 2.5 * ARCSIZE */
-          75%   { -webkit-transform: rotate(810deg);  } /* 3   * ARCSIZE */
-          87.5% { -webkit-transform: rotate(945deg);  } /* 3.5 * ARCSIZE */
-          to    { -webkit-transform: rotate(1080deg); } /* 4   * ARCSIZE */
-        }
-        @keyframes fill-unfill-rotate {
-          12.5% { transform: rotate(135deg);  } /* 0.5 * ARCSIZE */
-          25%   { transform: rotate(270deg);  } /* 1   * ARCSIZE */
-          37.5% { transform: rotate(405deg);  } /* 1.5 * ARCSIZE */
-          50%   { transform: rotate(540deg);  } /* 2   * ARCSIZE */
-          62.5% { transform: rotate(675deg);  } /* 2.5 * ARCSIZE */
-          75%   { transform: rotate(810deg);  } /* 3   * ARCSIZE */
-          87.5% { transform: rotate(945deg);  } /* 3.5 * ARCSIZE */
-          to    { transform: rotate(1080deg); } /* 4   * ARCSIZE */
-        }
-        @-webkit-keyframes left-spin {
-          from { -webkit-transform: rotate(130deg); }
-          50% { -webkit-transform: rotate(-5deg); }
-          to { -webkit-transform: rotate(130deg); }
-        }
-        @keyframes left-spin {
-          from { transform: rotate(130deg); }
-          50% { transform: rotate(-5deg); }
-          to { transform: rotate(130deg); }
-        }
-        @-webkit-keyframes right-spin {
-          from { -webkit-transform: rotate(-130deg); }
-          50% { -webkit-transform: rotate(5deg); }
-          to { -webkit-transform: rotate(-130deg); }
-        }
-        @keyframes right-spin {
-          from { transform: rotate(-130deg); }
-          50% { transform: rotate(5deg); }
-          to { transform: rotate(-130deg); }
-        }
-    </style>
+    <meta name="csrf-token" content="{{ .CSRFToken }}">
+    <meta name="auth-token" content="{{ .AuthToken }}">
+    <meta name="feature-flags" content="{{ jsonMarshal .FeatureFlags }}">
+    <meta name="turbulence-img-src" content='{{asset "images/buckleup.svg"}}'>
+    <meta name="not-found-img-src" content='{{asset "images/parachute-error-404.svg"}}'>
   </head>
   <body>
     <noscript>Please enable JavaScript in your browser to view Concourse pipelines and build logs.</noscript>
     <div id="elm-app-embed"></div>
-    <script>
-      window.elmFlags = {
-        turbulenceImgSrc: {{asset "images/buckleup.svg"}},
-        notFoundImgSrc: {{asset "images/parachute-error-404.svg"}},
-        csrfToken: {{ .CSRFToken }},
-        authToken: {{ .AuthToken }},
-        pipelineRunningKeyframes: "pipeline-running",
-        featureFlags: {{ jsonMarshal .FeatureFlags }}
-      };
-    </script>
     <script src="{{asset "bundle.js"}}" nomodule></script>
     <script src="{{asset "elm-setup.js"}}" type="module"></script>
   </body>
