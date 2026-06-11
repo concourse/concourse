@@ -28,7 +28,7 @@ var ErrUnsupportedStreamEncoding = errors.New("unsupported stream encoding")
 type Repository interface {
 	ListVolumes(ctx context.Context, queryProperties Properties) (Volumes, error)
 	GetVolume(ctx context.Context, handle string) (Volume, bool, error)
-	CreateVolume(ctx context.Context, handle string, strategy Strategy, properties Properties, isPrivileged bool) (Volume, error)
+	CreateVolume(ctx context.Context, handle string, strategy Strategy, opts VolumeOpts) (Volume, error)
 	DestroyVolume(ctx context.Context, handle string) error
 	DestroyVolumeAndDescendants(ctx context.Context, handle string) error
 
@@ -48,6 +48,8 @@ type Repository interface {
 	// initializing volume.
 	CleanupOrphanedVolumes(ctx context.Context) error
 }
+
+var _ Repository = (*repository)(nil)
 
 type repository struct {
 	filesystem Filesystem
@@ -172,7 +174,7 @@ func (repo *repository) CleanupOrphanedVolumes(ctx context.Context) error {
 	return repo.filesystem.CleanupOrphanedEntries()
 }
 
-func (repo *repository) CreateVolume(ctx context.Context, handle string, strategy Strategy, properties Properties, isPrivileged bool) (Volume, error) {
+func (repo *repository) CreateVolume(ctx context.Context, handle string, strategy Strategy, opts VolumeOpts) (Volume, error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.CreateVolume", tracing.Attrs{
 		"volume":   handle,
 		"strategy": strategy.String(),
@@ -197,22 +199,33 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 		}
 	}()
 
-	err = initVolume.StoreProperties(properties)
+	err = initVolume.StoreProperties(opts.Properties)
 	if err != nil {
 		logger.Error("failed-to-set-properties", err)
 		return Volume{}, err
 	}
 
-	err = initVolume.StorePrivileged(isPrivileged)
+	err = initVolume.StorePrivileged(opts.Privileged)
 	if err != nil {
 		logger.Error("failed-to-set-privileged", err)
 		return Volume{}, err
 	}
 
-	err = repo.namespacer(isPrivileged).NamespacePath(logger, initVolume.DataPath())
-	if err != nil {
-		logger.Error("failed-to-namespace-data", err)
-		return Volume{}, err
+	namespacer := repo.namespacer(opts.Privileged)
+	uid := opts.GetUid()
+	gid := opts.GetGid()
+	if uid >= 0 && gid >= 0 {
+		err = namespacer.NamespacePathToUser(logger, initVolume.DataPath(), uid, gid)
+		if err != nil {
+			logger.Error("failed-to-namespace-data-to-user", err)
+			return Volume{}, err
+		}
+	} else {
+		err = namespacer.NamespacePath(logger, initVolume.DataPath())
+		if err != nil {
+			logger.Error("failed-to-namespace-data", err)
+			return Volume{}, err
+		}
 	}
 
 	liveVolume, err := initVolume.Initialize()
@@ -226,7 +239,7 @@ func (repo *repository) CreateVolume(ctx context.Context, handle string, strateg
 	return Volume{
 		Handle:     liveVolume.Handle(),
 		Path:       liveVolume.DataPath(),
-		Properties: properties,
+		VolumeOpts: opts,
 	}, nil
 }
 
@@ -668,10 +681,12 @@ func (repo *repository) volumeFrom(liveVolume FilesystemLiveVolume) (Volume, err
 	}
 
 	return Volume{
-		Handle:     liveVolume.Handle(),
-		Path:       liveVolume.DataPath(),
-		Properties: properties,
-		Privileged: isPrivileged,
+		Handle: liveVolume.Handle(),
+		Path:   liveVolume.DataPath(),
+		VolumeOpts: VolumeOpts{
+			Properties: properties,
+			Privileged: isPrivileged,
+		},
 	}, nil
 }
 

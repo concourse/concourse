@@ -22,14 +22,13 @@ type FakeRepository struct {
 	cleanupOrphanedVolumesReturnsOnCall map[int]struct {
 		result1 error
 	}
-	CreateVolumeStub        func(context.Context, string, volume.Strategy, volume.Properties, bool) (volume.Volume, error)
+	CreateVolumeStub        func(context.Context, string, volume.Strategy, volume.VolumeOpts) (volume.Volume, error)
 	createVolumeMutex       sync.RWMutex
 	createVolumeArgsForCall []struct {
 		arg1 context.Context
 		arg2 string
 		arg3 volume.Strategy
-		arg4 volume.Properties
-		arg5 bool
+		arg4 volume.VolumeOpts
 	}
 	createVolumeReturns struct {
 		result1 volume.Volume
@@ -263,22 +262,21 @@ func (fake *FakeRepository) CleanupOrphanedVolumesReturnsOnCall(i int, result1 e
 	}{result1}
 }
 
-func (fake *FakeRepository) CreateVolume(arg1 context.Context, arg2 string, arg3 volume.Strategy, arg4 volume.Properties, arg5 bool) (volume.Volume, error) {
+func (fake *FakeRepository) CreateVolume(arg1 context.Context, arg2 string, arg3 volume.Strategy, arg4 volume.VolumeOpts) (volume.Volume, error) {
 	fake.createVolumeMutex.Lock()
 	ret, specificReturn := fake.createVolumeReturnsOnCall[len(fake.createVolumeArgsForCall)]
 	fake.createVolumeArgsForCall = append(fake.createVolumeArgsForCall, struct {
 		arg1 context.Context
 		arg2 string
 		arg3 volume.Strategy
-		arg4 volume.Properties
-		arg5 bool
-	}{arg1, arg2, arg3, arg4, arg5})
+		arg4 volume.VolumeOpts
+	}{arg1, arg2, arg3, arg4})
 	stub := fake.CreateVolumeStub
 	fakeReturns := fake.createVolumeReturns
-	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("CreateVolume", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createVolumeMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4, arg5)
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -292,17 +290,17 @@ func (fake *FakeRepository) CreateVolumeCallCount() int {
 	return len(fake.createVolumeArgsForCall)
 }
 
-func (fake *FakeRepository) CreateVolumeCalls(stub func(context.Context, string, volume.Strategy, volume.Properties, bool) (volume.Volume, error)) {
+func (fake *FakeRepository) CreateVolumeCalls(stub func(context.Context, string, volume.Strategy, volume.VolumeOpts) (volume.Volume, error)) {
 	fake.createVolumeMutex.Lock()
 	defer fake.createVolumeMutex.Unlock()
 	fake.CreateVolumeStub = stub
 }
 
-func (fake *FakeRepository) CreateVolumeArgsForCall(i int) (context.Context, string, volume.Strategy, volume.Properties, bool) {
+func (fake *FakeRepository) CreateVolumeArgsForCall(i int) (context.Context, string, volume.Strategy, volume.VolumeOpts) {
 	fake.createVolumeMutex.RLock()
 	defer fake.createVolumeMutex.RUnlock()
 	argsForCall := fake.createVolumeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeRepository) CreateVolumeReturns(result1 volume.Volume, result2 error) {

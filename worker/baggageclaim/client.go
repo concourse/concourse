@@ -157,6 +157,12 @@ type VolumeSpec struct {
 	// translation of the files in the volume so that they can be read by a
 	// non-privileged user.
 	Privileged bool
+
+	// The Uid and Gid that the volume should be owned by inside the container's
+	// user namespace. A value of '-1' means to leave ownership as-is. Both
+	// fields must be set to a value >= 0 if you want ownership to be changed.
+	Uid *int
+	Gid *int
 }
 
 type Strategy interface {

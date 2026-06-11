@@ -171,6 +171,32 @@ var _ = Describe("Volume Server", func() {
 		})
 	})
 
+	Describe("creating a volume with uid and gid", func() {
+		It("accepts uid and gid in the request body", func() {
+			body := &bytes.Buffer{}
+			err := json.NewEncoder(body).Encode(baggageclaim.VolumeRequest{
+				Handle: "some-handle",
+				Strategy: encStrategy(map[string]string{
+					"type": "empty",
+				}),
+				Uid: new(1234),
+				Gid: new(5678),
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			recorder := httptest.NewRecorder()
+			request, _ := http.NewRequest("POST", "/volumes", body)
+			handler.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(201))
+
+			var created volume.Volume
+			Expect(json.NewDecoder(recorder.Body).Decode(&created)).To(Succeed())
+			Expect(created.Handle).To(Equal("some-handle"))
+			Expect(*created.Uid).To(Equal(1234))
+			Expect(*created.Gid).To(Equal(5678))
+		})
+	})
+
 	Describe("streaming tar files into volumes", func() {
 		var (
 			myVolume     volume.Volume

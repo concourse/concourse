@@ -28,6 +28,18 @@ type FakeTranslator struct {
 	translatePathReturnsOnCall map[int]struct {
 		result1 error
 	}
+	TranslatePathToUserStub        func(int, int) func(path string, dir os.DirEntry, err error) error
+	translatePathToUserMutex       sync.RWMutex
+	translatePathToUserArgsForCall []struct {
+		arg1 int
+		arg2 int
+	}
+	translatePathToUserReturns struct {
+		result1 func(path string, dir os.DirEntry, err error) error
+	}
+	translatePathToUserReturnsOnCall map[int]struct {
+		result1 func(path string, dir os.DirEntry, err error) error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -124,6 +136,68 @@ func (fake *FakeTranslator) TranslatePathReturnsOnCall(i int, result1 error) {
 	}
 	fake.translatePathReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeTranslator) TranslatePathToUser(arg1 int, arg2 int) func(path string, dir os.DirEntry, err error) error {
+	fake.translatePathToUserMutex.Lock()
+	ret, specificReturn := fake.translatePathToUserReturnsOnCall[len(fake.translatePathToUserArgsForCall)]
+	fake.translatePathToUserArgsForCall = append(fake.translatePathToUserArgsForCall, struct {
+		arg1 int
+		arg2 int
+	}{arg1, arg2})
+	stub := fake.TranslatePathToUserStub
+	fakeReturns := fake.translatePathToUserReturns
+	fake.recordInvocation("TranslatePathToUser", []interface{}{arg1, arg2})
+	fake.translatePathToUserMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeTranslator) TranslatePathToUserCallCount() int {
+	fake.translatePathToUserMutex.RLock()
+	defer fake.translatePathToUserMutex.RUnlock()
+	return len(fake.translatePathToUserArgsForCall)
+}
+
+func (fake *FakeTranslator) TranslatePathToUserCalls(stub func(int, int) func(path string, dir os.DirEntry, err error) error) {
+	fake.translatePathToUserMutex.Lock()
+	defer fake.translatePathToUserMutex.Unlock()
+	fake.TranslatePathToUserStub = stub
+}
+
+func (fake *FakeTranslator) TranslatePathToUserArgsForCall(i int) (int, int) {
+	fake.translatePathToUserMutex.RLock()
+	defer fake.translatePathToUserMutex.RUnlock()
+	argsForCall := fake.translatePathToUserArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTranslator) TranslatePathToUserReturns(result1 func(path string, dir os.DirEntry, err error) error) {
+	fake.translatePathToUserMutex.Lock()
+	defer fake.translatePathToUserMutex.Unlock()
+	fake.TranslatePathToUserStub = nil
+	fake.translatePathToUserReturns = struct {
+		result1 func(path string, dir os.DirEntry, err error) error
+	}{result1}
+}
+
+func (fake *FakeTranslator) TranslatePathToUserReturnsOnCall(i int, result1 func(path string, dir os.DirEntry, err error) error) {
+	fake.translatePathToUserMutex.Lock()
+	defer fake.translatePathToUserMutex.Unlock()
+	fake.TranslatePathToUserStub = nil
+	if fake.translatePathToUserReturnsOnCall == nil {
+		fake.translatePathToUserReturnsOnCall = make(map[int]struct {
+			result1 func(path string, dir os.DirEntry, err error) error
+		})
+	}
+	fake.translatePathToUserReturnsOnCall[i] = struct {
+		result1 func(path string, dir os.DirEntry, err error) error
 	}{result1}
 }
 
