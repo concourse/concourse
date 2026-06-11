@@ -41,15 +41,18 @@ type CheckFactory interface {
 
 	// Will try creating a Check build if one does not already exist.
 	//
+	// If manuallyTriggered is true, then a check build will always be
+	// made.
+	//
 	// If toDb is true, a build will be made in the database. When running
 	// multiple web nodes, this method ensures duplicate check builds are not
-	// created. If manuallyTriggered is true, then a check build will always be
-	// made.
+	// created.
 	//
 	// If toDb is false, an in-memory build will be made and sent directly to
 	// the build tracker on the current web node. If there are multiple web
 	// nodes then it is possible for duplicate check builds to be created.
-	// Within a single web node, the BuildTracker will ignore duplicate builds.
+	// Within a single web node, the BuildTracker will ignore duplicate builds
+	// for the same resource.
 	TryCreateCheck(ctx context.Context, checkable Checkable, resourceTypes ResourceTypes, from atc.Version, manuallyTriggered bool, skipIntervalRecursively bool, toDb bool) (Build, bool, error)
 
 	// Returns all resources that are triggers for jobs, excluding those with
