@@ -204,6 +204,11 @@ type RunCommand struct {
 		ClientSecret            string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
 	} `group:"Web Server"`
 
+	Health struct {
+		MinWorkerCount         int     `long:"health-min-worker-count" default:"1" description:"Minimum number of running workers for the health endpoint to report healthy. Below this threshold the status is degraded (still 200). Zero workers is always failing."`
+		ComponentStaleMultiplier float64 `long:"health-component-stale-multiplier" default:"2.0" description:"A component is considered stale when it has not run for more than this multiplier times its interval. Stale runtime components (scheduler, tracker, scanner) cause degraded status."`
+	} `group:"Health Endpoint"`
+
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
 	LogClusterName bool `long:"log-cluster-name" description:"Log cluster name."`
 
@@ -952,6 +957,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbResourceConfigFactory,
 		userFactory,
 		dbComponentFactory,
+		dbConn,
 		pool,
 		secretManager,
 		credsManagers,
@@ -2073,6 +2079,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	resourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
 	dbComponentFactory db.ComponentFactory,
+	dbConn db.DbConn,
 	workerPool worker.Pool,
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
@@ -2152,6 +2159,9 @@ func (cmd *RunCommand) constructAPIHandler(
 		resourceConfigFactory,
 		dbUserFactory,
 		dbComponentFactory,
+		dbConn,
+		cmd.Health.MinWorkerCount,
+		cmd.Health.ComponentStaleMultiplier,
 
 		buildserver.NewEventHandler,
 
