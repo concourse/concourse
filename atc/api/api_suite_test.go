@@ -167,16 +167,13 @@ var _ = BeforeEach(func() {
 
 	build = new(dbfakes.FakeBuild)
 
-	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
-
-	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
-
-	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
-
-	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
-
 	fakePolicyChecker = new(policycheckerfakes.FakePolicyChecker)
 	fakePolicyChecker.CheckReturns(policy.PassedPolicyCheck(), nil)
+
+	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
+	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
+	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
+	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
 
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),
@@ -263,6 +260,50 @@ var _ = AfterEach(func() {
 	os.Remove(cliDownloadsDir)
 	server.Close()
 })
+
+// buildTestServer constructs and starts a test HTTP server with the given minWorkerCount.
+// Use this in tests that need a non-default minWorkerCount (e.g. to exercise the degraded worker path).
+// Callers are responsible for closing the returned server.
+func buildTestServer(workerCount int) *httptest.Server {
+	checkPipelineAccessHandlerFactory := auth.NewCheckPipelineAccessHandlerFactory(dbTeamFactory)
+	checkBuildReadAccessHandlerFactory := auth.NewCheckBuildReadAccessHandlerFactory(dbBuildFactory)
+	checkBuildWriteAccessHandlerFactory := auth.NewCheckBuildWriteAccessHandlerFactory(dbBuildFactory)
+	checkWorkerTeamAccessHandlerFactory := auth.NewCheckWorkerTeamAccessHandlerFactory(dbWorkerFactory)
+
+	apiWrapper := wrappa.MultiWrappa{
+		wrappa.NewPolicyCheckWrappa(logger, fakePolicyChecker),
+		wrappa.NewAPIAuthWrappa(
+			checkPipelineAccessHandlerFactory,
+			checkBuildReadAccessHandlerFactory,
+			checkBuildWriteAccessHandlerFactory,
+			checkWorkerTeamAccessHandlerFactory,
+		),
+	}
+
+	handler, err := api.NewHandler(
+		logger,
+		externalURL, "", clusterName,
+		apiWrapper,
+		dbTeamFactory, dbPipelineFactory, dbJobFactory, dbResourceFactory,
+		dbWorkerFactory, dbWorkerTeamFactory, fakeVolumeRepository, fakeContainerRepository,
+		fakeDestroyer, dbBuildFactory, dbCheckFactory, dbResourceConfigFactory,
+		dbUserFactory, dbComponentFactory, fakeDbConn,
+		workerCount,
+		2.0,
+		constructedEventHandler.Construct,
+		fakeWorkerPool, sink, isTLSEnabled, cliDownloadsDir,
+		"1.2.3", "4.5.6",
+		fakeSecretManager, fakeVarSourcePool, credsManagers,
+		interceptTimeoutFactory, time.Second, dbWall, fakeClock, dbSigningKeyFactory,
+	)
+	Expect(err).NotTo(HaveOccurred())
+
+	accessorHandler := accessor.NewHandler(
+		logger, "some-action", handler, fakeAccessor,
+		new(auditorfakes.FakeAuditor), map[string]string{},
+	)
+	return httptest.NewServer(wrappa.LoggerHandler{Logger: logger, Handler: accessorHandler})
+}
 
 func TestAPI(t *testing.T) {
 	RegisterFailHandler(Fail)

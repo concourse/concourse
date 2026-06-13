@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -134,14 +135,49 @@ var _ = Describe("Health API", func() {
 			})
 		})
 
+		Context("when running workers are above zero but below the minimum threshold", func() {
+			var customServer *httptest.Server
+
+			BeforeEach(func() {
+				fakeDbConn.QueryRowContextStub = dbHealthyStub
+				// 2 running workers, minWorkerCount=3 → below threshold → degraded
+				dbWorkerFactory.WorkersReturns([]db.Worker{
+					makeWorker(db.WorkerStateRunning),
+					makeWorker(db.WorkerStateRunning),
+					makeWorker(db.WorkerStateStalled),
+				}, nil)
+				customServer = buildTestServer(3)
+			})
+
+			AfterEach(func() {
+				customServer.Close()
+			})
+
+			It("returns 200 (degraded is not failing)", func() {
+				response, err := client.Get(customServer.URL + "/api/v1/health")
+				Expect(err).NotTo(HaveOccurred())
+				defer response.Body.Close()
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			It("returns status degraded", func() {
+				response, err := client.Get(customServer.URL + "/api/v1/health")
+				Expect(err).NotTo(HaveOccurred())
+				defer response.Body.Close()
+
+				body, _ := io.ReadAll(response.Body)
+				var health atc.Health
+				Expect(json.Unmarshal(body, &health)).To(Succeed())
+				Expect(health.Status).To(Equal(atc.HealthStatusDegraded))
+				Expect(health.Workers.Status).To(Equal(atc.HealthStatusDegraded))
+				Expect(health.Workers.Running).To(Equal(2))
+				Expect(health.Workers.Total).To(Equal(3))
+			})
+		})
+
 		Context("when running workers are below the minimum threshold but at least one exists", func() {
 			BeforeEach(func() {
 				fakeDbConn.QueryRowContextStub = dbHealthyStub
-				// minWorkerCount=1, but 0 running → degraded (there are workers, just none running)
-				// Actually with total=1 stalled, running=0 < minWorkerCount=1 → degraded path
-				// But our logic says running==0 → unhealthy, so let's test with minWorkerCount override
-				// The suite hardcodes minWorkerCount=1; to test degraded we'd need minWorkerCount=2.
-				// Instead test the failing path: stalled workers, running=0.
 				dbWorkerFactory.WorkersReturns([]db.Worker{
 					makeWorker(db.WorkerStateStalled),
 				}, nil)
