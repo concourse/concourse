@@ -12,9 +12,11 @@ var _ = Describe("Volume Promise", func() {
 		promise    Promise
 		testErr    = errors.New("some-error")
 		testVolume = Volume{
-			Handle:     "some-handle",
-			Path:       "some-path",
-			Properties: make(Properties),
+			Handle: "some-handle",
+			Path:   "some-path",
+			VolumeOpts: VolumeOpts{
+				Properties: make(Properties),
+			},
 		}
 	)
 

@@ -22,6 +22,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/worker/baggageclaim"
 	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
 	"golang.org/x/oauth2"
 
@@ -50,7 +51,7 @@ var (
 	AtcPassword    string
 
 	WorkerGardenClient       gclient.Client
-	WorkerBaggageclaimClient bclient.Client
+	WorkerBaggageclaimClient baggageclaim.Client
 
 	concourseReleaseVersion, bpmReleaseVersion, postgresReleaseVersion string
 	vaultReleaseVersion, credhubReleaseVersion, uaaReleaseVersion      string

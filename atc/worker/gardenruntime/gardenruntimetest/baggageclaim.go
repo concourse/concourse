@@ -11,10 +11,9 @@ import (
 
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/worker/baggageclaim"
-	bclient "github.com/concourse/concourse/worker/baggageclaim/client"
 )
 
-var _ bclient.Client = (*Baggageclaim)(nil)
+var _ baggageclaim.Client = (*Baggageclaim)(nil)
 
 type Baggageclaim struct {
 	Volumes []*Volume

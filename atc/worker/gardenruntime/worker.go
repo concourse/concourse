@@ -23,6 +23,7 @@ import (
 	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/moby/sys/user"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -32,6 +33,8 @@ type Streamer interface {
 	Stream(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error
 	StreamFile(ctx context.Context, src runtime.Artifact, path string) (io.ReadCloser, error)
 }
+
+var _ runtime.Worker = (*Worker)(nil)
 
 type Worker struct {
 	streamer Streamer
@@ -189,7 +192,9 @@ func (worker *Worker) createGardenContainer(
 		return nil, err
 	}
 
-	volumeMounts, err := worker.createVolumes(ctx, fetchedImage.Privileged, creatingContainer, containerSpec, delegate)
+	ownerSpec := worker.getUserInfo(ctx, containerSpec.ImageSpec, fetchedImage.Metadata, containerSpec.User)
+
+	volumeMounts, err := worker.createVolumes(ctx, fetchedImage.Privileged, creatingContainer, containerSpec, ownerSpec, delegate)
 	if err != nil {
 		logger.Error("failed-to-create-volume-mounts-for-container", err)
 		markContainerAsFailed(logger, creatingContainer)
@@ -323,6 +328,7 @@ func (worker *Worker) createVolumes(
 	privileged bool,
 	creatingContainer db.CreatingContainer,
 	spec runtime.ContainerSpec,
+	ownerSpec runtime.VolumeOwnership,
 	delegate runtime.BuildStepDelegate,
 ) ([]runtime.VolumeMount, error) {
 	var volumeMounts []runtime.VolumeMount
@@ -332,6 +338,8 @@ func (worker *Worker) createVolumes(
 		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
 			Privileged: privileged,
+			Uid:        new(ownerSpec.Uid),
+			Gid:        new(ownerSpec.Gid),
 		},
 		creatingContainer,
 		spec.TeamID,
@@ -348,17 +356,17 @@ func (worker *Worker) createVolumes(
 
 	volumeMounts = append(volumeMounts, scratchMount)
 
-	inputVolumeMounts, inputDestinationPaths, err := worker.cloneInputVolumes(ctx, spec, privileged, creatingContainer, delegate)
+	inputVolumeMounts, inputDestinationPaths, err := worker.cloneInputVolumes(ctx, spec, privileged, creatingContainer, ownerSpec, delegate)
 	if err != nil {
 		return nil, err
 	}
 
-	outputVolumeMounts, err := worker.createOutputVolumes(ctx, spec, privileged, creatingContainer, inputDestinationPaths)
+	outputVolumeMounts, err := worker.createOutputVolumes(ctx, spec, privileged, creatingContainer, inputDestinationPaths, ownerSpec)
 	if err != nil {
 		return nil, err
 	}
 
-	cacheVolumeMounts, err := worker.cloneCacheVolumes(ctx, spec, privileged, creatingContainer)
+	cacheVolumeMounts, err := worker.cloneCacheVolumes(ctx, spec, privileged, creatingContainer, ownerSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -374,6 +382,8 @@ func (worker *Worker) createVolumes(
 			baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: privileged,
+				Uid:        new(ownerSpec.Uid),
+				Gid:        new(ownerSpec.Gid),
 			},
 			creatingContainer,
 			spec.TeamID,
@@ -405,6 +415,7 @@ func (worker *Worker) cloneInputVolumes(
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
+	ownerSpec runtime.VolumeOwnership,
 	delegate runtime.BuildStepDelegate,
 ) ([]runtime.VolumeMount, map[string]bool, error) {
 
@@ -421,7 +432,7 @@ func (worker *Worker) cloneInputVolumes(
 
 		func(i int, input runtime.Input) {
 			g.Go(func() error {
-				v, err := worker.findOrStreamVolume(groupCtx, privileged, spec.TeamID, container, input.Artifact, input.DestinationPath, delegate)
+				v, err := worker.findOrStreamVolume(groupCtx, privileged, spec.TeamID, container, input.Artifact, input.DestinationPath, ownerSpec, delegate)
 				if err != nil {
 					return err
 				}
@@ -437,7 +448,7 @@ func (worker *Worker) cloneInputVolumes(
 		return nil, nil, err
 	}
 
-	mounts, err := worker.cloneLocalInputVolumes(ctx, spec, privileged, container, localInputs)
+	mounts, err := worker.cloneLocalInputVolumes(ctx, spec, privileged, container, localInputs, ownerSpec)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -451,6 +462,7 @@ func (worker *Worker) cloneLocalInputVolumes(
 	privileged bool,
 	container db.CreatingContainer,
 	inputs []mountableLocalInput,
+	ownerSpec runtime.VolumeOwnership,
 ) ([]runtime.VolumeMount, error) {
 	mounts := make([]runtime.VolumeMount, len(inputs))
 
@@ -462,6 +474,7 @@ func (worker *Worker) cloneLocalInputVolumes(
 			input.cowParent,
 			spec.TeamID,
 			input.mountPath,
+			ownerSpec,
 		)
 		if err != nil {
 			return nil, err
@@ -481,6 +494,7 @@ func (worker *Worker) createOutputVolumes(
 	privileged bool,
 	container db.CreatingContainer,
 	inputDestinationPaths map[string]bool,
+	ownerSpec runtime.VolumeOwnership,
 ) ([]runtime.VolumeMount, error) {
 	var mounts []runtime.VolumeMount
 
@@ -497,6 +511,8 @@ func (worker *Worker) createOutputVolumes(
 			baggageclaim.VolumeSpec{
 				Strategy:   baggageclaim.EmptyStrategy{},
 				Privileged: privileged,
+				Uid:        new(ownerSpec.Uid),
+				Gid:        new(ownerSpec.Gid),
 			},
 			container,
 			spec.TeamID,
@@ -520,6 +536,7 @@ func (worker *Worker) cloneCacheVolumes(
 	spec runtime.ContainerSpec,
 	privileged bool,
 	container db.CreatingContainer,
+	ownerSpec runtime.VolumeOwnership,
 ) ([]runtime.VolumeMount, error) {
 	mounts := make([]runtime.VolumeMount, len(spec.Caches))
 
@@ -548,6 +565,7 @@ func (worker *Worker) cloneCacheVolumes(
 				volume,
 				spec.TeamID,
 				mountPath,
+				ownerSpec,
 			)
 			if err != nil {
 				return nil, err
@@ -561,6 +579,8 @@ func (worker *Worker) cloneCacheVolumes(
 				baggageclaim.VolumeSpec{
 					Strategy:   baggageclaim.EmptyStrategy{},
 					Privileged: privileged,
+					Uid:        new(ownerSpec.Uid),
+					Gid:        new(ownerSpec.Gid),
 				},
 				container,
 				spec.TeamID,
@@ -677,6 +697,7 @@ func (worker *Worker) findOrStreamVolume(
 	container db.CreatingContainer,
 	artifact runtime.Artifact,
 	mountPath string,
+	ownerSpec runtime.VolumeOwnership,
 	delegate runtime.BuildStepDelegate,
 ) (Volume, error) {
 	logger := lagerctx.FromContext(ctx)
@@ -723,6 +744,7 @@ func (worker *Worker) findOrStreamVolume(
 				container,
 				teamID,
 				mountPath,
+				ownerSpec,
 			)
 			if err != nil {
 				logger.Error("failed-to-create-volume-for-streaming", err)
@@ -750,4 +772,59 @@ func (worker *Worker) findOrStreamVolume(
 			continue
 		}
 	}
+}
+
+func (worker *Worker) getUserInfo(
+	ctx context.Context,
+	imageSpec runtime.ImageSpec,
+	imageMetadata ImageMetadata,
+	taskUser string,
+) runtime.VolumeOwnership {
+	logger := lagerctx.FromContext(ctx)
+	keepExistingOwnership := runtime.VolumeOwnership{
+		Uid: runtime.ExistingOwner,
+		Gid: runtime.ExistingGroup,
+	}
+
+	if imageSpec.ImageArtifact == nil {
+		// No image to inspect, do nothing
+		return keepExistingOwnership
+	}
+
+	if taskUser == "" {
+		taskUser = imageMetadata.User
+	}
+
+	if taskUser != "" && taskUser != "root" {
+		// Don't return errors so images that don't contain /etc/{passwd,group}
+		// don't fail. If we returned errors, these images would be unusable
+		// with Concourse (e.g. `FROM scratch` images)
+		passwd, err := worker.streamer.StreamFile(ctx, imageSpec.ImageArtifact,
+			"rootfs/etc/passwd")
+		if err != nil {
+			logger.Error("streaming-etc-passwd-from-image", err)
+			return keepExistingOwnership
+		}
+		defer passwd.Close()
+
+		group, err := worker.streamer.StreamFile(ctx, imageSpec.ImageArtifact, "rootfs/etc/group")
+		if err != nil {
+			logger.Error("streaming-etc-group-from-image", err)
+			return keepExistingOwnership
+		}
+		defer group.Close()
+
+		execUser, err := user.GetExecUser(taskUser, &user.ExecUser{}, passwd, group)
+		if err != nil {
+			logger.Error("finding-user-id-in-image", err, lager.Data{"user": taskUser})
+			return keepExistingOwnership
+		}
+
+		return runtime.VolumeOwnership{
+			Uid: execUser.Uid,
+			Gid: execUser.Gid,
+		}
+	}
+
+	return keepExistingOwnership
 }

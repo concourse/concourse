@@ -213,12 +213,15 @@ func (worker *Worker) findOrCreateVolumeForStreaming(
 	container db.CreatingContainer,
 	teamID int,
 	mountPath string,
+	ownerSpec runtime.VolumeOwnership,
 ) (Volume, error) {
 	return worker.findOrCreateVolumeForContainer(
 		ctx,
 		baggageclaim.VolumeSpec{
 			Strategy:   baggageclaim.EmptyStrategy{},
 			Privileged: privileged,
+			Uid:        new(ownerSpec.Uid),
+			Gid:        new(ownerSpec.Gid),
 		},
 		container,
 		teamID,
@@ -235,6 +238,7 @@ func (worker *Worker) findOrCreateCOWVolumeForContainer(
 	parent Volume,
 	teamID int,
 	mountPath string,
+	ownerSpec runtime.VolumeOwnership,
 ) (Volume, error) {
 	ctx = lagerctx.NewContext(ctx, lagerctx.FromContext(ctx).Session("find-or-create-cow-volume-for-container"))
 	return worker.findOrCreateVolume(
@@ -242,6 +246,8 @@ func (worker *Worker) findOrCreateCOWVolumeForContainer(
 		baggageclaim.VolumeSpec{
 			Strategy:   parent.COWStrategy(),
 			Privileged: privileged,
+			Uid:        new(ownerSpec.Uid),
+			Gid:        new(ownerSpec.Gid),
 		},
 		func() (db.CreatingVolume, db.CreatedVolume, error) {
 			return worker.db.VolumeRepo.FindContainerVolume(teamID, worker.Name(), container, mountPath)

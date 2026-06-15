@@ -295,6 +295,16 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 
+		Context("when a user is configured", func() {
+			BeforeEach(func() {
+				taskPlan.Config.Run.User = "some-user"
+			})
+
+			It("sets the user on the container spec", func() {
+				Expect(chosenContainer.Spec.User).To(Equal("some-user"))
+			})
+		})
+
 		Context("when a timeout is configured", func() {
 			BeforeEach(func() {
 				taskPlan.Timeout = "1ms"

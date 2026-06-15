@@ -58,7 +58,10 @@ var _ = Describe("stream http client", func() {
 			client := clientFactory.NewClient()
 			_, err := client.Create(garden.ContainerSpec{})
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Client.Timeout"))
+			Expect(err.Error()).To(Or(
+				ContainSubstring("Client.Timeout"),
+				ContainSubstring("context deadline exceeded"),
+			))
 		})
 	})
 })
