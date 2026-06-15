@@ -54,6 +54,16 @@ var _ = Describe("Extract", func() {
 			Link: "some-file",
 			Mode: 0755,
 		},
+		{
+			Name: "./symlink-dir/relative-symlink",
+			Link: "../some-file",
+			Mode: 0755,
+		},
+		{
+			Name: "./symlink-dir/absolute-symlink",
+			Link: "/some-file",
+			Mode: 0755,
+		},
 	}
 
 	BeforeEach(func() {
@@ -164,39 +174,81 @@ var _ = Describe("ExtractEntry", func() {
 		os.RemoveAll(dest)
 	})
 
-	It("returns a BreakoutError when a hard link points outside the destination", func() {
-		header := &tar.Header{
-			Typeflag: tar.TypeLink,
-			Name:     "malicious-link",
-			Linkname: "../outside-file",
-		}
+	Context("hard links", func() {
+		It("turns absolute paths into relative paths inside dest", func() {
+			header := &tar.Header{
+				Typeflag: tar.TypeLink,
+				Name:     "./hardlink",
+				Linkname: "/absolute/path/file",
+				Mode:     0755,
+			}
+			By("creating the target of the hard link", func() {
+				root, err := os.OpenRoot(dest)
+				Expect(err).ToNot(HaveOccurred())
+				err = root.MkdirAll("absolute/path/", 0755)
+				Expect(err).ToNot(HaveOccurred())
+				f, err := root.Create("absolute/path/file")
+				Expect(err).ToNot(HaveOccurred())
+				f.Close()
+			})
 
-		err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
-		Expect(err).To(HaveOccurred())
+			err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-		var breakoutErr tarfs.BreakoutError
-		Expect(err).To(BeAssignableToTypeOf(breakoutErr))
+		It("returns a BreakoutErr when a hard link points outside the destination", func() {
+			header := &tar.Header{
+				Typeflag: tar.TypeLink,
+				Name:     "malicious-link",
+				Linkname: "../outside-file",
+				Mode:     0755,
+			}
 
-		breakoutErr = err.(tarfs.BreakoutError)
-		Expect(breakoutErr.HeaderName).To(Equal("malicious-link"))
-		Expect(breakoutErr.LinkName).To(Equal("../outside-file"))
+			err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
+			Expect(err).To(HaveOccurred())
+
+			var breakoutErr tarfs.BreakoutError
+			Expect(err).To(BeAssignableToTypeOf(breakoutErr))
+
+			breakoutErr = err.(tarfs.BreakoutError)
+			Expect(breakoutErr.HeaderName).To(Equal("malicious-link"))
+			Expect(breakoutErr.LinkName).To(Equal("../outside-file"))
+		})
+
 	})
 
-	It("returns a BreakoutError when a symlink points outside the destination", func() {
-		header := &tar.Header{
-			Typeflag: tar.TypeSymlink,
-			Name:     "malicious-link",
-			Linkname: "../outside-file",
-		}
+	Context("symlinks", func() {
+		It("does not modify absolute paths", func() {
+			header := &tar.Header{
+				Typeflag: tar.TypeSymlink,
+				Name:     "abs",
+				Linkname: "/absolute/path/file",
+			}
 
-		err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
-		Expect(err).To(HaveOccurred())
+			err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
+			Expect(err).ToNot(HaveOccurred())
 
-		var breakoutErr tarfs.BreakoutError
-		Expect(err).To(BeAssignableToTypeOf(breakoutErr))
+			l, err := os.Readlink(filepath.Join(dest, "abs"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(l).To(Equal(header.Linkname))
+		})
 
-		breakoutErr = err.(tarfs.BreakoutError)
-		Expect(breakoutErr.HeaderName).To(Equal("malicious-link"))
-		Expect(breakoutErr.LinkName).To(Equal("../outside-file"))
+		It("returns a BreakoutErr when a symlink points outside the destination", func() {
+			header := &tar.Header{
+				Typeflag: tar.TypeSymlink,
+				Name:     "malicious-link",
+				Linkname: "../outside-path",
+			}
+
+			err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
+			Expect(err).To(HaveOccurred())
+
+			var breakoutErr tarfs.BreakoutError
+			Expect(err).To(BeAssignableToTypeOf(breakoutErr))
+
+			breakoutErr = err.(tarfs.BreakoutError)
+			Expect(breakoutErr.HeaderName).To(Equal("malicious-link"))
+			Expect(breakoutErr.LinkName).To(Equal("../outside-path"))
+		})
 	})
 })

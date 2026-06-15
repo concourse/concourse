@@ -2,8 +2,10 @@ package tarfs
 
 import (
 	"archive/tar"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,6 +25,12 @@ func Extract(src io.Reader, dest string) error {
 
 	chown := os.Getuid() == 0
 
+	root, err := os.OpenRoot(dest)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+
 	for {
 		hdr, err := tarReader.Next()
 		if err == io.EOF {
@@ -37,7 +45,7 @@ func Extract(src io.Reader, dest string) error {
 			continue
 		}
 
-		err = ExtractEntry(hdr, dest, tarReader, chown)
+		err = extractEntry(root, hdr, tarReader, chown)
 		if err != nil {
 			return err
 		}
@@ -56,48 +64,83 @@ func (err BreakoutError) Error() string {
 }
 
 func ExtractEntry(header *tar.Header, dest string, input io.Reader, chown bool) error {
-	filePath := filepath.Join(dest, header.Name)
+	root, err := os.OpenRoot(dest)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
+	return extractEntry(root, header, input, chown)
+}
+
+const pathEscapesErr = "path escapes"
+
+func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool) error {
+	filePath := header.Name
 	fileInfo := header.FileInfo()
 	fileMode := fileInfo.Mode()
 
-	err := os.MkdirAll(filepath.Dir(filePath), 0755)
+	err := root.MkdirAll(filepath.Dir(filePath), 0755)
 	if err != nil {
 		return err
 	}
 
 	switch header.Typeflag {
 	case tar.TypeLink:
-		targetPath := filepath.Join(dest, header.Linkname)
+		header.Linkname = stripRoot(header.Linkname)
 
-		if !strings.HasPrefix(targetPath, dest) {
-			return BreakoutError{header.Name, header.Linkname}
-		}
-
-		err := os.Link(filepath.Join(dest, header.Linkname), filePath)
+		err = root.Link(header.Linkname, filePath)
 		if err != nil {
+			// We only care about path-escape errors. All others are ignored and we fall through
+			if linkErr, ok := errors.AsType[*os.LinkError](err); ok {
+				if strings.Contains(linkErr.Error(), pathEscapesErr) {
+					return BreakoutError{
+						HeaderName: header.Name,
+						LinkName:   header.Linkname,
+					}
+				}
+			}
 			return err
 		}
 
 	case tar.TypeSymlink:
-		targetPath := filepath.Join(dest, header.Linkname)
-
-		if !strings.HasPrefix(targetPath, dest) {
-			return BreakoutError{header.Name, header.Linkname}
+		if !filepath.IsAbs(header.Linkname) {
+			// Absolute symlinks are left as-is because in containerized
+			// environments absolute paths won't escape the container. For
+			// non-containerized environments, sorry, can't help ya! We do use
+			// os.Root, so if someone tries to do an extraction attack by:
+			// 1) Creating a symlink that points at an absolute path
+			// 2) Create a file that would follow that symlink, writing outside
+			//    the extraction path
+			// os.Root won't allow that.
+			// For symlinks pointing to relative paths, we detect if they try to
+			// point to a path outside of the destination path and return a BreakoutErr
+			_, err := root.Stat(filepath.Join(filepath.Dir(filePath), header.Linkname))
+			if err != nil {
+				// We only care about path-escape errors. All others are ignored and we fall through
+				if pathErr, ok := errors.AsType[*fs.PathError](err); ok {
+					if strings.Contains(pathErr.Error(), pathEscapesErr) {
+						return BreakoutError{
+							HeaderName: header.Name,
+							LinkName:   header.Linkname,
+						}
+					}
+				}
+			}
 		}
 
-		err := os.Symlink(header.Linkname, filePath)
+		err = root.Symlink(header.Linkname, filePath)
 		if err != nil {
 			return err
 		}
 
 	case tar.TypeDir:
-		err := os.MkdirAll(filePath, fileMode)
+		err := root.MkdirAll(filePath, fileMode.Perm())
 		if err != nil {
 			return err
 		}
 
 	case tar.TypeReg, tar.TypeRegA:
-		file, err := os.Create(filePath)
+		file, err := root.Create(filePath)
 		if err != nil {
 			return err
 		}
@@ -114,7 +157,7 @@ func ExtractEntry(header *tar.Header, dest string, input io.Reader, chown bool) 
 		}
 
 	case tar.TypeBlock, tar.TypeChar, tar.TypeFifo:
-		err := mknodEntry(header, filePath)
+		err := mknodEntry(header, filepath.Join(root.Name(), filePath))
 		if err != nil {
 			return err
 		}
@@ -128,20 +171,20 @@ func ExtractEntry(header *tar.Header, dest string, input io.Reader, chown bool) 
 	}
 
 	if runtime.GOOS != "windows" && chown {
-		err = os.Lchown(filePath, header.Uid, header.Gid)
+		err = root.Lchown(filePath, header.Uid, header.Gid)
 		if err != nil {
 			return err
 		}
 	}
 
 	// must be done after chown
-	err = lchmod(header, filePath, fileMode)
+	err = lchmod(root, header, filePath, fileMode)
 	if err != nil {
 		return err
 	}
 
 	// must be done after everything
-	err = lchtimes(header, filePath)
+	err = lchtimes(root, header, filePath)
 	if err != nil {
 		return err
 	}
@@ -149,19 +192,19 @@ func ExtractEntry(header *tar.Header, dest string, input io.Reader, chown bool) 
 	return nil
 }
 
-func lchmod(header *tar.Header, path string, fileMode os.FileMode) error {
+func lchmod(root *os.Root, header *tar.Header, path string, fileMode os.FileMode) error {
 	if header.Typeflag == tar.TypeLink {
-		if fi, err := os.Lstat(header.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
-			return os.Chmod(path, fileMode)
+		if fi, err := root.Lstat(header.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
+			return root.Chmod(path, fileMode)
 		}
 	} else if header.Typeflag != tar.TypeSymlink {
-		return os.Chmod(path, fileMode)
+		return root.Chmod(path, fileMode)
 	}
 
 	return nil
 }
 
-func lchtimes(header *tar.Header, path string) error {
+func lchtimes(root *os.Root, header *tar.Header, path string) error {
 	aTime := header.AccessTime
 	mTime := header.ModTime
 	if aTime.Before(mTime) {
@@ -169,12 +212,20 @@ func lchtimes(header *tar.Header, path string) error {
 	}
 
 	if header.Typeflag == tar.TypeLink {
-		if fi, err := os.Lstat(header.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
-			return os.Chtimes(path, aTime, mTime)
+		if fi, err := root.Lstat(header.Linkname); err == nil && (fi.Mode()&os.ModeSymlink == 0) {
+			return root.Chtimes(path, aTime, mTime)
 		}
 	} else if header.Typeflag != tar.TypeSymlink {
-		return os.Chtimes(path, aTime, mTime)
+		return root.Chtimes(path, aTime, mTime)
 	}
 
 	return nil
+}
+
+func stripRoot(p string) string {
+	// On Unix this part does nothing. On Windows it strips `C:`
+	p = strings.TrimPrefix(p, filepath.VolumeName(p))
+	// Removes all leading forward and backwards slashes
+	p = strings.TrimLeft(p, `/\`)
+	return p
 }
