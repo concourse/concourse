@@ -28,6 +28,11 @@ func Extract(srcFile string, dest string) error {
 		}
 
 		defer files.Close()
+		root, err := os.OpenRoot(dest)
+		if err != nil {
+			return err
+		}
+		defer root.Close()
 
 		for _, file := range files.File {
 			err = func() error {
@@ -37,7 +42,7 @@ func Extract(srcFile string, dest string) error {
 				}
 				defer readCloser.Close()
 
-				return extractZipArchiveFile(file, dest, readCloser)
+				return extractZipArchiveFile(root, file, readCloser)
 			}()
 
 			if err != nil {
@@ -49,17 +54,17 @@ func Extract(srcFile string, dest string) error {
 	}
 }
 
-func extractZipArchiveFile(file *zip.File, dest string, input io.Reader) error {
-	filePath := filepath.Join(dest, file.Name)
+func extractZipArchiveFile(root *os.Root, file *zip.File, input io.Reader) error {
+	filePath := file.Name
 	fileInfo := file.FileInfo()
 
 	if fileInfo.IsDir() {
-		err := os.MkdirAll(filePath, fileInfo.Mode())
+		err := root.MkdirAll(filePath, fileInfo.Mode().Perm())
 		if err != nil {
 			return err
 		}
 	} else {
-		err := os.MkdirAll(filepath.Dir(filePath), 0755)
+		err := root.MkdirAll(filepath.Dir(filePath), 0755)
 		if err != nil {
 			return err
 		}
@@ -69,10 +74,10 @@ func extractZipArchiveFile(file *zip.File, dest string, input io.Reader) error {
 			if err != nil {
 				return err
 			}
-			return os.Symlink(string(linkName), filePath)
+			return root.Symlink(string(linkName), filePath)
 		}
 
-		fileCopy, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileInfo.Mode())
+		fileCopy, err := root.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileInfo.Mode())
 		if err != nil {
 			return err
 		}
