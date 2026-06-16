@@ -45,6 +45,11 @@ func propertiesToLabels(properties garden.Properties) (map[string]string, error)
 			chunkKey := key + "." + strconv.Itoa(sequenceNum)
 			valueLen := min(maxLabelLen-len(chunkKey), len(value))
 
+			// Avoid splitting a multi-byte UTF-8 rune across the chunk boundary
+			for valueLen > 0 && valueLen < len(value) && !utf8.RuneStart(value[valueLen]) {
+				valueLen--
+			}
+
 			labelSet[chunkKey] = value[:valueLen]
 			value = value[valueLen:]
 
