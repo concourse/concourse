@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"strings"
+	"errors"
 
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -13,7 +15,22 @@ type RenameTeamCommand struct {
 	NewTeamName string               `short:"n" long:"new-name" required:"true" description:"New team name"`
 }
 
+func (command *RenameTeamCommand) Validate() error {
+	if strings.Contains(command.Team.Name(), "/") {
+		return errors.New("old team name cannot contain '/'")
+	}
+	if strings.Contains(command.NewTeamName, "/") {
+		return errors.New("new team name cannot contain '/'")
+	}
+	return nil
+}
+
 func (command *RenameTeamCommand) Execute([]string) error {
+	err := command.Validate()
+	if err != nil {
+		return err
+	}
+	
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err

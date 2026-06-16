@@ -14,6 +14,8 @@ const (
 	gidMap = "/proc/self/gid_map"
 )
 
+var _ UserNamespace = (*userNamespace)(nil)
+
 type userNamespace struct{}
 
 func NewUserNamespace() UserNamespace {

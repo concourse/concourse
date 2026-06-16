@@ -524,10 +524,9 @@ func (vs *VolumeServer) StreamIn(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		var errExceedStreamLimit volume.ErrExceedStreamLimit
-		if errors.As(err, &errExceedStreamLimit) {
-			hLog.Error("exceeded-stream-limit", err)
-			RespondWithError(w, err, http.StatusForbidden)
+		if streamLimitErr, ok := errors.AsType[volume.ErrExceedStreamLimit](err); ok {
+			hLog.Error("exceeded-stream-limit", streamLimitErr)
+			RespondWithError(w, streamLimitErr, http.StatusForbidden)
 			return
 		}
 
@@ -717,8 +716,12 @@ func (vs *VolumeServer) doCreate(ctx context.Context, w http.ResponseWriter, req
 		ctx,
 		handle,
 		strategy,
-		volume.Properties(request.Properties),
-		request.Privileged,
+		volume.VolumeOpts{
+			Privileged: request.Privileged,
+			Properties: volume.Properties(request.Properties),
+			Uid:        request.Uid,
+			Gid:        request.Gid,
+		},
 	)
 
 	if err != nil {

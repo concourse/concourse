@@ -1,0 +1,314 @@
+resources:
+  - name: image
+    type: mock
+    source:
+      mirror_self: true
+    version:
+      version: mock
+
+  - name: version
+    type: mock
+    source:
+      no_initial_version: true
+
+  - name: input
+    type: mock
+    source:
+      create_files:
+        file.yml: |
+          foo: bar
+    version:
+      version: mock
+
+jobs:
+  - name: root
+    plan:
+      - get: image
+      - task: root
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: image
+          outputs:
+            - name: empty
+          run:
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "root"
+                test "$(stat -c '%U' ./empty)" = "root"
+                test "$(stat -c '%U' ./image)" = "root"
+                echo "can write to file" > ./empty/file
+                echo "can write to file" > ./image/file
+
+  - name: root-privileged
+    plan:
+      - get: image
+      - task: root
+        privileged: true
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: image
+          outputs:
+            - name: empty
+          run:
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "root"
+                test "$(stat -c '%U' ./empty)" = "root"
+                test "$(stat -c '%U' ./image)" = "root"
+                echo "can write to file" > ./empty/file
+                echo "can write to file" > ./image/file
+
+  - name: nonroot
+    plan:
+      - get: image
+      - task: nonroot
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: image
+          outputs:
+            - name: empty
+          run:
+            user: nonroot
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "nonroot"
+                test "$(stat -c '%U' ./empty)" = "nonroot"
+                test "$(stat -c '%U' ./image)" = "nonroot"
+                echo "can write to file" > ./empty/file
+                echo "can write to file" > ./image/file
+
+  - name: nonroot-privileged
+    plan:
+      - get: image
+      - task: nonroot
+        privileged: true
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: image
+          outputs:
+            - name: empty
+          run:
+            user: nonroot
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "nonroot"
+                test "$(stat -c '%U' ./empty)" = "nonroot"
+                test "$(stat -c '%U' ./image)" = "nonroot"
+                echo "can write to file" > ./empty/file
+                echo "can write to file" > ./image/file
+
+  - name: different-users
+    plan:
+      - get: image
+      - task: nonroot
+        image: image
+        config:
+          platform: linux
+          outputs:
+            - name: empty
+          run:
+            user: nonroot
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "nonroot"
+                test "$(stat -c '%U' ./empty)" = "nonroot"
+                echo "can write to file" > ./empty/file
+
+      - task: adm
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: empty
+          outputs:
+            - name: empty
+          run:
+            user: adm
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "adm"
+                test "$(stat -c '%U' ./empty)" = "adm"
+                test "$(cat ./empty/file)" = "can write to file"
+                echo "hello from adm" > ./empty/file
+
+      - task: daemon
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: empty
+          outputs:
+            - name: empty
+          run:
+            user: daemon
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "daemon"
+                test "$(stat -c '%U' ./empty)" = "daemon"
+                test "$(cat ./empty/file)" = "hello from adm"
+                echo "hello from daemon" > ./empty/file
+
+      - task: news
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: empty
+          outputs:
+            - name: empty
+          run:
+            user: news
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "news"
+                test "$(stat -c '%U' ./empty)" = "news"
+                test "$(cat ./empty/file)" = "hello from daemon"
+                echo "hello from news" > ./empty/file
+
+  - name: put
+    plan:
+      - get: image
+      - task: nonroot
+        image: image
+        config:
+          platform: linux
+          outputs:
+            - name: empty
+          run:
+            user: nonroot
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "nonroot"
+                test "$(stat -c '%U' ./empty)" = "nonroot"
+                echo "written by nonroot" > ./empty/file
+
+      - put: version
+        params:
+          file: empty/file
+
+  - name: nonroot-to-root
+    plan:
+      - get: image
+      - task: nonroot
+        image: image
+        config:
+          platform: linux
+          outputs:
+            - name: empty
+          run:
+            user: nonroot
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "nonroot"
+                test "$(stat -c '%U' ./empty)" = "nonroot"
+                echo "written by nonroot" > ./empty/file
+
+      - task: root
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: empty
+          run:
+            user: root
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "root"
+                echo './empty is owned by root'
+                test "$(stat -c '%U' ./empty)" = "root"
+                echo './empty/file is still owned by root'
+                test "$(stat -c '%U' ./empty/file)" = "nonroot"
+                echo "written by root" >> ./empty/file
+
+  - name: nonroot-and-root-same-parent-volume
+    plan:
+      - get: image
+      - get: input
+      - task: nonroot
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: input
+          run:
+            user: nonroot
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "nonroot"
+                test "$(stat -c '%U' ./input)" = "nonroot"
+                test "$(stat -c '%U' ./input/file.yml)" = "nonroot"
+                echo "written by nonroot" > ./input/file-new
+
+      - task: root
+        image: image
+        config:
+          platform: linux
+          inputs:
+            - name: input
+          run:
+            user: root
+            path: bash
+            args:
+              - -c
+              - |
+                set -euo pipefail
+                set -x
+                test $(whoami) = "root"
+                test "$(stat -c '%U' ./input)" = "root"
+                test "$(stat -c '%U' ./input/file.yml)" = "root"
