@@ -280,6 +280,28 @@ var factoryTests = []StepTest{
 		},
 	},
 	{
+		Title: "do step with tags",
+
+		ConfigYAML: `
+			tags: [some-tag]
+			do:
+			- load_var: some-var
+			  file: some-file
+		`,
+
+		StepConfig: &atc.DoStep{
+			Tags: atc.Tags{"some-tag"},
+			Steps: []atc.Step{
+				{
+					Config: &atc.LoadVarStep{
+						Name: "some-var",
+						File: "some-file",
+					},
+				},
+			},
+		},
+	},
+	{
 		Title: "in_parallel step with simple list",
 
 		ConfigYAML: `
@@ -341,6 +363,30 @@ var factoryTests = []StepTest{
 				},
 				Limit:    3,
 				FailFast: true,
+			},
+		},
+	},
+	{
+		Title: "in_parallel step with tags",
+
+		ConfigYAML: `
+			tags: [some-tag]
+			in_parallel:
+			- load_var: some-var
+			  file: some-file
+		`,
+
+		StepConfig: &atc.InParallelStep{
+			Tags: atc.Tags{"some-tag"},
+			Config: atc.InParallelConfig{
+				Steps: []atc.Step{
+					{
+						Config: &atc.LoadVarStep{
+							Name: "some-var",
+							File: "some-file",
+						},
+					},
+				},
 			},
 		},
 	},

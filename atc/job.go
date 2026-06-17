@@ -49,11 +49,11 @@ type JobOutput struct {
 }
 
 type BuildInput struct {
-	Name     string   `json:"name"`
-	Resource string   `json:"resource"`
-	Type     string   `json:"type"`
-	Source   Source   `json:"source"`
-	Params   Params   `json:"params,omitempty"`
-	Version  Version  `json:"version"`
-	Tags     []string `json:"tags,omitempty"`
+	Name     string  `json:"name"`
+	Resource string  `json:"resource"`
+	Type     string  `json:"type"`
+	Source   Source  `json:"source"`
+	Params   Params  `json:"params,omitempty"`
+	Version  Version `json:"version"`
+	Tags     Tags    `json:"tags,omitempty"`
 }

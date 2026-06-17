@@ -505,7 +505,7 @@ var _ = Describe("BuildStarter", func() {
 								})
 
 								It("creates the build plan with manually triggered", func() {
-									_, _, _, _, _, actualManuallyTriggered := fakePlanner.CreateArgsForCall(0)
+									_, _, _, _, _, actualManuallyTriggered, _ := fakePlanner.CreateArgsForCall(0)
 									Expect(actualManuallyTriggered).To(Equal(true))
 								})
 							})
@@ -796,29 +796,32 @@ var _ = Describe("BuildStarter", func() {
 									It("creates build plans for all builds", func() {
 										Expect(fakePlanner.CreateCallCount()).To(Equal(3))
 
-										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualPrototypes, actualBuildInputs, actualManuallyTriggered := fakePlanner.CreateArgsForCall(0)
+										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualPrototypes, actualBuildInputs, actualManuallyTriggered, actualJobTags := fakePlanner.CreateArgsForCall(0)
 										Expect(actualPlanConfig).To(Equal(&atc.DoStep{Steps: jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(resourceTypes))
 										Expect(actualPrototypes).To(Equal(prototypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 										Expect(actualManuallyTriggered).To(Equal(false))
+										Expect(actualJobTags).To(Equal(jobConfig.Tags))
 
-										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualPrototypes, actualBuildInputs, actualManuallyTriggered = fakePlanner.CreateArgsForCall(1)
+										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualPrototypes, actualBuildInputs, actualManuallyTriggered, actualJobTags = fakePlanner.CreateArgsForCall(1)
 										Expect(actualPlanConfig).To(Equal(&atc.DoStep{Steps: jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(resourceTypes))
 										Expect(actualPrototypes).To(Equal(prototypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 										Expect(actualManuallyTriggered).To(Equal(false))
+										Expect(actualJobTags).To(Equal(jobConfig.Tags))
 
-										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualPrototypes, actualBuildInputs, actualManuallyTriggered = fakePlanner.CreateArgsForCall(2)
+										actualPlanConfig, actualResourceConfigs, actualResourceTypes, actualPrototypes, actualBuildInputs, actualManuallyTriggered, actualJobTags = fakePlanner.CreateArgsForCall(2)
 										Expect(actualPlanConfig).To(Equal(&atc.DoStep{Steps: jobConfig.PlanSequence}))
 										Expect(actualResourceConfigs).To(Equal(db.SchedulerResources{{Name: "some-resource"}}))
 										Expect(actualResourceTypes).To(Equal(resourceTypes))
 										Expect(actualPrototypes).To(Equal(prototypes))
 										Expect(actualBuildInputs).To(Equal([]db.BuildInput{{Name: "some-input"}}))
 										Expect(actualManuallyTriggered).To(Equal(false))
+										Expect(actualJobTags).To(Equal(jobConfig.Tags))
 									})
 
 									Context("when starting the build fails", func() {

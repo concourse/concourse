@@ -413,6 +413,7 @@ func (step *TryStep) Visit(v StepVisitor) error {
 
 type DoStep struct {
 	Steps []Step `json:"do"`
+	Tags  Tags   `json:"tags,omitempty"`
 }
 
 func (step *DoStep) Visit(v StepVisitor) error {
@@ -421,6 +422,7 @@ func (step *DoStep) Visit(v StepVisitor) error {
 
 type InParallelStep struct {
 	Config InParallelConfig `json:"in_parallel"`
+	Tags   Tags             `json:"tags,omitempty"`
 }
 
 func (step *InParallelStep) Visit(v StepVisitor) error {

@@ -29,6 +29,9 @@ type PlannerTest struct {
 	Config atc.StepConfig
 	Inputs []db.BuildInput
 
+	// Representing job-level tags
+	Tags atc.Tags
+
 	CompareIDs             bool
 	ManuallyTriggered      bool
 	OverwriteResourceTypes atc.ResourceTypes
@@ -1586,6 +1589,235 @@ var factoryTests = []PlannerTest{
 		}`,
 	},
 	{
+		Title: "do step with tags is inherited by child steps",
+
+		Config: &atc.DoStep{
+			Tags: atc.Tags{"do-tag"},
+			Steps: []atc.Step{
+				{
+					Config: &atc.GetStep{
+						Name:     "inherits",
+						Resource: "some-base-resource",
+					},
+				},
+				{
+					Config: &atc.GetStep{
+						Name:     "overrides",
+						Resource: "some-base-resource",
+						Tags:     atc.Tags{"own-tag"},
+					},
+				},
+			},
+		},
+		Inputs: []db.BuildInput{
+			{Name: "inherits", Version: atc.Version{"some": "version"}},
+			{Name: "overrides", Version: atc.Version{"some": "version"}},
+		},
+
+		PlanJSON: `{
+			"id": "(unique)",
+			"do": [
+				{
+					"id": "(unique)",
+					"get": {
+						"name": "inherits",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
+						"source": {"some":"source","default-key":"default-value"},
+						"version": {"some":"version"},
+						"tags": ["do-tag"],
+						"image": {"base_type": "some-base-resource-type"}
+					}
+				},
+				{
+					"id": "(unique)",
+					"get": {
+						"name": "overrides",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
+						"source": {"some":"source","default-key":"default-value"},
+						"version": {"some":"version"},
+						"tags": ["own-tag"],
+						"image": {"base_type": "some-base-resource-type"}
+					}
+				}
+			]
+		}`,
+	},
+	{
+		Title: "in_parallel step with tags is inherited by child steps",
+
+		Config: &atc.InParallelStep{
+			Tags: atc.Tags{"parallel-tag"},
+			Config: atc.InParallelConfig{
+				Steps: []atc.Step{
+					{
+						Config: &atc.GetStep{
+							Name:     "inherits",
+							Resource: "some-base-resource",
+						},
+					},
+				},
+			},
+		},
+		Inputs: []db.BuildInput{
+			{Name: "inherits", Version: atc.Version{"some": "version"}},
+		},
+
+		PlanJSON: `{
+			"id": "(unique)",
+			"in_parallel": {
+				"steps": [
+					{
+						"id": "(unique)",
+						"get": {
+							"name": "inherits",
+							"type": "some-base-resource-type",
+							"resource": "some-base-resource",
+							"source": {"some":"source","default-key":"default-value"},
+							"version": {"some":"version"},
+							"tags": ["parallel-tag"],
+							"image": {"base_type": "some-base-resource-type"}
+						}
+					}
+				]
+			}
+		}`,
+	},
+	{
+		Title: "job-level tags are inherited by child steps and hooks",
+
+		Tags: atc.Tags{"job-tag"},
+		Config: &atc.OnSuccessStep{
+			Step: &atc.DoStep{
+				Steps: []atc.Step{
+					{
+						Config: &atc.GetStep{
+							Name:     "plan-step",
+							Resource: "some-base-resource",
+						},
+					},
+				},
+			},
+			Hook: atc.Step{
+				Config: &atc.GetStep{
+					Name:     "hook-step",
+					Resource: "some-base-resource",
+				},
+			},
+		},
+		Inputs: []db.BuildInput{
+			{Name: "plan-step", Version: atc.Version{"some": "version"}},
+			{Name: "hook-step", Version: atc.Version{"some": "version"}},
+		},
+
+		PlanJSON: `{
+			"id": "(unique)",
+			"on_success": {
+				"step": {
+					"id": "(unique)",
+					"do": [
+						{
+							"id": "(unique)",
+							"get": {
+								"name": "plan-step",
+								"type": "some-base-resource-type",
+								"resource": "some-base-resource",
+								"source": {"some":"source","default-key":"default-value"},
+								"version": {"some":"version"},
+								"tags": ["job-tag"],
+								"image": {"base_type": "some-base-resource-type"}
+							}
+						}
+					]
+				},
+				"on_success": {
+					"id": "(unique)",
+					"get": {
+						"name": "hook-step",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
+						"source": {"some":"source","default-key":"default-value"},
+						"version": {"some":"version"},
+						"tags": ["job-tag"],
+						"image": {"base_type": "some-base-resource-type"}
+					}
+				}
+			}
+		}`,
+	},
+	{
+		Title: "inner tags override tags from parent steps",
+
+		Tags: atc.Tags{"job-tag"},
+		Config: &atc.DoStep{
+			Steps: []atc.Step{
+				{
+					Config: &atc.InParallelStep{
+						Tags: atc.Tags{"inner-tag"},
+						Config: atc.InParallelConfig{
+							Steps: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:     "inner",
+										Resource: "some-base-resource",
+									},
+								},
+							},
+						},
+					},
+				},
+				{
+					Config: &atc.GetStep{
+						Name:     "outer",
+						Resource: "some-base-resource",
+					},
+				},
+			},
+		},
+		Inputs: []db.BuildInput{
+			{Name: "inner", Version: atc.Version{"some": "version"}},
+			{Name: "outer", Version: atc.Version{"some": "version"}},
+		},
+
+		PlanJSON: `{
+			"id": "(unique)",
+			"do": [
+				{
+					"id": "(unique)",
+					"in_parallel": {
+						"steps": [
+							{
+								"id": "(unique)",
+								"get": {
+									"name": "inner",
+									"type": "some-base-resource-type",
+									"resource": "some-base-resource",
+									"source": {"some":"source","default-key":"default-value"},
+									"version": {"some":"version"},
+									"tags": ["inner-tag"],
+									"image": {"base_type": "some-base-resource-type"}
+								}
+							}
+						]
+					}
+				},
+				{
+					"id": "(unique)",
+					"get": {
+						"name": "outer",
+						"type": "some-base-resource-type",
+						"resource": "some-base-resource",
+						"source": {"some":"source","default-key":"default-value"},
+						"version": {"some":"version"},
+						"tags": ["job-tag"],
+						"image": {"base_type": "some-base-resource-type"}
+					}
+				}
+			]
+		}`,
+	},
+	{
 		Title: "across step",
 
 		Config: &atc.AcrossStep{
@@ -1883,7 +2115,7 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	if test.OverwriteResourceTypes != nil {
 		resourceTypes = test.OverwriteResourceTypes
 	}
-	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, prototypes, test.Inputs, test.ManuallyTriggered)
+	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, prototypes, test.Inputs, test.ManuallyTriggered, test.Tags)
 
 	if test.Err != nil {
 		s.Equal(test.Err, actualErr)

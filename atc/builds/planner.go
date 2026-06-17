@@ -24,6 +24,7 @@ func (planner Planner) Create(
 	prototypes atc.Prototypes,
 	inputs []db.BuildInput,
 	manuallyTriggered bool,
+	tags atc.Tags,
 ) (atc.Plan, error) {
 	visitor := &planVisitor{
 		planFactory: planner.planFactory,
@@ -33,6 +34,8 @@ func (planner Planner) Create(
 		prototypes:        prototypes,
 		inputs:            inputs,
 		manuallyTriggered: manuallyTriggered,
+
+		tags: tags,
 	}
 
 	err := planConfig.Visit(visitor)
@@ -52,7 +55,17 @@ type planVisitor struct {
 	inputs            []db.BuildInput
 	manuallyTriggered bool
 
+	tags atc.Tags
 	plan atc.Plan
+}
+
+// effectiveTags returns the tags a leaf step should use: its own tags when set,
+// otherwise the tags inherited from the enclosing job / do / in_parallel.
+func (visitor *planVisitor) effectiveTags(stepTags atc.Tags) atc.Tags {
+	if len(stepTags) > 0 {
+		return stepTags
+	}
+	return visitor.tags
 }
 
 func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
@@ -64,7 +77,7 @@ func (visitor *planVisitor) VisitTask(step *atc.TaskStep) error {
 		Config:            step.Config,
 		ConfigPath:        step.ConfigPath,
 		Vars:              step.Vars,
-		Tags:              step.Tags,
+		Tags:              visitor.effectiveTags(step.Tags),
 		Params:            step.Params,
 		InputMapping:      step.InputMapping,
 		OutputMapping:     step.OutputMapping,
@@ -91,7 +104,7 @@ func (visitor *planVisitor) VisitRun(step *atc.RunStep) error {
 		Type:       step.Type,
 		Object:     atc.Params(object),
 		Privileged: step.Privileged,
-		Tags:       step.Tags,
+		Tags:       visitor.effectiveTags(step.Tags),
 		Limits:     step.Limits,
 		Timeout:    step.Timeout,
 	})
@@ -124,6 +137,8 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
+	tags := visitor.effectiveTags(step.Tags)
+
 	plan := visitor.planFactory.NewPlan(atc.GetPlan{
 		Name: step.Name,
 
@@ -132,11 +147,11 @@ func (visitor *planVisitor) VisitGet(step *atc.GetStep) error {
 		Source:   resource.Source,
 		Params:   step.Params,
 		Version:  &version,
-		Tags:     step.Tags,
+		Tags:     tags,
 		Timeout:  step.Timeout,
 	})
 
-	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, false)
+	plan.Get.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, tags, false)
 	visitor.plan = plan
 	return nil
 }
@@ -156,20 +171,22 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 
 	resource.ApplySourceDefaults(visitor.resourceTypes)
 
+	tags := visitor.effectiveTags(step.Tags)
+
 	plan := visitor.planFactory.NewPlan(atc.PutPlan{
 		Type:     resource.Type,
 		Name:     logicalName,
 		Resource: resourceName,
 		Source:   resource.Source,
 		Params:   step.Params,
-		Tags:     step.Tags,
+		Tags:     tags,
 		Inputs:   step.Inputs,
 		Timeout:  step.Timeout,
 
 		ExposeBuildCreatedBy: resource.ExposeBuildCreatedBy,
 	})
 
-	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, step.Tags, visitor.manuallyTriggered)
+	plan.Put.TypeImage = visitor.resourceTypes.ImageForType(plan.ID, resource.Type, tags, visitor.manuallyTriggered)
 
 	if step.NoGet {
 		visitor.plan = plan
@@ -184,11 +201,11 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 		Params:      step.GetParams,
 		VersionFrom: &plan.ID,
 
-		Tags:    step.Tags,
+		Tags:    tags,
 		Timeout: step.Timeout,
 	})
 
-	dependentGetPlan.Get.TypeImage = visitor.resourceTypes.ImageForType(dependentGetPlan.ID, resource.Type, step.Tags, visitor.manuallyTriggered)
+	dependentGetPlan.Get.TypeImage = visitor.resourceTypes.ImageForType(dependentGetPlan.ID, resource.Type, tags, visitor.manuallyTriggered)
 
 	visitor.plan = visitor.planFactory.NewPlan(atc.OnSuccessPlan{
 		Step: plan,
@@ -199,6 +216,12 @@ func (visitor *planVisitor) VisitPut(step *atc.PutStep) error {
 }
 
 func (visitor *planVisitor) VisitDo(step *atc.DoStep) error {
+	if len(step.Tags) > 0 {
+		prev := visitor.tags
+		visitor.tags = step.Tags
+		defer func() { visitor.tags = prev }()
+	}
+
 	do := atc.DoPlan{}
 
 	for _, step := range step.Steps {
@@ -216,6 +239,12 @@ func (visitor *planVisitor) VisitDo(step *atc.DoStep) error {
 }
 
 func (visitor *planVisitor) VisitInParallel(step *atc.InParallelStep) error {
+	if len(step.Tags) > 0 {
+		prev := visitor.tags
+		visitor.tags = step.Tags
+		defer func() { visitor.tags = prev }()
+	}
+
 	var steps []atc.Plan
 
 	for _, sub := range step.Config.Steps {
