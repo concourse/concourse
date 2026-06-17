@@ -2,6 +2,7 @@ package gc_test
 
 import (
 	"context"
+	"time"
 
 	"github.com/concourse/concourse/atc/gc"
 
@@ -16,17 +17,22 @@ var _ = Describe("WorkerCollector", func() {
 	var (
 		workerCollector     GcCollector
 		fakeWorkerLifecycle *dbfakes.FakeWorkerLifecycle
+		stallTimeout        time.Duration
 	)
 
 	BeforeEach(func() {
 		fakeWorkerLifecycle = new(dbfakes.FakeWorkerLifecycle)
-
-		workerCollector = gc.NewWorkerCollector(fakeWorkerLifecycle)
+		stallTimeout = 0
 
 		fakeWorkerLifecycle.DeleteUnresponsiveEphemeralWorkersReturns(nil, nil)
 		fakeWorkerLifecycle.StallUnresponsiveWorkersReturns(nil, nil)
+		fakeWorkerLifecycle.DeleteStalledWorkersReturns(nil, nil)
 		fakeWorkerLifecycle.DeleteFinishedRetiringWorkersReturns(nil, nil)
 		fakeWorkerLifecycle.LandFinishedLandingWorkersReturns(nil, nil)
+	})
+
+	JustBeforeEach(func() {
+		workerCollector = gc.NewWorkerCollector(fakeWorkerLifecycle, stallTimeout)
 	})
 
 	Describe("Run", func() {
@@ -82,5 +88,39 @@ var _ = Describe("WorkerCollector", func() {
 			Expect(err).To(MatchError(returnedErr))
 		})
 
+		Context("when the stall timeout is disabled (zero)", func() {
+			BeforeEach(func() {
+				stallTimeout = 0
+			})
+
+			It("does not delete stalled workers", func() {
+				err := workerCollector.Run(context.TODO())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(fakeWorkerLifecycle.DeleteStalledWorkersCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when the stall timeout is set", func() {
+			BeforeEach(func() {
+				stallTimeout = time.Hour
+			})
+
+			It("tells the worker factory to delete stalled workers with the configured timeout", func() {
+				err := workerCollector.Run(context.TODO())
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(fakeWorkerLifecycle.DeleteStalledWorkersCallCount()).To(Equal(1))
+				Expect(fakeWorkerLifecycle.DeleteStalledWorkersArgsForCall(0)).To(Equal(time.Hour))
+			})
+
+			It("returns an error if deleting stalled workers fails", func() {
+				returnedErr := errors.New("some-error")
+				fakeWorkerLifecycle.DeleteStalledWorkersReturns(nil, returnedErr)
+
+				err := workerCollector.Run(context.TODO())
+				Expect(err).To(MatchError(returnedErr))
+			})
+		})
 	})
 })

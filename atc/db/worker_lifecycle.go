@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -10,6 +12,7 @@ import (
 type WorkerLifecycle interface {
 	DeleteUnresponsiveEphemeralWorkers() ([]string, error)
 	StallUnresponsiveWorkers() ([]string, error)
+	DeleteStalledWorkers(timeout time.Duration) ([]string, error)
 	LandFinishedLandingWorkers() ([]string, error)
 	DeleteFinishedRetiringWorkers() ([]string, error)
 	GetWorkerStateByName() (map[string]WorkerState, error)
@@ -47,11 +50,38 @@ func (lifecycle *workerLifecycle) DeleteUnresponsiveEphemeralWorkers() ([]string
 func (lifecycle *workerLifecycle) StallUnresponsiveWorkers() ([]string, error) {
 	query, args, err := psql.Update("workers").
 		SetMap(map[string]any{
-			"state":   string(WorkerStateStalled),
-			"expires": nil,
+			"state":         string(WorkerStateStalled),
+			"expires":       nil,
+			"stalled_since": sq.Expr("NOW()"),
 		}).
 		Where(sq.Eq{"state": string(WorkerStateRunning)}).
 		Where(sq.Expr("expires < NOW()")).
+		Suffix("RETURNING name").
+		ToSql()
+	if err != nil {
+		return []string{}, err
+	}
+
+	rows, err := lifecycle.conn.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return workersAffected(rows)
+}
+
+// DeleteStalledWorkers deletes workers that have been in the 'stalled' state
+// for longer than the given timeout. This gives operators the automatic
+// cleanup of ephemeral workers without the hair-trigger cache wipe: a
+// transiently-disconnected worker that reconnects within the timeout returns
+// to 'running' (clearing stalled_since) and keeps its caches, while genuinely
+// dead workers are eventually reaped.
+func (lifecycle *workerLifecycle) DeleteStalledWorkers(timeout time.Duration) ([]string, error) {
+	query, args, err := psql.Delete("workers").
+		Where(sq.Eq{"state": string(WorkerStateStalled)}).
+		Where(sq.Expr(
+			fmt.Sprintf("stalled_since < NOW() - '%d second'::INTERVAL", int(timeout.Seconds())),
+		)).
 		Suffix("RETURNING name").
 		ToSql()
 	if err != nil {

@@ -278,6 +278,10 @@ func (f *workerFactory) HeartbeatWorker(atcWorker atc.Worker, ttl time.Duration)
 		Set("active_containers", atcWorker.ActiveContainers).
 		Set("active_volumes", atcWorker.ActiveVolumes).
 		Set("state", sq.Expr("("+cSQL+")")).
+		// A worker that is heartbeating is responsive, so it can no longer be
+		// considered stalled. Clearing stalled_since ensures a worker that
+		// recovers from a transient disconnect resets its stall grace period.
+		Set("stalled_since", nil).
 		Where(sq.Eq{"name": atcWorker.Name}).
 		RunWith(tx).
 		Exec()
