@@ -70,12 +70,6 @@ func (lifecycle *workerLifecycle) StallUnresponsiveWorkers() ([]string, error) {
 	return workersAffected(rows)
 }
 
-// DeleteStalledWorkers deletes workers that have been in the 'stalled' state
-// for longer than the given timeout. This gives operators the automatic
-// cleanup of ephemeral workers without the hair-trigger cache wipe: a
-// transiently-disconnected worker that reconnects within the timeout returns
-// to 'running' (clearing stalled_since) and keeps its caches, while genuinely
-// dead workers are eventually reaped.
 func (lifecycle *workerLifecycle) DeleteStalledWorkers(timeout time.Duration) ([]string, error) {
 	query, args, err := psql.Delete("workers").
 		Where(sq.Eq{"state": string(WorkerStateStalled)}).

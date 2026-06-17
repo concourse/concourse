@@ -218,7 +218,7 @@ type RunCommand struct {
 		VarSourceRecyclePeriod time.Duration `long:"var-source-recycle-period" default:"5m" description:"Period after which to reap var_sources that are not used."`
 	} `group:"Garbage Collection" namespace:"gc"`
 
-	WorkerStallTimeout time.Duration `long:"worker-stall-timeout" default:"0" description:"Period after which stalled (unresponsive, non-ephemeral) workers will be automatically pruned along with their cache state. 0 (the default) means stalled workers are never automatically pruned and must be removed manually with 'fly prune-worker'."`
+	StalledWorkerTimeout time.Duration `long:"stalled-worker-timeout" default:"0s" description:"Period after which stalled (unresponsive, non-ephemeral) workers will be automatically pruned along with their cache state. 0s (the default) means stalled workers are never automatically pruned and must be removed manually with 'fly prune-worker'."`
 
 	BuildTrackerInterval time.Duration `long:"build-tracker-interval" default:"10s" description:"Interval on which to run build tracking."`
 
@@ -1393,7 +1393,7 @@ func (cmd *RunCommand) gcComponents(
 
 	collectors := map[string]component.Runnable{
 		atc.ComponentCollectorBuilds:            gc.NewBuildCollector(dbBuildFactory),
-		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle, cmd.WorkerStallTimeout),
+		atc.ComponentCollectorWorkers:           gc.NewWorkerCollector(dbWorkerLifecycle, cmd.StalledWorkerTimeout),
 		atc.ComponentCollectorResourceConfigs:   gc.NewResourceConfigCollector(dbResourceConfigFactory, unreferencedConfigGracePeriod),
 		atc.ComponentCollectorResourceCaches:    gc.NewResourceCacheCollector(dbResourceCacheLifecycle),
 		atc.ComponentCollectorTaskCaches:        gc.NewTaskCacheCollector(dbTaskCacheLifecycle),

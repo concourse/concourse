@@ -104,9 +104,15 @@ var _ = Describe("Worker Lifecycle", func() {
 
 	Describe("DeleteStalledWorkers", func() {
 		Context("when there is a stalled worker", func() {
+			var stalledTimeout time.Duration
+
 			BeforeEach(func() {
-				_, err := workerFactory.SaveWorker(atcWorker, -1*time.Minute)
-				Expect(err).ToNot(HaveOccurred())
+				stalledTimeout = 2 * time.Second
+
+				By("setting the worker's expiration 1m in the past", func() {
+					_, err := workerFactory.SaveWorker(atcWorker, -1*time.Minute)
+					Expect(err).ToNot(HaveOccurred())
+				})
 
 				stalledWorkers, err := workerLifecycle.StallUnresponsiveWorkers()
 				Expect(err).ToNot(HaveOccurred())
@@ -115,7 +121,7 @@ var _ = Describe("Worker Lifecycle", func() {
 
 			Context("when the worker has been stalled for less than the timeout", func() {
 				It("leaves the worker alone", func() {
-					deletedWorkers, err := workerLifecycle.DeleteStalledWorkers(time.Hour)
+					deletedWorkers, err := workerLifecycle.DeleteStalledWorkers(stalledTimeout)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deletedWorkers).To(BeEmpty())
 				})
@@ -123,7 +129,10 @@ var _ = Describe("Worker Lifecycle", func() {
 
 			Context("when the worker has been stalled for longer than the timeout", func() {
 				It("deletes the stalled worker", func() {
-					deletedWorkers, err := workerLifecycle.DeleteStalledWorkers(-1 * time.Hour)
+					By("waiting for the timeout to elapse", func() {
+						time.Sleep(stalledTimeout + time.Second)
+					})
+					deletedWorkers, err := workerLifecycle.DeleteStalledWorkers(stalledTimeout)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deletedWorkers).To(ConsistOf("some-name"))
 				})
@@ -134,7 +143,7 @@ var _ = Describe("Worker Lifecycle", func() {
 					_, err := workerFactory.HeartbeatWorker(atcWorker, 5*time.Minute)
 					Expect(err).ToNot(HaveOccurred())
 
-					deletedWorkers, err := workerLifecycle.DeleteStalledWorkers(-1 * time.Hour)
+					deletedWorkers, err := workerLifecycle.DeleteStalledWorkers(stalledTimeout)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deletedWorkers).To(BeEmpty())
 				})
