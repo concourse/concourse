@@ -3,6 +3,7 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
 	"github.com/concourse/concourse/atc/db"
 )
@@ -17,6 +18,19 @@ type FakeWorkerLifecycle struct {
 		result2 error
 	}
 	deleteFinishedRetiringWorkersReturnsOnCall map[int]struct {
+		result1 []string
+		result2 error
+	}
+	DeleteStalledWorkersStub        func(time.Duration) ([]string, error)
+	deleteStalledWorkersMutex       sync.RWMutex
+	deleteStalledWorkersArgsForCall []struct {
+		arg1 time.Duration
+	}
+	deleteStalledWorkersReturns struct {
+		result1 []string
+		result2 error
+	}
+	deleteStalledWorkersReturnsOnCall map[int]struct {
 		result1 []string
 		result2 error
 	}
@@ -123,6 +137,70 @@ func (fake *FakeWorkerLifecycle) DeleteFinishedRetiringWorkersReturnsOnCall(i in
 		})
 	}
 	fake.deleteFinishedRetiringWorkersReturnsOnCall[i] = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerLifecycle) DeleteStalledWorkers(arg1 time.Duration) ([]string, error) {
+	fake.deleteStalledWorkersMutex.Lock()
+	ret, specificReturn := fake.deleteStalledWorkersReturnsOnCall[len(fake.deleteStalledWorkersArgsForCall)]
+	fake.deleteStalledWorkersArgsForCall = append(fake.deleteStalledWorkersArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	stub := fake.DeleteStalledWorkersStub
+	fakeReturns := fake.deleteStalledWorkersReturns
+	fake.recordInvocation("DeleteStalledWorkers", []interface{}{arg1})
+	fake.deleteStalledWorkersMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeWorkerLifecycle) DeleteStalledWorkersCallCount() int {
+	fake.deleteStalledWorkersMutex.RLock()
+	defer fake.deleteStalledWorkersMutex.RUnlock()
+	return len(fake.deleteStalledWorkersArgsForCall)
+}
+
+func (fake *FakeWorkerLifecycle) DeleteStalledWorkersCalls(stub func(time.Duration) ([]string, error)) {
+	fake.deleteStalledWorkersMutex.Lock()
+	defer fake.deleteStalledWorkersMutex.Unlock()
+	fake.DeleteStalledWorkersStub = stub
+}
+
+func (fake *FakeWorkerLifecycle) DeleteStalledWorkersArgsForCall(i int) time.Duration {
+	fake.deleteStalledWorkersMutex.RLock()
+	defer fake.deleteStalledWorkersMutex.RUnlock()
+	argsForCall := fake.deleteStalledWorkersArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeWorkerLifecycle) DeleteStalledWorkersReturns(result1 []string, result2 error) {
+	fake.deleteStalledWorkersMutex.Lock()
+	defer fake.deleteStalledWorkersMutex.Unlock()
+	fake.DeleteStalledWorkersStub = nil
+	fake.deleteStalledWorkersReturns = struct {
+		result1 []string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeWorkerLifecycle) DeleteStalledWorkersReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.deleteStalledWorkersMutex.Lock()
+	defer fake.deleteStalledWorkersMutex.Unlock()
+	fake.DeleteStalledWorkersStub = nil
+	if fake.deleteStalledWorkersReturnsOnCall == nil {
+		fake.deleteStalledWorkersReturnsOnCall = make(map[int]struct {
+			result1 []string
+			result2 error
+		})
+	}
+	fake.deleteStalledWorkersReturnsOnCall[i] = struct {
 		result1 []string
 		result2 error
 	}{result1, result2}
