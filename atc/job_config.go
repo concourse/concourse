@@ -11,6 +11,7 @@ type JobConfig struct {
 	Interruptible        bool     `json:"interruptible,omitempty"`
 	SerialGroups         []string `json:"serial_groups,omitempty"`
 	RawMaxInFlight       int      `json:"max_in_flight,omitempty"`
+	Tags                 Tags     `json:"tags,omitempty"`
 
 	// Deprecated: users should use BuildLogRetention
 	BuildLogsToRetain int `json:"build_logs_to_retain,omitempty"`
