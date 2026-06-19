@@ -232,7 +232,7 @@ func abortOnSignal(
 
 	fmt.Fprintf(ui.Stderr, "\naborting...\n")
 
-	err := client.AbortBuild(strconv.Itoa(build.ID))
+	err := client.AbortBuild(strconv.Itoa(build.ID), false)
 	if err != nil {
 		fmt.Fprintln(ui.Stderr, "failed to abort:", err)
 		os.Exit(2)

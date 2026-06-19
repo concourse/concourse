@@ -1027,12 +1027,22 @@ var _ = Describe("Builds API", func() {
 	Describe("PUT /api/v1/builds/:build_id/abort", func() {
 		var (
 			response *http.Response
+			force    bool
 		)
+
+		BeforeEach(func() {
+			force = false
+		})
 
 		JustBeforeEach(func() {
 			var err error
 
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/builds/128/abort", nil)
+			url := server.URL + "/api/v1/builds/128/abort"
+			if force {
+				url += "?force="
+			}
+
+			req, err := http.NewRequest("PUT", url, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -1113,6 +1123,57 @@ var _ = Describe("Builds API", func() {
 
 						It("returns 204", func() {
 							Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+						})
+
+						It("does not finish the build", func() {
+							Expect(build.FinishCallCount()).To(Equal(0))
+						})
+
+						Context("when the force flag is set", func() {
+							BeforeEach(func() {
+								force = true
+								build.StatusReturns(db.BuildStatusStarted)
+							})
+
+							It("returns 204", func() {
+								Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+							})
+
+							It("immediately marks the build as aborted", func() {
+								Expect(build.FinishCallCount()).To(Equal(1))
+								Expect(build.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+							})
+
+							Context("when finishing the build fails", func() {
+								BeforeEach(func() {
+									build.FinishReturns(errors.New("nope"))
+								})
+
+								It("returns 500", func() {
+									Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+								})
+							})
+
+							Context("when the build is already finished", func() {
+								DescribeTableSubtree("", func(status db.BuildStatus) {
+									BeforeEach(func() {
+										build.StatusReturns(db.BuildStatusAborted)
+									})
+
+									It("doesn't mark the build as aborted again", func() {
+										Expect(build.FinishCallCount()).To(Equal(0))
+									})
+
+									It("returns 204", func() {
+										Expect(response.StatusCode).To(Equal(http.StatusNoContent))
+									})
+								},
+									Entry("build aborted", db.BuildStatusAborted),
+									Entry("build failed", db.BuildStatusFailed),
+									Entry("build errored", db.BuildStatusErrored),
+									Entry("build succeeded", db.BuildStatusSucceeded),
+								)
+							})
 						})
 					})
 				})

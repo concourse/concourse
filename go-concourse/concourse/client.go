@@ -20,7 +20,7 @@ type Client interface {
 	BuildEvents(buildID string) (Events, error)
 	BuildResources(buildID int) (atc.BuildInputsOutputs, bool, error)
 	ListBuildArtifacts(buildID string) ([]atc.WorkerArtifact, error)
-	AbortBuild(buildID string) error
+	AbortBuild(buildID string, force bool) error
 	BuildPlan(buildID int) (atc.PublicBuildPlan, bool, error)
 	SaveWorker(atc.Worker, *time.Duration) (*atc.Worker, error)
 	ListWorkers() ([]atc.Worker, error)

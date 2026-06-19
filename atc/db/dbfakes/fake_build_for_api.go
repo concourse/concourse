@@ -77,6 +77,17 @@ type FakeBuildForAPI struct {
 		result1 db.EventSource
 		result2 error
 	}
+	FinishStub        func(db.BuildStatus) error
+	finishMutex       sync.RWMutex
+	finishArgsForCall []struct {
+		arg1 db.BuildStatus
+	}
+	finishReturns struct {
+		result1 error
+	}
+	finishReturnsOnCall map[int]struct {
+		result1 error
+	}
 	HasPlanStub        func() bool
 	hasPlanMutex       sync.RWMutex
 	hasPlanArgsForCall []struct {
@@ -728,6 +739,67 @@ func (fake *FakeBuildForAPI) EventsReturnsOnCall(i int, result1 db.EventSource, 
 		result1 db.EventSource
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBuildForAPI) Finish(arg1 db.BuildStatus) error {
+	fake.finishMutex.Lock()
+	ret, specificReturn := fake.finishReturnsOnCall[len(fake.finishArgsForCall)]
+	fake.finishArgsForCall = append(fake.finishArgsForCall, struct {
+		arg1 db.BuildStatus
+	}{arg1})
+	stub := fake.FinishStub
+	fakeReturns := fake.finishReturns
+	fake.recordInvocation("Finish", []interface{}{arg1})
+	fake.finishMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeBuildForAPI) FinishCallCount() int {
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	return len(fake.finishArgsForCall)
+}
+
+func (fake *FakeBuildForAPI) FinishCalls(stub func(db.BuildStatus) error) {
+	fake.finishMutex.Lock()
+	defer fake.finishMutex.Unlock()
+	fake.FinishStub = stub
+}
+
+func (fake *FakeBuildForAPI) FinishArgsForCall(i int) db.BuildStatus {
+	fake.finishMutex.RLock()
+	defer fake.finishMutex.RUnlock()
+	argsForCall := fake.finishArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeBuildForAPI) FinishReturns(result1 error) {
+	fake.finishMutex.Lock()
+	defer fake.finishMutex.Unlock()
+	fake.FinishStub = nil
+	fake.finishReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBuildForAPI) FinishReturnsOnCall(i int, result1 error) {
+	fake.finishMutex.Lock()
+	defer fake.finishMutex.Unlock()
+	fake.FinishStub = nil
+	if fake.finishReturnsOnCall == nil {
+		fake.finishReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.finishReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeBuildForAPI) HasPlan() bool {

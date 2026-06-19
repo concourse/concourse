@@ -62,6 +62,7 @@ type BuildForAPI interface {
 	Preparation() (BuildPreparation, bool, error)
 
 	MarkAsAborted() error
+	Finish(BuildStatus) error
 	SetComment(string) error
 }
 
