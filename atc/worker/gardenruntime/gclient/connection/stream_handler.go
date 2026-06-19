@@ -48,7 +48,10 @@ type waitReturn struct {
 }
 
 func (sh *streamHandler) wait(decoder *json.Decoder) <-chan waitReturn {
-	result := make(chan waitReturn)
+	// Buffered channel so that the goroutine can always deliver its result and
+	// exit, even when the consuming select in streamProcess has exited due to
+	// something like an abort
+	result := make(chan waitReturn, 1)
 	go func() {
 		for {
 			payload := &transport.ProcessPayload{}

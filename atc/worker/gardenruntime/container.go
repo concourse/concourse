@@ -56,12 +56,18 @@ func (c Container) Run(_ context.Context, spec runtime.ProcessSpec, io runtime.P
 	if err != nil {
 		return nil, fmt.Errorf("get properties: %w", err)
 	}
-	// Using context.Background() since GardenContainer.Run uses the passed in
-	// ctx to stream the process output. Since we send a SIGTERM on ctx
-	// cancellation, using the same ctx for streaming results in those logs not
-	// showing up.
-	process, err := c.GardenContainer.Run(context.Background(), toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
+	// GardenContainer.Run uses the passed in ctx to stream the process output,
+	// so we deliberately do NOT use the build's ctx here: cancelling it on
+	// abort would tear the stream down immediately and drop the logs emitted
+	// while the process handles the SIGTERM we send on cancellation.
+	//
+	// Instead we use our own cancellable context. It is only cancelled by
+	// Process.Wait as a last resort, to forcibly tear down the stream when a
+	// stalled/disconnected worker would otherwise make Wait block forever.
+	streamCtx, cancelStream := context.WithCancel(context.Background())
+	process, err := c.GardenContainer.Run(streamCtx, toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
 	if err != nil {
+		cancelStream()
 		var exeNotFound garden.ExecutableNotFoundError
 		if errors.As(err, &exeNotFound) {
 			return nil, runtime.ExecutableNotFoundError{Message: exeNotFound.Message}
@@ -69,7 +75,7 @@ func (c Container) Run(_ context.Context, spec runtime.ProcessSpec, io runtime.P
 		return nil, fmt.Errorf("start process: %w", err)
 	}
 
-	return Process{GardenContainer: c.GardenContainer, GardenProcess: process}, nil
+	return Process{GardenContainer: c.GardenContainer, GardenProcess: process, cancelStream: cancelStream}, nil
 }
 
 func (c Container) Attach(_ context.Context, id string, io runtime.ProcessIO) (runtime.Process, error) {
@@ -81,16 +87,18 @@ func (c Container) Attach(_ context.Context, id string, io runtime.ProcessIO) (r
 		}
 	}
 
-	// Using context.Background() since GardenContainer.Attach uses the passed
-	// in ctx to stream the process output. Since we send a SIGTERM on ctx
-	// cancellation, using the same ctx for streaming results in those logs not
-	// showing up.
-	process, err := c.GardenContainer.Attach(context.Background(), id, toGardenProcessIO(io))
+	// Same as in Run(), we use our own cancellable context for streaming rather
+	// than the build's ctx, so that cancellation on abort doesn't drop the logs
+	// emitted while the process handles its SIGTERM. Process.Wait cancels it
+	// only as a last resort to unblock from a stalled/disconnected worker.
+	streamCtx, cancelStream := context.WithCancel(context.Background())
+	process, err := c.GardenContainer.Attach(streamCtx, id, toGardenProcessIO(io))
 	if err != nil {
+		cancelStream()
 		return nil, fmt.Errorf("attach to process: %w", err)
 	}
 
-	return Process{GardenContainer: c.GardenContainer, GardenProcess: process}, nil
+	return Process{GardenContainer: c.GardenContainer, GardenProcess: process, cancelStream: cancelStream}, nil
 }
 
 func (c Container) SetProperty(name string, value string) error {
