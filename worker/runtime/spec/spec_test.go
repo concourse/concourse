@@ -588,6 +588,63 @@ func (s *SpecSuite) TestContainerSpec() {
 			},
 		},
 		{
+			desc: "seccomp allows setns for FUSE-only",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.NotEmpty(oci.Linux.Seccomp)
+				var found bool
+				for _, syscall := range oci.Linux.Seccomp.Syscalls {
+					if slices.Contains(syscall.Names, "setns") && syscall.Action == specs.ActAllow {
+						found = true
+						break
+					}
+				}
+				s.True(found, "setns syscall should be allowed")
+			},
+		},
+		{
+			desc: "seccomp allows keyctl for FUSE-only",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.NotEmpty(oci.Linux.Seccomp)
+				var found bool
+				for _, syscall := range oci.Linux.Seccomp.Syscalls {
+					if slices.Contains(syscall.Names, "keyctl") && syscall.Action == specs.ActAllow {
+						found = true
+						break
+					}
+				}
+				s.True(found, "keyctl syscall should be allowed")
+			},
+		},
+		{
+			desc: "seccomp allows sethostname for FUSE-only",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.NotEmpty(oci.Linux.Seccomp)
+				var found bool
+				for _, syscall := range oci.Linux.Seccomp.Syscalls {
+					if slices.Contains(syscall.Names, "sethostname") && syscall.Action == specs.ActAllow {
+						found = true
+						break
+					}
+				}
+				s.True(found, "sethostname syscall should be allowed")
+			},
+		},
+		{
 			desc: "seccomp is empty for privileged",
 			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
