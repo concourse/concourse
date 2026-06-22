@@ -438,8 +438,21 @@ var fuse_syscalls = []specs.LinuxSyscall{
 			"umount",
 			"umount2",
 			"pidfd_getfd",
+			"keyctl",
+			"sethostname",
 		},
 		Action: specs.ActAllow,
+	},
+	{
+		// Allow setns only for mount namespaces (CLONE_NEWNS = 0x20000).
+		// This is needed for BuildKit/runc to join mount namespaces during
+		// image builds without allowing user namespace joins which could
+		// be used for container escape.
+		Names:  []string{"setns"},
+		Action: specs.ActAllow,
+		Args: []specs.LinuxSeccompArg{
+			{Index: 1, Value: unix.CLONE_NEWNS, Op: specs.OpEqualTo},
+		},
 	},
 }
 
