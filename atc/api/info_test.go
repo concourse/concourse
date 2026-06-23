@@ -306,6 +306,7 @@ var _ = Describe("Pipelines API", func() {
 					credhubManager := &credhub.CredHubManager{
 						URL:        credServer.URL(),
 						PathPrefix: "some-prefix",
+						SharedPath: "",
 						TLS:        tls,
 						UAA:        uaa,
 						Client:     &credhub.LazyCredhub{},
@@ -326,7 +327,8 @@ var _ = Describe("Pipelines API", func() {
 							"method": "/health"
 						},
 						"path_prefix": "some-prefix",
-						"uaa_client_id": "client-id"
+						"uaa_client_id": "client-id",
+						"shared_path": ""
 						}
 					}`))
 				})
@@ -345,6 +347,7 @@ var _ = Describe("Pipelines API", func() {
 							Method string `json:"method"`
 						} `json:"health"`
 						PathPrefix  string `json:"path_prefix"`
+						SharedPath  string `json:"shared_path"`
 						UAAClientId string `json:"uaa_client_id"`
 					} `json:"credhub"`
 				}
@@ -354,6 +357,7 @@ var _ = Describe("Pipelines API", func() {
 						URL:        "http://wrong.inexistent.tld",
 						PathPrefix: "some-prefix",
 						TLS:        tls,
+						SharedPath: "",
 						UAA:        uaa,
 						Client:     &credhub.LazyCredhub{},
 					}
@@ -371,6 +375,7 @@ var _ = Describe("Pipelines API", func() {
 					Expect(parsedResponse.CredHub.CACerts).To(BeEmpty())
 					Expect(parsedResponse.CredHub.PathPrefix).To(Equal("some-prefix"))
 					Expect(parsedResponse.CredHub.UAAClientId).To(Equal("client-id"))
+					Expect(parsedResponse.CredHub.SharedPath).To(Equal(""))
 					Expect(parsedResponse.CredHub.Health.Response).ToNot(BeNil())
 					Expect(parsedResponse.CredHub.Health.Response.Status).To(BeEmpty())
 					Expect(parsedResponse.CredHub.Health.Method).To(Equal("/health"))
