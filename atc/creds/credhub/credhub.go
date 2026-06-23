@@ -11,9 +11,10 @@ import (
 )
 
 type CredHubAtc struct {
-	CredHub *LazyCredhub
-	logger  lager.Logger
-	prefix  string
+	CredHub    *LazyCredhub
+	logger     lager.Logger
+	prefix     string
+	sharedPath string
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
@@ -25,6 +26,9 @@ func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string, a
 	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName)+"/"))
 	if allowRootPath {
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(c.prefix+"/"))
+	}
+	if c.sharedPath != "" {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(c.sharedPath+"/"))
 	}
 	return lookupPaths
 }
