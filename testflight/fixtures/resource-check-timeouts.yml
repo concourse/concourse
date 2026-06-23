@@ -3,6 +3,7 @@ resources:
 - name: my-resource
   type: mock
   check_timeout: 10s
+  check_every: never
   source: {check_delay: ((check_delay))}
 
 jobs:
