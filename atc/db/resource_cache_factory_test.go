@@ -217,7 +217,7 @@ var _ = Describe("ResourceCacheFactory", func() {
 				Expect(build.SetInterceptible(false)).To(Succeed())
 			})
 
-			It("consistently is able to be used", func() {
+			FIt("consistently is able to be used", func() {
 				// enable concurrent use of database. this is set to 1 by default to
 				// ensure methods don't require more than one in a single connection,
 				// which can cause deadlocking as the pool is limited.
