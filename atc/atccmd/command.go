@@ -199,10 +199,10 @@ type RunCommand struct {
 		XFrameOptions             string `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
 		ContentSecurityPolicy     string `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
 		StrictTransportSecurity   string `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
-		ReferrerPolicy            string `long:"referrer-policy" default:"strict-origin-when-cross-origin" description:"The value to set for the Referrer-Policy header."`
-		CrossOriginOpenerPolicy   string `long:"cross-origin-opener-policy" default:"same-origin" description:"The value to set for the Cross-Origin-Opener-Policy header."`
-		CrossOriginResourcePolicy string `long:"cross-origin-resource-policy" default:"same-site" description:"The value to set for the Cross-Origin-Resource-Policy header."`
-		CrossOriginEmbedderPolicy string `long:"cross-origin-embedder-policy" default:"require-corp" description:"The value to set for the Cross-Origin-Embedder-Policy header."`
+		ReferrerPolicy            string `long:"referrer-policy" description:"The value to set for the Referrer-Policy header."`
+		CrossOriginOpenerPolicy   string `long:"cross-origin-opener-policy" description:"The value to set for the Cross-Origin-Opener-Policy header."`
+		CrossOriginResourcePolicy string `long:"cross-origin-resource-policy" description:"The value to set for the Cross-Origin-Resource-Policy header."`
+		CrossOriginEmbedderPolicy string `long:"cross-origin-embedder-policy" description:"The value to set for the Cross-Origin-Embedder-Policy header."`
 		ClusterName               string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
 		ClientID                  string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
 		ClientSecret              string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
