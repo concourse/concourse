@@ -45,12 +45,12 @@ var _ = Describe("SecurityHandler", func() {
 	Context("when Referrer-Policy is set", func() {
 		BeforeEach(func() {
 			securityHandler = wrappa.SecurityHandler{
-				ReferrerPolicy: "strict-origin-when-cross-origin",
+				ReferrerPolicy: "some-referrer-policy",
 				Handler:        fakeHandler,
 			}
 		})
 		It("sets the Referrer-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Referrer-Policy")).To(Equal("strict-origin-when-cross-origin"))
+			Expect(rw.Header().Get("Referrer-Policy")).To(Equal("some-referrer-policy"))
 		})
 	})
 
@@ -63,12 +63,12 @@ var _ = Describe("SecurityHandler", func() {
 	Context("when Cross-Origin-Opener-Policy is set", func() {
 		BeforeEach(func() {
 			securityHandler = wrappa.SecurityHandler{
-				CrossOriginOpenerPolicy: "same-origin",
+				CrossOriginOpenerPolicy: "some-cross-origin-opener-policy",
 				Handler:                 fakeHandler,
 			}
 		})
 		It("sets the Cross-Origin-Opener-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Cross-Origin-Opener-Policy")).To(Equal("same-origin"))
+			Expect(rw.Header().Get("Cross-Origin-Opener-Policy")).To(Equal("some-cross-origin-opener-policy"))
 		})
 	})
 
@@ -81,12 +81,12 @@ var _ = Describe("SecurityHandler", func() {
 	Context("when Cross-Origin-Resource-Policy is set", func() {
 		BeforeEach(func() {
 			securityHandler = wrappa.SecurityHandler{
-				CrossOriginResourcePolicy: "same-site",
+				CrossOriginResourcePolicy: "some-cross-origin-resource-policy",
 				Handler:                   fakeHandler,
 			}
 		})
 		It("sets the Cross-Origin-Resource-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Cross-Origin-Resource-Policy")).To(Equal("same-site"))
+			Expect(rw.Header().Get("Cross-Origin-Resource-Policy")).To(Equal("some-cross-origin-resource-policy"))
 		})
 	})
 
@@ -99,12 +99,12 @@ var _ = Describe("SecurityHandler", func() {
 	Context("when Cross-Origin-Embedder-Policy is set", func() {
 		BeforeEach(func() {
 			securityHandler = wrappa.SecurityHandler{
-				CrossOriginEmbedderPolicy: "require-corp",
+				CrossOriginEmbedderPolicy: "some-cross-origin-embedder-policy",
 				Handler:                   fakeHandler,
 			}
 		})
 		It("sets the Cross-Origin-Embedder-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Cross-Origin-Embedder-Policy")).To(Equal("require-corp"))
+			Expect(rw.Header().Get("Cross-Origin-Embedder-Policy")).To(Equal("some-cross-origin-embedder-policy"))
 		})
 	})
 
