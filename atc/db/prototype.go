@@ -33,6 +33,7 @@ type Prototype interface {
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
+	NextCheckTime() time.Time
 	CurrentPinnedVersion() atc.Version
 	ResourceConfigID() int
 	ResourceConfigScopeID() int
@@ -88,6 +89,7 @@ var prototypesQuery = psql.Select(
 	"ro.id",
 	"ro.last_check_start_time",
 	"ro.last_check_end_time",
+	"ro.next_check_time",
 ).
 	From("prototypes pt").
 	Join("pipelines p ON p.id = pt.pipeline_id").
@@ -102,6 +104,9 @@ var prototypesQuery = psql.Select(
 		LIMIT 1
 	) AS rcv ON true`).
 	Where(sq.Eq{"pt.active": true})
+
+var _ Prototype = (*prototype)(nil)
+var _ Checkable = (*prototype)(nil)
 
 type prototype struct {
 	pipelineRef
@@ -122,6 +127,7 @@ type prototype struct {
 	checkEvery            *atc.CheckEvery
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
+	nextCheckTime         time.Time
 }
 
 func (p *prototype) ID() int                       { return p.id }
@@ -134,6 +140,7 @@ func (p *prototype) CheckEvery() *atc.CheckEvery   { return p.checkEvery }
 func (p *prototype) CheckTimeout() string          { return "" }
 func (p *prototype) LastCheckStartTime() time.Time { return p.lastCheckStartTime }
 func (p *prototype) LastCheckEndTime() time.Time   { return p.lastCheckEndTime }
+func (p *prototype) NextCheckTime() time.Time      { return p.nextCheckTime }
 func (p *prototype) Source() atc.Source            { return p.source }
 func (p *prototype) Defaults() atc.Source          { return p.defaults }
 func (p *prototype) Params() atc.Params            { return p.params }
@@ -249,20 +256,21 @@ func (p *prototype) CreateInMemoryBuild(context.Context, atc.Plan, util.Sequence
 
 func scanPrototype(p *prototype, row scannable) error {
 	var (
-		configJSON                           sql.NullString
-		rcsID, version, nonce                sql.NullString
-		lastCheckStartTime, lastCheckEndTime sql.NullTime
-		pipelineInstanceVars                 sql.NullString
-		resourceConfigID                     sql.NullInt64
+		configJSON                                          sql.NullString
+		rcsID, version, nonce                               sql.NullString
+		lastCheckStartTime, lastCheckEndTime, nextCheckTime sql.NullTime
+		pipelineInstanceVars                                sql.NullString
+		resourceConfigID                                    sql.NullInt64
 	)
 
-	err := row.Scan(&p.id, &p.pipelineID, &p.name, &p.type_, &configJSON, &version, &nonce, &p.pipelineName, &pipelineInstanceVars, &p.teamID, &p.teamName, &resourceConfigID, &rcsID, &lastCheckStartTime, &lastCheckEndTime)
+	err := row.Scan(&p.id, &p.pipelineID, &p.name, &p.type_, &configJSON, &version, &nonce, &p.pipelineName, &pipelineInstanceVars, &p.teamID, &p.teamName, &resourceConfigID, &rcsID, &lastCheckStartTime, &lastCheckEndTime, &nextCheckTime)
 	if err != nil {
 		return err
 	}
 
 	p.lastCheckStartTime = lastCheckStartTime.Time
 	p.lastCheckEndTime = lastCheckEndTime.Time
+	p.nextCheckTime = nextCheckTime.Time
 
 	if version.Valid {
 		err = json.Unmarshal([]byte(version.String), &p.version)

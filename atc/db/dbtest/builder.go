@@ -504,7 +504,7 @@ func (builder Builder) WithResourceTypeVersions(resourceTypeName string, version
 			return fmt.Errorf("save versions: %w", err)
 		}
 
-		resourceType.SetResourceConfigScope(scope)
+		err = resourceType.SetResourceConfigScope(scope)
 		if err != nil {
 			return fmt.Errorf("set resource scope: %w", err)
 		}
@@ -595,7 +595,7 @@ func (builder Builder) WithPrototypeVersions(prototypeName string, versions ...a
 			return fmt.Errorf("save versions: %w", err)
 		}
 
-		prototype.SetResourceConfigScope(scope)
+		err = prototype.SetResourceConfigScope(scope)
 		if err != nil {
 			return fmt.Errorf("set resource scope: %w", err)
 		}

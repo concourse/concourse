@@ -41,6 +41,7 @@ type ResourceType interface {
 	CheckTimeout() string
 	LastCheckStartTime() time.Time
 	LastCheckEndTime() time.Time
+	NextCheckTime() time.Time
 	CurrentPinnedVersion() atc.Version
 	ResourceConfigID() int
 	ResourceConfigScopeID() int
@@ -162,6 +163,7 @@ var resourceTypesQuery = psql.Select(
 	"ro.id",
 	"ro.last_check_start_time",
 	"ro.last_check_end_time",
+	"ro.next_check_time",
 ).
 	From("resource_types r").
 	Join("pipelines p ON p.id = r.pipeline_id").
@@ -169,6 +171,9 @@ var resourceTypesQuery = psql.Select(
 	LeftJoin("resource_configs c ON c.id = r.resource_config_id").
 	LeftJoin("resource_config_scopes ro ON ro.resource_config_id = c.id AND ro.resource_id IS NULL").
 	Where(sq.Eq{"r.active": true})
+
+var _ ResourceType = (*resourceType)(nil)
+var _ Checkable = (*resourceType)(nil)
 
 type resourceType struct {
 	pipelineRef
@@ -188,6 +193,7 @@ type resourceType struct {
 	checkEvery            *atc.CheckEvery
 	lastCheckStartTime    time.Time
 	lastCheckEndTime      time.Time
+	nextCheckTime         time.Time
 }
 
 func (t *resourceType) ID() int                           { return t.id }
@@ -200,6 +206,7 @@ func (t *resourceType) CheckEvery() *atc.CheckEvery       { return t.checkEvery 
 func (t *resourceType) CheckTimeout() string              { return "" }
 func (r *resourceType) LastCheckStartTime() time.Time     { return r.lastCheckStartTime }
 func (r *resourceType) LastCheckEndTime() time.Time       { return r.lastCheckEndTime }
+func (r *resourceType) NextCheckTime() time.Time          { return r.nextCheckTime }
 func (t *resourceType) Source() atc.Source                { return t.source }
 func (t *resourceType) Defaults() atc.Source              { return t.defaults }
 func (t *resourceType) Params() atc.Params                { return t.params }
@@ -353,23 +360,24 @@ func (r *resourceType) SharedResourcesAndTypes() (atc.ResourcesAndTypes, error) 
 
 func scanResourceType(t *resourceType, row scannable) error {
 	var (
-		configJSON                           sql.NullString
-		rcsID, nonce                         sql.NullString
-		lastCheckStartTime, lastCheckEndTime sql.NullTime
-		pipelineInstanceVars                 sql.NullString
-		resourceConfigID                     sql.NullInt64
+		configJSON                                          sql.NullString
+		rcsID, nonce                                        sql.NullString
+		lastCheckStartTime, lastCheckEndTime, nextCheckTime sql.NullTime
+		pipelineInstanceVars                                sql.NullString
+		resourceConfigID                                    sql.NullInt64
 	)
 
 	err := row.Scan(&t.id, &t.pipelineID, &t.name, &t.type_, &configJSON,
 		&nonce, &t.pipelineName, &pipelineInstanceVars,
 		&t.teamID, &t.teamName, &resourceConfigID, &rcsID,
-		&lastCheckStartTime, &lastCheckEndTime)
+		&lastCheckStartTime, &lastCheckEndTime, &nextCheckTime)
 	if err != nil {
 		return err
 	}
 
 	t.lastCheckStartTime = lastCheckStartTime.Time
 	t.lastCheckEndTime = lastCheckEndTime.Time
+	t.nextCheckTime = nextCheckTime.Time
 
 	es := t.conn.EncryptionStrategy()
 
