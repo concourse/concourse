@@ -6,23 +6,26 @@ import (
 )
 
 type credhubFactory struct {
-	credhub *LazyCredhub
-	logger  lager.Logger
-	prefix  string
+	credhub    *LazyCredhub
+	logger     lager.Logger
+	prefix     string
+	sharedPath string
 }
 
-func NewCredHubFactory(logger lager.Logger, credhub *LazyCredhub, prefix string) *credhubFactory {
+func NewCredHubFactory(logger lager.Logger, credhub *LazyCredhub, prefix string, sharedPath string) *credhubFactory {
 	return &credhubFactory{
-		credhub: credhub,
-		logger:  logger,
-		prefix:  prefix,
+		credhub:    credhub,
+		logger:     logger,
+		prefix:     prefix,
+		sharedPath: sharedPath,
 	}
 }
 
 func (factory *credhubFactory) NewSecrets() creds.Secrets {
 	return &CredHubAtc{
-		CredHub: factory.credhub,
-		logger:  factory.logger,
-		prefix:  factory.prefix,
+		CredHub:    factory.credhub,
+		logger:     factory.logger,
+		prefix:     factory.prefix,
+		sharedPath: factory.sharedPath,
 	}
 }
