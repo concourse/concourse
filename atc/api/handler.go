@@ -11,10 +11,11 @@ import (
 	"github.com/concourse/concourse/atc/api/artifactserver"
 	"github.com/concourse/concourse/atc/api/buildserver"
 	"github.com/concourse/concourse/atc/api/ccserver"
-	"github.com/concourse/concourse/atc/api/componentsserver"
 	"github.com/concourse/concourse/atc/api/cliserver"
+	"github.com/concourse/concourse/atc/api/componentsserver"
 	"github.com/concourse/concourse/atc/api/configserver"
 	"github.com/concourse/concourse/atc/api/containerserver"
+	"github.com/concourse/concourse/atc/api/healthserver"
 	"github.com/concourse/concourse/atc/api/idtokenserver"
 	"github.com/concourse/concourse/atc/api/infoserver"
 	"github.com/concourse/concourse/atc/api/jobserver"
@@ -66,6 +67,9 @@ func NewHandler(
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
 	dbComponentFactory db.ComponentFactory,
+	dbConn db.DbConn,
+	minWorkerCount int,
+	componentStaleMultiplier float64,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -112,6 +116,7 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
+	healthServer := healthserver.NewServer(logger, dbConn, dbWorkerFactory, dbComponentFactory, minWorkerCount, componentStaleMultiplier)
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
@@ -214,6 +219,7 @@ func NewHandler(
 		atc.DownloadCLI:  http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:      http.HandlerFunc(infoServer.Info),
 		atc.GetInfoCreds: http.HandlerFunc(infoServer.Creds),
+		atc.GetHealth: http.HandlerFunc(healthServer.GetHealth),
 
 		atc.GetUser:              http.HandlerFunc(usersServer.GetUser),
 		atc.ListActiveUsersSince: http.HandlerFunc(usersServer.GetUsersSince),

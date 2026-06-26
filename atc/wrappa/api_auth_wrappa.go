@@ -98,6 +98,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.DownloadCLI,
 			atc.CheckResourceWebHook,
 			atc.GetInfo,
+			atc.GetHealth,
 			atc.GetCC,
 			atc.ListTeams,
 			atc.ListAllPipelines,
