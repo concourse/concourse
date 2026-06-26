@@ -3,9 +3,6 @@ package db
 import (
 	"strings"
 
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5/pgconn"
-
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
 )
@@ -146,7 +143,7 @@ func (f *resourceCacheLifecycle) CleanUpInvalidCaches(logger lager.Logger) error
 
 	rows, err := f.conn.Query(query, args...)
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.ForeignKeyViolation {
+		if isForeignKeyOrRestrictViolation(err) {
 			// this can happen if a use or resource cache is created referencing the
 			// config; as the subqueries above are not atomic
 			return nil
