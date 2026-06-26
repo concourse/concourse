@@ -121,6 +121,16 @@ type FakeCheckable struct {
 	nameReturnsOnCall map[int]struct {
 		result1 string
 	}
+	NextCheckTimeStub        func() time.Time
+	nextCheckTimeMutex       sync.RWMutex
+	nextCheckTimeArgsForCall []struct {
+	}
+	nextCheckTimeReturns struct {
+		result1 time.Time
+	}
+	nextCheckTimeReturnsOnCall map[int]struct {
+		result1 time.Time
+	}
 	PipelineStub        func() (db.Pipeline, bool, error)
 	pipelineMutex       sync.RWMutex
 	pipelineArgsForCall []struct {
@@ -756,6 +766,59 @@ func (fake *FakeCheckable) NameReturnsOnCall(i int, result1 string) {
 	}
 	fake.nameReturnsOnCall[i] = struct {
 		result1 string
+	}{result1}
+}
+
+func (fake *FakeCheckable) NextCheckTime() time.Time {
+	fake.nextCheckTimeMutex.Lock()
+	ret, specificReturn := fake.nextCheckTimeReturnsOnCall[len(fake.nextCheckTimeArgsForCall)]
+	fake.nextCheckTimeArgsForCall = append(fake.nextCheckTimeArgsForCall, struct {
+	}{})
+	stub := fake.NextCheckTimeStub
+	fakeReturns := fake.nextCheckTimeReturns
+	fake.recordInvocation("NextCheckTime", []interface{}{})
+	fake.nextCheckTimeMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeCheckable) NextCheckTimeCallCount() int {
+	fake.nextCheckTimeMutex.RLock()
+	defer fake.nextCheckTimeMutex.RUnlock()
+	return len(fake.nextCheckTimeArgsForCall)
+}
+
+func (fake *FakeCheckable) NextCheckTimeCalls(stub func() time.Time) {
+	fake.nextCheckTimeMutex.Lock()
+	defer fake.nextCheckTimeMutex.Unlock()
+	fake.NextCheckTimeStub = stub
+}
+
+func (fake *FakeCheckable) NextCheckTimeReturns(result1 time.Time) {
+	fake.nextCheckTimeMutex.Lock()
+	defer fake.nextCheckTimeMutex.Unlock()
+	fake.NextCheckTimeStub = nil
+	fake.nextCheckTimeReturns = struct {
+		result1 time.Time
+	}{result1}
+}
+
+func (fake *FakeCheckable) NextCheckTimeReturnsOnCall(i int, result1 time.Time) {
+	fake.nextCheckTimeMutex.Lock()
+	defer fake.nextCheckTimeMutex.Unlock()
+	fake.NextCheckTimeStub = nil
+	if fake.nextCheckTimeReturnsOnCall == nil {
+		fake.nextCheckTimeReturnsOnCall = make(map[int]struct {
+			result1 time.Time
+		})
+	}
+	fake.nextCheckTimeReturnsOnCall[i] = struct {
+		result1 time.Time
 	}{result1}
 }
 

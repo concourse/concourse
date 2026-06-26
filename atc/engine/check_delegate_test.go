@@ -303,9 +303,10 @@ var _ = Describe("CheckDelegate", func() {
 				Context("when the interval has not elapsed since the last check", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-							StartTime: now.Add(-(interval + 10)),
-							EndTime:   now.Add(-(interval - 1)),
-							Succeeded: true,
+							StartTime:     now.Add(-(interval + 10)),
+							EndTime:       now.Add(-(interval - 1)),
+							NextCheckTime: now.Add(interval),
+							Succeeded:     true,
 						}, nil)
 					})
 
@@ -321,9 +322,10 @@ var _ = Describe("CheckDelegate", func() {
 				Context("when the interval has elapsed since the last check", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-							StartTime: now.Add(-(interval + 10)),
-							EndTime:   now.Add(-(interval + 1)),
-							Succeeded: true,
+							StartTime:     now.Add(-(interval + 10)),
+							EndTime:       now.Add(-(interval + 1)),
+							NextCheckTime: now.Add(-(interval + 1)),
+							Succeeded:     true,
 						}, nil)
 					})
 
@@ -335,14 +337,16 @@ var _ = Describe("CheckDelegate", func() {
 				Context("when the last check value gets updated after the first loop of attempting to acquire lock", func() {
 					BeforeEach(func() {
 						fakeResourceConfigScope.LastCheckReturnsOnCall(0, db.LastCheck{
-							StartTime: now.Add(-(interval + 10)),
-							EndTime:   now.Add(-(interval + 1)),
-							Succeeded: true,
+							StartTime:     now.Add(-(interval + 10)),
+							EndTime:       now.Add(-(interval + 1)),
+							NextCheckTime: now.Add(-(interval + 1)),
+							Succeeded:     true,
 						}, nil)
 						fakeResourceConfigScope.LastCheckReturnsOnCall(1, db.LastCheck{
-							StartTime: now.Add(time.Second).Add(-(interval + 10)),
-							EndTime:   now.Add(time.Second).Add(-(interval - 1)),
-							Succeeded: true,
+							StartTime:     now.Add(time.Second).Add(-(interval + 10)),
+							EndTime:       now.Add(time.Second).Add(-(interval - 1)),
+							NextCheckTime: now.Add(time.Second).Add((interval - 1)),
+							Succeeded:     true,
 						}, nil)
 						fakeResourceConfigScope.AcquireResourceCheckingLockReturns(nil, false, nil)
 						go fakeClock.WaitForWatcherAndIncrement(time.Second)
@@ -400,9 +404,10 @@ var _ = Describe("CheckDelegate", func() {
 			Context("when last check failed", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now.Add(-10),
-						EndTime:   now.Add(-1),
-						Succeeded: false,
+						StartTime:     now.Add(-10),
+						EndTime:       now.Add(-1),
+						NextCheckTime: now.Add(-1),
+						Succeeded:     false,
 					}, nil)
 				})
 
@@ -414,9 +419,10 @@ var _ = Describe("CheckDelegate", func() {
 			Context("when last check ended before build start time", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now.Add(-10 * time.Second),
-						EndTime:   now.Add(-time.Second),
-						Succeeded: true,
+						StartTime:     now.Add(-10 * time.Second),
+						EndTime:       now.Add(-time.Second),
+						NextCheckTime: now.Add(-time.Second),
+						Succeeded:     true,
 					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(time.Second))
 				})
@@ -429,9 +435,10 @@ var _ = Describe("CheckDelegate", func() {
 			Context("when last check succeeds after build starts", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now.Add(-10 * time.Second),
-						EndTime:   now.Add(-time.Second),
-						Succeeded: true,
+						StartTime:     now.Add(-10 * time.Second),
+						EndTime:       now.Add(-time.Second),
+						NextCheckTime: now.Add(-time.Second),
+						Succeeded:     true,
 					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(-5 * time.Second))
 				})
@@ -444,9 +451,10 @@ var _ = Describe("CheckDelegate", func() {
 			Context("when the checking interval has elapsed since the last check end time", func() {
 				BeforeEach(func() {
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now.Add(-6 * time.Minute),
-						EndTime:   now.Add(-5 * time.Minute),
-						Succeeded: true,
+						StartTime:     now.Add(-6 * time.Minute),
+						EndTime:       now.Add(-5 * time.Minute),
+						NextCheckTime: now.Add(-4 * time.Minute),
+						Succeeded:     true,
 					}, nil)
 					fakeBuild.StartTimeReturns(now)
 				})
@@ -460,9 +468,10 @@ var _ = Describe("CheckDelegate", func() {
 				BeforeEach(func() {
 					plan.Check.SkipInterval = true
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now.Add(-6 * time.Minute),
-						EndTime:   now.Add(-5 * time.Minute),
-						Succeeded: true,
+						StartTime:     now.Add(-6 * time.Minute),
+						EndTime:       now.Add(-5 * time.Minute),
+						NextCheckTime: now.Add(-4 * time.Minute),
+						Succeeded:     true,
 					}, nil)
 					fakeBuild.StartTimeReturns(now)
 				})
@@ -477,9 +486,10 @@ var _ = Describe("CheckDelegate", func() {
 					plan.Check.Interval.Interval = time.Hour
 					plan.Check.SkipInterval = false
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now,
-						EndTime:   now,
-						Succeeded: true,
+						StartTime:     now,
+						EndTime:       now,
+						NextCheckTime: now.Add(2 * time.Hour),
+						Succeeded:     true,
 					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(1 * time.Minute))
 				})
@@ -494,9 +504,10 @@ var _ = Describe("CheckDelegate", func() {
 					plan.Check.Interval.Interval = time.Hour
 					plan.Check.SkipInterval = true
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now,
-						EndTime:   now,
-						Succeeded: true,
+						StartTime:     now,
+						EndTime:       now,
+						NextCheckTime: now.Add(2 * time.Hour),
+						Succeeded:     true,
 					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(1 * time.Minute))
 				})
@@ -510,9 +521,10 @@ var _ = Describe("CheckDelegate", func() {
 				BeforeEach(func() {
 					plan.Check.Interval.Interval = time.Hour
 					fakeResourceConfigScope.LastCheckReturns(db.LastCheck{
-						StartTime: now,
-						EndTime:   now,
-						Succeeded: false,
+						StartTime:     now,
+						EndTime:       now,
+						NextCheckTime: now.Add(2 * time.Hour),
+						Succeeded:     false,
 					}, nil)
 					fakeBuild.StartTimeReturns(now.Add(1 * time.Minute))
 				})

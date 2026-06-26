@@ -13,9 +13,10 @@ import (
 )
 
 type LastCheck struct {
-	StartTime time.Time
-	EndTime   time.Time
-	Succeeded bool
+	StartTime     time.Time
+	EndTime       time.Time
+	NextCheckTime time.Time
+	Succeeded     bool
 }
 
 //counterfeiter:generate . ResourceConfigScope
@@ -61,22 +62,23 @@ func (r *resourceConfigScope) ResourceID() *int               { return r.resourc
 func (r *resourceConfigScope) ResourceConfig() ResourceConfig { return r.resourceConfig }
 
 func (r *resourceConfigScope) LastCheck() (LastCheck, error) {
-	var lastCheckStartTime, lastCheckEndTime time.Time
+	var lastCheckStartTime, lastCheckEndTime, nextCheckTime time.Time
 	var lastCheckSucceeded bool
-	err := psql.Select("last_check_start_time", "last_check_end_time", "last_check_succeeded").
+	err := psql.Select("last_check_start_time", "last_check_end_time", "last_check_succeeded", "next_check_time").
 		From("resource_config_scopes").
 		Where(sq.Eq{"id": r.id}).
 		RunWith(r.conn).
 		QueryRow().
-		Scan(&lastCheckStartTime, &lastCheckEndTime, &lastCheckSucceeded)
+		Scan(&lastCheckStartTime, &lastCheckEndTime, &lastCheckSucceeded, &nextCheckTime)
 	if err != nil {
 		return LastCheck{}, err
 	}
 
 	return LastCheck{
-		StartTime: lastCheckStartTime,
-		EndTime:   lastCheckEndTime,
-		Succeeded: lastCheckSucceeded,
+		StartTime:     lastCheckStartTime,
+		EndTime:       lastCheckEndTime,
+		NextCheckTime: nextCheckTime,
+		Succeeded:     lastCheckSucceeded,
 	}, nil
 }
 

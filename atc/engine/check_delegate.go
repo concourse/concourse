@@ -121,12 +121,10 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		}
 	}
 
-	interval := d.plan.Interval.Interval
-
 	var lock lock.Lock = lock.NoopLock{}
 	if d.plan.IsResourceCheck() {
 		for {
-			run, err := d.shouldPeriodicCheckRun(scope, interval)
+			run, err := d.shouldPeriodicCheckRun(scope)
 			if err != nil {
 				return nil, false, err
 			}
@@ -143,7 +141,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 				// After acquired the lock, see if needs to run again. Because for global
 				// resources, a previous check will result in current check no longer need
 				// to run.
-				run, err := d.shouldPeriodicCheckRun(scope, interval)
+				run, err := d.shouldPeriodicCheckRun(scope)
 				if err != nil {
 					err2 := lock.Release()
 					if err2 != nil {
@@ -176,7 +174,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 		// of this check, OR the check interval has no elapsed since the last check
 		// end time of a successful check and it is not a manual check then don't run
 		if lastCheck.Succeeded {
-			if lastCheck.EndTime.After(d.build.StartTime()) || (d.clock.Now().Before(lastCheck.EndTime.Add(interval)) && !d.plan.SkipInterval) {
+			if lastCheck.EndTime.After(d.build.StartTime()) || (d.clock.Now().Before(lastCheck.NextCheckTime) && !d.plan.SkipInterval) {
 				return nil, false, nil
 			}
 		}
@@ -185,7 +183,7 @@ func (d *checkDelegate) WaitToRun(ctx context.Context, scope db.ResourceConfigSc
 	return lock, true, nil
 }
 
-func (d *checkDelegate) shouldPeriodicCheckRun(scope db.ResourceConfigScope, checkInterval time.Duration) (bool, error) {
+func (d *checkDelegate) shouldPeriodicCheckRun(scope db.ResourceConfigScope) (bool, error) {
 	lastCheck, err := scope.LastCheck()
 	if err != nil {
 		return false, err
@@ -204,7 +202,7 @@ func (d *checkDelegate) shouldPeriodicCheckRun(scope db.ResourceConfigScope, che
 	} else {
 		// For periodic checks, if the current time is before the end of the last
 		// check + the interval, do not run
-		if d.clock.Now().Before(lastCheck.EndTime.Add(checkInterval)) {
+		if d.clock.Now().Before(lastCheck.NextCheckTime) {
 			return false, nil
 		}
 	}

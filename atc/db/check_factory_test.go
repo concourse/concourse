@@ -166,7 +166,7 @@ var _ = Describe("CheckFactory", func() {
 
 				Context("when the interval has not elapsed", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(defaultCheckInterval))
+						fakeResource.NextCheckTimeReturns(time.Now().Add(defaultCheckInterval))
 					})
 
 					It("does not create a build for the resource", func() {
@@ -215,7 +215,7 @@ var _ = Describe("CheckFactory", func() {
 
 				Context("when the default webhook interval has not elapsed", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-(defaultWebhookCheckInterval / 2)))
+						fakeResource.NextCheckTimeReturns(time.Now().Add(defaultWebhookCheckInterval))
 					})
 
 					It("does not create a build for the resource", func() {
@@ -266,7 +266,7 @@ var _ = Describe("CheckFactory", func() {
 
 				Context("when the checkable's interval has elapsed", func() {
 					BeforeEach(func() {
-						fakeResource.LastCheckEndTimeReturns(time.Now().Add(-defaultCheckInterval))
+						fakeResource.NextCheckTimeReturns(time.Now().Add(-defaultCheckInterval))
 					})
 
 					It("creates a check plan", func() {

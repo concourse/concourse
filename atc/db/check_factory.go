@@ -27,6 +27,7 @@ type Checkable interface {
 	CheckEvery() *atc.CheckEvery
 	CheckTimeout() string
 	LastCheckEndTime() time.Time
+	NextCheckTime() time.Time
 	CurrentPinnedVersion() atc.Version
 
 	HasWebhook() bool
@@ -130,7 +131,7 @@ func (c *checkFactory) TryCreateCheck(ctx context.Context, checkable Checkable, 
 	}
 
 	skipInterval := manuallyTriggered
-	if !skipInterval && time.Now().Before(checkable.LastCheckEndTime().Add(interval.Interval)) {
+	if !skipInterval && time.Now().Before(checkable.NextCheckTime()) {
 		// skip creating the check if its interval hasn't elapsed yet
 		return nil, false, nil
 	}
