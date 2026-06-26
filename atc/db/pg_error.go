@@ -11,5 +11,6 @@ func isForeignKeyOrRestrictViolation(err error) bool {
 		return false
 	}
 
-	return pgErr.Code == pgerrcode.ForeignKeyViolation || pgErr.Code == pgerrcode.RestrictViolation
+	return pgErr.Code == pgerrcode.ForeignKeyViolation || // Returned by Postgresql <= 17
+		pgErr.Code == pgerrcode.RestrictViolation // Returned by Postgresql >= 18
 }
