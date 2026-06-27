@@ -128,7 +128,7 @@ func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool
 			}
 		}
 
-		err = root.Symlink(header.Linkname, filePath)
+		err = root.Symlink(filepath.FromSlash(header.Linkname), filePath)
 		if err != nil {
 			return err
 		}
