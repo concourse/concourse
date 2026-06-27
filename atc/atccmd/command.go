@@ -196,12 +196,16 @@ type RunCommand struct {
 	} `group:"Policy Checking"`
 
 	Server struct {
-		XFrameOptions           string `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
-		ContentSecurityPolicy   string `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
-		StrictTransportSecurity string `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
-		ClusterName             string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-		ClientID                string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
-		ClientSecret            string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
+		XFrameOptions             string `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
+		ContentSecurityPolicy     string `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
+		StrictTransportSecurity   string `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
+		ReferrerPolicy            string `long:"referrer-policy" description:"The value to set for the Referrer-Policy header."`
+		CrossOriginOpenerPolicy   string `long:"cross-origin-opener-policy" description:"The value to set for the Cross-Origin-Opener-Policy header."`
+		CrossOriginResourcePolicy string `long:"cross-origin-resource-policy" description:"The value to set for the Cross-Origin-Resource-Policy header."`
+		CrossOriginEmbedderPolicy string `long:"cross-origin-embedder-policy" description:"The value to set for the Cross-Origin-Embedder-Policy header."`
+		ClusterName               string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+		ClientID                  string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
+		ClientSecret              string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
 	} `group:"Web Server"`
 
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
@@ -1925,9 +1929,13 @@ func (cmd *RunCommand) constructHTTPHandler(
 		Logger: logger,
 
 		Handler: wrappa.SecurityHandler{
-			XFrameOptions:           cmd.Server.XFrameOptions,
-			ContentSecurityPolicy:   cmd.Server.ContentSecurityPolicy,
-			StrictTransportSecurity: cmd.Server.StrictTransportSecurity,
+			XFrameOptions:             cmd.Server.XFrameOptions,
+			ContentSecurityPolicy:     cmd.Server.ContentSecurityPolicy,
+			StrictTransportSecurity:   cmd.Server.StrictTransportSecurity,
+			ReferrerPolicy:            cmd.Server.ReferrerPolicy,
+			CrossOriginOpenerPolicy:   cmd.Server.CrossOriginOpenerPolicy,
+			CrossOriginResourcePolicy: cmd.Server.CrossOriginResourcePolicy,
+			CrossOriginEmbedderPolicy: cmd.Server.CrossOriginEmbedderPolicy,
 
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth
