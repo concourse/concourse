@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
@@ -184,14 +185,20 @@ func (client *client) Builds(page Page) ([]atc.Build, Pagination, error) {
 	}
 }
 
-func (client *client) AbortBuild(buildID string) error {
+func (client *client) AbortBuild(buildID string, force bool) error {
 	params := rata.Params{
 		"build_id": buildID,
+	}
+
+	queryParams := url.Values{}
+	if force {
+		queryParams.Add(atc.AbortBuildForce, "")
 	}
 
 	return client.connection.Send(internal.Request{
 		RequestName: atc.AbortBuild,
 		Params:      params,
+		Query:       queryParams,
 	}, nil)
 }
 

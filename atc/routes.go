@@ -133,6 +133,7 @@ const (
 const (
 	ClearTaskCacheQueryPath = "cache_path"
 	SaveConfigCheckCreds    = "check_creds"
+	AbortBuildForce         = "force"
 )
 
 var Routes = rata.Routes([]rata.Route{

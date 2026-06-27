@@ -243,6 +243,9 @@ func (b *inMemoryCheckBuildForApi) Resources() ([]BuildInput, []BuildOutput, err
 func (b *inMemoryCheckBuildForApi) MarkAsAborted() error {
 	return errors.New("not implemented for in memory build")
 }
+func (b *inMemoryCheckBuildForApi) Finish(status BuildStatus) error {
+	return errors.New("not implemented for in memory build")
+}
 func (b *inMemoryCheckBuildForApi) Preparation() (BuildPreparation, bool, error) {
 	return BuildPreparation{}, false, errors.New("not implemented for in memory build")
 }

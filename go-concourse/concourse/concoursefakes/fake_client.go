@@ -12,10 +12,11 @@ import (
 )
 
 type FakeClient struct {
-	AbortBuildStub        func(string) error
+	AbortBuildStub        func(string, bool) error
 	abortBuildMutex       sync.RWMutex
 	abortBuildArgsForCall []struct {
 		arg1 string
+		arg2 bool
 	}
 	abortBuildReturns struct {
 		result1 error
@@ -381,18 +382,19 @@ type FakeClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) AbortBuild(arg1 string) error {
+func (fake *FakeClient) AbortBuild(arg1 string, arg2 bool) error {
 	fake.abortBuildMutex.Lock()
 	ret, specificReturn := fake.abortBuildReturnsOnCall[len(fake.abortBuildArgsForCall)]
 	fake.abortBuildArgsForCall = append(fake.abortBuildArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 bool
+	}{arg1, arg2})
 	stub := fake.AbortBuildStub
 	fakeReturns := fake.abortBuildReturns
-	fake.recordInvocation("AbortBuild", []interface{}{arg1})
+	fake.recordInvocation("AbortBuild", []interface{}{arg1, arg2})
 	fake.abortBuildMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -406,17 +408,17 @@ func (fake *FakeClient) AbortBuildCallCount() int {
 	return len(fake.abortBuildArgsForCall)
 }
 
-func (fake *FakeClient) AbortBuildCalls(stub func(string) error) {
+func (fake *FakeClient) AbortBuildCalls(stub func(string, bool) error) {
 	fake.abortBuildMutex.Lock()
 	defer fake.abortBuildMutex.Unlock()
 	fake.AbortBuildStub = stub
 }
 
-func (fake *FakeClient) AbortBuildArgsForCall(i int) string {
+func (fake *FakeClient) AbortBuildArgsForCall(i int) (string, bool) {
 	fake.abortBuildMutex.RLock()
 	defer fake.abortBuildMutex.RUnlock()
 	argsForCall := fake.abortBuildArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeClient) AbortBuildReturns(result1 error) {

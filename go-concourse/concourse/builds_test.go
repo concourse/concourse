@@ -446,24 +446,48 @@ var _ = Describe("ATC Handler Builds", func() {
 	})
 
 	Describe("AbortBuild", func() {
-		BeforeEach(func() {
-			expectedURL := "/api/v1/builds/123/abort"
+		Context("without force", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/builds/123/abort"
 
-			atcServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("PUT", expectedURL),
-					ghttp.RespondWith(http.StatusNoContent, ""),
-				),
-			)
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL),
+						ghttp.RespondWith(http.StatusNoContent, ""),
+					),
+				)
+			})
+
+			It("sends an abort request to ATC", func() {
+				Expect(func() {
+					err := client.AbortBuild("123", false)
+					Expect(err).NotTo(HaveOccurred())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
 		})
 
-		It("sends an abort request to ATC", func() {
-			Expect(func() {
-				err := client.AbortBuild("123")
-				Expect(err).NotTo(HaveOccurred())
-			}).To(Change(func() int {
-				return len(atcServer.ReceivedRequests())
-			}).By(1))
+		Context("with force", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/builds/123/abort"
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL, "force="),
+						ghttp.RespondWith(http.StatusNoContent, ""),
+					),
+				)
+			})
+
+			It("sends an abort request to ATC with the force query param", func() {
+				Expect(func() {
+					err := client.AbortBuild("123", true)
+					Expect(err).NotTo(HaveOccurred())
+				}).To(Change(func() int {
+					return len(atcServer.ReceivedRequests())
+				}).By(1))
+			})
 		})
 	})
 
