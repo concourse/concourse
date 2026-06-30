@@ -135,7 +135,8 @@ func (rw *RejectArchivedWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.PauseAllComponents,
 			atc.UnpauseAllComponents,
 			atc.PauseComponent,
-			atc.UnpauseComponent:
+			atc.UnpauseComponent,
+			atc.GetHealth:
 
 		default:
 			panic("how do archived pipelines affect your endpoint?")

@@ -141,6 +141,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.DownloadCLI,
 		atc.GetInfo,
 		atc.GetInfoCreds,
+		atc.GetHealth,
 		atc.ListActiveUsersSince,
 		atc.GetUser,
 		atc.GetWall,
