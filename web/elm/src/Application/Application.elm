@@ -582,24 +582,12 @@ view model =
             , SideBar.tooltip model.session
                 |> Maybe.map (Tooltip.view model.session)
                 |> Maybe.withDefault (Html.text "")
-            , case model.wallMessage of
-                Just msg ->
-                    if model.wallEditor.isOpen then
-                        Html.text ""
-
-                    else
-                        Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
-                            wallLinks msg
-
-                Nothing ->
-                    Html.text ""
-            , if model.wallEditor.isOpen then
-                wallEditorView model.wallEditor model.wallMessage model.session.hovered
-
-              else
-                Html.text ""
             , Html.div
-                ([ id "page-wrapper", style "height" "100%" ]
+                ([ id "page-wrapper"
+                 , style "height" "100%"
+                 , style "display" "flex"
+                 , style "flex-direction" "column"
+                 ]
                     ++ (if model.session.draggingSideBar then
                             Styles.disableInteraction
 
@@ -607,7 +595,24 @@ view model =
                             []
                        )
                 )
-                [ body ]
+                [ case model.wallMessage of
+                    Just msg ->
+                        if model.wallEditor.isOpen then
+                            Html.text ""
+
+                        else
+                            Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
+                                wallLinks msg
+
+                    Nothing ->
+                        Html.text ""
+                , if model.wallEditor.isOpen then
+                    wallEditorView model.wallEditor model.wallMessage model.session.hovered
+
+                  else
+                    Html.text ""
+                , body
+                ]
             ]
     }
 
