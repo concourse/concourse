@@ -42,6 +42,28 @@ var _ = Describe("SecurityHandler", func() {
 		Expect(rw.Header().Get("Cache-Control")).To(Equal("no-store, private"))
 	})
 
+	Context("when AdditionalHTTPHeaders is set", func() {
+		BeforeEach(func() {
+			securityHandler = wrappa.SecurityHandler{
+				AdditionalHTTPHeaders: map[string]string{
+					"X-Custom-Header":         "some-custom-value",
+					"X-Another-Custom-Header": "another-custom-value",
+				},
+				Handler: fakeHandler,
+			}
+		})
+		It("sets each header to the configured value", func() {
+			Expect(rw.Header().Get("X-Custom-Header")).To(Equal("some-custom-value"))
+			Expect(rw.Header().Get("X-Another-Custom-Header")).To(Equal("another-custom-value"))
+		})
+	})
+
+	Context("when AdditionalHTTPHeaders is empty", func() {
+		It("does not set any additional headers", func() {
+			Expect(rw.Result().Header).NotTo(HaveKey("X-Custom-Header"))
+		})
+	})
+
 	Context("when the X-Frame-Options is empty", func() {
 		It("does not set the X-Frame-Options", func() {
 			Expect(rw.Result().Header).NotTo(HaveKey("X-Frame-Options"))
