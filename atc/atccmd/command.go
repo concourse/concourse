@@ -196,13 +196,13 @@ type RunCommand struct {
 	} `group:"Policy Checking"`
 
 	Server struct {
-		XFrameOptions             string `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
-		ContentSecurityPolicy     string `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
-		StrictTransportSecurity   string `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
-		AdditionalHTTPHeaders     map[string]string `long:"http-headers" description:"Additional HTTP response headers to set on all responses." value-name:"NAME:VALUE"`
-		ClusterName               string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-		ClientID                  string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
-		ClientSecret              string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
+		XFrameOptions           string            `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
+		ContentSecurityPolicy   string            `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
+		StrictTransportSecurity string            `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
+		AdditionalHTTPHeaders   map[string]string `long:"additional-http-headers" description:"Additional HTTP response headers to set on all responses. Can be specified multiple times." value-name:"NAME:VALUE"`
+		ClusterName             string            `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+		ClientID                string            `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
+		ClientSecret            string            `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
 	} `group:"Web Server"`
 
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
@@ -1924,10 +1924,10 @@ func (cmd *RunCommand) constructHTTPHandler(
 		Logger: logger,
 
 		Handler: wrappa.SecurityHandler{
-			XFrameOptions:             cmd.Server.XFrameOptions,
-			ContentSecurityPolicy:     cmd.Server.ContentSecurityPolicy,
-			StrictTransportSecurity:   cmd.Server.StrictTransportSecurity,
-			AdditionalHTTPHeaders:     cmd.Server.AdditionalHTTPHeaders,
+			XFrameOptions:           cmd.Server.XFrameOptions,
+			ContentSecurityPolicy:   cmd.Server.ContentSecurityPolicy,
+			StrictTransportSecurity: cmd.Server.StrictTransportSecurity,
+			AdditionalHTTPHeaders:   cmd.Server.AdditionalHTTPHeaders,
 
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth
