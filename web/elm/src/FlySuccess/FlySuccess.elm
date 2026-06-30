@@ -130,19 +130,20 @@ documentTitle =
     "Fly Login"
 
 
-view : UserState -> Model -> Html Message
-view userState model =
+view : Bool -> UserState -> Model -> Html Message
+view hideUI userState model =
     Html.div []
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-            [ Html.div
+            [ Views.Styles.hideIf hideUI (Html.div
                 (id "top-bar-app" :: Views.Styles.topBar False)
                 [ TopBar.concourseLogo
                 , Login.view userState model
                 ]
+              )
             , Html.div
                 (id "page-below-top-bar"
-                    :: (Views.Styles.pageBelowTopBar <|
+                    :: (Views.Styles.pageBelowTopBar hideUI <|
                             Routes.FlySuccess False Nothing
                        )
                 )

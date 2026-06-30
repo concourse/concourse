@@ -138,7 +138,7 @@ buildView session model =
                 ++ [ Login.view session.userState model ]
             )
         , Html.div
-            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.hideUI route)
             [ SideBar.view session
                 (currentJob model
                     |> Maybe.map
@@ -707,6 +707,7 @@ sampleSession =
             { id = 1
             , highlight = Routes.HighlightNothing
             }
+    , hideUI = False
     }
 
 

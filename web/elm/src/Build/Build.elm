@@ -692,15 +692,16 @@ view session model =
     in
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ Html.div
+        [ Views.Styles.hideIf session.hideUI (Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             (SideBar.sideBarIcon session
                 :: breadcrumbs session model
                 ++ [ Login.view session.userState model ]
             )
+          )
         , Html.div
-            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
-            [ SideBar.view session
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.hideUI route)
+            [ Views.Styles.hideIf session.hideUI (SideBar.view session
                 (model.job
                     |> Maybe.map
                         (\j ->
@@ -710,6 +711,7 @@ view session model =
                             }
                         )
                 )
+              )
             , viewBuildPage session model
             ]
         ]
