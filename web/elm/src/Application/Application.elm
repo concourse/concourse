@@ -82,6 +82,9 @@ init flags url =
                         }
                     )
 
+        hideUI =
+            Routes.parseHideUI url
+
         session =
             { userState = UserStateUnknown
             , hovered = HoverState.NoHover
@@ -106,6 +109,7 @@ init flags url =
             , favoritedPipelines = Set.empty
             , favoritedInstanceGroups = Set.empty
             , route = route
+            , hideUI = hideUI
             }
 
         ( subModel, subEffects ) =
@@ -129,7 +133,7 @@ init flags url =
 
             else
                 [ SaveToken flags.csrfToken
-                , Effects.ModifyUrl <| Routes.toString route
+                , Effects.ModifyUrl <| Routes.withHideUIParam hideUI <| Routes.toString route
                 ]
     in
     ( model
@@ -485,7 +489,12 @@ handleDeliveryForApplication delivery model =
                 Browser.Internal url ->
                     case Routes.parsePath url of
                         Just route ->
-                            ( model, [ NavigateTo <| Routes.toString route ] )
+                            ( model
+                            , [ NavigateTo <|
+                                    Routes.withHideUIParam model.session.hideUI <|
+                                        Routes.toString route
+                              ]
+                            )
 
                         Nothing ->
                             ( model, [ LoadExternal <| Url.toString url ] )

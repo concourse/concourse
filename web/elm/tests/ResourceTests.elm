@@ -4070,4 +4070,5 @@ session =
     , screenSize = ScreenSize.Desktop
     , timeZone = Time.utc
     , route = Routes.Resource { id = Data.resourceId, page = Nothing, version = Nothing, groups = [] }
+    , hideUI = False
     }

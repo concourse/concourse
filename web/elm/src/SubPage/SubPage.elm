@@ -428,7 +428,7 @@ view ({ userState } as session) mdl =
 
         FlySuccessModel model ->
             ( FlySuccess.documentTitle
-            , FlySuccess.view userState model
+            , FlySuccess.view session.hideUI userState model
             )
 
         DownloadFlyModel model ->

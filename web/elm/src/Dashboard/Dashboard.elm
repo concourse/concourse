@@ -855,10 +855,16 @@ view : Session -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ topBar session model
+        [ Views.Styles.hideIf session.hideUI (topBar session model)
         , Html.div
             [ id "page-below-top-bar"
-            , style "padding-top" "54px"
+            , style "padding-top"
+                (if session.hideUI then
+                    "0"
+
+                 else
+                    "54px"
+                )
             , style "box-sizing" "border-box"
             , style "display" "flex"
             , style "height" "100%"
@@ -870,10 +876,10 @@ view session model =
                     "50px"
             ]
           <|
-            [ SideBar.view session Nothing
+            [ Views.Styles.hideIf session.hideUI (SideBar.view session Nothing)
             , dashboardView session model
             ]
-        , Footer.view session model
+        , Views.Styles.hideIf session.hideUI (Footer.view session model)
         ]
 
 

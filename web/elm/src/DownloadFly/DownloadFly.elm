@@ -71,7 +71,7 @@ view : Session -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ Html.div
+        [ Views.Styles.hideIf session.hideUI (Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             [ Html.div
                 [ style "display" "flex", style "align-items" "center" ]
@@ -80,9 +80,10 @@ view session model =
                 )
             , Login.view session.userState model
             ]
+          )
         , Html.div
-            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar Routes.DownloadFly)
-            [ SideBar.view session Nothing
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.hideUI Routes.DownloadFly)
+            [ Views.Styles.hideIf session.hideUI (SideBar.view session Nothing)
             , Html.div [ class "download-fly-card" ]
                 [ Html.p
                     [ class "title" ]

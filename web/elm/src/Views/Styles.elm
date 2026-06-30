@@ -16,6 +16,7 @@ module Views.Styles exposing
     , fontWeightBold
     , fontWeightDefault
     , fontWeightLight
+    , hideIf
     , instanceGroupBadge
     , pageBelowTopBar
     , pageHeaderHeight
@@ -76,9 +77,24 @@ pageIncludingTopBar =
     ]
 
 
-pageBelowTopBar : Routes.Route -> List (Html.Attribute msg)
-pageBelowTopBar route =
-    style "padding-top" "54px"
+hideIf : Bool -> Html.Html msg -> Html.Html msg
+hideIf condition element =
+    if condition then
+        Html.text ""
+
+    else
+        element
+
+
+pageBelowTopBar : Bool -> Routes.Route -> List (Html.Attribute msg)
+pageBelowTopBar hideUI route =
+    style "padding-top"
+        (if hideUI then
+            "0"
+
+         else
+            "54px"
+        )
         :: (case route of
                 Routes.FlySuccess _ _ ->
                     [ style "height" "100%" ]

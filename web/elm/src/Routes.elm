@@ -10,6 +10,7 @@ module Routes exposing
     , extractQuery
     , getGroups
     , jobRoute
+    , parseHideUI
     , parsePath
     , pipelineRoute
     , resourceRoute
@@ -19,6 +20,7 @@ module Routes exposing
     , tokenToFlyRoute
     , versionQueryParams
     , withGroups
+    , withHideUIParam
     )
 
 import Api.Pagination
@@ -723,3 +725,51 @@ withGroups groups route =
 
         DownloadFly ->
             route
+
+
+hideUIParamName : String
+hideUIParamName =
+    "hide_ui"
+
+
+hideUIQuery : Query.Parser Bool
+hideUIQuery =
+    Query.string hideUIParamName
+        |> Query.map (\value -> Maybe.map String.toLower value == Just "true")
+
+
+parseHideUI : Url.Url -> Bool
+parseHideUI url =
+    -- Neutralize the path so the query parser matches regardless of which
+    -- page the URL points at, then read the hide_ui flag from the query.
+    { url | path = "/" }
+        |> parse (top <?> hideUIQuery)
+        |> Maybe.withDefault False
+
+
+withHideUIParam : Bool -> String -> String
+withHideUIParam hideUI url =
+    if hideUI then
+        let
+            addParam path =
+                path
+                    ++ (if String.contains "?" path then
+                            "&"
+
+                        else
+                            "?"
+                       )
+                    ++ hideUIParamName
+                    ++ "=true"
+        in
+        -- Insert the param before any URL fragment (e.g. build log
+        -- highlights like #L1:2) so the fragment is preserved.
+        case String.split "#" url of
+            base :: fragmentHead :: fragmentTail ->
+                addParam base ++ "#" ++ String.join "#" (fragmentHead :: fragmentTail)
+
+            _ ->
+                addParam url
+
+    else
+        url
