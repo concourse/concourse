@@ -42,75 +42,25 @@ var _ = Describe("SecurityHandler", func() {
 		Expect(rw.Header().Get("Cache-Control")).To(Equal("no-store, private"))
 	})
 
-	Context("when Referrer-Policy is set", func() {
+	Context("when AdditionalHTTPHeaders is set", func() {
 		BeforeEach(func() {
 			securityHandler = wrappa.SecurityHandler{
-				ReferrerPolicy: "some-referrer-policy",
-				Handler:        fakeHandler,
+				AdditionalHTTPHeaders: map[string]string{
+					"X-Custom-Header":         "some-custom-value",
+					"X-Another-Custom-Header": "another-custom-value",
+				},
+				Handler: fakeHandler,
 			}
 		})
-		It("sets the Referrer-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Referrer-Policy")).To(Equal("some-referrer-policy"))
+		It("sets each header to the configured value", func() {
+			Expect(rw.Header().Get("X-Custom-Header")).To(Equal("some-custom-value"))
+			Expect(rw.Header().Get("X-Another-Custom-Header")).To(Equal("another-custom-value"))
 		})
 	})
 
-	Context("when Referrer-Policy is empty", func() {
-		It("does not set Referrer-Policy header", func() {
-			Expect(rw.Result().Header).NotTo(HaveKey("Referrer-Policy"))
-		})
-	})
-
-	Context("when Cross-Origin-Opener-Policy is set", func() {
-		BeforeEach(func() {
-			securityHandler = wrappa.SecurityHandler{
-				CrossOriginOpenerPolicy: "some-cross-origin-opener-policy",
-				Handler:                 fakeHandler,
-			}
-		})
-		It("sets the Cross-Origin-Opener-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Cross-Origin-Opener-Policy")).To(Equal("some-cross-origin-opener-policy"))
-		})
-	})
-
-	Context("when Cross-Origin-Opener-Policy is empty", func() {
-		It("does not set Cross-Origin-Opener-Policy header", func() {
-			Expect(rw.Result().Header).NotTo(HaveKey("Cross-Origin-Opener-Policy"))
-		})
-	})
-
-	Context("when Cross-Origin-Resource-Policy is set", func() {
-		BeforeEach(func() {
-			securityHandler = wrappa.SecurityHandler{
-				CrossOriginResourcePolicy: "some-cross-origin-resource-policy",
-				Handler:                   fakeHandler,
-			}
-		})
-		It("sets the Cross-Origin-Resource-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Cross-Origin-Resource-Policy")).To(Equal("some-cross-origin-resource-policy"))
-		})
-	})
-
-	Context("when Cross-Origin-Resource-Policy is empty", func() {
-		It("does not set Cross-Origin-Resource-Policy header", func() {
-			Expect(rw.Result().Header).NotTo(HaveKey("Cross-Origin-Resource-Policy"))
-		})
-	})
-
-	Context("when Cross-Origin-Embedder-Policy is set", func() {
-		BeforeEach(func() {
-			securityHandler = wrappa.SecurityHandler{
-				CrossOriginEmbedderPolicy: "some-cross-origin-embedder-policy",
-				Handler:                   fakeHandler,
-			}
-		})
-		It("sets the Cross-Origin-Embedder-Policy to whatever it was configured with", func() {
-			Expect(rw.Header().Get("Cross-Origin-Embedder-Policy")).To(Equal("some-cross-origin-embedder-policy"))
-		})
-	})
-
-	Context("when Cross-Origin-Embedder-Policy is empty", func() {
-		It("does not set Cross-Origin-Embedder-Policy header", func() {
-			Expect(rw.Result().Header).NotTo(HaveKey("Cross-Origin-Embedder-Policy"))
+	Context("when AdditionalHTTPHeaders is empty", func() {
+		It("does not set any additional headers", func() {
+			Expect(rw.Result().Header).NotTo(HaveKey("X-Custom-Header"))
 		})
 	})
 
