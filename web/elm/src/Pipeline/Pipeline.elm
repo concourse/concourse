@@ -442,7 +442,7 @@ view session model =
             isPaused model.pipeline
                 && not (isArchived model.pipeline)
     in
-    Html.div [ Html.Attributes.style "height" "100%" ]
+    Html.div [ Html.Attributes.style "flex" "1", Html.Attributes.style "min-height" "0", Html.Attributes.style "display" "flex", Html.Attributes.style "flex-direction" "column" ]
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
             [ Html.div

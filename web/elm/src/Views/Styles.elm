@@ -72,7 +72,8 @@ pageHeaderHeight =
 
 pageIncludingTopBar : List (Html.Attribute msg)
 pageIncludingTopBar =
-    [ style "height" "100%"
+    [ style "flex" "1"
+    , style "min-height" "0"
     ]
 
 
