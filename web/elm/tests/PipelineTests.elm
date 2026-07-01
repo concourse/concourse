@@ -930,14 +930,16 @@ givenMultiplePinnedResources =
 testTopBarPositioning : String -> String -> Test
 testTopBarPositioning pageName url =
     describe pageName
-        [ test "whole page fills the whole screen" <|
+        [ test "top section fills the whole screen" <|
             \_ ->
                 Common.init url
                     |> Common.queryView
-                    |> Query.has
+                    |> Query.findAll
                         [ id "page-including-top-bar"
-                        , style "height" "100%"
+                        , style "flex" "1"
+                        , style "min-height" "0"
                         ]
+                    |> Query.count (Expect.equal 1)
         , test "lower section fills the whole screen as well" <|
             \_ ->
                 Common.init url
