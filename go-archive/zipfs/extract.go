@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/klauspost/compress/zip"
 )
@@ -59,12 +60,12 @@ func extractZipArchiveFile(root *os.Root, file *zip.File, input io.Reader) error
 	fileInfo := file.FileInfo()
 
 	if fileInfo.IsDir() {
-		err := root.MkdirAll(filePath, fileInfo.Mode().Perm())
+		err := RootMkdirAll(root, filePath, fileInfo.Mode().Perm())
 		if err != nil {
 			return err
 		}
 	} else {
-		err := root.MkdirAll(filepath.Dir(filePath), 0755)
+		err := RootMkdirAll(root, filepath.Dir(filePath), 0755)
 		if err != nil {
 			return err
 		}
@@ -90,4 +91,9 @@ func extractZipArchiveFile(root *os.Root, file *zip.File, input io.Reader) error
 	}
 
 	return nil
+}
+
+// Workaround for https://github.com/golang/go/issues/80308
+func RootMkdirAll(r *os.Root, path string, perm os.FileMode) error {
+	return r.MkdirAll(strings.TrimSuffix(path, "/"), perm)
 }
