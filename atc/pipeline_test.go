@@ -152,7 +152,7 @@ var _ = Describe("PipelineRef", func() {
 			{
 				desc: "val is JSON",
 				query: url.Values{
-					`vars.foo"`: {`["a",{"b":123}]`},
+					`vars.foo`: {`["a",{"b":123}]`},
 				},
 				out: atc.InstanceVars{
 					"foo": []any{"a", map[string]any{"b": 123.0}},
