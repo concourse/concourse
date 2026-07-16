@@ -75,7 +75,7 @@ type FakePutDelegate struct {
 	initializingArgsForCall []struct {
 		arg1 lager.Logger
 	}
-	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult)
+	SaveOutputStub        func(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult) error
 	saveOutputMutex       sync.RWMutex
 	saveOutputArgsForCall []struct {
 		arg1 lager.Logger
@@ -83,6 +83,12 @@ type FakePutDelegate struct {
 		arg3 atc.Source
 		arg4 db.ResourceCache
 		arg5 resource.VersionResult
+	}
+	saveOutputReturns struct {
+		result1 error
+	}
+	saveOutputReturnsOnCall map[int]struct {
+		result1 error
 	}
 	SelectedWorkerStub        func(lager.Logger, string)
 	selectedWorkerMutex       sync.RWMutex
@@ -437,8 +443,9 @@ func (fake *FakePutDelegate) InitializingArgsForCall(i int) lager.Logger {
 	return argsForCall.arg1
 }
 
-func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 db.ResourceCache, arg5 resource.VersionResult) {
+func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg3 atc.Source, arg4 db.ResourceCache, arg5 resource.VersionResult) error {
 	fake.saveOutputMutex.Lock()
+	ret, specificReturn := fake.saveOutputReturnsOnCall[len(fake.saveOutputArgsForCall)]
 	fake.saveOutputArgsForCall = append(fake.saveOutputArgsForCall, struct {
 		arg1 lager.Logger
 		arg2 atc.PutPlan
@@ -447,11 +454,16 @@ func (fake *FakePutDelegate) SaveOutput(arg1 lager.Logger, arg2 atc.PutPlan, arg
 		arg5 resource.VersionResult
 	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.SaveOutputStub
+	fakeReturns := fake.saveOutputReturns
 	fake.recordInvocation("SaveOutput", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.saveOutputMutex.Unlock()
 	if stub != nil {
-		fake.SaveOutputStub(arg1, arg2, arg3, arg4, arg5)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
 }
 
 func (fake *FakePutDelegate) SaveOutputCallCount() int {
@@ -460,7 +472,7 @@ func (fake *FakePutDelegate) SaveOutputCallCount() int {
 	return len(fake.saveOutputArgsForCall)
 }
 
-func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult)) {
+func (fake *FakePutDelegate) SaveOutputCalls(stub func(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult) error) {
 	fake.saveOutputMutex.Lock()
 	defer fake.saveOutputMutex.Unlock()
 	fake.SaveOutputStub = stub
@@ -471,6 +483,29 @@ func (fake *FakePutDelegate) SaveOutputArgsForCall(i int) (lager.Logger, atc.Put
 	defer fake.saveOutputMutex.RUnlock()
 	argsForCall := fake.saveOutputArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+}
+
+func (fake *FakePutDelegate) SaveOutputReturns(result1 error) {
+	fake.saveOutputMutex.Lock()
+	defer fake.saveOutputMutex.Unlock()
+	fake.SaveOutputStub = nil
+	fake.saveOutputReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePutDelegate) SaveOutputReturnsOnCall(i int, result1 error) {
+	fake.saveOutputMutex.Lock()
+	defer fake.saveOutputMutex.Unlock()
+	fake.SaveOutputStub = nil
+	if fake.saveOutputReturnsOnCall == nil {
+		fake.saveOutputReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.saveOutputReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakePutDelegate) SelectedWorker(arg1 lager.Logger, arg2 string) {

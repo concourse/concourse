@@ -44,7 +44,7 @@ type PutDelegate interface {
 	WaitingForStreamedVolume(lager.Logger, string, string)
 	BuildStartTime() time.Time
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult) error
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -238,7 +238,9 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		delegate.SaveOutput(logger, step.plan, source, imageResourceCache, versionResult)
+		if err := delegate.SaveOutput(logger, step.plan, source, imageResourceCache, versionResult); err != nil {
+			return false, err
+		}
 	}
 
 	state.StoreResult(step.planID, versionResult.Version)

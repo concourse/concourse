@@ -1,6 +1,7 @@
 package engine_test
 
 import (
+	"errors"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -33,6 +34,7 @@ var _ = Describe("PutDelegate", func() {
 		delegate   exec.PutDelegate
 		info       resource.VersionResult
 		exitStatus exec.ExitStatus
+		saveErr    error
 	)
 
 	BeforeEach(func() {
@@ -78,7 +80,7 @@ var _ = Describe("PutDelegate", func() {
 		var source atc.Source
 		var resourceCache *dbfakes.FakeResourceCache
 
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			plan = atc.PutPlan{
 				Name:     "some-name",
 				Type:     "some-type",
@@ -87,11 +89,15 @@ var _ = Describe("PutDelegate", func() {
 			source = atc.Source{"some": "source"}
 			resourceCache = new(dbfakes.FakeResourceCache)
 			resourceCache.IDReturns(123)
+		})
 
-			delegate.SaveOutput(logger, plan, source, resourceCache, info)
+		JustBeforeEach(func() {
+			saveErr = delegate.SaveOutput(logger, plan, source, resourceCache, info)
 		})
 
 		It("saves the build output", func() {
+			Expect(saveErr).ToNot(HaveOccurred())
+
 			Expect(fakeBuild.SaveOutputCallCount()).To(Equal(1))
 			resourceType, rc, sourceArg, version, metadata, name, resource := fakeBuild.SaveOutputArgsForCall(0)
 			Expect(resourceType).To(Equal(plan.Type))
@@ -101,6 +107,18 @@ var _ = Describe("PutDelegate", func() {
 			Expect(metadata).To(Equal(db.NewResourceConfigMetadataFields(info.Metadata)))
 			Expect(name).To(Equal(plan.Name))
 			Expect(resource).To(Equal(plan.Resource))
+		})
+
+		Context("when saving the build output fails", func() {
+			disaster := errors.New("nope")
+
+			BeforeEach(func() {
+				fakeBuild.SaveOutputReturns(disaster)
+			})
+
+			It("returns the error", func() {
+				Expect(saveErr).To(MatchError(disaster))
+			})
 		})
 	})
 })
