@@ -230,7 +230,7 @@ var _ = Describe("ExtractEntry", func() {
 
 			l, err := os.Readlink(filepath.Join(dest, "abs"))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(l).To(Equal(header.Linkname))
+			Expect(l).To(Equal(filepath.FromSlash(header.Linkname)))
 		})
 
 		It("returns a BreakoutErr when a symlink points outside the destination", func() {
