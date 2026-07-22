@@ -252,3 +252,135 @@ var _ = Describe("ExtractEntry", func() {
 		})
 	})
 })
+
+var _ = Describe("Extract will not create paths outside the specified directory", func() {
+	var (
+		extractionDest string
+		outside        string
+
+		archive archivetest.Archive
+	)
+
+	BeforeEach(func() {
+		var err error
+
+		extractionDest, err = os.MkdirTemp("", "extract-dest")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Stands in for a location outside the extraction root, e.g.
+		// the user's home directory on Unix or C:\Users\... on Windows. Because
+		// it comes from the OS temp dir it is always an absolute, platform-native
+		// path, so these specs exercise the attack on Unix and Windows alike.
+		outside, err = os.MkdirTemp("", "extract-outside")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set PATH to a temporary directory to ensure that the tar executable
+		// will not be found. The directory must exist, so that the lookup fails
+		// identically on every platform. GinkgoT().Setenv will restore PATH after
+		// the spec.
+		GinkgoT().Setenv("PATH", GinkgoT().TempDir())
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(extractionDest)
+		os.RemoveAll(outside)
+	})
+
+	Context("when a directory symlink escapes via an absolute path", func() {
+		BeforeEach(func() {
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(outside)},
+				{Name: "escape/evil.txt", Body: "pwned"},
+			}
+		})
+
+		It("refuses to create the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			escapedFile := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(escapedFile)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", escapedFile)
+		})
+	})
+
+	Context("when a directory symlink escapes via a relative .. path", func() {
+		BeforeEach(func() {
+			escapeLink, err := filepath.Rel(extractionDest, outside)
+			Expect(err).NotTo(HaveOccurred())
+
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(escapeLink)},
+				{Name: "escape/evil.txt", Body: "pwned"},
+			}
+		})
+
+		It("refuses to create the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			escapedFile := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(escapedFile)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", escapedFile)
+		})
+	})
+
+	Context("when a file symlink escapes via an absolute path", func() {
+		BeforeEach(func() {
+			target := filepath.Join(outside, "evil.txt")
+
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(target)},
+				{Name: "escape", Body: "pwned"},
+			}
+		})
+
+		It("refuses to write the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			target := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(target)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", target)
+		})
+	})
+
+	Context("when a file symlink escapes via a relative .. path", func() {
+		BeforeEach(func() {
+			target := filepath.Join(outside, "evil.txt")
+
+			escapeLink, err := filepath.Rel(extractionDest, target)
+			Expect(err).NotTo(HaveOccurred())
+
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(escapeLink)},
+				{Name: "escape", Body: "pwned"},
+			}
+		})
+
+		It("refuses to write the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			target := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(target)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", target)
+		})
+	})
+})
