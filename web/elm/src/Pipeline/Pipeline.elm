@@ -45,6 +45,8 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
+import Markdown.Parser
+import Markdown.Renderer
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Filter as Filter
 import Pipeline.PinMenu.PinMenu as PinMenu
@@ -653,6 +655,44 @@ backgroundImage pipeline =
             []
 
 
+{-| Rendered as a layout-in-flow panel above the graph area (a sibling of
+`viewGroupsBar`, not inside `.pipeline-content`) so it reserves its own
+space instead of competing with the graph/background for the same pixels,
+unlike `display.background_image` above.
+-}
+descriptionPanel : WebData Concourse.Pipeline -> Html msg
+descriptionPanel pipeline =
+    case pipeline of
+        RemoteData.Success p ->
+            case p.description of
+                Just description ->
+                    Html.div
+                        (id "pipeline-description" :: Styles.descriptionPanel)
+                        (renderDescription description)
+
+                Nothing ->
+                    Html.text ""
+
+        _ ->
+            Html.text ""
+
+
+{-| Renders with elm-markdown's defaultHtmlRenderer, which does not render
+raw HTML embedded in the markdown source (`html = Markdown.Html.oneOf []`)
+-- descriptions come from pipeline config a team member wrote, viewable by
+anyone with view access including anonymous viewers on public pipelines, so
+we deliberately don't opt into a raw-HTML-passthrough renderer. Falls back
+to the raw (still-escaped) text on any parse/render failure.
+-}
+renderDescription : String -> List (Html msg)
+renderDescription description =
+    description
+        |> Markdown.Parser.parse
+        |> Result.mapError (\_ -> "")
+        |> Result.andThen (Markdown.Renderer.render Markdown.Renderer.defaultHtmlRenderer)
+        |> Result.withDefault [ Html.text description ]
+
+
 viewSubPage :
     { a | hovered : HoverState.HoverState, version : String, screenSize : ScreenSize, hideUI : Bool }
     -> Model
@@ -666,6 +706,7 @@ viewSubPage session model =
         , style "flex-grow" "1"
         ]
         [ viewGroupsBar session model
+        , descriptionPanel model.pipeline
         , Html.div
             [ class "pipeline-content" ]
             [ Html.div

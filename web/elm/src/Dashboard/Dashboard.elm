@@ -630,6 +630,7 @@ toConcoursePipeline p =
     , lastUpdatedAt = Time.millisToPosix 0
     , backgroundImage = Maybe.Nothing
     , backgroundFilter = Maybe.Nothing
+    , description = Maybe.Nothing
     }
 
 

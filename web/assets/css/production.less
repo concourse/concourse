@@ -289,6 +289,51 @@ li.prep-status {
     position: relative;
     flex-grow: 1;
   }
+
+  #pipeline-description {
+    p,
+    ul,
+    ol,
+    blockquote {
+      margin: 0.5em 0;
+
+      &:first-child {
+        margin-top: 0;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    ul,
+    ol {
+      padding-left: 1.5em;
+    }
+
+    code {
+      background: fade(#000, 25%);
+      padding: 0.1em 0.4em;
+      border-radius: 3px;
+    }
+
+    pre {
+      background: fade(#000, 25%);
+      padding: 0.6em;
+      border-radius: 3px;
+      overflow-x: auto;
+
+      code {
+        background: none;
+        padding: 0;
+      }
+    }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+    }
+  }
 }
 
 .causality-view {

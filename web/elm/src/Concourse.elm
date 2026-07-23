@@ -1153,6 +1153,7 @@ type alias Pipeline =
     , lastUpdatedAt : Time.Posix
     , backgroundImage : Maybe String
     , backgroundFilter : Maybe String
+    , description : Maybe String
     }
 
 
@@ -1181,6 +1182,7 @@ encodePipeline pipeline =
                 , ( "background_filter", pipeline.backgroundFilter |> Json.Encode.Extra.maybe Json.Encode.string )
                 ]
           )
+        , ( "description", pipeline.description |> Json.Encode.Extra.maybe Json.Encode.string )
         ]
 
 
@@ -1200,6 +1202,7 @@ decodePipeline =
         |> andMap (Json.Decode.field "last_updated" (Json.Decode.map dateFromSeconds Json.Decode.int))
         |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_image" ] Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_filter" ] Json.Decode.string))
+        |> andMap (Json.Decode.maybe (Json.Decode.field "description" Json.Decode.string))
 
 
 encodePipelineGroup : PipelineGroup -> Json.Encode.Value

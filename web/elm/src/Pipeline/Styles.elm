@@ -1,5 +1,6 @@
 module Pipeline.Styles exposing
     ( consoleIcon
+    , descriptionPanel
     , docsIcon
     , favoritedIcon
     , groupItem
@@ -117,4 +118,15 @@ pipelineBackground { image, filter } =
     , style "width" "100%"
     , style "height" "100%"
     , style "position" "absolute"
+    ]
+
+
+descriptionPanel : List (Html.Attribute msg)
+descriptionPanel =
+    [ style "background-color" Colors.groupsBarBackground
+    , style "color" Colors.dashboardText
+    , style "padding" "10px 20px"
+    , style "font-size" "14px"
+    , style "line-height" "1.4"
+    , style "max-width" "800px"
     ]

@@ -193,6 +193,7 @@ pipeline team id =
     , lastUpdatedAt = Time.millisToPosix 0
     , backgroundImage = Maybe.Nothing
     , backgroundFilter = Maybe.Nothing
+    , description = Maybe.Nothing
     }
 
 
@@ -245,6 +246,11 @@ withLastUpdatedAt time p =
 withBackgroundImage : String -> { r | backgroundImage : Maybe String } -> { r | backgroundImage : Maybe String }
 withBackgroundImage bg p =
     { p | backgroundImage = Just bg }
+
+
+withDescription : String -> { r | description : Maybe String } -> { r | description : Maybe String }
+withDescription description p =
+    { p | description = Just description }
 
 
 withInstanceVars : Dict String Concourse.JsonValue -> { r | instanceVars : Dict String Concourse.JsonValue } -> { r | instanceVars : Dict String Concourse.JsonValue }
