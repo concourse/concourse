@@ -25,6 +25,7 @@ type Config struct {
 	Prototypes    Prototypes       `json:"prototypes,omitempty"`
 	Jobs          JobConfigs       `json:"jobs,omitempty"`
 	Display       *DisplayConfig   `json:"display,omitempty"`
+	Description   string           `json:"description,omitempty"`
 	UserData      any              `json:"user_data,omitempty"`
 }
 
@@ -38,6 +39,7 @@ func UnmarshalConfig(payload []byte, config any) error {
 		Prototypes    any `json:"prototypes,omitempty"`
 		Jobs          any `json:"jobs,omitempty"`
 		Display       any `json:"display,omitempty"`
+		Description   any `json:"description,omitempty"`
 		UserData      any `json:"user_data,omitempty"`
 	}
 

@@ -464,6 +464,8 @@ func savePipeline(
 		return 0, false, err
 	}
 
+	descriptionPayload := config.Description
+
 	var userDataPayload []byte
 	if config.UserData != nil {
 		userDataPayload, err = json.Marshal(config.UserData)
@@ -479,6 +481,7 @@ func savePipeline(
 			"groups":          groupsPayload,
 			"var_sources":     encryptedVarSourcesPayload,
 			"display":         displayPayload,
+			"description":     descriptionPayload,
 			"user_data":       userDataPayload,
 			"nonce":           nonce,
 			"version":         sq.Expr("nextval('config_version_seq')"),
@@ -525,6 +528,7 @@ func savePipeline(
 			Set("groups", groupsPayload).
 			Set("var_sources", encryptedVarSourcesPayload).
 			Set("display", displayPayload).
+			Set("description", descriptionPayload).
 			Set("user_data", userDataPayload).
 			Set("nonce", nonce).
 			Set("version", sq.Expr("nextval('config_version_seq')")).
@@ -1344,6 +1348,7 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		groups        sql.NullString
 		varSources    sql.NullString
 		display       sql.NullString
+		description   sql.NullString
 		userData      sql.NullString
 		nonce         sql.NullString
 		nonceStr      *string
@@ -1354,10 +1359,12 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		pausedBy      sql.NullString
 		pausedAt      sql.NullTime
 	)
-	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &userData, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &pausedBy, &pausedAt)
+	err := scan.Scan(&p.id, &p.name, &groups, &varSources, &display, &description, &userData, &nonce, &p.configVersion, &p.teamID, &p.teamName, &p.paused, &p.public, &p.archived, &lastUpdated, &parentJobID, &parentBuildID, &instanceVars, &pausedBy, &pausedAt)
 	if err != nil {
 		return err
 	}
+
+	p.description = description.String
 
 	p.lastUpdated = lastUpdated.Time
 	p.parentJobID = int(parentJobID.Int64)

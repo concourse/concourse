@@ -145,6 +145,16 @@ type FakePipeline struct {
 	deleteBuildEventsByBuildIDsReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DescriptionStub        func() string
+	descriptionMutex       sync.RWMutex
+	descriptionArgsForCall []struct {
+	}
+	descriptionReturns struct {
+		result1 string
+	}
+	descriptionReturnsOnCall map[int]struct {
+		result1 string
+	}
 	DestroyStub        func() error
 	destroyMutex       sync.RWMutex
 	destroyArgsForCall []struct {
@@ -1273,6 +1283,59 @@ func (fake *FakePipeline) DeleteBuildEventsByBuildIDsReturnsOnCall(i int, result
 	}
 	fake.deleteBuildEventsByBuildIDsReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakePipeline) Description() string {
+	fake.descriptionMutex.Lock()
+	ret, specificReturn := fake.descriptionReturnsOnCall[len(fake.descriptionArgsForCall)]
+	fake.descriptionArgsForCall = append(fake.descriptionArgsForCall, struct {
+	}{})
+	stub := fake.DescriptionStub
+	fakeReturns := fake.descriptionReturns
+	fake.recordInvocation("Description", []interface{}{})
+	fake.descriptionMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakePipeline) DescriptionCallCount() int {
+	fake.descriptionMutex.RLock()
+	defer fake.descriptionMutex.RUnlock()
+	return len(fake.descriptionArgsForCall)
+}
+
+func (fake *FakePipeline) DescriptionCalls(stub func() string) {
+	fake.descriptionMutex.Lock()
+	defer fake.descriptionMutex.Unlock()
+	fake.DescriptionStub = stub
+}
+
+func (fake *FakePipeline) DescriptionReturns(result1 string) {
+	fake.descriptionMutex.Lock()
+	defer fake.descriptionMutex.Unlock()
+	fake.DescriptionStub = nil
+	fake.descriptionReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakePipeline) DescriptionReturnsOnCall(i int, result1 string) {
+	fake.descriptionMutex.Lock()
+	defer fake.descriptionMutex.Unlock()
+	fake.DescriptionStub = nil
+	if fake.descriptionReturnsOnCall == nil {
+		fake.descriptionReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.descriptionReturnsOnCall[i] = struct {
+		result1 string
 	}{result1}
 }
 

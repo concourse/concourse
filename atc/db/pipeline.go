@@ -62,6 +62,7 @@ type Pipeline interface {
 	Groups() atc.GroupConfigs
 	VarSources() atc.VarSourceConfigs
 	Display() *atc.DisplayConfig
+	Description() string
 	UserData() any
 	ConfigVersion() ConfigVersion
 	Config() (atc.Config, error)
@@ -141,6 +142,7 @@ type pipeline struct {
 	groups        atc.GroupConfigs
 	varSources    atc.VarSourceConfigs
 	display       *atc.DisplayConfig
+	description   string
 	userData      any
 	configVersion ConfigVersion
 	paused        bool
@@ -163,6 +165,7 @@ var pipelinesQuery = psql.Select(`
 		p.groups,
 		p.var_sources,
 		p.display,
+		p.description,
 		p.user_data,
 		p.nonce,
 		p.version,
@@ -197,6 +200,7 @@ func (p *pipeline) InstanceVars() atc.InstanceVars   { return p.instanceVars }
 func (p *pipeline) Groups() atc.GroupConfigs         { return p.groups }
 func (p *pipeline) VarSources() atc.VarSourceConfigs { return p.varSources }
 func (p *pipeline) Display() *atc.DisplayConfig      { return p.display }
+func (p *pipeline) Description() string              { return p.description }
 func (p *pipeline) UserData() any                    { return p.userData }
 func (p *pipeline) ConfigVersion() ConfigVersion     { return p.configVersion }
 func (p *pipeline) Public() bool                     { return p.public }
@@ -272,6 +276,7 @@ func (p *pipeline) Config() (atc.Config, error) {
 		Prototypes:    prototypes.Configs(),
 		Jobs:          jobConfigs,
 		Display:       p.Display(),
+		Description:   p.Description(),
 		UserData:      p.userData,
 	}
 
