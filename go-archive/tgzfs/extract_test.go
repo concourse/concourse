@@ -121,18 +121,12 @@ var _ = Describe("Extract", func() {
 	})
 
 	Context("when 'tar' is not in the PATH", func() {
-		var oldPATH string
-
 		BeforeEach(func() {
-			oldPATH = os.Getenv("PATH")
-			Expect(os.Setenv("PATH", "/dev/null")).To(Succeed())
-
-			_, err := exec.LookPath("tar")
-			Expect(err).To(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			Expect(os.Setenv("PATH", oldPATH)).To(Succeed())
+			// Set PATH to a temporary directory to ensure that the tar executable
+			// will not be found. The directory must exist, so that the lookup fails
+			// identically on every platform. GinkgoT().Setenv will restore PATH after
+			// the spec.
+			GinkgoT().Setenv("PATH", GinkgoT().TempDir())
 		})
 
 		It("extracts the TGZ's files, generating directories, and honoring file permissions and symlinks", extractionTest)

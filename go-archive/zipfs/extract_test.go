@@ -121,18 +121,12 @@ var _ = Describe("Extract", func() {
 	})
 
 	Context("when 'unzip' is not in the PATH", func() {
-		var oldPATH string
-
 		BeforeEach(func() {
-			oldPATH = os.Getenv("PATH")
-			os.Setenv("PATH", "/dev/null")
-
-			_, err := exec.LookPath("unzip")
-			Expect(err).To(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			os.Setenv("PATH", oldPATH)
+			// Set PATH to a temporary directory to ensure that the unzip executable
+			// will not be found. The directory must exist, so that the lookup fails
+			// identically on every platform. GinkgoT().Setenv will restore PATH after
+			// the spec.
+			GinkgoT().Setenv("PATH", GinkgoT().TempDir())
 		})
 
 		It("extracts the ZIP's files, generating directories, and honoring file permissions and symlinks", extractionTest)
