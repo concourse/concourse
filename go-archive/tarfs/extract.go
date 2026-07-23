@@ -128,7 +128,10 @@ func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool
 			}
 		}
 
-		err = root.Symlink(header.Linkname, filePath)
+		// TODO: the filepath.FromSlash() is a workaround until the same fix
+		// lands in Go 1.27. It can be removed once we're on Go 1.27
+		// https://github.com/golang/go/issues/80073
+		err = root.Symlink(filepath.FromSlash(header.Linkname), filePath)
 		if err != nil {
 			return err
 		}
