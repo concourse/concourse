@@ -1292,15 +1292,16 @@ var _ = Describe("Repository", func() {
 					BeforeEach(func() {
 						serverResponseCode = http.StatusNoContent
 					})
-					It("should fail", func() {
+					It("should not fail", func() {
 						Expect(streamErr).ToNot(HaveOccurred())
 					})
-					It("should http request", func() {
+					It("should receive the http request", func() {
 						Expect(serverCalled).To(BeTrue())
 					})
 					It("remote should receive bytes", func() {
 						b := new(bytes.Buffer)
-						tgzfs.Compress(b, filepath.Dir(tempFile.Name()), filepath.Base(tempFile.Name()))
+						err := tgzfs.Compress(b, filepath.Dir(tempFile.Name()), filepath.Base(tempFile.Name()))
+						Expect(err).ToNot(HaveOccurred())
 						Expect(len(serverReadBytes)).To(Equal(len(b.Bytes())))
 						n := len(serverReadBytes)
 						Expect(serverReadBytes[:n]).To(Equal(b.Bytes()[:n]))
