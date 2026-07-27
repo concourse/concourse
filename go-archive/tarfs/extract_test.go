@@ -219,10 +219,15 @@ var _ = Describe("ExtractEntry", func() {
 
 	Context("symlinks", func() {
 		It("does not modify absolute paths", func() {
+			linkname := "/absolute/path/file"
+			if runtime.GOOS == "windows" {
+				linkname = `C:\absolute\path\file`
+			}
+
 			header := &tar.Header{
 				Typeflag: tar.TypeSymlink,
 				Name:     "abs",
-				Linkname: "/absolute/path/file",
+				Linkname: linkname,
 			}
 
 			err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
@@ -230,7 +235,7 @@ var _ = Describe("ExtractEntry", func() {
 
 			l, err := os.Readlink(filepath.Join(dest, "abs"))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(l).To(Equal(filepath.FromSlash(header.Linkname)))
+			Expect(l).To(Equal(linkname))
 		})
 
 		It("returns a BreakoutErr when a symlink points outside the destination", func() {
