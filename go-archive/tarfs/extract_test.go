@@ -64,6 +64,12 @@ var _ = Describe("Extract", func() {
 			Link: "/some-file",
 			Mode: 0755,
 		},
+		{
+			// Relative dir symlink: forward-slash targets were unreadable and broke robocopy on Windows (#9609).
+			Name: "./symlink-dir/relative-dir-symlink",
+			Link: "../nonempty-dir",
+			Mode: 0755,
+		},
 	}
 
 	BeforeEach(func() {
@@ -118,16 +124,18 @@ var _ = Describe("Extract", func() {
 
 		Expect(emptyDirInfo.IsDir()).To(BeTrue())
 
-		target, err := os.Readlink(filepath.Join(extractionDest, "some-symlink"))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(target).To(Equal("some-file"))
-
-		symlinkInfo, err := os.Lstat(filepath.Join(extractionDest, "some-symlink"))
-		Expect(err).NotTo(HaveOccurred())
-
-		if runtime.GOOS != "windows" {
-			Expect(symlinkInfo.Mode() & 0755).To(Equal(os.FileMode(0755)))
+		// Regression test for https://github.com/golang/go/issues/80073:
+		// symlink targets must use platform-specific path separators.
+		verifySymlink := func(linkName, wantedTarget string) {
+			gotTarget, err := os.Readlink(linkName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(gotTarget).To(Equal(filepath.FromSlash(wantedTarget)))
 		}
+
+		verifySymlink(filepath.Join(extractionDest, "some-symlink"), "some-file")
+		verifySymlink(filepath.Join(extractionDest, "symlink-dir", "relative-symlink"), "../some-file")
+		verifySymlink(filepath.Join(extractionDest, "symlink-dir", "absolute-symlink"), "/some-file")
+		verifySymlink(filepath.Join(extractionDest, "symlink-dir", "relative-dir-symlink"), "../nonempty-dir")
 	}
 
 	Context("when 'tar' is on the PATH", func() {
