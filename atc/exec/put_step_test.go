@@ -636,6 +636,29 @@ var _ = Describe("PutStep", func() {
 		})
 	})
 
+	Context("when saving the build output fails", func() {
+		disaster := errors.New("failed to save output")
+
+		BeforeEach(func() {
+			fakeDelegate.SaveOutputReturns(disaster)
+		})
+
+		It("returns the error", func() {
+			Expect(stepErr).To(MatchError(disaster))
+		})
+
+		It("is not successful", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+
+		It("does not finish the step or store its result", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
+
+			var result atc.Version
+			Expect(state.Result(planID, &result)).To(BeFalse())
+		})
+	})
+
 	Context("when running the script exits unsuccessfully", func() {
 		BeforeEach(func() {
 			chosenContainer.ProcessDefs[0].Stub.ExitStatus = 42
