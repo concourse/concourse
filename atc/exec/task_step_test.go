@@ -122,6 +122,7 @@ var _ = Describe("TaskStep", func() {
 			stepMetadata,
 			containerMetadata,
 			nil,
+			false,
 			fakePool,
 			fakeStreamer,
 			fakeDelegateFactory,
@@ -1184,5 +1185,145 @@ var _ = Describe("TaskStep", func() {
 				Expect(repo.AsMap()).To(BeEmpty())
 			})
 		})
+	})
+})
+
+// fakeRuntimeWorker is a minimal runtime.Worker that returns a fixed name
+// and returns an error from FindOrCreateContainer so tests can observe the
+// worker-selection behavior of pin_worker without exercising the full
+// container lifecycle. The other methods are unimplemented and will panic
+// if called.
+type fakeRuntimeWorker struct {
+	name string
+}
+
+func (f *fakeRuntimeWorker) Name() string { return f.name }
+func (f *fakeRuntimeWorker) FindOrCreateContainer(
+	_ context.Context, _ db.ContainerOwner, _ db.ContainerMetadata,
+	_ runtime.ContainerSpec, _ runtime.BuildStepDelegate,
+) (runtime.Container, []runtime.VolumeMount, error) {
+	return nil, nil, errors.New("stop after worker selection")
+}
+func (f *fakeRuntimeWorker) CreateVolumeForArtifact(
+	_ context.Context, _ int,
+) (runtime.Volume, db.WorkerArtifact, error) {
+	panic("unimplemented")
+}
+func (f *fakeRuntimeWorker) LookupContainer(
+	_ context.Context, _ string,
+) (runtime.Container, bool, error) {
+	panic("unimplemented")
+}
+func (f *fakeRuntimeWorker) LookupVolume(
+	_ context.Context, _ string,
+) (runtime.Volume, bool, error) {
+	panic("unimplemented")
+}
+func (f *fakeRuntimeWorker) DBWorker() db.Worker {
+	panic("unimplemented")
+}
+
+var _ = Describe("TaskStep pin_worker", func() {
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+
+		fakePool            *execfakes.FakePool
+		fakeStreamer        *execfakes.FakeStreamer
+		fakeDelegate        *execfakes.FakeTaskDelegate
+		fakeDelegateFactory *execfakes.FakeTaskDelegateFactory
+		state               exec.RunState
+
+		taskPlan         = &atc.TaskPlan{Name: "some-task"}
+		stepMetadata     = exec.StepMetadata{BuildID: 1234, TeamID: 123}
+		containerMetadata = db.ContainerMetadata{
+			WorkingDirectory: "some-artifact-root",
+			Type:             db.ContainerTypeTask,
+			StepName:         "some-step",
+		}
+		planID = atc.PlanID("42")
+	)
+
+	// Provide a minimal valid task config so the step reaches worker
+	// selection instead of failing config validation.
+	taskPlan.Config = &atc.TaskConfig{
+		Platform: "some-platform",
+		Run:      atc.TaskRunConfig{Path: "true"},
+	}
+
+	BeforeEach(func() {
+		ctx, cancel = context.WithCancel(context.Background())
+
+		fakePool = new(execfakes.FakePool)
+		fakeStreamer = new(execfakes.FakeStreamer)
+
+		fakeDelegate = new(execfakes.FakeTaskDelegate)
+		fakeDelegate.StartSpanReturns(ctx, tracing.NoopSpan)
+		stdoutBuf := gbytes.NewBuffer()
+		stderrBuf := gbytes.NewBuffer()
+		fakeDelegate.StdoutReturns(stdoutBuf)
+		fakeDelegate.StderrReturns(stderrBuf)
+
+		fakeDelegateFactory = new(execfakes.FakeTaskDelegateFactory)
+		fakeDelegateFactory.TaskDelegateReturns(fakeDelegate)
+
+		state = exec.NewRunState(noopStepper, vars.StaticVariables{})
+	})
+
+	AfterEach(func() {
+		cancel()
+	})
+
+	newStep := func(pinWorker bool) exec.Step {
+		plan := atc.Plan{ID: planID, Task: taskPlan}
+		return exec.NewTaskStep(
+			plan.ID,
+			*plan.Task,
+			atc.ContainerLimits{},
+			stepMetadata,
+			containerMetadata,
+			nil,
+			pinWorker,
+			fakePool,
+			fakeStreamer,
+			fakeDelegateFactory,
+			0,
+			0,
+		)
+	}
+
+	It("records the chosen worker as the build's pinned worker when no worker was pinned", func() {
+		fakePool.FindOrSelectWorkerReturns(&fakeRuntimeWorker{name: "chosen-worker"}, nil)
+
+		step := newStep(true)
+		_, _ = step.Run(ctx, state)
+
+		Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
+		Expect(fakePool.FindOrSelectWorkerOnPinnedCallCount()).To(Equal(0))
+		Expect(state.PinnedWorker()).To(Equal("chosen-worker"))
+	})
+
+	It("uses FindOrSelectWorkerOnPinned when a worker is already pinned", func() {
+		state.SetPinnedWorker("pinned-worker")
+
+		fakePool.FindOrSelectWorkerOnPinnedReturns(&fakeRuntimeWorker{name: "pinned-worker"}, nil)
+
+		step := newStep(true)
+		_, _ = step.Run(ctx, state)
+
+		Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(0))
+		Expect(fakePool.FindOrSelectWorkerOnPinnedCallCount()).To(Equal(1))
+		_, _, _, _, pinnedName, _, _ := fakePool.FindOrSelectWorkerOnPinnedArgsForCall(0)
+		Expect(pinnedName).To(Equal("pinned-worker"))
+		Expect(state.PinnedWorker()).To(Equal("pinned-worker"))
+	})
+
+	It("does not pin a worker when pin_worker is false", func() {
+		fakePool.FindOrSelectWorkerReturns(&fakeRuntimeWorker{name: "chosen-worker"}, nil)
+
+		step := newStep(false)
+		_, _ = step.Run(ctx, state)
+
+		Expect(state.PinnedWorker()).To(BeEmpty())
 	})
 })

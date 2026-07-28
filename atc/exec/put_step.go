@@ -55,6 +55,7 @@ type PutStep struct {
 	metadata          StepMetadata
 	containerMetadata db.ContainerMetadata
 	strategy          worker.PlacementStrategy
+	pinWorker         bool
 	workerPool        Pool
 	delegateFactory   PutDelegateFactory
 	defaultPutTimeout time.Duration
@@ -66,6 +67,7 @@ func NewPutStep(
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	strategy worker.PlacementStrategy,
+	pinWorker bool,
 	workerPool Pool,
 	delegateFactory PutDelegateFactory,
 	defaultPutTimeout time.Duration,
@@ -77,6 +79,7 @@ func NewPutStep(
 		containerMetadata: containerMetadata,
 		workerPool:        workerPool,
 		strategy:          strategy,
+		pinWorker:         pinWorker,
 		delegateFactory:   delegateFactory,
 		defaultPutTimeout: defaultPutTimeout,
 	}
@@ -187,7 +190,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 		return false, err
 	}
 
-	worker, err := step.workerPool.FindOrSelectWorker(ctx, owner, containerSpec, workerSpec, step.strategy, delegate)
+	worker, err := step.selectWorker(ctx, state, delegate, owner, containerSpec, workerSpec)
 	if err != nil {
 		return false, err
 	}
@@ -248,4 +251,29 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	delegate.Finished(logger, 0, versionResult)
 
 	return true, nil
+}
+
+// selectWorker picks a worker for the put step, honoring the build's pinned
+// worker (if the job has pin_worker: true). The first step to need a
+// worker sets the pinned worker; subsequent steps are forced to use the
+// same one. See selectStepWorker for the race-handling details.
+func (step *PutStep) selectWorker(
+	ctx context.Context,
+	state RunState,
+	delegate worker.PoolCallback,
+	owner db.ContainerOwner,
+	containerSpec runtime.ContainerSpec,
+	workerSpec worker.Spec,
+) (runtime.Worker, error) {
+	return selectStepWorker(
+		ctx,
+		step.workerPool,
+		step.strategy,
+		step.pinWorker,
+		state,
+		delegate,
+		owner,
+		containerSpec,
+		workerSpec,
+	)
 }
