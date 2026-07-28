@@ -1,4 +1,4 @@
-//+build !windows
+//go:build !windows
 
 package tarfs
 
@@ -19,7 +19,7 @@ func tarExtract(tarPath string, src io.Reader, dest string) error {
 		return err
 	}
 
-	tarCmd := exec.Command(tarPath, "-pxf", "-")
+	tarCmd := exec.Command(tarPath, "--numeric-owner", "-pxf", "-")
 	tarCmd.Dir = dest
 	tarCmd.Stdin = src
 
@@ -39,7 +39,7 @@ func tarExtract(tarPath string, src io.Reader, dest string) error {
 func tarCompress(tarPath string, dest io.Writer, workDir string, paths ...string) error {
 	out := new(bytes.Buffer)
 
-	args := []string{"-cf", "-", "--null", "-T", "-"}
+	args := []string{"-cf", "-", "--numeric-owner", "--null", "-T", "-"}
 	if runtime.GOOS == "darwin" {
 		args = append([]string{"--no-mac-metadata"}, args...)
 	}

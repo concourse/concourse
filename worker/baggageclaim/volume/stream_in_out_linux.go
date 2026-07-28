@@ -235,7 +235,7 @@ func tarCmd(namespacer uidgid.Namespacer, privileged bool, dir string, args ...s
 		return nil, nil, err
 	}
 
-	tarCommand := exec.Command("tar", append([]string{"-C", "/dev/fd/3"}, args...)...)
+	tarCommand := exec.Command("tar", append([]string{"-C", "/dev/fd/3", "--numeric-owner"}, args...)...)
 	tarCommand.ExtraFiles = []*os.File{dirFd}
 
 	if !privileged {

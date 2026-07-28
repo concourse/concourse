@@ -186,5 +186,51 @@ var _ = Describe("Volume Server", func() {
 				})
 			})
 		})
+
+		Context("when tar entries carry symbolic owner names", func() {
+			BeforeEach(func() {
+				isPrivileged = true
+				tgzBuffer = new(bytes.Buffer)
+				gzWriter := gzip.NewWriter(tgzBuffer)
+				tarWriter := tar.NewWriter(gzWriter)
+
+				// Without --numeric-owner, tar resolves "root" to UID 0 on
+				// extract. With the flag, the numeric 1234 is preserved as-is.
+				err := tarWriter.WriteHeader(&tar.Header{
+					Name:  "some-file",
+					Mode:  0600,
+					Size:  int64(len("file-content")),
+					Uid:   1234,
+					Gid:   1234,
+					Uname: "root",
+					Gname: "root",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				_, err = tarWriter.Write([]byte("file-content"))
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(tarWriter.Close()).To(Succeed())
+				Expect(gzWriter.Close()).To(Succeed())
+			})
+
+			It("preserves numeric ownership rather than resolving names", func() {
+				request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+				Expect(err).NotTo(HaveOccurred())
+				request.Header.Set("Content-Encoding", "gzip")
+				recorder := httptest.NewRecorder()
+				handler.ServeHTTP(recorder, request)
+				Expect(recorder.Code).To(Equal(204))
+
+				tarInfoPath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "dest-path", "some-file")
+				Expect(tarInfoPath).To(BeAnExistingFile())
+
+				stat, err := os.Stat(tarInfoPath)
+				Expect(err).ToNot(HaveOccurred())
+
+				sysStat := stat.Sys().(*syscall.Stat_t)
+				Expect(sysStat.Uid).To(Equal(uint32(1234)))
+				Expect(sysStat.Gid).To(Equal(uint32(1234)))
+			})
+		})
 	})
 })
