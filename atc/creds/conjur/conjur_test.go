@@ -36,16 +36,19 @@ var _ = Describe("Conjur", func() {
 	var variables vars.Variables
 	var varRef vars.Reference
 	var mockService MockConjurService
+	var t1 *creds.SecretTemplate
+	var t2 *creds.SecretTemplate
 
 	JustBeforeEach(func() {
 		varRef = vars.Reference{Path: "cheery"}
-		t1, err := creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
+		var err error
+		t1, err = creds.BuildSecretTemplate("t1", DefaultPipelineSecretTemplate)
 		Expect(t1).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		t2, err := creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
+		t2, err = creds.BuildSecretTemplate("t2", DefaultTeamSecretTemplate)
 		Expect(t2).NotTo(BeNil())
 		Expect(err).To(BeNil())
-		secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{t1, t2})
+		secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{t1, t2}, "")
 		variables = creds.NewVariables(secretAccess, creds.SecretLookupParams{Team: "alpha", Pipeline: "bogus"}, false)
 		Expect(secretAccess).NotTo(BeNil())
 		mockService.stubGetParameter = func(input string) ([]byte, error) {
@@ -98,7 +101,7 @@ var _ = Describe("Conjur", func() {
 		})
 
 		It("should allow full variable path when no templates were configured", func() {
-			secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{})
+			secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{}, "")
 			variables := creds.NewVariables(secretAccess, creds.SecretLookupParams{Team: "", Pipeline: ""}, false)
 			mockService.stubGetParameter = func(input string) ([]byte, error) {
 				Expect(input).To(Equal("cheery"))
@@ -106,6 +109,21 @@ var _ = Describe("Conjur", func() {
 			}
 			value, found, err := variables.Get(varRef)
 			Expect(value).To(BeEquivalentTo("full path secret"))
+			Expect(found).To(BeTrue())
+			Expect(err).To(BeNil())
+		})
+
+		It("should get shared parameter if exists", func() {
+			secretAccess = NewConjur(lager.NewLogger("conjur_test"), &mockService, []*creds.SecretTemplate{t1, t2}, "concourse/shared")
+			variables := creds.NewVariables(secretAccess, creds.SecretLookupParams{Team: "alpha", Pipeline: "bogus"}, false)
+			mockService.stubGetParameter = func(input string) ([]byte, error) {
+				if input != "concourse/shared/cheery" {
+					return nil, errors.New("Variable not found")
+				}
+				return []byte("shared secret"), nil
+			}
+			value, found, err := variables.Get(varRef)
+			Expect(value).To(BeEquivalentTo("shared secret"))
 			Expect(found).To(BeTrue())
 			Expect(err).To(BeNil())
 		})

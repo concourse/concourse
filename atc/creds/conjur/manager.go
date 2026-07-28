@@ -26,6 +26,7 @@ type Manager struct {
 	PipelineSecretTemplate string `long:"pipeline-secret-template" description:"Conjur secret identifier template used for pipeline specific parameter" default:"concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"`
 	TeamSecretTemplate     string `long:"team-secret-template" description:"Conjur secret identifier template used for team specific parameter" default:"concourse/{{.Team}}/{{.Secret}}"`
 	SecretTemplate         string `long:"secret-template" description:"Conjur secret identifier template used for full path conjur secrets" default:"vaultName/{{.Secret}}"`
+	SharedPath             string `long:"shared-path" description:"Path under which to lookup shared credentials"`
 	Conjur                 *Conjur
 }
 
@@ -59,8 +60,9 @@ func (manager *Manager) Init(log lager.Logger) error {
 	}
 
 	manager.Conjur = &Conjur{
-		log:    log,
-		client: conjur,
+		log:        log,
+		client:     conjur,
+		sharedPath: manager.SharedPath,
 	}
 
 	return nil
@@ -141,7 +143,7 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		return nil, err
 	}
 
-	return NewConjurFactory(log, client, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}), nil
+	return NewConjurFactory(log, client, []*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, secretTemplate}, manager.SharedPath), nil
 }
 
 func (manager Manager) Close(logger lager.Logger) {
