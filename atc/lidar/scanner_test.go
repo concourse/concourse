@@ -3,6 +3,7 @@ package lidar_test
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db"
@@ -89,6 +90,7 @@ var _ = Describe("Scanner", func() {
 			Context("when check_every is never", func() {
 				BeforeEach(func() {
 					fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
+					fakeResource.LastCheckEndTimeReturns(time.Now())
 					fakeResource.TypeReturns("parent")
 					fakeResource.PipelineIDReturns(1)
 					fakeResourceType := new(dbfakes.FakeResourceType)
@@ -101,6 +103,25 @@ var _ = Describe("Scanner", func() {
 
 				It("does not check the resource", func() {
 					Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(0))
+				})
+
+				Context("but the resource has never been previously checked", func() {
+					BeforeEach(func() {
+						fakeResource.CheckEveryReturns(&atc.CheckEvery{Never: true})
+						fakeResource.LastCheckEndTimeReturns(time.Time{}) // zero value of time
+						fakeResource.TypeReturns("parent")
+						fakeResource.PipelineIDReturns(1)
+						fakeResourceType := new(dbfakes.FakeResourceType)
+						fakeResourceType.NameReturns("parent")
+						fakeResourceType.PipelineIDReturns(1)
+						fakeCheckFactory.ResourceTypesByPipelineReturns(map[int]db.ResourceTypes{
+							1: {fakeResourceType},
+						}, nil)
+					})
+
+					It("does check the resource", func() {
+						Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(1))
+					})
 				})
 			})
 

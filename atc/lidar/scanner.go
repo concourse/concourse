@@ -133,7 +133,7 @@ func (s *scanner) check(ctx context.Context, checkable db.Checkable, resourceTyp
 	})
 	defer span.End()
 
-	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never {
+	if checkable.CheckEvery() != nil && checkable.CheckEvery().Never && !checkable.LastCheckEndTime().IsZero() {
 		return
 	}
 
