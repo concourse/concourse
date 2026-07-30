@@ -6,8 +6,12 @@ import Json.Encode
 
 {-| Renders an arbitrary JSON value as block-style YAML, for displaying
 `user_data` -- which the API hands back verbatim, so it can be any shape.
-Object key order is preserved as the pipeline author wrote it rather than
-sorted, since this is read as documentation.
+
+Keys are emitted in the order they arrive rather than re-sorted here. Note
+that this is not the order the pipeline author wrote: `user_data` is an
+`any` on the Go side, so encoding/json has already sorted the map keys
+alphabetically by the time we see them.
+
 -}
 fromJson : Json.Decode.Value -> String
 fromJson value =

@@ -63,7 +63,7 @@ all =
                 \_ -> render "\"just words\"" |> Expect.equal "just words"
             ]
         , describe "objects"
-            [ test "preserves the author's key order rather than sorting" <|
+            [ test "emits keys in the order received rather than re-sorting" <|
                 \_ ->
                     render "{\"zebra\": 1, \"apple\": 2, \"mango\": 3}"
                         |> Expect.equal "zebra: 1\napple: 2\nmango: 3"
