@@ -104,14 +104,21 @@ handleCallback callback ( model, effects ) =
         PipelineFetched (Err err) ->
             case err of
                 Http.BadStatus { status } ->
-                    if status.code == 401 then
+                    if status.code == 404 then
+                        -- the only failure that means "there is no such
+                        -- pipeline"; anything else leaves the model alone so
+                        -- the poll can recover rather than bouncing to the
+                        -- not-found page on a transient error
+                        ( { model | pipeline = RemoteData.Failure err }, effects )
+
+                    else if status.code == 401 then
                         ( model, effects ++ [ RedirectToLogin ] )
 
                     else
-                        ( { model | pipeline = RemoteData.Failure err }, effects )
+                        ( model, effects )
 
                 _ ->
-                    ( { model | pipeline = RemoteData.Failure err }, effects )
+                    ( model, effects )
 
         _ ->
             ( model, effects )
