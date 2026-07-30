@@ -96,14 +96,10 @@ all =
                         , fragment = Nothing
                         }
                         |> Expect.equal
-                            (Just
-                                (Routes.PipelineInfo
-                                    { id = Data.pipelineId }
-                                )
-                            )
+                            (Just (Routes.PipelineInfo Data.pipelineId))
             , test "builds the info path" <|
                 \_ ->
-                    Routes.PipelineInfo { id = Data.pipelineId }
+                    Routes.PipelineInfo Data.pipelineId
                         |> Routes.toString
                         |> Expect.equal "/teams/team/pipelines/pipeline/info"
             , test "the plain pipeline path still wins over the info path" <|

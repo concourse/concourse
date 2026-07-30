@@ -55,7 +55,7 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page, groups : List String }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
-    | PipelineInfo { id : Concourse.PipelineIdentifier }
+    | PipelineInfo Concourse.PipelineIdentifier
     | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
       -- the version field is really only used as a hack to populate the breadcrumbs, it's not actually used by anyhting else
@@ -275,11 +275,9 @@ pipelineInfo =
         (\{ teamName, pipelineName } ->
             \iv ->
                 PipelineInfo
-                    { id =
-                        { teamName = teamName
-                        , pipelineName = pipelineName
-                        , pipelineInstanceVars = iv
-                        }
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , pipelineInstanceVars = iv
                     }
         )
         (pipelineIdentifier </> s "info")
@@ -537,7 +535,7 @@ toString route =
                 |> appendQuery (groups |> List.map (Builder.string "group"))
                 |> RouteBuilder.build
 
-        PipelineInfo { id } ->
+        PipelineInfo id ->
             pipelineIdBuilder id
                 |> appendPath [ "info" ]
                 |> RouteBuilder.build
@@ -645,7 +643,7 @@ extractPid route =
         Pipeline { id } ->
             Just id
 
-        PipelineInfo { id } ->
+        PipelineInfo id ->
             Just id
 
         _ ->

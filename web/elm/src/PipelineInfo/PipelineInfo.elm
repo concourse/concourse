@@ -1,6 +1,5 @@
 module PipelineInfo.PipelineInfo exposing
-    ( Flags
-    , Model
+    ( Model
     , changeToPipeline
     , documentTitle
     , getUpdateMessage
@@ -46,31 +45,27 @@ type alias Model =
         }
 
 
-type alias Flags =
-    { pipelineLocator : Concourse.PipelineIdentifier }
-
-
-init : Flags -> ( Model, List Effect )
-init flags =
-    ( { pipelineLocator = flags.pipelineLocator
+init : Concourse.PipelineIdentifier -> ( Model, List Effect )
+init pipelineLocator =
+    ( { pipelineLocator = pipelineLocator
       , pipeline = RemoteData.NotAsked
       , isUserMenuExpanded = False
       }
-    , [ FetchPipeline flags.pipelineLocator
+    , [ FetchPipeline pipelineLocator
       , FetchAllPipelines
       ]
     )
 
 
-changeToPipeline : Flags -> ET Model
-changeToPipeline flags ( model, effects ) =
-    if model.pipelineLocator == flags.pipelineLocator then
+changeToPipeline : Concourse.PipelineIdentifier -> ET Model
+changeToPipeline pipelineLocator ( model, effects ) =
+    if model.pipelineLocator == pipelineLocator then
         ( model, effects )
 
     else
         let
             ( newModel, newEffects ) =
-                init flags
+                init pipelineLocator
         in
         ( newModel, effects ++ newEffects )
 
@@ -158,7 +153,7 @@ view : Session -> Model -> Html Message
 view session model =
     let
         route =
-            Routes.PipelineInfo { id = model.pipelineLocator }
+            Routes.PipelineInfo model.pipelineLocator
     in
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)

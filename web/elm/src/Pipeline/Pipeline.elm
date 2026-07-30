@@ -544,7 +544,7 @@ viewInfoIcon session model =
             (id "top-bar-info-icon"
                 :: href
                     (Routes.toString <|
-                        Routes.PipelineInfo { id = model.pipelineLocator }
+                        Routes.PipelineInfo model.pipelineLocator
                     )
                 :: onMouseEnter (Hover <| Just TopBarInfoIcon)
                 :: onMouseLeave (Hover Nothing)

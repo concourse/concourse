@@ -146,7 +146,7 @@ breadcrumbs session route =
                         , pipeline.archived
                         )
 
-            Routes.PipelineInfo { id } ->
+            Routes.PipelineInfo id ->
                 case lookupPipeline (byPipelineId id) session of
                     Nothing ->
                         ( [], False, False )

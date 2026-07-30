@@ -97,8 +97,8 @@ init session route =
                 }
                 |> Tuple.mapFirst PipelineModel
 
-        Routes.PipelineInfo { id } ->
-            PipelineInfo.init { pipelineLocator = id }
+        Routes.PipelineInfo id ->
+            PipelineInfo.init id
                 |> Tuple.mapFirst PipelineInfoModel
 
         Routes.Dashboard { searchType, dashboardView } ->
@@ -390,8 +390,8 @@ urlUpdateValid routes =
                 identity
         )
         (case routes.to of
-            Routes.PipelineInfo { id } ->
-                PipelineInfo.changeToPipeline { pipelineLocator = id }
+            Routes.PipelineInfo id ->
+                PipelineInfo.changeToPipeline id
 
             _ ->
                 identity
