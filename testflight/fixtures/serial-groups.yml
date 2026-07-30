@@ -12,6 +12,12 @@ resources:
     # this initial version is to make it unique and isnt really used
     initial_version: ((hash))
 
+- name: check-never
+  type: mock
+  check_every: never
+  source:
+    initial_version: ((hash))
+
 jobs:
 - name: some-passing-job
   serial_groups: [serial-group-1]
@@ -22,3 +28,8 @@ jobs:
   serial_groups: [serial-group-1]
   plan:
   - get: pending-resource
+
+- name: serial-true-job
+  serial: true
+  plan:
+    - get: check-never

@@ -93,4 +93,13 @@ var _ = Describe("serial groups", func() {
 			Expect(pendingS).To(gbytes.Say(guid3))
 		}, DefaultSpecTimeout)
 	})
+
+	Context("when a resource has check_every never configured", func() {
+		It("checks the resource and runs the job", func(ctx SpecContext) {
+			setAndUnpausePipeline("fixtures/serial-groups.yml", "-v", "hash="+hash)
+			By("kicking off serial-true-job")
+			sess := fly("trigger-job", "-j", inPipeline("serial-true-job"), "-w")
+			Eventually(sess).To(gexec.Exit(0))
+		}, DefaultSpecTimeout)
+	})
 })
