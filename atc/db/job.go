@@ -1126,11 +1126,10 @@ func (j *job) getNextPendingBuildBySerialGroup(tx Tx, serialGroups []string) (Bu
 	subQuery, params, err := buildsQuery.Options(`DISTINCT ON (b.id)`).
 		Join(`jobs_serial_groups jsg ON j.id = jsg.job_id`).
 		Where(sq.Eq{
-			"jsg.serial_group":    serialGroups,
-			"b.status":            BuildStatusPending,
-			"j.paused":            false,
-			"j.inputs_determined": true,
-			"j.pipeline_id":       j.pipelineID}).
+			"jsg.serial_group": serialGroups,
+			"b.status":         BuildStatusPending,
+			"j.paused":         false,
+			"j.pipeline_id":    j.pipelineID}).
 		ToSql()
 	if err != nil {
 		return nil, false, err
