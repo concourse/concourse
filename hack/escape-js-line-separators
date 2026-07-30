@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+// U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) are line
+// terminators in ECMAScript before ES2019, so a literal one inside a string
+// literal is a syntax error to any parser predating that -- including
+// uglify-js, which is ES5-only. The Elm compiler emits these characters
+// verbatim when a dependency has them as Char literals, which makes the
+// generated bundle unparseable by the minifier even though it is valid
+// modern JavaScript.
+//
+// Rewriting them to their equivalent escape sequences is semantically
+// identical and keeps the bundle minifiable.
+import { readFileSync, writeFileSync } from "node:fs";
+
+const path = process.argv[2];
+if (!path) {
+  console.error("usage: escape-js-line-separators <file>");
+  process.exit(1);
+}
+
+const source = readFileSync(path, "utf8");
+const escaped = source
+  .replace(/\u2028/g, "\\u2028")
+  .replace(/\u2029/g, "\\u2029");
+
+if (escaped !== source) {
+  writeFileSync(path, escaped);
+}
