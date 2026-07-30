@@ -34,6 +34,7 @@ import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import NotFound.Model
 import NotFound.NotFound as NotFound
 import Pipeline.Pipeline as Pipeline
+import PipelineInfo.PipelineInfo as PipelineInfo
 import Resource.Models
 import Resource.Resource as Resource
 import Routes
@@ -46,6 +47,7 @@ type Model
     | JobModel Job.Model
     | ResourceModel Resource.Models.Model
     | PipelineModel Pipeline.Model
+    | PipelineInfoModel PipelineInfo.Model
     | NotFoundModel NotFound.Model.Model
     | DashboardModel Dashboard.Models.Model
     | FlySuccessModel FlySuccess.Models.Model
@@ -94,6 +96,10 @@ init session route =
                 , selectedGroups = groups
                 }
                 |> Tuple.mapFirst PipelineModel
+
+        Routes.PipelineInfo { id } ->
+            PipelineInfo.init { pipelineLocator = id }
+                |> Tuple.mapFirst PipelineInfoModel
 
         Routes.Dashboard { searchType, dashboardView } ->
             Dashboard.init
@@ -160,6 +166,9 @@ getUpdateMessage model =
         CausalityModel mdl ->
             Causality.getUpdateMessage mdl
 
+        PipelineInfoModel mdl ->
+            PipelineInfo.getUpdateMessage mdl
+
         _ ->
             UpdateMsg.AOK
 
@@ -169,13 +178,14 @@ genericUpdate :
     -> ET Job.Model
     -> ET Resource.Models.Model
     -> ET Pipeline.Model
+    -> ET PipelineInfo.Model
     -> ET Dashboard.Models.Model
     -> ET Causality.Model
     -> ET NotFound.Model.Model
     -> ET FlySuccess.Models.Model
     -> ET DownloadFly.Model.Model
     -> ET Model
-genericUpdate fBuild fJob fRes fPipe fDash fCaus fNF fFS dFly ( model, effects ) =
+genericUpdate fBuild fJob fRes fPipe fPipeInfo fDash fCaus fNF fFS dFly ( model, effects ) =
     case model of
         BuildModel buildModel ->
             fBuild ( buildModel, effects )
@@ -192,6 +202,10 @@ genericUpdate fBuild fJob fRes fPipe fDash fCaus fNF fFS dFly ( model, effects )
         ResourceModel resourceModel ->
             fRes ( resourceModel, effects )
                 |> Tuple.mapFirst ResourceModel
+
+        PipelineInfoModel pipelineInfoModel ->
+            fPipeInfo ( pipelineInfoModel, effects )
+                |> Tuple.mapFirst PipelineInfoModel
 
         DashboardModel dashboardModel ->
             fDash ( dashboardModel, effects )
@@ -221,6 +235,7 @@ handleCallback callback session =
         (Job.handleCallback callback)
         (Resource.handleCallback callback session)
         (Pipeline.handleCallback callback)
+        (PipelineInfo.handleCallback callback)
         (Dashboard.handleCallback callback)
         (Causality.handleCallback callback)
         identity
@@ -229,6 +244,7 @@ handleCallback callback session =
         >> (case callback of
                 LoggedOut (Ok ()) ->
                     genericUpdate
+                        handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
                         handleLoggedOut
@@ -265,6 +281,7 @@ handleDelivery session delivery =
         (Job.handleDelivery delivery)
         (Resource.handleDelivery session delivery)
         (Pipeline.handleDelivery delivery)
+        (PipelineInfo.handleDelivery delivery)
         (Dashboard.handleDelivery session delivery)
         (Causality.handleDelivery delivery)
         (NotFound.handleDelivery delivery)
@@ -279,6 +296,7 @@ update session msg =
         (Login.update msg >> Job.update msg)
         (Login.update msg >> Resource.update msg)
         (Login.update msg >> Pipeline.update msg)
+        (Login.update msg >> PipelineInfo.update msg)
         (Login.update msg >> Dashboard.update session msg)
         (Login.update msg >> Causality.update msg)
         (Login.update msg)
@@ -372,6 +390,13 @@ urlUpdateValid routes =
                 identity
         )
         (case routes.to of
+            Routes.PipelineInfo { id } ->
+                PipelineInfo.changeToPipeline { pipelineLocator = id }
+
+            _ ->
+                identity
+        )
+        (case routes.to of
             Routes.Dashboard f ->
                 Dashboard.changeRoute f
 
@@ -416,6 +441,11 @@ view ({ userState } as session) mdl =
             , Resource.view session model
             )
 
+        PipelineInfoModel model ->
+            ( PipelineInfo.documentTitle model
+            , PipelineInfo.view session model
+            )
+
         DashboardModel model ->
             ( Dashboard.documentTitle
             , Dashboard.view session model
@@ -457,6 +487,9 @@ tooltip mdl =
         ResourceModel model ->
             Resource.tooltip model
 
+        PipelineInfoModel model ->
+            PipelineInfo.tooltip model
+
         DashboardModel _ ->
             Dashboard.tooltip
 
@@ -487,6 +520,9 @@ subscriptions mdl =
 
         ResourceModel model ->
             Resource.subscriptions model
+
+        PipelineInfoModel _ ->
+            PipelineInfo.subscriptions
 
         DashboardModel _ ->
             Dashboard.subscriptions

@@ -14,6 +14,7 @@ module Pipeline.Pipeline exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -45,8 +46,6 @@ import Message.Subscription
         , Interval(..)
         , Subscription(..)
         )
-import Markdown.Parser
-import Markdown.Renderer
 import Message.TopLevelMessage exposing (TopLevelMessage(..))
 import Pipeline.Filter as Filter
 import Pipeline.PinMenu.PinMenu as PinMenu
@@ -63,6 +62,7 @@ import Time
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.FavoritedIcon as FavoritedIcon
+import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 import Views.SearchBar as SearchBar
 import Views.Styles
@@ -486,6 +486,7 @@ view session model =
                             , timeZone = session.timeZone
                             }
                     , PinMenu.viewPinMenu session model
+                    , viewInfoIcon session model
                     , Html.div
                         Styles.favoritedIcon
                         [ FavoritedIcon.view
@@ -533,9 +534,63 @@ view session model =
         ]
 
 
+{-| Links to the pipeline's `user_data`, and is only shown when there is any
+to link to.
+-}
+viewInfoIcon : { a | hovered : HoverState.HoverState } -> Model -> Html Message
+viewInfoIcon session model =
+    if hasUserData model.pipeline then
+        Html.a
+            (id "top-bar-info-icon"
+                :: href
+                    (Routes.toString <|
+                        Routes.PipelineInfo { id = model.pipelineLocator }
+                    )
+                :: onMouseEnter (Hover <| Just TopBarInfoIcon)
+                :: onMouseLeave (Hover Nothing)
+                :: Styles.infoIcon
+            )
+            [ Icon.icon
+                { sizePx = 20, image = Assets.InformationOutlineIcon }
+                [ style "opacity" <|
+                    if HoverState.isHovered TopBarInfoIcon session.hovered then
+                        "1"
+
+                    else
+                        "0.5"
+                ]
+            ]
+
+    else
+        Html.text ""
+
+
+hasUserData : WebData Concourse.Pipeline -> Bool
+hasUserData pipeline =
+    case pipeline of
+        RemoteData.Success { userData } ->
+            case userData of
+                Just _ ->
+                    True
+
+                Nothing ->
+                    False
+
+        _ ->
+            False
+
+
 tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip model session =
     case session.hovered of
+        HoverState.Tooltip TopBarInfoIcon _ ->
+            Just
+                { body = Html.text "pipeline info"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         HoverState.Tooltip (TopBarPipelineName _) _ ->
             case lastUpdatedAt model.pipeline of
                 Just time ->
@@ -655,44 +710,6 @@ backgroundImage pipeline =
             []
 
 
-{-| Rendered as a layout-in-flow panel above the graph area (a sibling of
-`viewGroupsBar`, not inside `.pipeline-content`) so it reserves its own
-space instead of competing with the graph/background for the same pixels,
-unlike `display.background_image` above.
--}
-descriptionPanel : WebData Concourse.Pipeline -> Html msg
-descriptionPanel pipeline =
-    case pipeline of
-        RemoteData.Success p ->
-            case p.description of
-                Just description ->
-                    Html.div
-                        (id "pipeline-description" :: Styles.descriptionPanel)
-                        (renderDescription description)
-
-                Nothing ->
-                    Html.text ""
-
-        _ ->
-            Html.text ""
-
-
-{-| Renders with elm-markdown's defaultHtmlRenderer, which does not render
-raw HTML embedded in the markdown source (`html = Markdown.Html.oneOf []`)
--- descriptions come from pipeline config a team member wrote, viewable by
-anyone with view access including anonymous viewers on public pipelines, so
-we deliberately don't opt into a raw-HTML-passthrough renderer. Falls back
-to the raw (still-escaped) text on any parse/render failure.
--}
-renderDescription : String -> List (Html msg)
-renderDescription description =
-    description
-        |> Markdown.Parser.parse
-        |> Result.mapError (\_ -> "")
-        |> Result.andThen (Markdown.Renderer.render Markdown.Renderer.defaultHtmlRenderer)
-        |> Result.withDefault [ Html.text description ]
-
-
 viewSubPage :
     { a | hovered : HoverState.HoverState, version : String, screenSize : ScreenSize, hideUI : Bool }
     -> Model
@@ -706,7 +723,6 @@ viewSubPage session model =
         , style "flex-grow" "1"
         ]
         [ viewGroupsBar session model
-        , descriptionPanel model.pipeline
         , Html.div
             [ class "pipeline-content" ]
             [ Html.div

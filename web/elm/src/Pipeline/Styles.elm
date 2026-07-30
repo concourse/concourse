@@ -1,10 +1,10 @@
 module Pipeline.Styles exposing
     ( consoleIcon
-    , descriptionPanel
     , docsIcon
     , favoritedIcon
     , groupItem
     , groupsBar
+    , infoIcon
     , pauseToggle
     , pipelineBackground
     )
@@ -121,12 +121,10 @@ pipelineBackground { image, filter } =
     ]
 
 
-descriptionPanel : List (Html.Attribute msg)
-descriptionPanel =
-    [ style "background-color" Colors.groupsBarBackground
-    , style "color" Colors.dashboardText
-    , style "padding" "10px 20px"
-    , style "font-size" "14px"
-    , style "line-height" "1.4"
-    , style "max-width" "800px"
+infoIcon : List (Html.Attribute msg)
+infoIcon =
+    [ style "display" "flex"
+    , style "align-items" "center"
+    , style "padding" "0 17px"
+    , style "cursor" "pointer"
     ]
