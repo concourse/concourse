@@ -63,8 +63,6 @@ func TestTestflight(t *testing.T) {
 	RunSpecs(t, "TestFlight Suite")
 }
 
-const DefaultSpecTimeout = SpecTimeout(6 * time.Minute)
-
 var _ = SynchronizedBeforeSuite(func() []byte {
 	atcURL := os.Getenv("ATC_URL")
 	if atcURL != "" {
@@ -144,6 +142,8 @@ var _ = SynchronizedAfterSuite(func() {
 	os.Remove(config.FlyBin)
 })
 
+const DefaultSpecTimeout = SpecTimeout(6 * time.Minute)
+
 var _ = BeforeEach(func() {
 	SetDefaultEventuallyTimeout(5 * time.Minute)
 	SetDefaultEventuallyPollingInterval(time.Second)
@@ -194,6 +194,8 @@ func randomPipelineName() string {
 	return fmt.Sprintf("%s-%d-%s", pipelinePrefix, GinkgoParallelProcess(), guid)
 }
 
+// Runs the fly command and waits for it to Exit. Will fail the test if exit
+// code is non-zero
 func fly(argv ...string) *gexec.Session {
 	sess := spawnFly(argv...)
 	wait(sess, false)
@@ -206,6 +208,8 @@ func flyIn(dir string, argv ...string) *gexec.Session {
 	return sess
 }
 
+// Runs the fly command and waits for it to Exit. Only fails the test if the
+// command fails to exit before the timeout
 func flyUnsafe(argv ...string) *gexec.Session {
 	sess := spawnFly(argv...)
 	wait(sess, true)
@@ -362,7 +366,7 @@ func waitForBuildAndWatch(jobName string, buildName ...string) *gexec.Session {
 	keepPollingCheck := regexp.MustCompile("job has no builds|build not found|failed to get build")
 	for {
 		session := spawnFly(args...)
-		<-session.Exited
+		Eventually(session).Should(gexec.Exit())
 
 		if session.ExitCode() == 1 {
 			output := strings.TrimSpace(string(session.Err.Contents()))

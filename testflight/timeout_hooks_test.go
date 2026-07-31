@@ -14,10 +14,9 @@ var _ = Describe("A pipeline containing a job with a timeout and hooks", func() 
 
 	It("runs the failure and ensure hooks", func(ctx SpecContext) {
 		watch := spawnFly("trigger-job", "-j", inPipeline("duration-fail-job"), "-w")
-		<-watch.Exited
+		Eventually(watch).Should(gexec.Exit(1))
 		Expect(watch).To(gbytes.Say("duration fail job on failure"))
 		Expect(watch).To(gbytes.Say("duration fail job ensure"))
-		Expect(watch).To(gexec.Exit(1))
 		Expect(watch.Out.Contents()).NotTo(ContainSubstring("duration fail job on success"))
 	}, DefaultSpecTimeout)
 })

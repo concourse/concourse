@@ -28,8 +28,7 @@ var _ = Describe("A job with a step that retries", func() {
 		BeforeEach(func() {
 			watch := spawnFly("trigger-job", "-j", inPipeline("retry-job-fail-for-hijacking"), "-w")
 			// wait until job finishes before trying to hijack
-			<-watch.Exited
-			Expect(watch).To(gexec.Exit(1))
+			Eventually(watch).Should(gexec.Exit(1))
 		})
 
 		It("permits hijacking a specific attempt", func(ctx SpecContext) {
