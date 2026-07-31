@@ -123,8 +123,10 @@ pipelineBackground { image, filter } =
 
 infoIcon : List (Html.Attribute msg)
 infoIcon =
-    [ style "display" "flex"
-    , style "align-items" "center"
-    , style "padding" "0 17px"
+    [ style "border-left" <|
+        "1px solid "
+            ++ Colors.background
+    , style "background-color" Colors.topBarBackground
+    , style "display" "flex"
     , style "cursor" "pointer"
     ]

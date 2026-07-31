@@ -552,7 +552,11 @@ viewInfoIcon session model =
             )
             [ Icon.icon
                 { sizePx = 20, image = Assets.InformationOutlineIcon }
-                [ style "opacity" <|
+                -- 17px each side of a 20px icon fills the 54px top bar, so
+                -- the border-left reads as a full-height divider like the
+                -- favourite and pause controls
+                [ style "margin" "17px"
+                , style "opacity" <|
                     if HoverState.isHovered TopBarInfoIcon session.hovered then
                         "1"
 
