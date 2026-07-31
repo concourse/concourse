@@ -77,12 +77,6 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 			continue
 		}
 
-		if !results.scheduled {
-			// If max in flight is reached, stop scheduling and retry later
-			needsRetry = true
-			break
-		}
-
 		if !results.readyToDetermineInputs {
 			// Issue checks, stop scheduling, retry later
 			needsRetry = true
@@ -90,6 +84,12 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 			if err != nil {
 				return false, err
 			}
+			break
+		}
+
+		if !results.scheduled {
+			// If max in flight is reached, stop scheduling and retry later
+			needsRetry = true
 			break
 		}
 
@@ -207,8 +207,9 @@ func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build
 				)
 				if err != nil {
 					logger.Error("buildstarter-checking-resource", err, lager.Data{
-						"job_id":      job.ID(),
-						"resource_id": resource.ID(),
+						"pipeline": job.PipelineName(),
+						"job":      job.Name(),
+						"resource": resource.Name(),
 					})
 				}
 			}(resource)

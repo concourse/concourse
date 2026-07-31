@@ -282,18 +282,18 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 }
 
 func wait(session *gexec.Session, allowNonZero bool) {
-	<-session.Exited
-	if !allowNonZero {
-		Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	if allowNonZero {
+		Eventually(session).Should(gexec.Exit())
+		return
 	}
+	Eventually(session).Should(gexec.Exit(0))
 }
 
 var colSplit = regexp.MustCompile(`\s{2,}`)
 
 func flyTable(argv ...string) []map[string]string {
 	session := spawnFly(append([]string{"--print-table-headers"}, argv...)...)
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
+	Eventually(session).Should(gexec.Exit(0))
 
 	result := []map[string]string{}
 	var headers []string
