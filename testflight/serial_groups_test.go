@@ -32,7 +32,7 @@ var _ = Describe("serial groups", func() {
 
 		AfterEach(func() {
 			pendingS.Signal(os.Interrupt)
-			<-pendingS.Exited
+			Eventually(pendingS).Should(gexec.Exit())
 		})
 
 		It("runs even when another job in the serial group has a pending build", func(ctx SpecContext) {
@@ -87,8 +87,7 @@ var _ = Describe("serial groups", func() {
 			guid3 := newMockVersion("other-resource", "other-1")
 
 			By("waiting for some-pending-job to finally run")
-			<-pendingS.Exited
-			Expect(pendingS.ExitCode()).To(Equal(0))
+			Eventually(pendingS).Should(gexec.Exit(0))
 			Expect(pendingS).To(gbytes.Say(guid2))
 			Expect(pendingS).To(gbytes.Say(guid3))
 		}, DefaultSpecTimeout)
