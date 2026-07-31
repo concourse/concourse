@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os/exec"
@@ -189,6 +190,103 @@ var _ = Describe("hijack", func() {
 
 		It("hijacks the most recent one-off build in the specified working directory", func() {
 			hijack("-s", "some-step")
+		})
+	})
+
+	Context("when a large amount of input is written at once", func() {
+		var receivedStdin chan []byte
+
+		bigInput := func() []byte {
+			var buf bytes.Buffer
+			for i := 0; buf.Len() < 8*1024*1024; i++ {
+				fmt.Fprintf(&buf, "line %08d %s\n", i, strings.Repeat("x", 48))
+			}
+			return buf.Bytes()
+		}()
+
+		BeforeEach(func() {
+			didHijack := make(chan struct{})
+			hijacked = didHijack
+			receivedStdin = make(chan []byte, 1)
+
+			atcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/builds"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Build{
+						{ID: 3, Name: "3", Status: "started"},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers", "build_id=3&step_name=some-step"),
+					ghttp.RespondWithJSONEncoded(200, []atc.Container{
+						{ID: "container-id-1", State: atc.ContainerStateCreated, BuildID: 3, Type: "task", StepName: "some-step", User: user},
+					}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/api/v1/teams/main/containers/container-id-1/hijack"),
+					func(w http.ResponseWriter, r *http.Request) {
+						defer GinkgoRecover()
+
+						conn, err := upgrader.Upgrade(w, r, nil)
+						Expect(err).NotTo(HaveOccurred())
+
+						defer conn.Close()
+
+						close(didHijack)
+
+						var processSpec atc.HijackProcessSpec
+						err = conn.ReadJSON(&processSpec)
+						Expect(err).NotTo(HaveOccurred())
+
+						time.Sleep(time.Second)
+
+						var stdin []byte
+						for {
+							var payload atc.HijackInput
+							err := conn.ReadJSON(&payload)
+							Expect(err).NotTo(HaveOccurred())
+
+							if payload.Closed {
+								break
+							}
+
+							stdin = append(stdin, payload.Stdin...)
+						}
+
+						receivedStdin <- stdin
+
+						exitStatus := 0
+						err = conn.WriteJSON(atc.HijackOutput{
+							ExitStatus: &exitStatus,
+						})
+						Expect(err).NotTo(HaveOccurred())
+					},
+				),
+			)
+		})
+
+		It("delivers the input to the container intact", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "hijack", "-s", "some-step")
+
+			stdin, err := flyCmd.StdinPipe()
+			Expect(err).NotTo(HaveOccurred())
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(hijacked).Should(BeClosed())
+
+			_, err = stdin.Write(bigInput)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = stdin.Close()
+			Expect(err).NotTo(HaveOccurred())
+
+			var got []byte
+			Eventually(receivedStdin, 10*time.Second).Should(Receive(&got))
+			Expect(got).To(Equal(bigInput))
+
+			<-sess.Exited
 		})
 	})
 
