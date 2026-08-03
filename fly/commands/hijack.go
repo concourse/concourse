@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -470,7 +471,7 @@ type stdinWriter struct {
 
 func (w *stdinWriter) Write(d []byte) (int, error) {
 	w.inputs <- atc.HijackInput{
-		Stdin: d,
+		Stdin: bytes.Clone(d),
 	}
 
 	return len(d), nil
