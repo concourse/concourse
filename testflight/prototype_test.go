@@ -4,7 +4,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Pipeline with prototypes", func() {
@@ -13,9 +12,7 @@ var _ = Describe("Pipeline with prototypes", func() {
 	})
 
 	It("executes the build plan correctly", func(ctx SpecContext) {
-		watch := spawnFly("trigger-job", "-j", inPipeline("job"), "-w")
-		<-watch.Exited
-		Expect(watch).To(gexec.Exit(0))
+		watch := fly("trigger-job", "-j", inPipeline("job"), "-w")
 
 		// XXX(prototypes): eventually, this'll need to test the real implementation
 		Expect(watch).To(gbytes.Say("run some-message on prototype some-prototype"))

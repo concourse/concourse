@@ -14,7 +14,7 @@ var _ = Describe("A job with a task that has container limits", func() {
 		setAndUnpausePipeline("fixtures/container_limits.yml")
 
 		watch := spawnFly("trigger-job", "-j", inPipeline("container-limits-job"), "-w")
-		<-watch.Exited
+		Eventually(watch).Should(gexec.Exit())
 
 		match, _ := regexp.MatchString(`open /sys/fs/cgroup/memory/.*/memory\.memsw\.limit_in_bytes: (permission denied)?(no such file or directory)?`,
 			string(watch.Out.Contents()))
@@ -36,7 +36,7 @@ var _ = Describe("A job with a task that has container limits", func() {
 		setAndUnpausePipeline("fixtures/container_limits_failing.yml")
 
 		watch := spawnFly("trigger-job", "-j", inPipeline("container-limits-failing-job"), "-w")
-		<-watch.Exited
+		Eventually(watch).Should(gexec.Exit())
 
 		match, _ := regexp.MatchString(`open /sys/fs/cgroup/memory/.*/memory\.memsw\.limit_in_bytes: (permission denied)?(no such file or directory)?`,
 			string(watch.Out.Contents()))
