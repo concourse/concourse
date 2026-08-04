@@ -283,8 +283,7 @@ func JobInstances(job string) []BoshInstance {
 
 func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 	session := SpawnBosh("instances", "-p")
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
+	Eventually(session).Should(gexec.Exit(0))
 
 	output := string(session.Out.Contents())
 
@@ -434,8 +433,7 @@ func WaitForWorkerInState(desiredStates ...string) string {
 
 func FlyTable(argv ...string) []map[string]string {
 	session := Fly.Start(append([]string{"--print-table-headers"}, argv...)...)
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
+	Eventually(session).Should(gexec.Exit(0))
 
 	result := []map[string]string{}
 
@@ -549,7 +547,7 @@ func VolumesByResourceType(name string) []string {
 
 func WaitForDeploymentAndCompileLocks() {
 	cloudConfig := Start(nil, "bosh", "cloud-config")
-	<-cloudConfig.Exited
+	Eventually(cloudConfig).Should(gexec.Exit())
 	cc := struct {
 		Compilation struct {
 			Workers int
@@ -585,8 +583,7 @@ func PgDump() *gexec.Session {
 	dump.Stdin = bytes.NewBufferString("dummy-password\n")
 	session, err := gexec.Start(dump, nil, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
+	Eventually(session).Should(gexec.Exit(0))
 	return session
 }
 
