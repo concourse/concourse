@@ -188,6 +188,7 @@ func downloadFly(atcUrl string) (string, error) {
 }
 
 func randomPipelineName() string {
+	GinkgoHelper()
 	guid, err := uuid.NewRandom()
 	Expect(err).ToNot(HaveOccurred())
 
@@ -197,12 +198,14 @@ func randomPipelineName() string {
 // Runs the fly command and waits for it to Exit. Will fail the test if exit
 // code is non-zero
 func fly(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawnFly(argv...)
 	wait(sess, false)
 	return sess
 }
 
 func flyIn(dir string, argv ...string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawnFlyIn(dir, argv...)
 	wait(sess, false)
 	return sess
@@ -211,12 +214,14 @@ func flyIn(dir string, argv ...string) *gexec.Session {
 // Runs the fly command and waits for it to Exit. Only fails the test if the
 // command fails to exit before the timeout
 func flyUnsafe(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawnFly(argv...)
 	wait(sess, true)
 	return sess
 }
 
 func flyLogin(target, team, username, password string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawn(
 		config.FlyBin,
 		"-t", target,
@@ -231,14 +236,17 @@ func flyLogin(target, team, username, password string) *gexec.Session {
 }
 
 func spawnFly(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	return spawn(config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func spawnFlyIn(dir string, argv ...string) *gexec.Session {
+	GinkgoHelper()
 	return spawnIn(dir, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
 }
 
 func spawnFlyOpts(opts ...spawnOpt) func(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	spawnFn := spawnOpts(opts...)
 	return func(argv ...string) *gexec.Session {
 		return spawnFn(config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
@@ -256,6 +264,7 @@ func withStdin(stdin io.Reader) spawnOpt {
 
 func spawnOpts(opts ...spawnOpt) func(argc string, argv ...string) *gexec.Session {
 	return func(argc string, argv ...string) *gexec.Session {
+		GinkgoHelper()
 		By("running: " + argc + " " + strings.Join(argv, " "))
 		cmd := exec.Command(argc, argv...)
 		for _, opt := range opts {
@@ -268,6 +277,7 @@ func spawnOpts(opts ...spawnOpt) func(argc string, argv ...string) *gexec.Sessio
 }
 
 func spawn(argc string, argv ...string) *gexec.Session {
+	GinkgoHelper()
 	By("running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	cmd.StdinPipe()
@@ -277,6 +287,7 @@ func spawn(argc string, argv ...string) *gexec.Session {
 }
 
 func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
+	GinkgoHelper()
 	By("running in " + dir + ": " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	cmd.Dir = dir
@@ -286,6 +297,7 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 }
 
 func wait(session *gexec.Session, allowNonZero bool) {
+	GinkgoHelper()
 	if allowNonZero {
 		Eventually(session).Should(gexec.Exit())
 		return
@@ -296,6 +308,7 @@ func wait(session *gexec.Session, allowNonZero bool) {
 var colSplit = regexp.MustCompile(`\s{2,}`)
 
 func flyTable(argv ...string) []map[string]string {
+	GinkgoHelper()
 	session := spawnFly(append([]string{"--print-table-headers"}, argv...)...)
 	Eventually(session).Should(gexec.Exit(0))
 
@@ -332,20 +345,24 @@ func flyTable(argv ...string) []map[string]string {
 }
 
 func setAndUnpausePipeline(config string, args ...string) {
+	GinkgoHelper()
 	setPipeline(config, args...)
 	fly("unpause-pipeline", "-p", pipelineName)
 }
 
 func setPipeline(config string, args ...string) {
+	GinkgoHelper()
 	sp := []string{"set-pipeline", "-n", "-p", pipelineName, "-c", config}
 	fly(append(sp, args...)...)
 }
 
 func inPipeline(thing string) string {
+	GinkgoHelper()
 	return pipelineName + "/" + thing
 }
 
 func newMockVersion(resourceName string, tag string) string {
+	GinkgoHelper()
 	guid, err := uuid.NewRandom()
 	Expect(err).ToNot(HaveOccurred())
 
@@ -357,6 +374,7 @@ func newMockVersion(resourceName string, tag string) string {
 }
 
 func waitForBuildAndWatch(jobName string, buildName ...string) *gexec.Session {
+	GinkgoHelper()
 	args := []string{"watch", "-j", inPipeline(jobName)}
 
 	if len(buildName) > 0 {
@@ -382,6 +400,7 @@ func waitForBuildAndWatch(jobName string, buildName ...string) *gexec.Session {
 }
 
 func withFlyTarget(target string, f func()) {
+	GinkgoHelper()
 	before := flyTarget
 	flyTarget = target
 	f()

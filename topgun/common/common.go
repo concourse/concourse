@@ -184,6 +184,7 @@ type BoshInstance struct {
 }
 
 func StartDeploy(manifest string, args ...string) *gexec.Session {
+	GinkgoHelper()
 	WaitForDeploymentAndCompileLocks()
 
 	var modifiedSuiteName string
@@ -211,6 +212,7 @@ func StartDeploy(manifest string, args ...string) *gexec.Session {
 }
 
 func Deploy(manifest string, args ...string) {
+	GinkgoHelper()
 	if DbConn != nil {
 		Expect(DbConn.Close()).To(Succeed())
 	}
@@ -282,6 +284,7 @@ func JobInstances(job string) []BoshInstance {
 }
 
 func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
+	GinkgoHelper()
 	session := SpawnBosh("instances", "-p")
 	Eventually(session).Should(gexec.Exit(0))
 
@@ -321,16 +324,19 @@ func LoadJobInstances() (map[string][]BoshInstance, map[string][]BoshInstance) {
 }
 
 func Bosh(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	session := SpawnBosh(argv...)
 	Wait(session)
 	return session
 }
 
 func SpawnBosh(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	return Start(nil, "bosh", append([]string{"-n", "-d", DeploymentName}, argv...)...)
 }
 
 func ConcourseClient() concourse.Client {
+	GinkgoHelper()
 	token, err := FetchToken(AtcExternalURL, AtcUsername, AtcPassword)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -347,6 +353,7 @@ func ConcourseClient() concourse.Client {
 }
 
 func DeleteAllContainers() {
+	GinkgoHelper()
 	client := ConcourseClient()
 	workers, err := client.ListWorkers()
 	Expect(err).NotTo(HaveOccurred())
@@ -374,18 +381,22 @@ func DeleteAllContainers() {
 }
 
 func WaitForLandedWorker() string {
+	GinkgoHelper()
 	return WaitForWorkerInState("landed")
 }
 
 func WaitForRunningWorker() string {
+	GinkgoHelper()
 	return WaitForWorkerInState("running")
 }
 
 func WaitForStalledWorker() string {
+	GinkgoHelper()
 	return WaitForWorkerInState("stalled")
 }
 
 func WorkerState(name string) string {
+	GinkgoHelper()
 	workers := FlyTable("workers")
 
 	for _, w := range workers {
@@ -398,6 +409,7 @@ func WorkerState(name string) string {
 }
 
 func WaitForWorkerInState(desiredStates ...string) string {
+	GinkgoHelper()
 	var workerName string
 
 	Eventually(func() string {
@@ -432,6 +444,7 @@ func WaitForWorkerInState(desiredStates ...string) string {
 }
 
 func FlyTable(argv ...string) []map[string]string {
+	GinkgoHelper()
 	session := Fly.Start(append([]string{"--print-table-headers"}, argv...)...)
 	Eventually(session).Should(gexec.Exit(0))
 
@@ -459,6 +472,7 @@ func FlyTable(argv ...string) []map[string]string {
 }
 
 func ParseTable(content string) [][]string {
+	GinkgoHelper()
 	result := [][]string{}
 
 	var expectedColumns int
@@ -486,6 +500,7 @@ func SplitTableColumns(row string) []string {
 }
 
 func WaitForWorkersToBeRunning(expected int) {
+	GinkgoHelper()
 	Eventually(func() any {
 		workers := FlyTable("workers")
 
@@ -501,6 +516,7 @@ func WaitForWorkersToBeRunning(expected int) {
 }
 
 func WorkersWithContainers() []string {
+	GinkgoHelper()
 	mainTeam := ConcourseClient().Team("main")
 	containers, err := mainTeam.ListContainers(map[string]string{})
 	Expect(err).NotTo(HaveOccurred())
@@ -520,6 +536,7 @@ func WorkersWithContainers() []string {
 }
 
 func ContainersBy(condition, value string) []string {
+	GinkgoHelper()
 	containers := FlyTable("containers")
 
 	var handles []string
@@ -533,6 +550,7 @@ func ContainersBy(condition, value string) []string {
 }
 
 func VolumesByResourceType(name string) []string {
+	GinkgoHelper()
 	volumes := FlyTable("volumes", "-d")
 
 	var handles []string
@@ -546,6 +564,7 @@ func VolumesByResourceType(name string) []string {
 }
 
 func WaitForDeploymentAndCompileLocks() {
+	GinkgoHelper()
 	cloudConfig := Start(nil, "bosh", "cloud-config")
 	Eventually(cloudConfig).Should(gexec.Exit())
 	cc := struct {
@@ -578,6 +597,7 @@ func WaitForDeploymentAndCompileLocks() {
 }
 
 func PgDump() *gexec.Session {
+	GinkgoHelper()
 	dump := exec.Command("pg_dump", "-U", "atc", "-h", dbInstance.IP, "atc")
 	dump.Env = append(os.Environ(), "PGPASSWORD=dummy-password")
 	dump.Stdin = bytes.NewBufferString("dummy-password\n")
