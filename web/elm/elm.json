@@ -26,7 +26,7 @@
             "matthewsj/elm-ordering": "2.0.0",
             "ryan-haskell/date-format": "1.0.0",
             "truqu/elm-base64": "2.0.4",
-            "vito/elm-ansi": "11.0.0"
+            "vito/elm-ansi": "11.0.1"
         },
         "indirect": {
             "BrianHicks/elm-trend": "2.1.3",
