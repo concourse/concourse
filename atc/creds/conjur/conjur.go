@@ -15,15 +15,13 @@ type Conjur struct {
 	log             lager.Logger
 	client          IConjurClient
 	secretTemplates []*creds.SecretTemplate
-	sharedPath      string
 }
 
-func NewConjur(log lager.Logger, client IConjurClient, secretTemplates []*creds.SecretTemplate, sharedPath string) *Conjur {
+func NewConjur(log lager.Logger, client IConjurClient, secretTemplates []*creds.SecretTemplate) *Conjur {
 	return &Conjur{
 		log:             log,
 		client:          client,
 		secretTemplates: secretTemplates,
-		sharedPath:      sharedPath,
 	}
 }
 
@@ -34,9 +32,6 @@ func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allow
 		if lPath := creds.NewSecretLookupWithTemplate(template, teamName, pipelineName); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
-	}
-	if c.sharedPath != "" {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(c.sharedPath+"/"))
 	}
 
 	return lookupPaths
