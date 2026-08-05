@@ -126,11 +126,13 @@ func (heartbeater *Heartbeater) register(logger lager.Logger) bool {
 		return false
 	}
 
-	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(atc.RegisterWorker, nil, bytes.NewBuffer(payload))
+	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(atc.RegisterWorker, nil, bytes.NewReader(payload))
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return false
 	}
+
+	request.Header["Content-Type"] = []string{"application/json"}
 
 	request.URL.RawQuery = url.Values{
 		"ttl": []string{heartbeater.ttl().String()},

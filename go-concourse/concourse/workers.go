@@ -80,14 +80,22 @@ func (client *client) PruneWorker(workerName string) error {
 	return err
 }
 
-func (client *client) LandWorker(workerName string) error {
+func (client *client) LandWorker(workerName, teamName string) error {
+	var req atc.Worker
+	req.Team = teamName
+	payload, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("error marshaling request body: %w", err)
+	}
+
 	params := rata.Params{"worker_name": workerName}
-	err := client.connection.Send(internal.Request{
+	err = client.connection.Send(internal.Request{
 		RequestName: atc.LandWorker,
 		Params:      params,
 		Header: http.Header{
 			"Content-Type": {"application/json"},
 		},
+		Body: bytes.NewReader(payload),
 	}, nil)
 
 	return err

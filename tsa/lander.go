@@ -1,7 +1,9 @@
 package tsa
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"net/http/httputil"
@@ -25,13 +27,21 @@ func (l *Lander) Land(ctx context.Context, worker atc.Worker) error {
 	logger.Info("start")
 	defer logger.Info("end")
 
+	payload, err := json.Marshal(worker)
+	if err != nil {
+		logger.Error("failed-to-marshal-request", err)
+		return err
+	}
+
 	request, err := l.ATCEndpoint.CreateRequest(atc.LandWorker, rata.Params{
 		"worker_name": worker.Name,
-	}, nil)
+	}, bytes.NewReader(payload))
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return err
 	}
+
+	request.Header["Content-Type"] = []string{"application/json"}
 
 	response, err := l.HTTPClient.Do(request)
 	if err != nil {

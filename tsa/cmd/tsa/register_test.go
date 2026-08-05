@@ -475,7 +475,7 @@ var _ = Describe("Register", func() {
 					By("waiting for connections to be idle before exiting")
 					before := time.Now()
 					Expect(<-registerErr).To(Equal(tsa.ErrConnectionDrainTimeout))
-					Expect(time.Now().Sub(before)).To(BeNumerically("~", opts.ConnectionDrainTimeout, time.Second))
+					Expect(time.Since(before)).To(BeNumerically("~", opts.ConnectionDrainTimeout, time.Second))
 				})
 			})
 		})
