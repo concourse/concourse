@@ -246,8 +246,7 @@ run:
 
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				outputFiles, err := os.ReadDir(outputDir)
 				Expect(err).NotTo(HaveOccurred())
@@ -269,8 +268,7 @@ run:
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 				Expect(sess.Err).To(gbytes.Say("error: unknown output 'wrong-output'"))
 			})
 		})

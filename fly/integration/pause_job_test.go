@@ -47,8 +47,7 @@ var _ = Describe("Pause Job", func() {
 			flyCmd = exec.Command(flyPath, "-t", targetName, "pause-job", "-j", fullJobName)
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Eventually(sess.Out.Contents).Should(ContainSubstring(fmt.Sprintf("paused '%s'\n", jobName)))
 		})
 	})
@@ -67,8 +66,7 @@ var _ = Describe("Pause Job", func() {
 			flyCmd = exec.Command(flyPath, "-t", targetName, "pause-job", "-j", fullJobName)
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 			Eventually(sess.Err.Contents).Should(ContainSubstring("error"))
 		})
 	})
@@ -93,8 +91,7 @@ var _ = Describe("Pause Job", func() {
 			flyCmd = exec.Command(flyPath, "-t", targetName, "pause-job", "-j", fullJobName, "--team", "other-team")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Eventually(sess).Should(gbytes.Say(fmt.Sprintf("paused '%s'\n", jobName)))
 		})
 	})
@@ -114,8 +111,7 @@ var _ = Describe("Pause Job", func() {
 
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 			Eventually(sess.Err.Contents).Should(ContainSubstring("doesnotexist-pipeline/doesnotexist-job not found on team main"))
 		})
 	})
@@ -135,8 +131,7 @@ var _ = Describe("Pause Job", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(sess.Err).Should(gbytes.Say(`error`))
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 })

@@ -53,7 +53,7 @@ var _ = Describe("unpin-resource", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Consistently(sess.Err).ShouldNot(gbytes.Say("error: Unknown command"))
 
-			<-sess.Exited
+			Eventually(sess).Should(gexec.Exit())
 		})
 	})
 
@@ -72,8 +72,7 @@ var _ = Describe("unpin-resource", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say(fmt.Sprintf("unpinned '%s'\n", pipelineResource)))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(2))
@@ -94,8 +93,7 @@ var _ = Describe("unpin-resource", func() {
 
 					Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not find resource '%s'", pipelineResource)))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(2))

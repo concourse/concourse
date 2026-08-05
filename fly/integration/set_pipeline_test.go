@@ -222,8 +222,7 @@ var _ = Describe("set-pipeline", func() {
 				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 				no(stdin)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -244,8 +243,7 @@ var _ = Describe("set-pipeline", func() {
 				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 				no(stdin)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -264,8 +262,7 @@ var _ = Describe("set-pipeline", func() {
 				Eventually(sess.Err).Should(gbytes.Say("error parsing yaml before applying templates"))
 				Eventually(sess.Err).Should(gbytes.Say(`mapping key "resources" already defined`))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 
@@ -286,8 +283,7 @@ var _ = Describe("set-pipeline", func() {
 				Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 				no(stdin)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -342,8 +338,7 @@ this is super secure
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(5))
@@ -404,8 +399,7 @@ this is super secure
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(5))
@@ -466,8 +460,7 @@ this is super secure
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(5))
@@ -519,8 +512,7 @@ this is super secure
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(5))
@@ -578,8 +570,7 @@ this is super secure
 
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(5))
@@ -602,8 +593,7 @@ this is super secure
 
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gexec.Exit(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
 						}).By(5))
@@ -652,7 +642,7 @@ this is super secure
 							Eventually(sess.Err).Should(gbytes.Say(`error: invalid pipeline config:`))
 							Eventually(sess.Err).Should(gbytes.Say(`some-error`))
 
-							<-sess.Exited
+							Eventually(sess).Should(gexec.Exit())
 							Expect(sess.ExitCode()).NotTo(Equal(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
@@ -720,8 +710,7 @@ this is super secure
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
 			})
@@ -734,8 +723,7 @@ this is super secure
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: pipeline name cannot contain '/'"))
 			})
@@ -748,8 +736,7 @@ this is super secure
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("c", "config") + "' was not specified"))
 			})
@@ -805,8 +792,7 @@ this is super secure
 
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
@@ -920,8 +906,7 @@ this is super secure
 
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 
 					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-resource-with-int-field"))
 
@@ -945,8 +930,7 @@ this is super secure
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 					no(stdin)
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(3))
@@ -1012,8 +996,7 @@ this is super secure
 
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 
 					Expect(sess.Out.Contents()).ToNot(ContainSubstring("some-resource-with-int-field"))
 
@@ -1090,8 +1073,7 @@ this is super secure
 
 					Eventually(sess).Should(gbytes.Say("configuration updated"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
@@ -1112,8 +1094,7 @@ this is super secure
 					no(stdin)
 					Eventually(sess).Should(gbytes.Say("bailing out"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(4))
@@ -1146,8 +1127,7 @@ this is super secure
 				Eventually(sess.Err).Should(gbytes.Say("500 Internal Server Error"))
 				Eventually(sess.Err).Should(gbytes.Say("nope"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 
@@ -1190,8 +1170,7 @@ this is super secure
 					Eventually(sess).Should(gbytes.Say(`apply configuration\? \[yN\]: `))
 					yes(stdin)
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(5))
@@ -1233,8 +1212,7 @@ this is super secure
 
 					Eventually(sess).Should(gbytes.Say("Dry-run mode was set, exiting."))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(2))
@@ -1269,8 +1247,7 @@ this is super secure
 						Eventually(sess).Should(gbytes.Say("    %s -t %s unpause-pipeline -p awesome-pipeline", regexp.QuoteMeta(flyPath), targetName))
 						Eventually(sess).Should(gbytes.Say("  - click play next to the pipeline in the web ui"))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(5))
@@ -1371,8 +1348,7 @@ this is super secure
 					Eventually(sess.Err).Should(gbytes.Say("  - warning-2"))
 					Eventually(sess).Should(gbytes.Say("pipeline created!"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(5))
@@ -1391,8 +1367,7 @@ this is super secure
 
 				Eventually(sess).Should(gbytes.Say("no changes to apply"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 			})
 		})
@@ -1422,8 +1397,7 @@ this is super secure
 
 				Eventually(sess.Err).Should(gbytes.Say("EOF"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})

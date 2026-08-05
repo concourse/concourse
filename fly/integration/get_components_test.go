@@ -60,8 +60,7 @@ var _ = Describe("get-components", func() {
 				Eventually(sess).Should(gbytes.Say("scheduler"))
 				Eventually(sess).Should(gbytes.Say("tracker"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(2))

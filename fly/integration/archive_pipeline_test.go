@@ -69,8 +69,7 @@ var _ = Describe("archive-pipeline", func() {
 
 							Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline/branch:master'`))
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gexec.Exit(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
 						}).By(2))
@@ -92,8 +91,7 @@ var _ = Describe("archive-pipeline", func() {
 
 							Eventually(sess).Should(gbytes.Say(`bailing out`))
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gexec.Exit(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
 						}).By(1))
@@ -110,8 +108,7 @@ var _ = Describe("archive-pipeline", func() {
 
 							Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline/branch:master'`))
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gexec.Exit(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
 						}).By(2))
@@ -138,8 +135,7 @@ var _ = Describe("archive-pipeline", func() {
 
 						Eventually(sess.Err).Should(gbytes.Say(`pipeline 'awesome-pipeline' not found`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
+						Eventually(sess).Should(gexec.Exit(1))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
@@ -157,8 +153,7 @@ var _ = Describe("archive-pipeline", func() {
 
 					Eventually(sess.Err).Should(gbytes.Say(`one of the flags '-p, --pipeline' or '-a, --all' is required`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(0))
@@ -175,8 +170,7 @@ var _ = Describe("archive-pipeline", func() {
 
 					Eventually(sess.Err).Should(gbytes.Say(`only one of the flags '-p, --pipeline' or '-a, --all' is allowed`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(0))
@@ -242,8 +236,7 @@ var _ = Describe("archive-pipeline", func() {
 						Eventually(sess).Should(gbytes.Say(`archived 'more-awesome-pipeline'`))
 						Consistently(sess).ShouldNot(gbytes.Say(`archived 'already-archived'`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(4))
@@ -265,8 +258,7 @@ var _ = Describe("archive-pipeline", func() {
 
 						Eventually(sess).Should(gbytes.Say(`bailing out`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
@@ -284,8 +276,7 @@ var _ = Describe("archive-pipeline", func() {
 						Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline'`))
 						Eventually(sess).Should(gbytes.Say(`archived 'more-awesome-pipeline'`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(4))
@@ -314,8 +305,7 @@ var _ = Describe("archive-pipeline", func() {
 				Eventually(sess).Should(gbytes.Say("there are no unarchived pipelines"))
 				Eventually(sess).Should(gbytes.Say("bailing out"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -326,8 +316,7 @@ var _ = Describe("archive-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
 			})
@@ -384,8 +373,7 @@ var _ = Describe("archive-pipeline", func() {
 
 							Eventually(sess).Should(gbytes.Say(`archived 'awesome-pipeline/branch:master'`))
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gexec.Exit(0))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
 						}).By(3))
@@ -410,8 +398,7 @@ var _ = Describe("archive-pipeline", func() {
 
 							Eventually(sess.Err).Should(gbytes.Say(`pipeline 'awesome-pipeline' not found`))
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(1))
+							Eventually(sess).Should(gexec.Exit(1))
 						}).To(Change(func() int {
 							return len(atcServer.ReceivedRequests())
 						}).By(3))

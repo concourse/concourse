@@ -78,8 +78,7 @@ var _ = Describe("sync", func() {
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 
 		expected := []byte("this will totally execute")
 		expectBinaryToMatch(copiedFlyPath, expected[:8])
@@ -126,8 +125,7 @@ var _ = Describe("sync", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 				Expect(sess.Err).To(gbytes.Say("update failed.*permission denied"))
 
 				expectBinaryToMatch(copiedFlyPath, expectedBinary)
@@ -149,8 +147,7 @@ var _ = Describe("sync", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(sess.Out).To(gbytes.Say(`version 6.3.1 already matches; skipping`))
 
 			expectBinaryToMatch(copiedFlyPath, expectedBinary)

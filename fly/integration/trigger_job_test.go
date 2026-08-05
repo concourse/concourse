@@ -59,8 +59,7 @@ var _ = Describe("trigger-job", func() {
 
 						Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/branch:master/awesome-job #42`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					})
 				})
 
@@ -89,8 +88,7 @@ var _ = Describe("trigger-job", func() {
 
 						Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/awesome-job #42`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					})
 
 				})
@@ -150,8 +148,7 @@ var _ = Describe("trigger-job", func() {
 
 				Eventually(sess.Err).Should(gbytes.Say(`error: resource not found`))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})
@@ -163,8 +160,7 @@ var _ = Describe("trigger-job", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 

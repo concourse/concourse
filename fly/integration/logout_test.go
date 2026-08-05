@@ -64,8 +64,7 @@ var _ = Describe("logout", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say(`must specify either --target or --all`))
 			})
@@ -76,8 +75,7 @@ var _ = Describe("logout", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say(`must specify either --target or --all`))
 			})
@@ -99,8 +97,7 @@ var _ = Describe("logout", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(sess.Out).To(gbytes.Say(`logged out of all targets`))
 
@@ -136,8 +133,7 @@ var _ = Describe("logout", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(sess.Out).To(gbytes.Say(`logged out of target: test2`))
 
@@ -175,8 +171,7 @@ var _ = Describe("logout", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Out).To(gbytes.Say(`logged out of target: test1`))
 			Expect(sess.Err).To(gbytes.Say(`logout failed with status: 500 Internal Server Error`))

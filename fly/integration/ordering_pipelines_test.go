@@ -53,8 +53,7 @@ var _ = Describe("ordering-pipeline", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
 					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline-2`))
@@ -71,8 +70,7 @@ var _ = Describe("ordering-pipeline", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
 					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline-2`))
@@ -110,8 +108,7 @@ var _ = Describe("ordering-pipeline", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 					Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
 					// Check that it dedupes pipeline names
@@ -143,8 +140,7 @@ var _ = Describe("ordering-pipeline", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 					Eventually(sess.Err).Should(gbytes.Say(`failed to order pipelines`))
 
 					Consistently(sess.Err).ShouldNot(gbytes.Say(`Unexpected Response`))
@@ -164,8 +160,7 @@ var _ = Describe("ordering-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 				Expect(sess.Err).Should(gbytes.Say("error: either --pipeline or --alphabetical are required"))
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
@@ -180,8 +175,7 @@ var _ = Describe("ordering-pipeline", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say(`error: pipeline name "forbidden/pipelinename" cannot contain '/'`))
 		})
@@ -232,8 +226,7 @@ var _ = Describe("ordering-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 				Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 				Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
 				Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline-2`))
@@ -246,8 +239,7 @@ var _ = Describe("ordering-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 				Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 				Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
 				Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline-2`))
@@ -286,8 +278,7 @@ var _ = Describe("ordering-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 				Eventually(sess).Should(gbytes.Say(`ordered pipelines`))
 				Eventually(sess).Should(gbytes.Say(`  - awesome-pipeline`))
 				Consistently(sess).ShouldNot(gbytes.Say(`  - awesome-pipeline`))

@@ -56,8 +56,7 @@ var _ = Describe("checklist", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 
@@ -68,8 +67,7 @@ var _ = Describe("checklist", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
 		})
@@ -92,8 +90,7 @@ var _ = Describe("checklist", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 					`#- some-group
@@ -132,8 +129,7 @@ some-orphaned-job: concourse.check %s main some-pipeline/branch:master some-orph
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 					`#- some-pipeline/branch:master
@@ -182,8 +178,7 @@ job-2: concourse.check %s main some-pipeline/branch:master job-2
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(string(sess.Out.Contents())).To(Equal(fmt.Sprintf(
 				`#- some-pipeline/branch:master

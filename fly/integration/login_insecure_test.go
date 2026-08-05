@@ -58,8 +58,7 @@ var _ = Describe("login -k", func() {
 
 			defer stdin.Close()
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 
 		Context("login to existing target", func() {
@@ -76,8 +75,7 @@ var _ = Describe("login -k", func() {
 
 				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 
 			Context("with -k", func() {
@@ -91,8 +89,7 @@ var _ = Describe("login -k", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
 
@@ -105,8 +102,7 @@ var _ = Describe("login -k", func() {
 					sess, err := gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 					Eventually(sess.Err).Should(gbytes.Say("x509: certificate signed by unknown authority|certificate is not trusted"))
 				})
 			})
@@ -130,8 +126,7 @@ var _ = Describe("login -k", func() {
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 				Eventually(sess.Err).Should(gbytes.Say("x509: certificate signed by unknown authority|certificate is not trusted"))
 			})
 		})
@@ -170,8 +165,7 @@ var _ = Describe("login -k", func() {
 
 				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				By("saving the CA cert to the .flyrc", func() {
 					returnedTarget, err := rc.LoadTarget("some-target", false)
@@ -214,8 +208,7 @@ var _ = Describe("login -k", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 
 					By("saving the CA cert to the .flyrc", func() {
 						returnedTarget, err := rc.LoadTarget("some-target", false)
@@ -234,8 +227,7 @@ var _ = Describe("login -k", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 					Eventually(sess.Err).Should(gbytes.Say("CA Cert not valid"))
 				})
 			})
