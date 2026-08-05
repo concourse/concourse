@@ -11,18 +11,16 @@ type conjurFactory struct {
 	log             lager.Logger
 	client          *conjurapi.Client
 	secretTemplates []*creds.SecretTemplate
-	sharedPath      string
 }
 
-func NewConjurFactory(log lager.Logger, client *conjurapi.Client, secretTemplates []*creds.SecretTemplate, sharedPath string) *conjurFactory {
+func NewConjurFactory(log lager.Logger, client *conjurapi.Client, secretTemplates []*creds.SecretTemplate) *conjurFactory {
 	return &conjurFactory{
 		log:             log,
 		client:          client,
 		secretTemplates: secretTemplates,
-		sharedPath:      sharedPath,
 	}
 }
 
 func (factory *conjurFactory) NewSecrets() creds.Secrets {
-	return NewConjur(factory.log, factory.client, factory.secretTemplates, factory.sharedPath)
+	return NewConjur(factory.log, factory.client, factory.secretTemplates)
 }
