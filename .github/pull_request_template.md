@@ -13,11 +13,3 @@ _Make sure to follow all [PR requirements](https://github.com/concourse/concours
 ## Notes to reviewer
 
 _If needed, leave any special pointers for reviewing or testing your PR._
-
-## Release Note
-
-_The PR title is included directly in the release note. This secion should
-contain any extra information that users should know about the change. If no
-extra information is needed, you can delete this section_
-
-* _remove if no additional notes needed_
