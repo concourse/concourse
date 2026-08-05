@@ -203,7 +203,7 @@ func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build
 					nil,
 					build.IsManuallyTriggered(),
 					build.IsManuallyTriggered(),
-					true, // to database
+					false, // create in-memory builds
 				)
 				if err != nil {
 					logger.Error("buildstarter-checking-resource", err, lager.Data{
