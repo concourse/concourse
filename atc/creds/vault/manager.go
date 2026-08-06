@@ -139,9 +139,19 @@ func (manager VaultManager) IsConfigured() bool {
 }
 
 func (manager VaultManager) Validate() error {
-	_, err := url.Parse(manager.URL)
+	u, err := url.Parse(manager.URL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)
+	}
+
+	switch u.Scheme {
+	case "http", "https":
+	default:
+		return fmt.Errorf("invalid scheme %q: must be http or https", u.Scheme)
+	}
+
+	if u.Hostname() == "" {
+		return fmt.Errorf("URL must specify a host")
 	}
 
 	if manager.PathPrefix == "" {
