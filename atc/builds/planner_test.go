@@ -23,6 +23,40 @@ func TestPlanner(t *testing.T) {
 	})
 }
 
+func TestPlannerPinWorker(t *testing.T) {
+	factory := builds.NewPlanner(atc.NewPlanFactory(0))
+
+	plan, err := factory.Create(
+		&atc.DoStep{Steps: []atc.Step{{Config: &atc.TaskStep{Name: "some-task"}}}},
+		resources,
+		defaultResourceTypes,
+		atc.Prototypes{},
+		nil,
+		false,
+		nil,
+		true,
+	)
+	require.NoError(t, err)
+	require.True(t, plan.PinWorker, "PinWorker should be set to true on the root plan")
+}
+
+func TestPlannerPinWorkerFalse(t *testing.T) {
+	factory := builds.NewPlanner(atc.NewPlanFactory(0))
+
+	plan, err := factory.Create(
+		&atc.DoStep{Steps: []atc.Step{{Config: &atc.TaskStep{Name: "some-task"}}}},
+		resources,
+		defaultResourceTypes,
+		atc.Prototypes{},
+		nil,
+		false,
+		nil,
+		false,
+	)
+	require.NoError(t, err)
+	require.False(t, plan.PinWorker, "PinWorker should be false on the root plan")
+}
+
 type PlannerTest struct {
 	Title string
 
@@ -2115,7 +2149,7 @@ func (test PlannerTest) Run(s *PlannerSuite) {
 	if test.OverwriteResourceTypes != nil {
 		resourceTypes = test.OverwriteResourceTypes
 	}
-	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, prototypes, test.Inputs, test.ManuallyTriggered, test.Tags)
+	actualPlan, actualErr := factory.Create(test.Config, resources, resourceTypes, prototypes, test.Inputs, test.ManuallyTriggered, test.Tags, false)
 
 	if test.Err != nil {
 		s.Equal(test.Err, actualErr)
