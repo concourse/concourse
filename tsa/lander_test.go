@@ -55,6 +55,7 @@ var _ = Describe("Lander", func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+				ghttp.VerifyJSONRepresenting(worker),
 				ghttp.RespondWith(200, nil, nil),
 			))
 
@@ -69,6 +70,7 @@ var _ = Describe("Lander", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+			ghttp.VerifyJSONRepresenting(worker),
 			ghttp.RespondWith(200, nil, nil),
 		))
 

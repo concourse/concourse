@@ -106,6 +106,7 @@ var _ = Describe("Retire", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -146,6 +147,7 @@ var _ = Describe("Retire", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})

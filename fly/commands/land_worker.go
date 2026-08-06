@@ -24,7 +24,20 @@ func (command *LandWorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Client().LandWorker(workerName)
+	workers, err := target.Client().ListWorkers()
+	if err != nil {
+		return err
+	}
+
+	teamName := ""
+	for _, w := range workers {
+		if w.Name == workerName {
+			teamName = w.Team
+			break
+		}
+	}
+
+	err = target.Client().LandWorker(workerName, teamName)
 	if err != nil {
 		return err
 	}

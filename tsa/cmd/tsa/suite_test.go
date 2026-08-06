@@ -32,7 +32,7 @@ import (
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Integration Suite")
+	RunSpecs(t, "TSA Integration Suite")
 }
 
 var tsaPath string

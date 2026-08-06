@@ -153,7 +153,7 @@ var _ = AfterEach(func() {
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Integration Suite")
+	RunSpecs(t, "Fly Integration Suite")
 }
 
 func osFlag(short string, long string) string {

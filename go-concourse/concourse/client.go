@@ -25,7 +25,7 @@ type Client interface {
 	SaveWorker(atc.Worker, *time.Duration) (*atc.Worker, error)
 	ListWorkers() ([]atc.Worker, error)
 	PruneWorker(workerName string) error
-	LandWorker(workerName string) error
+	LandWorker(workerName, teamName string) error
 	GetInfo() (atc.Info, error)
 	GetHealth() (atc.Health, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
@@ -45,6 +45,8 @@ type Client interface {
 	PauseAllComponents() error
 	UnpauseAllComponents() error
 }
+
+var _ Client = (*client)(nil)
 
 type client struct {
 	//Deprecated. Use httpAgent instead

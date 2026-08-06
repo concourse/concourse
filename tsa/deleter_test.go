@@ -36,7 +36,7 @@ var _ = Describe("Deleter", func() {
 		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
-		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+		httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
 
 		deleter = &tsa.Deleter{
 			ATCEndpoint: atcEndpoint,
@@ -48,10 +48,11 @@ var _ = Describe("Deleter", func() {
 		fakeATC.Close()
 	})
 
-	It("tells the ATC to retire the worker", func() {
+	It("tells the ATC to delete the worker", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+			ghttp.VerifyJSONRepresenting(worker),
 			ghttp.RespondWith(200, nil, nil),
 		))
 
@@ -74,6 +75,26 @@ var _ = Describe("Deleter", func() {
 			Expect(err).To(HaveOccurred())
 
 			Expect(err).To(MatchError(ContainSubstring("500")))
+			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
+		})
+	})
+
+	Context("when the worker is a team's worker", func() {
+		BeforeEach(func() {
+			worker.Team = "some-team"
+		})
+
+		It("includes the team name in the request", func() {
+			fakeATC.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+				ghttp.VerifyJSONRepresenting(worker),
+				ghttp.RespondWith(200, nil, nil),
+			))
+
+			err := deleter.Delete(ctx, worker)
+			Expect(err).NotTo(HaveOccurred())
+
 			Expect(fakeATC.ReceivedRequests()).To(HaveLen(1))
 		})
 	})

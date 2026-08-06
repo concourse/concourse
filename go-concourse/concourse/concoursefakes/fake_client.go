@@ -182,10 +182,11 @@ type FakeClient struct {
 	hTTPClientReturnsOnCall map[int]struct {
 		result1 *http.Client
 	}
-	LandWorkerStub        func(string) error
+	LandWorkerStub        func(string, string) error
 	landWorkerMutex       sync.RWMutex
 	landWorkerArgsForCall []struct {
 		arg1 string
+		arg2 string
 	}
 	landWorkerReturns struct {
 		result1 error
@@ -1194,18 +1195,19 @@ func (fake *FakeClient) HTTPClientReturnsOnCall(i int, result1 *http.Client) {
 	}{result1}
 }
 
-func (fake *FakeClient) LandWorker(arg1 string) error {
+func (fake *FakeClient) LandWorker(arg1 string, arg2 string) error {
 	fake.landWorkerMutex.Lock()
 	ret, specificReturn := fake.landWorkerReturnsOnCall[len(fake.landWorkerArgsForCall)]
 	fake.landWorkerArgsForCall = append(fake.landWorkerArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 string
+	}{arg1, arg2})
 	stub := fake.LandWorkerStub
 	fakeReturns := fake.landWorkerReturns
-	fake.recordInvocation("LandWorker", []interface{}{arg1})
+	fake.recordInvocation("LandWorker", []interface{}{arg1, arg2})
 	fake.landWorkerMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -1219,17 +1221,17 @@ func (fake *FakeClient) LandWorkerCallCount() int {
 	return len(fake.landWorkerArgsForCall)
 }
 
-func (fake *FakeClient) LandWorkerCalls(stub func(string) error) {
+func (fake *FakeClient) LandWorkerCalls(stub func(string, string) error) {
 	fake.landWorkerMutex.Lock()
 	defer fake.landWorkerMutex.Unlock()
 	fake.LandWorkerStub = stub
 }
 
-func (fake *FakeClient) LandWorkerArgsForCall(i int) string {
+func (fake *FakeClient) LandWorkerArgsForCall(i int) (string, string) {
 	fake.landWorkerMutex.RLock()
 	defer fake.landWorkerMutex.RUnlock()
 	argsForCall := fake.landWorkerArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeClient) LandWorkerReturns(result1 error) {

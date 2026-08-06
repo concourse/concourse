@@ -98,9 +98,9 @@ var _ = Describe("Heartbeater", func() {
 
 		verifyRegister = ghttp.CombineHandlers(
 			ghttp.VerifyRequest(registerRoute.Method, registerRoute.Path),
+			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 			func(w http.ResponseWriter, r *http.Request) {
 				var worker atc.Worker
-				Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
 
 				err := json.NewDecoder(r.Body).Decode(&worker)
 				Expect(err).NotTo(HaveOccurred())
@@ -114,9 +114,9 @@ var _ = Describe("Heartbeater", func() {
 
 		verifyHeartbeat = ghttp.CombineHandlers(
 			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
+			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 			func(w http.ResponseWriter, r *http.Request) {
 				var worker atc.Worker
-				Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
 
 				err := json.NewDecoder(r.Body).Decode(&worker)
 				Expect(err).NotTo(HaveOccurred())
@@ -148,7 +148,7 @@ var _ = Describe("Heartbeater", func() {
 		}
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
-		httpClient = oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+		httpClient = oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
 	})
 
 	JustBeforeEach(func() {
@@ -280,9 +280,9 @@ var _ = Describe("Heartbeater", func() {
 				fakeATC1.AppendHandlers(verifyRegister)
 				fakeATC2.AppendHandlers(ghttp.CombineHandlers(
 					ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
+					ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 					func(w http.ResponseWriter, r *http.Request) {
 						var worker atc.Worker
-						Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
 
 						err := json.NewDecoder(r.Body).Decode(&worker)
 						Expect(err).NotTo(HaveOccurred())

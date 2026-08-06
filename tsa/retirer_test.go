@@ -35,7 +35,7 @@ var _ = Describe("Retirer", func() {
 		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
-		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+		httpClient := oauth2.NewClient(ctx, oauth2.StaticTokenSource(token))
 
 		retirer = &tsa.Retirer{
 			ATCEndpoint: atcEndpoint,
@@ -56,6 +56,7 @@ var _ = Describe("Retirer", func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+				ghttp.VerifyJSONRepresenting(worker),
 				ghttp.RespondWith(200, nil, nil),
 			))
 
@@ -70,6 +71,7 @@ var _ = Describe("Retirer", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+			ghttp.VerifyJSONRepresenting(worker),
 			ghttp.RespondWith(200, nil, nil),
 		))
 

@@ -133,13 +133,38 @@ var _ = Describe("ATC Handler Workers", func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+						ghttp.VerifyHeaderKV("Content-Type", "application/json"),
+						ghttp.VerifyJSONRepresenting(atc.Worker{Team: "some-team"}),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)
 			})
 
 			It("lands the worker", func() {
-				err := client.LandWorker("some-worker")
+				err := client.LandWorker("some-worker", "some-team")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sends the worker's team in the request body", func() {
+				err := client.LandWorker("some-worker", "some-team")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
+			})
+		})
+
+		Context("when no team name is given", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+						ghttp.VerifyJSONRepresenting(atc.Worker{Team: ""}),
+						ghttp.RespondWith(http.StatusOK, nil),
+					),
+				)
+			})
+
+			It("sends an empty team in the request body", func() {
+				err := client.LandWorker("some-worker", "")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -155,7 +180,7 @@ var _ = Describe("ATC Handler Workers", func() {
 			})
 
 			It("returns the error", func() {
-				err := client.LandWorker("some-worker")
+				err := client.LandWorker("some-worker", "some-team")
 				Expect(err).To(HaveOccurred())
 			})
 		})

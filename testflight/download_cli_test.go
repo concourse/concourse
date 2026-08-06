@@ -15,7 +15,7 @@ var _ = Describe("Download Fly CLI", func() {
 		Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(flyBin)
 
-		sess := spawn(flyBin, "-t", flyTarget, "sync", "--force")
+		sess := spawn(flyBin, "-t", getFlyTarget(), "sync", "--force")
 		wait(sess, false)
 
 		Expect(sess).ToNot(gbytes.Say("warning: failed to parse Content-Length"))
