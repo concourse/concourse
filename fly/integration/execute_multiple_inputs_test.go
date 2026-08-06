@@ -243,7 +243,6 @@ run:
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 
-		<-sess.Exited
-		Expect(sess).To(gexec.Exit(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 })

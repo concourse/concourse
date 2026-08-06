@@ -58,8 +58,7 @@ var _ = Describe("rename-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: new pipeline name cannot contain '/'"))
 			})
@@ -72,8 +71,7 @@ var _ = Describe("rename-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: old pipeline name cannot contain '/'"))
 			})

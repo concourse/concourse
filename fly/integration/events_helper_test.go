@@ -67,8 +67,7 @@ func AssertEvents(sess *gexec.Session, streaming <-chan struct{}, events chan<- 
 
 	close(events)
 
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(Equal(0))
+	Eventually(sess).Should(gexec.Exit(0))
 }
 
 func AssertErrorEvents(sess *gexec.Session, streaming <-chan struct{}, events chan<- atc.Event) {
@@ -81,6 +80,5 @@ func AssertErrorEvents(sess *gexec.Session, streaming <-chan struct{}, events ch
 
 	close(events)
 
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(Equal(2))
+	Eventually(sess).Should(gexec.Exit(2))
 }

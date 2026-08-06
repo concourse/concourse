@@ -49,7 +49,7 @@ var _ = Describe("enable-resource-version", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Consistently(sess.Err).ShouldNot(gbytes.Say("error: Unknown command"))
 
-			<-sess.Exited
+			Eventually(sess).Should(gexec.Exit())
 		})
 	})
 
@@ -107,8 +107,7 @@ var _ = Describe("enable-resource-version", func() {
 
 						Eventually(sess.Out).Should(gbytes.Say(fmt.Sprintf("enabled '%s' with version {\"some\":\"value\"}\n", pipelineResource)))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(3))
@@ -129,8 +128,7 @@ var _ = Describe("enable-resource-version", func() {
 
 						Eventually(sess.Err).Should(gbytes.Say("could not find version matching {\"some\":\"value\"}\n"))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
+						Eventually(sess).Should(gexec.Exit(1))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(2))
@@ -153,8 +151,7 @@ var _ = Describe("enable-resource-version", func() {
 
 						Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not enable '%s', make sure the resource version exists", pipelineResource)))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
+						Eventually(sess).Should(gexec.Exit(1))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(3))
@@ -176,8 +173,7 @@ var _ = Describe("enable-resource-version", func() {
 
 						Eventually(sess.Out).Should(gbytes.Say(fmt.Sprintf("enabled '%s' with version {\"some\":\"value\"}\n", pipelineResource)))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 
 						for _, request := range atcServer.ReceivedRequests() {
 							Expect(request.RequestURI).NotTo(Equal(enablePath))

@@ -44,8 +44,7 @@ var _ = Describe("status", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say(`no target specified. specify the target with -t`))
 		})
@@ -68,8 +67,7 @@ var _ = Describe("status", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(gbytes.Say(`logged in successfully`))
 			})
@@ -91,8 +89,7 @@ var _ = Describe("status", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say(`please login again`))
 				Expect(sess.Err).To(gbytes.Say(`token validation failed with error: not authorized`))
@@ -105,8 +102,7 @@ var _ = Describe("status", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say(`logged out`))
 			})

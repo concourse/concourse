@@ -52,8 +52,7 @@ var _ = Describe("order-instanced-pipelines", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say(`ordered instanced pipelines`))
 					Eventually(sess).Should(gbytes.Say(`  - branch:main`))
 					Eventually(sess).Should(gbytes.Say(`  - branch:test`))
@@ -70,8 +69,7 @@ var _ = Describe("order-instanced-pipelines", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say(`ordered instanced pipelines`))
 					Eventually(sess).Should(gbytes.Say(`  - branch:main`))
 					Eventually(sess).Should(gbytes.Say(`  - branch:test`))
@@ -99,8 +97,7 @@ var _ = Describe("order-instanced-pipelines", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 					Eventually(sess.Err).Should(gbytes.Say(`failed to order instanced pipelines`))
 					Consistently(sess.Err).ShouldNot(gbytes.Say(`Unexpected Response`))
 				}).To(Change(func() int {
@@ -118,8 +115,7 @@ var _ = Describe("order-instanced-pipelines", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 				Expect(sess.Err).Should(gbytes.Say("error: the required flags `" + osFlag("g", "group") + "' and `" + osFlag("p", "pipeline") + "' were not specified"))
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())

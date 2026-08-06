@@ -71,8 +71,7 @@ var _ = Describe("clear-task-cache", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("j", "job")))
 			Expect(sess.Err).To(gbytes.Say(`argument format should be <pipeline>/<job>`))

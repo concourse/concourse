@@ -70,7 +70,7 @@ var _ = Describe("pin-resource", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Consistently(sess.Err).ShouldNot(gbytes.Say("error: Unknown command"))
 
-		<-sess.Exited
+		Eventually(sess).Should(gexec.Exit())
 	})
 
 	It("asks the user to specify a version when no version or comment are specified", func() {
@@ -110,8 +110,7 @@ var _ = Describe("pin-resource", func() {
 
 				Eventually(sess.Out).Should(gbytes.Say(fmt.Sprintf("pinned '%s' with version {\"some\":\"value\"}\n", pipelineResource)))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 
 		})
@@ -129,8 +128,7 @@ var _ = Describe("pin-resource", func() {
 
 				Eventually(sess.Err).Should(gbytes.Say("could not find version matching {\"some\":\"value\"}\n"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 
@@ -148,8 +146,7 @@ var _ = Describe("pin-resource", func() {
 
 				Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not pin '%s', make sure the resource exists", pipelineResource)))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})
@@ -188,8 +185,7 @@ var _ = Describe("pin-resource", func() {
 
 			It("saves the pin comment", func() {
 				Eventually(sess.Out).Should(gbytes.Say("pin comment 'some pin message' is saved\n"))
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -202,8 +198,7 @@ var _ = Describe("pin-resource", func() {
 
 			It("errors", func() {
 				Eventually(sess.Err).Should(gbytes.Say("could not find version matching"))
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 
@@ -216,8 +211,7 @@ var _ = Describe("pin-resource", func() {
 
 			It("errors", func() {
 				Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not pin '%s', make sure the resource exists", pipelineResource)))
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})
@@ -244,8 +238,7 @@ var _ = Describe("pin-resource", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(sess.Err).Should(gbytes.Say(fmt.Sprintf("could not save comment, make sure '%s' is pinned", pipelineResource)))
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 })

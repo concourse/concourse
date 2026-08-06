@@ -93,8 +93,7 @@ var _ = Describe("get-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("p", "pipeline") + "' was not specified"))
 			})
@@ -107,8 +106,7 @@ var _ = Describe("get-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
 			})
@@ -146,8 +144,7 @@ var _ = Describe("get-pipeline", func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 
 						var printedConfig atc.Config
 						err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
@@ -174,8 +171,7 @@ var _ = Describe("get-pipeline", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 
 					Expect(sess.Err).To(gbytes.Say("error: pipeline not found"))
 				})
@@ -197,8 +193,7 @@ var _ = Describe("get-pipeline", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 
 					var printedConfig atc.Config
 					err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
@@ -214,8 +209,7 @@ var _ = Describe("get-pipeline", func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 
 						var printedConfig atc.Config
 						err = json.Unmarshal(sess.Out.Contents(), &printedConfig)
@@ -271,8 +265,7 @@ var _ = Describe("get-pipeline", func() {
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gexec.Exit(0))
 
 							var printedConfig atc.Config
 							err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
@@ -299,8 +292,7 @@ var _ = Describe("get-pipeline", func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
+						Eventually(sess).Should(gexec.Exit(1))
 
 						Expect(sess.Err).To(gbytes.Say("error: pipeline not found"))
 					})
@@ -322,8 +314,7 @@ var _ = Describe("get-pipeline", func() {
 						sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 
 						var printedConfig atc.Config
 						err = yaml.Unmarshal(sess.Out.Contents(), &printedConfig)
@@ -339,8 +330,7 @@ var _ = Describe("get-pipeline", func() {
 							sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 							Expect(err).NotTo(HaveOccurred())
 
-							<-sess.Exited
-							Expect(sess.ExitCode()).To(Equal(0))
+							Eventually(sess).Should(gexec.Exit(0))
 
 							var printedConfig atc.Config
 							err = json.Unmarshal(sess.Out.Contents(), &printedConfig)

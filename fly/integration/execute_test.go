@@ -240,8 +240,7 @@ run:
 
 		close(events)
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 
 		Expect(uploadedBits).To(HaveLen(1))
 	})
@@ -347,8 +346,7 @@ run:
 
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 
 		Context("when --team is specified with --inputs-from", func() {
@@ -405,8 +403,7 @@ run:
 				Eventually(sess.Out).Should(gbytes.Say("sup"))
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 	})
@@ -458,8 +455,7 @@ run:
 			Eventually(sess.Out).Should(gbytes.Say("sup"))
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(uploadedBits).To(HaveLen(1))
 		})
 	})
@@ -486,8 +482,7 @@ run: {}
 
 			Eventually(sess.Err).Should(gbytes.Say("missing"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 
@@ -517,8 +512,7 @@ run: {}
 
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(uploadedBits).To(HaveLen(1))
 			})
@@ -598,8 +592,7 @@ run:
 
 					close(events)
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 
 					Expect(uploadedBits).To(HaveLen(2))
 				})
@@ -654,8 +647,7 @@ run:
 
 					close(events)
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 
 					Expect(uploadedBits).To(HaveLen(1))
 				})
@@ -679,8 +671,7 @@ run:
 
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(uploadedBits).To(HaveLen(1))
 			})
@@ -753,8 +744,7 @@ run:
 
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(uploadedBits).To(HaveLen(1))
 			})
@@ -802,8 +792,7 @@ run:
 
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(uploadedBits).To(HaveLen(1))
 			})
@@ -829,8 +818,7 @@ run:
 
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(uploadedBits).To(HaveLen(1))
 		})
@@ -855,8 +843,7 @@ run:
 
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(uploadedBits).To(HaveLen(1))
 		})
@@ -872,8 +859,7 @@ run:
 
 			Eventually(sess.Err).Should(gbytes.Say("unknown input `evan`"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 
 		Context("when input is not a folder", func() {
@@ -894,8 +880,7 @@ run:
 
 				Eventually(sess.Err).Should(gbytes.Say("./test-file.txt not a folder"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 
@@ -909,8 +894,7 @@ run:
 
 				Eventually(sess.Err).Should(gbytes.Say("unknown input `evan`"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})
@@ -965,8 +949,7 @@ run:
 
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(uploadedBits).To(HaveLen(0))
 		})
 	})
@@ -1027,8 +1010,7 @@ run:
 
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(uploadedBits).To(HaveLen(1))
 			})
@@ -1054,8 +1036,7 @@ run:
 
 				close(events)
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(uploadedBits).To(HaveLen(1))
 			})
@@ -1103,8 +1084,7 @@ run:
 
 				Eventually(sess.Err).Should(gbytes.Say("missing required input `something`"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 
 		})
@@ -1119,8 +1099,7 @@ run:
 
 				Eventually(sess.Err).Should(gbytes.Say("missing required input"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})
@@ -1144,8 +1123,7 @@ run:
 
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(uploadedBits).To(HaveLen(1))
 		})
@@ -1161,8 +1139,7 @@ run:
 
 			Eventually(sess.Err).Should(gbytes.Say("unknown flag `bogus-flag'"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 
@@ -1176,8 +1153,7 @@ run:
 
 			Eventually(sess.Err).Should(gbytes.Say("instance vars should be formatted as <key1:value1>\\(,<key2:value2>\\)"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 
@@ -1206,8 +1182,7 @@ run:
 
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(uploadedBits).To(HaveLen(1))
 		})
@@ -1249,8 +1224,7 @@ run:
 					events <- event.Status{Status: atc.StatusErrored}
 					close(events)
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(2))
+					Eventually(sess).Should(gexec.Exit(2))
 				})
 			})
 
@@ -1273,8 +1247,7 @@ run:
 					events <- event.Status{Status: atc.StatusErrored}
 					close(events)
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(2))
+					Eventually(sess).Should(gexec.Exit(2))
 				})
 			})
 		}
@@ -1293,8 +1266,7 @@ run:
 			events <- event.Status{Status: atc.StatusSucceeded}
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(uploadedBits).To(HaveLen(1))
 		})
@@ -1313,8 +1285,7 @@ run:
 			events <- event.Status{Status: atc.StatusFailed}
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(uploadedBits).To(HaveLen(1))
 		})
@@ -1333,8 +1304,7 @@ run:
 			events <- event.Status{Status: atc.StatusErrored}
 			close(events)
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(2))
+			Eventually(sess).Should(gexec.Exit(2))
 
 			Expect(uploadedBits).To(HaveLen(1))
 		})

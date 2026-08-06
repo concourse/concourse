@@ -51,8 +51,7 @@ var _ = Describe("unpause-job", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say(fmt.Sprintf("unpaused '%s'\n", jobName)))
 				})
 			})
@@ -79,8 +78,7 @@ var _ = Describe("unpause-job", func() {
 					flyCmd = exec.Command(flyPath, "-t", targetName, "unpause-job", "-j", fullJobName, "--team", "other-team")
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 					Eventually(sess).Should(gbytes.Say(fmt.Sprintf("unpaused '%s'\n", jobName)))
 				})
 			})
@@ -103,8 +101,7 @@ var _ = Describe("unpause-job", func() {
 
 				Eventually(sess.Err).Should(gbytes.Say(`error`))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})
@@ -120,8 +117,7 @@ var _ = Describe("unpause-job", func() {
 
 			Eventually(sess.Err).Should(gbytes.Say(`error`))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 })

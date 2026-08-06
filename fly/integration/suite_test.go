@@ -33,17 +33,6 @@ const teamName = "main"
 const atcVersion = "6.3.1"
 const workerVersion = "4.5.6"
 
-var teams = []atc.Team{
-	atc.Team{
-		ID:   1,
-		Name: "main",
-	},
-	atc.Team{
-		ID:   2,
-		Name: "other-team",
-	},
-}
-
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binPath, err := gexec.Build("github.com/concourse/concourse/fly", "-buildvcs=false")
 	Expect(err).NotTo(HaveOccurred())
@@ -61,6 +50,7 @@ var _ = SynchronizedAfterSuite(func() {
 })
 
 func infoHandler() http.HandlerFunc {
+	GinkgoHelper()
 	return ghttp.CombineHandlers(
 		ghttp.VerifyRequest("GET", "/api/v1/info"),
 		ghttp.RespondWithJSONEncoded(200, atc.Info{Version: atcVersion, WorkerVersion: workerVersion}),
@@ -68,6 +58,7 @@ func infoHandler() http.HandlerFunc {
 }
 
 func tokenHandler() http.HandlerFunc {
+	GinkgoHelper()
 	return ghttp.CombineHandlers(
 		ghttp.VerifyRequest("POST", "/sky/issuer/token"),
 		ghttp.RespondWithJSONEncoded(
@@ -78,6 +69,7 @@ func tokenHandler() http.HandlerFunc {
 }
 
 func userInfoHandler() http.HandlerFunc {
+	GinkgoHelper()
 	return ghttp.CombineHandlers(
 		ghttp.VerifyRequest("GET", "/api/v1/user"),
 		ghttp.RespondWithJSONEncoded(200, map[string]any{
@@ -92,6 +84,7 @@ func userInfoHandler() http.HandlerFunc {
 }
 
 func validAccessToken(expiry time.Time) string {
+	GinkgoHelper()
 	accessToken, err := token.Factory{}.GenerateAccessToken(db.Claims{
 		Claims: jwt.Claims{Expiry: jwt.NewNumericDate(expiry)}},
 	)
@@ -102,6 +95,7 @@ func validAccessToken(expiry time.Time) string {
 }
 
 func oauthToken() map[string]string {
+	GinkgoHelper()
 	return map[string]string{
 		"token_type":   "Bearer",
 		"access_token": validAccessToken(time.Now()),
@@ -148,9 +142,8 @@ var _ = BeforeEach(func() {
 	session, err := gexec.Start(loginCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
-	<-session.Exited
+	Eventually(session).Should(gexec.Exit(0))
 
-	Expect(session.ExitCode()).To(Equal(0))
 })
 
 var _ = AfterEach(func() {
@@ -169,10 +162,6 @@ func osFlag(short string, long string) string {
 	} else {
 		return fmt.Sprintf("-%s, --%s", short, long)
 	}
-}
-
-func userHomeDir() string {
-	return os.Getenv("HOME")
 }
 
 func Change(fn func() int) *changeMatcher {

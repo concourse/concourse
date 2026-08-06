@@ -48,8 +48,7 @@ var _ = Describe("expose-pipeline", func() {
 
 					Eventually(sess).Should(gbytes.Say(`exposed 'awesome-pipeline/branch:master'`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(2))
@@ -75,8 +74,7 @@ var _ = Describe("expose-pipeline", func() {
 
 					Eventually(sess.Err).Should(gbytes.Say(`pipeline 'awesome-pipeline' not found`))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 				}).To(Change(func() int {
 					return len(atcServer.ReceivedRequests())
 				}).By(2))
@@ -92,8 +90,7 @@ var _ = Describe("expose-pipeline", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(0))
@@ -107,8 +104,7 @@ var _ = Describe("expose-pipeline", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say("error: invalid argument for flag `" + osFlag("p", "pipeline")))
 		})
@@ -159,8 +155,7 @@ var _ = Describe("expose-pipeline", func() {
 
 						Eventually(sess).Should(gbytes.Say(`exposed 'awesome-pipeline/branch:master'`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(3))
@@ -186,8 +181,7 @@ var _ = Describe("expose-pipeline", func() {
 
 						Eventually(sess.Err).Should(gbytes.Say(`pipeline 'awesome-pipeline' not found`))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(1))
+						Eventually(sess).Should(gexec.Exit(1))
 					}).To(Change(func() int {
 						return len(atcServer.ReceivedRequests())
 					}).By(3))

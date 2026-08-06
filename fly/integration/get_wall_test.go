@@ -26,8 +26,7 @@ var _ = Describe("get-wall", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "get-wall")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(sess.Out).To(gbytes.Say("Wall Message: test message"))
 			Expect(sess.Out).To(gbytes.Say("Expires in:"))
 		})
@@ -46,8 +45,7 @@ var _ = Describe("get-wall", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "get-wall")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(sess.Out).To(gbytes.Say("Wall Message: test message"))
 			Expect(sess.Out).To(gbytes.Say("No expiration set"))
 		})
@@ -64,8 +62,7 @@ var _ = Describe("get-wall", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "get-wall")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(sess.Out).To(gbytes.Say("No wall message is currently set"))
 		})
 	})
@@ -81,8 +78,7 @@ var _ = Describe("get-wall", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "get-wall")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 			Expect(sess.Err).To(gbytes.Say("failed to get wall message"))
 		})
 	})

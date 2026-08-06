@@ -86,8 +86,7 @@ var _ = Describe("watch", func() {
 
 		close(events)
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	}
 
 	Context("with no arguments", func() {
@@ -164,8 +163,7 @@ var _ = Describe("watch", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Eventually(sess.Err).Should(gbytes.Say("job has no builds"))
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 

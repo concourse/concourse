@@ -123,8 +123,7 @@ var _ = Describe("hijack", func() {
 		err = stdin.Close()
 		Expect(err).NotTo(HaveOccurred())
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(123))
+		Eventually(sess).Should(gexec.Exit(123))
 	}
 
 	hijack := func(args ...string) {
@@ -286,7 +285,7 @@ var _ = Describe("hijack", func() {
 			Eventually(receivedStdin, 10*time.Second).Should(Receive(&got))
 			Expect(got).To(Equal(bigInput))
 
-			<-sess.Exited
+			Eventually(sess).Should(gexec.Exit())
 		})
 	})
 
@@ -406,8 +405,7 @@ var _ = Describe("hijack", func() {
 
 			Eventually(sess.Err.Contents).Should(ContainSubstring("no containers matched your search parameters!\n\nthey may have expired if your build hasn't recently finished.\n"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 
@@ -517,8 +515,7 @@ var _ = Describe("hijack", func() {
 			err = stdin.Close()
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(123))
+			Eventually(sess).Should(gexec.Exit(123))
 		})
 
 		Context("and no containers are in hijackable state", func() {
@@ -546,8 +543,7 @@ var _ = Describe("hijack", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Eventually(sess.Err).Should(gbytes.Say("no containers matched"))
 				close(didHijack)
@@ -636,8 +632,7 @@ var _ = Describe("hijack", func() {
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(123))
+				Eventually(sess).Should(gexec.Exit(123))
 			})
 		})
 
@@ -693,8 +688,7 @@ var _ = Describe("hijack", func() {
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(123))
+				Eventually(sess).Should(gexec.Exit(123))
 			})
 		})
 	})
@@ -1029,8 +1023,7 @@ var _ = Describe("hijack", func() {
 
 				Eventually(sess.Err.Contents).Should(ContainSubstring(ansi.Color("something went wrong", "red+b") + "\n"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(255))
+				Eventually(sess).Should(gexec.Exit(255))
 			})
 		})
 	})
@@ -1158,7 +1151,7 @@ var _ = Describe("hijack", func() {
 
 			Eventually(sess.Err.Contents).Should(ContainSubstring("Team in URL doesn't match the current team of the target"))
 
-			<-sess.Exited
+			Eventually(sess).Should(gexec.Exit())
 			Expect(sess.ExitCode()).ToNot(Equal(0))
 		})
 
@@ -1170,7 +1163,7 @@ var _ = Describe("hijack", func() {
 
 			Eventually(sess.Err.Contents).Should(ContainSubstring("URL doesn't match that of target"))
 
-			<-sess.Exited
+			Eventually(sess).Should(gexec.Exit())
 			Expect(sess.ExitCode()).ToNot(Equal(0))
 		})
 	})
@@ -1254,8 +1247,7 @@ var _ = Describe("hijack", func() {
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(123))
+				Eventually(sess).Should(gexec.Exit(123))
 			})
 		})
 	})

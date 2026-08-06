@@ -26,8 +26,7 @@ var _ = Describe("edit-target", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say("error: no attributes specified to update"))
 		})
@@ -75,8 +74,7 @@ var _ = Describe("edit-target", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(gbytes.Say(`Updated target: test1`))
 
@@ -107,8 +105,7 @@ var _ = Describe("edit-target", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(gbytes.Say(`Updated target: test2`))
 
@@ -139,8 +136,7 @@ var _ = Describe("edit-target", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(gbytes.Say(`Updated target: test2`))
 

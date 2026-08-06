@@ -44,12 +44,11 @@ var _ = Describe("rename-team", func() {
 	Context("when specifying a new team name with '/'", func() {
 		It("fails and says '/' characters are not allowed", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-team", "-o", "a-team", "-n", "forbidden/teamname")
-			
+
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+
+			Eventually(sess).Should(gexec.Exit(1))
 			Expect(sess.Err).To(gbytes.Say("error: new team name cannot contain '/'"))
 		})
 	})
@@ -57,16 +56,15 @@ var _ = Describe("rename-team", func() {
 	Context("when specifying an old team name with '/'", func() {
 		It("fails and says '/' characters are not allowed", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-team", "-o", "forbidden/teamname", "-n", "b-team")
-			
+
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+
+			Eventually(sess).Should(gexec.Exit(1))
 			Expect(sess.Err).To(gbytes.Say("error: old team name cannot contain '/'"))
 		})
 	})
-	
+
 	Context("when not specifying a new name", func() {
 		It("fails and says you should provide a new name for the team", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "rename-team", "-o", "a-team")

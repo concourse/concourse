@@ -37,8 +37,7 @@ var _ = Describe("get-team", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 			Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("n", "team-name") + "' was not specified"))
 		})
 	})
@@ -67,8 +66,7 @@ var _ = Describe("get-team", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 
