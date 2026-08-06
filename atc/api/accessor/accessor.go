@@ -39,6 +39,8 @@ type Verification struct {
 	RawClaims    map[string]any
 }
 
+var _ Access = (*access)(nil)
+
 type access struct {
 	verification           Verification
 	requiredRole           string

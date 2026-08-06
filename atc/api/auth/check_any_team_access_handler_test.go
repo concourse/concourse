@@ -1,0 +1,152 @@
+package auth_test
+
+import (
+	"bytes"
+	"io"
+	"net/http"
+	"net/http/httptest"
+
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/auth/authfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("AnyTeamAccessHandler", func() {
+
+	var (
+		fakeAccess   *accessorfakes.FakeAccess
+		fakeAccessor *accessorfakes.FakeAccessFactory
+		fakeRejector *authfakes.FakeRejector
+
+		server *httptest.Server
+		client *http.Client
+
+		err      error
+		request  *http.Request
+		response *http.Response
+	)
+
+	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		buffer := bytes.NewBufferString("simple hello")
+
+		_, err := io.Copy(w, buffer)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	BeforeEach(func() {
+		fakeAccess = new(accessorfakes.FakeAccess)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeRejector = new(authfakes.FakeRejector)
+
+		fakeAccessor.CreateReturns(fakeAccess, nil)
+
+		fakeRejector.ForbiddenStub = func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "nope", http.StatusForbidden)
+		}
+
+		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "nope", http.StatusUnauthorized)
+		}
+
+		client = http.DefaultClient
+	})
+
+	JustBeforeEach(func() {
+		response, err = client.Do(request)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("CheckAnyTeamAccessHandler", func() {
+
+		BeforeEach(func() {
+			innerHandler := auth.CheckAnyTeamAccessHandler(
+				simpleHandler,
+				fakeRejector,
+			)
+
+			server = httptest.NewServer(accessor.NewHandler(
+				logger,
+				"some-action",
+				innerHandler,
+				fakeAccessor,
+				new(auditorfakes.FakeAuditor),
+				map[string]string{},
+			))
+		})
+
+		Context("when a request is made", func() {
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL, nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("when the user is authenticated and has a role on a team", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.TeamNamesReturns([]string{"some-team"})
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("proxies to the handler", func() {
+					responseBody, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("simple hello"))
+				})
+			})
+
+			Context("when the user is an admin without any team roles", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAdminReturns(true)
+					fakeAccess.TeamNamesReturns([]string{})
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when the user is authenticated but has no role on any team", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAdminReturns(false)
+					fakeAccess.TeamNamesReturns([]string{})
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+
+				It("rejects the request", func() {
+					responseBody, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("nope\n"))
+				})
+			})
+
+			Context("when the user is not authenticated", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(false)
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+
+				It("rejects the request", func() {
+					responseBody, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("nope\n"))
+				})
+			})
+		})
+	})
+})
