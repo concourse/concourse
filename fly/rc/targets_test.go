@@ -274,7 +274,7 @@ var _ = Describe("Targets", func() {
 						true,
 						"main",
 						nil,
-						rsaCertPEM,
+						string(rootCA),
 						"",
 						"",
 					)
@@ -284,7 +284,7 @@ var _ = Describe("Targets", func() {
 				It("returns the rc insecure flag as true", func() {
 					returnedTarget, err := rc.LoadTarget(targetName, false)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(returnedTarget.CACert()).To(Equal(rsaCertPEM))
+					Expect(returnedTarget.CACert()).To(Equal(string(rootCA)))
 				})
 			})
 		})
