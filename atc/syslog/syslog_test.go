@@ -27,45 +27,69 @@ var _ = Describe("Syslog", func() {
 
 	Context("when the address is valid tcp server", func() {
 		Context("when tls is enabled", func() {
-			var caFilePath string
+			var caFilePath, unknownCaFilePath string
 
 			BeforeEach(func() {
-				key, err := pkix.CreateRSAKey(1024)
-				Expect(err).NotTo(HaveOccurred())
+				By("creating a self-signed cert for the test server", func() {
+					key, err := pkix.CreateRSAKey(1024)
+					Expect(err).NotTo(HaveOccurred())
 
-				ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "Acme Co", "", "", "", "", nil)
-				Expect(err).NotTo(HaveOccurred())
+					ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "Acme Co", "", "", "", "", nil)
+					Expect(err).NotTo(HaveOccurred())
 
-				req, err := pkix.CreateCertificateSigningRequest(key, "", []net.IP{net.IPv4(127, 0, 0, 1)}, nil, nil, "Acme Co", "", "", "", "")
-				Expect(err).NotTo(HaveOccurred())
+					req, err := pkix.CreateCertificateSigningRequest(key, "", []net.IP{net.IPv4(127, 0, 0, 1)}, nil, nil, "Acme Co", "", "", "", "")
+					Expect(err).NotTo(HaveOccurred())
 
-				cert, err := pkix.CreateCertificateHost(ca, key, req, time.Now().Add(time.Hour))
-				Expect(err).NotTo(HaveOccurred())
+					cert, err := pkix.CreateCertificateHost(ca, key, req, time.Now().Add(time.Hour))
+					Expect(err).NotTo(HaveOccurred())
 
-				keyPEM, err := key.ExportPrivate()
-				Expect(err).NotTo(HaveOccurred())
+					keyPEM, err := key.ExportPrivate()
+					Expect(err).NotTo(HaveOccurred())
 
-				caPEM, err := ca.Export()
-				Expect(err).NotTo(HaveOccurred())
+					caPEM, err := ca.Export()
+					Expect(err).NotTo(HaveOccurred())
 
-				certPEM, err := cert.Export()
-				Expect(err).NotTo(HaveOccurred())
+					certPEM, err := cert.Export()
+					Expect(err).NotTo(HaveOccurred())
 
-				tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
-				Expect(err).NotTo(HaveOccurred())
+					tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
+					Expect(err).NotTo(HaveOccurred())
 
-				caFile, err := os.CreateTemp("", "ca")
-				Expect(err).NotTo(HaveOccurred())
+					caFile, err := os.CreateTemp("", "ca")
+					Expect(err).NotTo(HaveOccurred())
 
-				_, err = caFile.Write(caPEM)
-				Expect(err).NotTo(HaveOccurred())
+					_, err = caFile.Write(caPEM)
+					Expect(err).NotTo(HaveOccurred())
 
-				err = caFile.Close()
-				Expect(err).NotTo(HaveOccurred())
+					err = caFile.Close()
+					Expect(err).NotTo(HaveOccurred())
 
-				caFilePath = caFile.Name()
+					caFilePath = caFile.Name()
 
-				server = newTestServer(&tlsCert)
+					server = newTestServer(&tlsCert)
+				})
+
+				By("creating a self-signed cert not used by the test server", func() {
+					key, err := pkix.CreateRSAKey(1024)
+					Expect(err).NotTo(HaveOccurred())
+
+					ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "Acme Co", "", "", "", "", nil)
+					Expect(err).NotTo(HaveOccurred())
+
+					caPEM, err := ca.Export()
+					Expect(err).NotTo(HaveOccurred())
+
+					caFile, err := os.CreateTemp("", "ca")
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = caFile.Write(caPEM)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = caFile.Close()
+					Expect(err).NotTo(HaveOccurred())
+
+					unknownCaFilePath = caFile.Name()
+				})
 			})
 
 			AfterEach(func() {
@@ -89,7 +113,7 @@ var _ = Describe("Syslog", func() {
 			}, 0.2)
 
 			It("fails connects to server given incorrect cert", func() {
-				_, err := syslog.Dial("tls", server.Addr, []string{"testdata/incorrect-cert.pem"})
+				_, err := syslog.Dial("tls", server.Addr, []string{unknownCaFilePath})
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("x509: certificate signed by unknown authority"))
 			}, 0.2)
