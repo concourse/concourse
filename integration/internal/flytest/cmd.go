@@ -85,6 +85,11 @@ func InitOverrideCredentials(t *testing.T, dc dctest.Cmd) Cmd {
 }
 
 func (cmd Cmd) WaitForRunningWorker(t *testing.T) {
+	// A healthy worker registers within seconds, but on a loaded CI runner the
+	// full docker-compose stack (db + web + worker, plus vault in the creds
+	// suites) can take longer to cold-start. Use a generous ceiling so slow
+	// startup doesn't false-fail; the poll still returns as soon as a worker
+	// is running.
 	require.Eventually(t, func() bool {
 		for _, w := range cmd.Table(t, "workers") {
 			if w["state"] == "running" {
@@ -93,7 +98,7 @@ func (cmd Cmd) WaitForRunningWorker(t *testing.T) {
 		}
 
 		return false
-	}, time.Minute, time.Second, "should have a running worker")
+	}, 3*time.Minute, time.Second, "should have a running worker")
 }
 
 type Table []map[string]string

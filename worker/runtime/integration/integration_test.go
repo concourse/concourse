@@ -49,6 +49,21 @@ func (s *IntegrationSuite) containerdSocket() string {
 	return filepath.Join(s.tmpDir, "containerd.sock")
 }
 
+// containerdProcessState returns the single-character process state reported by
+// /proc/<pid>/stat (e.g. 'R' running, 'S' sleeping, 'T' stopped). It returns 0
+// if the state can't be read. The comm field can contain spaces and
+// parentheses, so we scan past the final ')'.
+func (s *IntegrationSuite) containerdProcessState() byte {
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", s.containerdProcess.Process.Pid))
+	if err != nil {
+		return 0
+	}
+	if i := bytes.LastIndexByte(data, ')'); i >= 0 && i+2 < len(data) {
+		return data[i+2]
+	}
+	return 0
+}
+
 func (s *IntegrationSuite) startContainerd() {
 	configPath := filepath.Join(s.tmpDir, "containerd.toml")
 	err := workercmd.WriteDefaultContainerdConfig(configPath)
@@ -1284,6 +1299,15 @@ func (s *IntegrationSuite) TestNewContainerEnforcesTimeoutOnTask() {
 	s.Error(err, "Task via GetContainer should also return 'not found'")
 
 	s.NoError(s.containerdProcess.Process.Signal(syscall.SIGSTOP))
+
+	// SIGSTOP is delivered asynchronously: containerd can still service one
+	// in-flight gRPC request (returning a fast "not found") before the kernel
+	// actually stops it. Wait until the process reports the stopped state ('T')
+	// so the assertion below races the requestTimeout, not signal delivery.
+	s.Eventually(func() bool {
+		return s.containerdProcessState() == 'T'
+	}, 5*time.Second, 5*time.Millisecond,
+		"containerd should be frozen (state 'T') after SIGSTOP")
 
 	start := time.Now()
 	_, err = contViaNew.Task(context.Background(), nil)
