@@ -10,7 +10,6 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor"
 	"github.com/concourse/concourse/atc/metric"
 )
 
@@ -23,12 +22,6 @@ func (i IntMetric) String() string {
 func (s *Server) RegisterWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("register-worker")
 	var registration atc.Worker
-
-	acc := accessor.GetAccessor(r)
-	if !acc.IsSystem() {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
 
 	err := json.NewDecoder(r.Body).Decode(&registration)
 	if err != nil {

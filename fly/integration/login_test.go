@@ -231,7 +231,7 @@ var _ = Describe("login", func() {
 	Describe("with ca cert", func() {
 		BeforeEach(func() {
 			loginATCServer = ghttp.NewUnstartedServer()
-			cert, err := tls.X509KeyPair([]byte(serverCert), []byte(serverKey))
+			cert, err := tls.X509KeyPair(serverCert, serverKey)
 			Expect(err).NotTo(HaveOccurred())
 
 			loginATCServer.HTTPTestServer.TLS = &tls.Config{
@@ -258,7 +258,7 @@ var _ = Describe("login", func() {
 				Expect(err).NotTo(HaveOccurred())
 				caCertFilePath = caCertFile.Name()
 
-				err = os.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
+				err = os.WriteFile(caCertFilePath, serverCert, os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
 				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")

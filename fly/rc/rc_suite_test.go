@@ -1,10 +1,14 @@
 package rc_test
 
 import (
+	"bytes"
+	"net"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/square/certstrap/pkix"
 
 	"testing"
 )
@@ -18,15 +22,57 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-var rsaCertPEM = `-----BEGIN CERTIFICATE-----
-MIIB0zCCAX2gAwIBAgIJAI/M7BYjwB+uMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
-BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
-aWRnaXRzIFB0eSBMdGQwHhcNMTIwOTEyMjE1MjAyWhcNMTUwOTEyMjE1MjAyWjBF
-MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
-ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBANLJ
-hPHhITqQbPklG3ibCVxwGMRfp/v4XqhfdQHdcVfHap6NQ5Wok/4xIA+ui35/MmNa
-rtNuC+BdZ1tMuVCPFZcCAwEAAaNQME4wHQYDVR0OBBYEFJvKs8RfJaXTH08W+SGv
-zQyKn0H8MB8GA1UdIwQYMBaAFJvKs8RfJaXTH08W+SGvzQyKn0H8MAwGA1UdEwQF
-MAMBAf8wDQYJKoZIhvcNAQEFBQADQQBJlffJHybjDGxRMqaRmDhX0+6v02TUKZsW
-r5QuVbpQhH6u+0UgcW0jp9QwpxoPTLTWGXEWBBBurxFwiCBhkQ+V
------END CERTIFICATE-----`
+var rootCA, clientCert, clientKey []byte
+
+const bytesSeparator = "BYTES_SEPARATOR"
+
+var _ = SynchronizedBeforeSuite(func() []byte {
+	key, err := pkix.CreateRSAKey(1024)
+	Expect(err).ToNot(HaveOccurred())
+
+	ca, err := pkix.CreateCertificateAuthority(key, "", time.Now().Add(time.Hour), "", "", "", "", "server-ca", nil)
+	Expect(err).ToNot(HaveOccurred())
+
+	serverKey, err := pkix.CreateRSAKey(1024)
+	Expect(err).ToNot(HaveOccurred())
+
+	serverName := "server"
+
+	serverCSR, err := pkix.CreateCertificateSigningRequest(serverKey, "", []net.IP{net.ParseIP("127.0.0.1")}, []string{serverName}, nil, "", "", "", "", "")
+	Expect(err).ToNot(HaveOccurred())
+
+	serverCert, err := pkix.CreateCertificateHost(ca, key, serverCSR, time.Now().Add(time.Hour))
+	Expect(err).ToNot(HaveOccurred())
+
+	clientKey, err := pkix.CreateRSAKey(1024)
+	Expect(err).ToNot(HaveOccurred())
+
+	clientKeyBytes, err := clientKey.ExportPrivate()
+	Expect(err).ToNot(HaveOccurred())
+
+	clientCSR, err := pkix.CreateCertificateSigningRequest(clientKey, "", nil, nil, nil, "", "", "", "", "concourse")
+	Expect(err).ToNot(HaveOccurred())
+
+	clientCert, err := pkix.CreateCertificateHost(ca, key, clientCSR, time.Now().Add(time.Hour))
+	Expect(err).ToNot(HaveOccurred())
+
+	serverCertBytes, err := serverCert.Export()
+	Expect(err).ToNot(HaveOccurred())
+
+	clientCertBytes, err := clientCert.Export()
+	Expect(err).ToNot(HaveOccurred())
+
+	return bytes.Join([][]byte{
+		serverCertBytes,
+		clientCertBytes,
+		clientKeyBytes,
+	}, []byte(bytesSeparator))
+},
+	func(data []byte) {
+		splitData := bytes.Split(data, []byte(bytesSeparator))
+		Expect(splitData).To(HaveLen(3))
+
+		rootCA = splitData[0]
+		clientCert = splitData[1]
+		clientKey = splitData[2]
+	})

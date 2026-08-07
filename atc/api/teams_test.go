@@ -425,6 +425,7 @@ var _ = Describe("Teams API", func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAdminReturns(true)
 				fakeAccess.IsAuthorizedReturns(true)
+				fakeAccess.TeamNamesReturns([]string{"main"})
 			})
 
 			Context("when there's a problem finding teams", func() {
@@ -508,6 +509,7 @@ var _ = Describe("Teams API", func() {
 				fakeAccess.IsAuthenticatedReturns(true)
 				fakeAccess.IsAuthorizedReturns(true)
 				fakeAccess.IsAdminReturns(false)
+				fakeAccess.TeamNamesReturns([]string{"some-team"})
 			})
 
 			It("returns 403 forbidden", func() {
@@ -547,6 +549,7 @@ var _ = Describe("Teams API", func() {
 					teamName = "a-team"
 					fakeTeam.NameReturns(teamName)
 					fakeAccess.IsAuthorizedReturns(true)
+					fakeAccess.TeamNamesReturns([]string{teamName})
 					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
 				})
 
@@ -600,7 +603,7 @@ var _ = Describe("Teams API", func() {
 				})
 			})
 
-			Context("when unauthorized", func() {
+			Context("when not authorized", func() {
 				BeforeEach(func() {
 					teamName = "a-team"
 					fakeTeam.NameReturns(teamName)
@@ -660,7 +663,20 @@ var _ = Describe("Teams API", func() {
 		Context("when authenticated", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
 				dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+			})
+
+			Context("when not unauthorized", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsAuthorizedReturns(false)
+					dbTeamFactory.FindTeamReturns(fakeTeam, true, nil)
+				})
+
+				It("returns 403 Forbidden", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
 			})
 
 			Context("when no params are passed", func() {

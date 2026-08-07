@@ -1,0 +1,145 @@
+package auth_test
+
+import (
+	"bytes"
+	"io"
+	"net/http"
+	"net/http/httptest"
+
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/atc/api/auth/authfakes"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var _ = Describe("SystemAccessHandler", func() {
+
+	var (
+		fakeAccess   *accessorfakes.FakeAccess
+		fakeAccessor *accessorfakes.FakeAccessFactory
+		fakeRejector *authfakes.FakeRejector
+
+		server *httptest.Server
+		client *http.Client
+
+		err      error
+		request  *http.Request
+		response *http.Response
+	)
+
+	simpleHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		buffer := bytes.NewBufferString("simple hello")
+
+		_, err := io.Copy(w, buffer)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	BeforeEach(func() {
+		fakeAccess = new(accessorfakes.FakeAccess)
+		fakeAccessor = new(accessorfakes.FakeAccessFactory)
+		fakeRejector = new(authfakes.FakeRejector)
+
+		fakeAccessor.CreateReturns(fakeAccess, nil)
+
+		fakeRejector.ForbiddenStub = func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "nope", http.StatusForbidden)
+		}
+
+		fakeRejector.UnauthorizedStub = func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "nope", http.StatusUnauthorized)
+		}
+
+		client = http.DefaultClient
+	})
+
+	JustBeforeEach(func() {
+		response, err = client.Do(request)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("CheckSystemAccessHandler", func() {
+
+		BeforeEach(func() {
+			innerHandler := auth.CheckSystemAccessHandler(
+				simpleHandler,
+				fakeRejector,
+			)
+
+			server = httptest.NewServer(accessor.NewHandler(
+				logger,
+				"some-action",
+				innerHandler,
+				fakeAccessor,
+				new(auditorfakes.FakeAuditor),
+				map[string]string{},
+			))
+		})
+
+		Context("when a request is made", func() {
+			BeforeEach(func() {
+				request, err = http.NewRequest("GET", server.URL, nil)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Context("the user is authenticated", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
+				})
+
+				Context("the user has the system claim", func() {
+					BeforeEach(func() {
+						fakeAccess.IsAuthenticatedReturns(true)
+						fakeAccess.IsSystemReturns(true)
+					})
+
+					It("returns 200", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("proxies to the handler", func() {
+						responseBody, err := io.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(string(responseBody)).To(Equal("simple hello"))
+					})
+				})
+
+				Context("the user does not have the system claim", func() {
+					BeforeEach(func() {
+						fakeAccess.IsAuthenticatedReturns(true)
+						fakeAccess.IsSystemReturns(false)
+					})
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+
+					It("rejects the request", func() {
+						responseBody, err := io.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(string(responseBody)).To(Equal("nope\n"))
+					})
+				})
+			})
+
+			Context("when the user is not authenticated", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(false)
+				})
+
+				It("returns 401", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				})
+
+				It("rejects the request", func() {
+					responseBody, err := io.ReadAll(response.Body)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(string(responseBody)).To(Equal("nope\n"))
+				})
+			})
+		})
+	})
+})
