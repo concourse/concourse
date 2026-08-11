@@ -76,6 +76,12 @@ var (
 
 func TestTestflight(t *testing.T) {
 	RegisterFailHandler(Fail)
+
+	SetDefaultEventuallyTimeout(5 * time.Minute)
+	SetDefaultEventuallyPollingInterval(time.Second)
+	SetDefaultConsistentlyDuration(time.Minute)
+	SetDefaultConsistentlyPollingInterval(time.Second)
+
 	RunSpecs(t, "TestFlight Suite")
 }
 
@@ -161,11 +167,6 @@ var _ = SynchronizedAfterSuite(func() {
 const DefaultSpecTimeout = SpecTimeout(6 * time.Minute)
 
 var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(5 * time.Minute)
-	SetDefaultEventuallyPollingInterval(time.Second)
-	SetDefaultConsistentlyDuration(time.Minute)
-	SetDefaultConsistentlyPollingInterval(time.Second)
-
 	var err error
 	tmp, err = os.MkdirTemp("", "testflight-tmp")
 	Expect(err).ToNot(HaveOccurred())
