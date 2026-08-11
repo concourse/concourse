@@ -81,7 +81,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		serverCert = splitData[1]
 		serverKey = splitData[2]
 
-		SetDefaultEventuallyTimeout(10 * time.Second)
 		os.Setenv("FLY_TEST", "true")
 	})
 
@@ -194,6 +193,7 @@ var _ = AfterEach(func() {
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
+	SetDefaultEventuallyTimeout(10 * time.Second)
 	RunSpecs(t, "Fly Integration Suite")
 }
 

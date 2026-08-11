@@ -30,6 +30,9 @@ import (
 )
 
 func TestK8s(t *testing.T) {
+	SetDefaultEventuallyTimeout(90 * time.Second)
+	SetDefaultConsistentlyDuration(30 * time.Second)
+
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "K8s Suite")
 }
@@ -82,9 +85,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(90 * time.Second)
-	SetDefaultConsistentlyDuration(30 * time.Second)
-
 	tmp, err := os.MkdirTemp("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 

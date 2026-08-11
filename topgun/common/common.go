@@ -67,11 +67,6 @@ var (
 )
 
 var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(4 * time.Minute)
-	SetDefaultEventuallyPollingInterval(time.Second)
-	SetDefaultConsistentlyDuration(time.Minute)
-	SetDefaultConsistentlyPollingInterval(time.Second)
-
 	Logger = lagertest.NewTestLogger("test")
 
 	deploymentNamePrefix = os.Getenv("DEPLOYMENT_NAME_PREFIX")

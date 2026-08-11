@@ -31,6 +31,10 @@ var baggageClaimPath string
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
+
+	// poll less frequently
+	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+	SetDefaultConsistentlyPollingInterval(100 * time.Millisecond)
 	RunSpecs(t, "Baggage Claim Suite")
 }
 
@@ -55,10 +59,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	logger = lagertest.NewTestLogger("test")
 	baggageClaimPath = suiteData.BaggageClaimPath
-
-	// poll less frequently
-	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
-	SetDefaultConsistentlyPollingInterval(100 * time.Millisecond)
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
