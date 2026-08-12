@@ -520,6 +520,43 @@ all =
                         [ style "display" "flex"
                         , style "flex-flow" "column wrap"
                         ]
+        , test "high density card wrapper sizes to its contents" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [] ) ])
+                        (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline" ]
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find [ style "margin-bottom" "3px" ]
+                    |> Query.has [ style "width" "auto" ]
+        , test "high density drop zone sizes to its contents" <|
+            \_ ->
+                whenOnDashboard { highDensity = True }
+                    |> givenDataAndUser
+                        (apiData [ ( "team", [] ) ])
+                        (userWithRoles [])
+                    |> Tuple.first
+                    |> Application.handleCallback
+                        (Callback.AllPipelinesFetched <|
+                            Ok
+                                [ Data.pipeline "team" 0 |> Data.withName "pipeline"
+                                , Data.pipeline "team" 1 |> Data.withName "other-pipeline"
+                                ]
+                        )
+                    |> Tuple.first
+                    |> Common.queryView
+                    |> Query.find
+                        [ style "transition"
+                            "height 0.1s ease, background-color 0.1s ease"
+                        ]
+                    |> Query.has [ style "width" "auto" ]
         , test "normal density pipelines view has default layout" <|
             \_ ->
                 whenOnDashboard { highDensity = False }
