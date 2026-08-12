@@ -1076,8 +1076,7 @@ hdCardWrapper : Bool -> List (Html.Attribute msg)
 hdCardWrapper isBeingDragged =
     [ style "display" "flex"
     , style "flex-direction" "column"
-    , style "width" "100%"
-    , style "min-width" "800px"
+    , style "width" "auto"
     , style "margin-bottom" "3px"
     ]
         ++ (if isBeingDragged then
@@ -1100,7 +1099,7 @@ cardDropZone active =
          else
             "3px"
         )
-    , style "width" "100%"
+    , style "width" "auto"
     , style "background-color"
         (if active then
             Colors.dropTargetHighlight
