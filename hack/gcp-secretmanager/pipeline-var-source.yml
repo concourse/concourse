@@ -1,0 +1,58 @@
+# Exercises the per-pipeline var_source path.
+#
+# The -v is required even for validate-pipeline: var_source configs are
+# validated after templating, so an uninterpolated ((gcp_project)) is rejected.
+#
+#   fly validate-pipeline -c hack/gcp-secretmanager/pipeline-var-source.yml \
+#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT
+#   fly -t dev set-pipeline -p gcp-creds-test -c hack/gcp-secretmanager/pipeline-var-source.yml \
+#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT
+#
+# The pipeline name must stay gcp-creds-test to match the seeded secret IDs.
+# Credentials are omitted so the manager falls back to ADC.
+
+var_sources:
+- name: gcp
+  type: gcpsecretmanager
+  config:
+    project: ((gcp_project))
+    secret_version: latest
+    request_timeout: 10s
+
+jobs:
+- name: resolve-via-var-source
+  plan:
+  - task: assert-all-scopes
+    params:
+      SHARED: ((gcp:shared-cred))
+      TEAM: ((gcp:team-cred))
+      PIPELINE: ((gcp:pipeline-cred))
+      JSON_USERNAME: ((gcp:json-cred.username))
+      PRECEDENCE: ((gcp:precedence-cred))
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          fail=0
+          check() {
+            if [ "$2" = "$3" ]; then
+              echo "ok    $1"
+            else
+              echo "FAIL  $1: expected '$3', got '$2'"
+              fail=1
+            fi
+          }
+
+          check "shared template"            "$SHARED"        "shared-value"
+          check "team template"              "$TEAM"          "team-value"
+          check "pipeline template"          "$PIPELINE"      "pipeline-value"
+          check "JSON object field access"   "$JSON_USERNAME" "neo"
+          check "pipeline beats team/shared" "$PRECEDENCE"    "right-pipeline"
+
+          exit $fail
