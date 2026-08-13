@@ -1,0 +1,62 @@
+# Exercises the cluster-wide gcpsecretmanager credential manager.
+#
+#   fly -t dev set-pipeline -p gcp-creds-test -c hack/gcp-secretmanager/pipeline.yml
+#   fly -t dev unpause-pipeline -p gcp-creds-test
+#   fly -t dev trigger-job -j gcp-creds-test/resolve-secrets --watch
+#
+# Values are asserted inside the task: Concourse redacts credentials in output.
+
+jobs:
+- name: resolve-secrets
+  plan:
+  - task: assert-all-scopes
+    params:
+      SHARED: ((shared-cred))
+      TEAM: ((team-cred))
+      PIPELINE: ((pipeline-cred))
+      JSON_USERNAME: ((json-cred.username))
+      JSON_PASSWORD: ((json-cred.password))
+      PRECEDENCE: ((precedence-cred))
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          fail=0
+          check() {
+            if [ "$2" = "$3" ]; then
+              echo "ok    $1"
+            else
+              echo "FAIL  $1: expected '$3', got '$2'"
+              fail=1
+            fi
+          }
+
+          check "shared template"            "$SHARED"        "shared-value"
+          check "team template"              "$TEAM"          "team-value"
+          check "pipeline template"          "$PIPELINE"      "pipeline-value"
+          check "JSON object field access"   "$JSON_USERNAME" "neo"
+          check "JSON object field access"   "$JSON_PASSWORD" "trinity"
+          check "pipeline beats team/shared" "$PRECEDENCE"    "right-pipeline"
+
+          exit $fail
+
+# An unresolvable secret must fail the build, not resolve to "". Expect red.
+- name: missing-secret-fails
+  plan:
+  - task: should-not-run
+    params:
+      MISSING: ((definitely-not-a-real-secret))
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      run:
+        path: sh
+        args: ["-ec", "echo 'BUG: build ran despite unresolvable var'; exit 1"]
