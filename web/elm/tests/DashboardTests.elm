@@ -825,7 +825,7 @@ all =
                             { ctrlKey = False
                             , shiftKey = True
                             , metaKey = False
-                            , code = Keyboard.Slash
+                            , code = Keyboard.QuestionMark
                             }
                         )
                     |> Tuple.first
@@ -879,7 +879,7 @@ all =
                             { ctrlKey = False
                             , shiftKey = True
                             , metaKey = False
-                            , code = Keyboard.Slash
+                            , code = Keyboard.QuestionMark
                             }
                         )
                     |> Tuple.first
@@ -1866,7 +1866,7 @@ all =
                                     { ctrlKey = False
                                     , shiftKey = True
                                     , metaKey = False
-                                    , code = Keyboard.Slash
+                                    , code = Keyboard.QuestionMark
                                     }
                             )
                         |> Tuple.first

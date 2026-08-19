@@ -154,7 +154,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                 else
                     ( newModel, effects )
 
-            ( Keyboard.Slash, True ) ->
+            ( Keyboard.QuestionMark, _ ) ->
                 ( { newModel | showHelp = not newModel.showHelp }, effects )
 
             ( Keyboard.Escape, False ) ->

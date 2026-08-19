@@ -25,7 +25,7 @@ decodeKeyEvent =
         (Json.Decode.field "ctrlKey" Json.Decode.bool)
         (Json.Decode.field "shiftKey" Json.Decode.bool)
         (Json.Decode.field "metaKey" Json.Decode.bool)
-        (Json.Decode.field "code" decodeKeyCode)
+        (Json.Decode.field "key" decodeKeyCode)
 
 
 type KeyCode
@@ -39,45 +39,33 @@ type KeyCode
     | L
     | F
     | Slash
+    | QuestionMark
     | ArrowUp
     | ArrowDown
     | Enter
     | Escape
 
 
+{-| Decodes the DOM `KeyboardEvent.key` field (the character the active
+keyboard layout actually produces), not `KeyboardEvent.code` (the physical
+key position). This keeps shortcuts working on non-US layouts, where the
+character and the physical position diverge.
+
+Letters fold case ("t" and "T" both map to `T`); the Shift distinction is
+carried separately by `keyEvent.shiftKey`, which is reliable for a-z on every
+Latin layout. Punctuation like "?" must be matched as the character itself,
+because the modifier that produces it varies by layout.
+
+-}
 decodeKeyCode : Json.Decode.Decoder KeyCode
 decodeKeyCode =
     Concourse.customDecoder Json.Decode.string <|
-        \code ->
-            case code of
-                "KeyA" ->
-                    Ok A
+        \key ->
+            case key of
+                "?" ->
+                    Ok QuestionMark
 
-                "KeyT" ->
-                    Ok T
-
-                "KeyR" ->
-                    Ok R
-
-                "KeyG" ->
-                    Ok G
-
-                "KeyH" ->
-                    Ok H
-
-                "KeyJ" ->
-                    Ok J
-
-                "KeyK" ->
-                    Ok K
-
-                "KeyL" ->
-                    Ok L
-
-                "KeyF" ->
-                    Ok F
-
-                "Slash" ->
+                "/" ->
                     Ok Slash
 
                 "ArrowUp" ->
@@ -92,10 +80,39 @@ decodeKeyCode =
                 "Escape" ->
                     Ok Escape
 
-                unknown ->
-                    Err <|
-                        Json.Decode.Failure "unknown keycode" <|
-                            Json.Encode.string unknown
+                other ->
+                    case String.toUpper other of
+                        "A" ->
+                            Ok A
+
+                        "T" ->
+                            Ok T
+
+                        "R" ->
+                            Ok R
+
+                        "G" ->
+                            Ok G
+
+                        "H" ->
+                            Ok H
+
+                        "J" ->
+                            Ok J
+
+                        "K" ->
+                            Ok K
+
+                        "L" ->
+                            Ok L
+
+                        "F" ->
+                            Ok F
+
+                        _ ->
+                            Err <|
+                                Json.Decode.Failure "unknown keycode" <|
+                                    Json.Encode.string other
 
 
 hasControlModifier : KeyEvent -> Bool

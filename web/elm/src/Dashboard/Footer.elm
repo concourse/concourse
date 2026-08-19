@@ -28,9 +28,9 @@ handleDelivery delivery ( model, effects ) =
     case delivery of
         KeyDown keyEvent ->
             case keyEvent.code of
-                -- '/' key
-                Keyboard.Slash ->
-                    if keyEvent.shiftKey && model.dropdown == Hidden then
+                -- '?' key
+                Keyboard.QuestionMark ->
+                    if model.dropdown == Hidden then
                         ( { model
                             | showHelp =
                                 if

@@ -501,14 +501,14 @@ all =
                         )
                     >> Tuple.second
                     >> Common.contains (Effects.Focus SearchBar.searchInputId)
-            , test "hitting shift + '/' (= '?') does not focus search input" <|
+            , test "hitting '?' does not focus search input" <|
                 loadDashboard
                     >> Application.handleDelivery
                         (KeyDown
                             { ctrlKey = False
                             , shiftKey = True
                             , metaKey = False
-                            , code = Keyboard.Slash
+                            , code = Keyboard.QuestionMark
                             }
                         )
                     >> Tuple.second

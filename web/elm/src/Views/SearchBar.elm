@@ -158,13 +158,7 @@ handleDelivery config delivery ( model, effects ) =
                     ( model, effects ++ [ Blur searchInputId ] )
 
                 Keyboard.Slash ->
-                    ( model
-                    , if keyEvent.shiftKey then
-                        effects
-
-                      else
-                        effects ++ [ Focus searchInputId ]
-                    )
+                    ( model, effects ++ [ Focus searchInputId ] )
 
                 _ ->
                     ( model, effects )
