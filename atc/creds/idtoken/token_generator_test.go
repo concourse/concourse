@@ -83,6 +83,32 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline))
 	})
 
+	It("sets a unique jti on every token", func() {
+		token, _, err := tokenGenerator.GenerateToken(params)
+		Expect(err).ToNot(HaveOccurred())
+
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+		Expect(err).ToNot(HaveOccurred())
+
+		claims := jwt.Claims{}
+		err = parsed.Claims(rsaVerificationKey, &claims)
+		Expect(err).To(Succeed())
+		Expect(claims.ID).ToNot(BeEmpty())
+
+		// relying parties doing replay prevention key their single-use caches on
+		// the jti, so it has to differ per generated token
+		otherToken, _, err := tokenGenerator.GenerateToken(params)
+		Expect(err).ToNot(HaveOccurred())
+
+		otherParsed, err := jwt.ParseSigned(otherToken, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+		Expect(err).ToNot(HaveOccurred())
+
+		otherClaims := jwt.Claims{}
+		err = otherParsed.Claims(rsaVerificationKey, &otherClaims)
+		Expect(err).To(Succeed())
+		Expect(otherClaims.ID).ToNot(Equal(claims.ID))
+	})
+
 	It("respects subject scope team", func() {
 		tokenGenerator.SubjectScope = idtoken.SubjectScopeTeam
 		token, _, err := tokenGenerator.GenerateToken(params)
