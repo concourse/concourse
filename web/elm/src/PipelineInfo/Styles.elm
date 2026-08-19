@@ -9,6 +9,7 @@ module PipelineInfo.Styles exposing
 import Colors
 import Html
 import Html.Attributes exposing (style)
+import Views.Styles
 
 
 page : List (Html.Attribute msg)
@@ -47,13 +48,11 @@ yaml =
     , style "padding" "15px"
     , style "margin" "0"
     , style "overflow-x" "auto"
-    , style "font-family" "Courier, monospace"
+    , style "font-family" Views.Styles.fontFamilyDefault
     , style "white-space" "pre"
     ]
 
 
 empty : List (Html.Attribute msg)
 empty =
-    [ style "color" Colors.dashboardText
-    , style "opacity" "0.5"
-    ]
+    [ style "color" Colors.dashboardText ]
