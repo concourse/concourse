@@ -27,10 +27,6 @@ body =
     , style "color" Colors.dashboardText
     , style "font-size" "14px"
     , style "line-height" "1.5"
-
-    -- the markdown and YAML blocks are siblings; a gap keeps them apart
-    -- without either needing a margin that would double up on the padding
-    -- when it's the only child
     , style "display" "flex"
     , style "flex-direction" "column"
     , style "gap" "20px"

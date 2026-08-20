@@ -6,9 +6,6 @@ import Test exposing (Test, describe, test)
 import Yaml
 
 
-{-| Parsing from a JSON string keeps these cases readable and exercises the
-same path the API response takes.
--}
 render : String -> String
 render json =
     case Json.Decode.decodeString Json.Decode.value json of

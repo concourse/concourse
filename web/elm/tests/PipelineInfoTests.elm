@@ -32,9 +32,6 @@ userData json =
         |> Result.withDefault Json.Encode.null
 
 
-{-| Opens /teams/team/pipelines/pipeline/info with the given `user_data`
-already fetched.
--}
 openInfoPage : Maybe Json.Decode.Value -> Application.Model
 openInfoPage maybeUserData =
     let

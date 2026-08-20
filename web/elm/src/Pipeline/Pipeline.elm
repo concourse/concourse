@@ -534,9 +534,6 @@ view session model =
         ]
 
 
-{-| Links to the pipeline's `user_data`, and is only shown when there is any
-to link to.
--}
 viewInfoIcon : { a | hovered : HoverState.HoverState } -> Model -> Html Message
 viewInfoIcon session model =
     if hasUserData model.pipeline then
@@ -552,9 +549,6 @@ viewInfoIcon session model =
             )
             [ Icon.icon
                 { sizePx = 20, image = Assets.InformationOutlineIcon }
-                -- 17px each side of a 20px icon fills the 54px top bar, so
-                -- the border-left reads as a full-height divider like the
-                -- favourite and pause controls
                 [ style "margin" "17px"
                 , style "opacity" <|
                     if HoverState.isHovered TopBarInfoIcon session.hovered then

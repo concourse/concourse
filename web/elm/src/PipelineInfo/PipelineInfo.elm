@@ -100,10 +100,6 @@ handleCallback callback ( model, effects ) =
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
-                        -- the only failure that means "there is no such
-                        -- pipeline"; anything else leaves the model alone so
-                        -- the poll can recover rather than bouncing to the
-                        -- not-found page on a transient error
                         ( { model | pipeline = RemoteData.Failure err }, effects )
 
                     else if status.code == 401 then
@@ -264,13 +260,6 @@ viewYaml value =
         [ Html.text (Yaml.fromJson value) ]
 
 
-{-| Rendered with elm-markdown's `defaultHtmlRenderer`, which does not render
-raw HTML embedded in the markdown source (`html = Markdown.Html.oneOf []`) --
-`user_data` is visible to anyone with pipeline view access, including
-anonymous viewers on public pipelines, so we deliberately don't opt into a
-raw-HTML-passthrough renderer. Falls back to the raw (still-escaped) text on
-any parse or render failure.
--}
 viewMarkdown : String -> Html Message
 viewMarkdown markdown =
     Html.div
