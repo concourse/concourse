@@ -843,6 +843,59 @@ all =
                             |> Common.queryView
                             |> iSeeStarUnfilled
                 ]
+            , describe "top bar info icon" <|
+                let
+                    setup maybeUserData =
+                        Common.init "/teams/team/pipelines/pipeline"
+                            |> pipelineFetched
+                                (Data.pipeline "team" 0
+                                    |> Data.withName "pipeline"
+                                    |> (case maybeUserData of
+                                            Just value ->
+                                                Data.withUserData value
+
+                                            Nothing ->
+                                                identity
+                                       )
+                                )
+
+                    withUserData =
+                        setup (Just <| Json.Encode.string "some notes")
+                in
+                [ test "is shown when the pipeline has user_data" <|
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.has [ id "top-bar-info-icon" ]
+                , test "is hidden when the pipeline has no user_data" <|
+                    \_ ->
+                        setup Nothing
+                            |> Common.queryView
+                            |> Query.hasNot [ id "top-bar-info-icon" ]
+                , test "links to the pipeline's info page" <|
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.find [ id "top-bar-info-icon" ]
+                            |> Query.has
+                                [ attribute <|
+                                    Attr.href "/teams/team/pipelines/pipeline/info"
+                                ]
+                , test "icon has the same 17px margin as its neighbours" <|
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.find [ id "top-bar-info-icon" ]
+                            |> Query.children []
+                            |> Query.first
+                            |> Query.has
+                                (style "margin" "17px"
+                                    :: iconSelector
+                                        { size = "20px"
+                                        , image = Assets.InformationOutlineIcon
+                                        }
+                                )
+                ]
             , describe "pipeline name tooltip" <|
                 let
                     setupPipeline time =

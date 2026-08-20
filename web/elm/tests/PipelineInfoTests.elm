@@ -5,14 +5,13 @@ import Common exposing (queryView)
 import Concourse
 import Data
 import Expect
-import Html.Attributes
 import Json.Decode
 import Json.Encode
 import Message.Callback as Callback
 import Routes
 import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (attribute, id, tag, text)
+import Test.Html.Selector exposing (id, style, tag, text)
 import Url
 
 
@@ -45,29 +44,6 @@ openInfoPage maybeUserData =
         , host = ""
         , port_ = Nothing
         , path = "/teams/team/pipelines/pipeline/info"
-        , query = Nothing
-        , fragment = Nothing
-        }
-        |> Tuple.first
-        |> Application.handleCallback (Callback.PipelineFetched (Ok pipeline))
-        |> Tuple.first
-        |> Application.handleCallback (Callback.AllPipelinesFetched (Ok [ pipeline ]))
-        |> Tuple.first
-
-
-openPipelinePage : Maybe Json.Decode.Value -> Application.Model
-openPipelinePage maybeUserData =
-    let
-        pipeline =
-            Data.pipeline "team" 1
-                |> Data.withName "pipeline"
-                |> applyUserData maybeUserData
-    in
-    Application.init Data.flags
-        { protocol = Url.Http
-        , host = ""
-        , port_ = Nothing
-        , path = "/teams/team/pipelines/pipeline"
         , query = Nothing
         , fragment = Nothing
         }
@@ -115,29 +91,6 @@ all =
                                     { id = Data.pipelineId, groups = [] }
                                 )
                             )
-            ]
-        , describe "top bar info button"
-            [ test "is shown when the pipeline has user_data" <|
-                \_ ->
-                    openPipelinePage (Just (userData "\"some notes\""))
-                        |> queryView
-                        |> Query.has [ id "top-bar-info-icon" ]
-            , test "is hidden when the pipeline has no user_data" <|
-                \_ ->
-                    openPipelinePage Nothing
-                        |> queryView
-                        |> Query.hasNot [ id "top-bar-info-icon" ]
-            , test "links to the info page" <|
-                \_ ->
-                    openPipelinePage (Just (userData "\"some notes\""))
-                        |> queryView
-                        |> Query.find [ id "top-bar-info-icon" ]
-                        |> Query.has
-                            [ attribute
-                                (Html.Attributes.href
-                                    "/teams/team/pipelines/pipeline/info"
-                                )
-                            ]
             ]
         , describe "rendering user_data"
             [ test "a bare string renders as markdown" <|
@@ -207,6 +160,18 @@ all =
                         |> queryView
                         |> Query.find [ id "pipeline-info-markdown" ]
                         |> Query.hasNot [ tag "script" ]
+            , test "the markdown and YAML blocks are separated by a gap" <|
+                \_ ->
+                    openInfoPage
+                        (Just (userData "{\"description\": \"# Title\", \"owner\": \"team-a\"}"))
+                        |> queryView
+                        |> Query.find [ id "pipeline-info-body" ]
+                        |> Query.has
+                            [ style "display" "flex"
+                            , style "flex-direction" "column"
+                            , style "gap" "20px"
+                            , style "line-height" "1.5"
+                            ]
             , test "no user_data shows the empty state" <|
                 \_ ->
                     openInfoPage Nothing

@@ -174,7 +174,7 @@ viewContent : Model -> Html Message
 viewContent model =
     Html.div
         (id "pipeline-info" :: class "pipeline-info" :: Styles.page)
-        [ Html.div Styles.body <|
+        [ Html.div (id "pipeline-info-body" :: Styles.body) <|
             case model.pipeline of
                 RemoteData.Success pipeline ->
                     case pipeline.userData of
