@@ -153,6 +153,7 @@ repo:
 ```sh
 $ yarn install
 $ yarn build
+$ docker build -t concourse/concourse:local .
 $ docker compose up -d
 ```
 
