@@ -399,7 +399,7 @@ all =
                         |> Application.handleDelivery (GroupListViewReceived (Ok True))
                         |> Tuple.first
                         |> Common.queryView
-                        |> Query.has [ style "margin-bottom" "32px" ]
+                        |> Query.has [ style "margin-bottom" "12px" ]
             , test "list view toggle is on when flag is set" <|
                 \_ ->
                     whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }

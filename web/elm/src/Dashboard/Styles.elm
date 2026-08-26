@@ -152,7 +152,7 @@ groupPageContent isListView =
     , style "flex-flow" "column wrap"
     , style "padding" <|
         if isListView then
-            "30px"
+            "0"
 
         else
             "30px 0"
@@ -1134,7 +1134,7 @@ endDropZone { active, anyDragHappening } =
 
 listViewTeamGroup : List (Html.Attribute msg)
 listViewTeamGroup =
-    [ style "margin-bottom" "32px"
+    [ style "margin-bottom" "12px"
     ]
 
 
@@ -1142,7 +1142,7 @@ listViewTeamHeader : List (Html.Attribute msg)
 listViewTeamHeader =
     [ style "display" "flex"
     , style "align-items" "center"
-    , style "margin-bottom" "32px"
+    , style "margin-bottom" "12px"
     , style "background" ColorValues.grey80
     , style "z-index" "2"
     , style "opacity" "0.9"
@@ -1165,6 +1165,7 @@ listView : List (Html.Attribute msg)
 listView =
     [ style "width" "100%"
     , style "box-sizing" "border-box"
+    , style "padding" "0 30px"
     ]
 
 
