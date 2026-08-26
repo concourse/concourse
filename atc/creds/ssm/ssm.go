@@ -22,6 +22,8 @@ type SsmAPI interface {
 	GetParametersByPath(ctx context.Context, params *ssm.GetParametersByPathInput, optFns ...func(*ssm.Options)) (*ssm.GetParametersByPathOutput, error)
 }
 
+var _ creds.Secrets = (*Ssm)(nil)
+
 type Ssm struct {
 	log             lager.Logger
 	api             SsmAPI

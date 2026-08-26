@@ -12,6 +12,8 @@ type SecretRetryConfig struct {
 	Interval time.Duration `long:"secret-retry-interval" default:"1s" description:"The interval between secret retry retrieval attempts."`
 }
 
+var _ Secrets = (*RetryableSecrets)(nil)
+
 type RetryableSecrets struct {
 	secrets     Secrets
 	retryConfig SecretRetryConfig

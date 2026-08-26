@@ -10,6 +10,8 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 )
 
+var _ creds.Secrets = (*CredHubAtc)(nil)
+
 type CredHubAtc struct {
 	CredHub    *LazyCredhub
 	logger     lager.Logger

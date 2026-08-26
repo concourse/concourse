@@ -21,6 +21,8 @@ type SecretReader interface {
 	Read(path string) (*vaultapi.Secret, error)
 }
 
+var _ creds.Secrets = (*Vault)(nil)
+
 // Vault converts a vault secret to our completely untyped secret
 // data.
 type Vault struct {

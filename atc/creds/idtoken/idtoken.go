@@ -7,6 +7,8 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+var _ creds.Secrets = (*IDToken)(nil)
+
 type IDToken struct {
 	TokenGenerator *TokenGenerator
 }
