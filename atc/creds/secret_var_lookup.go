@@ -4,6 +4,8 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
+var _ vars.Variables = (*VariableLookupFromSecrets)(nil)
+
 type VariableLookupFromSecrets struct {
 	Secrets     Secrets
 	LookupPaths []SecretLookupPath

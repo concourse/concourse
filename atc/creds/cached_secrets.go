@@ -13,6 +13,8 @@ type SecretCacheConfig struct {
 	PurgeInterval    time.Duration `long:"secret-cache-purge-interval" default:"10m" description:"If the cache is enabled, expired items will be removed on this interval"`
 }
 
+var _ Secrets = (*CachedSecrets)(nil)
+
 type CachedSecrets struct {
 	secrets     Secrets
 	cacheConfig SecretCacheConfig

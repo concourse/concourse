@@ -20,6 +20,8 @@ type SecretsManagerAPI interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
+var _ creds.Secrets = (*SecretsManager)(nil)
+
 type SecretsManager struct {
 	log             lager.Logger
 	api             SecretsManagerAPI

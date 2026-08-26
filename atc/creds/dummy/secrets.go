@@ -8,6 +8,8 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
+var _ creds.Secrets = (*Secrets)(nil)
+
 type Secrets struct {
 	vars.StaticVariables
 

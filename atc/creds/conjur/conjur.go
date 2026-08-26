@@ -11,6 +11,8 @@ type IConjurClient interface {
 	RetrieveSecret(string) ([]byte, error)
 }
 
+var _ creds.Secrets = (*Conjur)(nil)
+
 type Conjur struct {
 	log             lager.Logger
 	client          IConjurClient

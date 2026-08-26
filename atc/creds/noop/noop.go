@@ -6,6 +6,8 @@ import (
 	"github.com/concourse/concourse/atc/creds"
 )
 
+var _ creds.Secrets = (*Noop)(nil)
+
 type Noop struct{}
 
 func (n Noop) NewSecretLookupPaths(string, string, bool) []creds.SecretLookupPath {

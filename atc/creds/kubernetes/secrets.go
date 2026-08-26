@@ -15,6 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+var _ creds.Secrets = (*Secrets)(nil)
+
 type Secrets struct {
 	logger lager.Logger
 
