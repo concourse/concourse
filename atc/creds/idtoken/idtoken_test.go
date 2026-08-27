@@ -16,10 +16,12 @@ import (
 
 var _ = Describe("IDToken Secret", func() {
 
-	var tokenGenerator idtoken.TokenGenerator
-	var verificationKey jose.JSONWebKey
-	var secrets creds.SecretsWithParams
-	var params creds.SecretLookupParams
+	var (
+		tokenGenerator  idtoken.TokenGenerator
+		verificationKey jose.JSONWebKey
+		secrets         creds.Secrets
+		params          creds.SecretLookupParams
+	)
 
 	BeforeEach(func() {
 		signingKeyFake := &dbfakes.FakeSigningKey{}
@@ -55,14 +57,23 @@ var _ = Describe("IDToken Secret", func() {
 		}
 	})
 
-	It("provides correct (empty) lookup path", func() {
-		lookups := secrets.NewSecretLookupPathsWithParams(params, false)
-		Expect(lookups).To(HaveLen(0))
+	It("provides exactly one lookup path", func() {
+		lookups := secrets.NewSecretLookupPaths(params, false)
+		Expect(lookups).To(HaveLen(1), "only returns one lookup path")
+		Expect(lookups[0].VariableToSecretPath("token")).To(Equal("main/idtoken/foo:bar/testjob/token"))
 	})
 
-	It("returns a correct token for passed team+pipeline", func() {
-		token, _, _, err := secrets.GetWithParams("token", params)
+	It("returns a correct token for passed team/pipeline/job", func() {
+		lookups := secrets.NewSecretLookupPaths(params, false)
+		Expect(lookups).To(HaveLen(1))
+		secretPath, err := lookups[0].VariableToSecretPath("token")
 		Expect(err).ToNot(HaveOccurred())
+
+		token, expiresIn, found, err := secrets.Get(secretPath, params)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(found).To(BeTrue())
+		Expect(expiresIn).ToNot(BeNil())
+		Expect(*expiresIn).To(BeTemporally("~", time.Now().Add(tokenExpiresIn), time.Second))
 
 		parsed, err := jwt.ParseSigned(token.(string), []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
 		Expect(err).ToNot(HaveOccurred())
@@ -95,7 +106,12 @@ var _ = Describe("IDToken Secret", func() {
 		})
 
 		It("generates token with custom issuer in iss claim", func() {
-			token, _, _, err := secrets.GetWithParams("token", params)
+			lookups := secrets.NewSecretLookupPaths(params, false)
+			Expect(lookups).To(HaveLen(1))
+			secretPath, err := lookups[0].VariableToSecretPath("token")
+
+			Expect(err).ToNot(HaveOccurred())
+			token, _, _, err := secrets.Get(secretPath, params)
 			Expect(err).ToNot(HaveOccurred())
 
 			parsed, err := jwt.ParseSigned(token.(string), []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
@@ -109,4 +125,53 @@ var _ = Describe("IDToken Secret", func() {
 		})
 	})
 
+	It("errors when a field other than 'token' is used", func() {
+		lookups := secrets.NewSecretLookupPaths(params, false)
+		Expect(lookups).To(HaveLen(1))
+		secretPath, err := lookups[0].VariableToSecretPath("some-other-field")
+		Expect(err).ToNot(HaveOccurred())
+
+		token, expiresIn, found, err := secrets.Get(secretPath, params)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError("idtoken credential provider only supports the field 'token'"))
+		Expect(token).To(BeNil())
+		Expect(expiresIn).To(BeNil())
+		Expect(found).To(BeFalse())
+	})
+
+	It("errors when params is empty", func() {
+		params = creds.SecretLookupParams{}
+		lookups := secrets.NewSecretLookupPaths(params, false)
+		Expect(lookups).To(HaveLen(1))
+		secretPath, err := lookups[0].VariableToSecretPath("token")
+		Expect(err).ToNot(HaveOccurred())
+
+		token, expiresIn, found, err := secrets.Get(secretPath, params)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError("idtoken credential provider was called with empty params"))
+		Expect(token).To(BeNil())
+		Expect(expiresIn).To(BeNil())
+		Expect(found).To(BeFalse())
+	})
+
+	It("errors when different params are passed to Secrets.NewSecretLookupPaths() and Secrets.Get()", func() {
+		lookups := secrets.NewSecretLookupPaths(params, false)
+		Expect(lookups).To(HaveLen(1))
+		secretPath, err := lookups[0].VariableToSecretPath("token")
+		Expect(err).ToNot(HaveOccurred())
+
+		params = creds.SecretLookupParams{
+			Team:         "main",
+			Pipeline:     "idtoken",
+			InstanceVars: atc.InstanceVars{},
+			Job:          "other-job",
+		}
+
+		token, expiresIn, found, err := secrets.Get(secretPath, params)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError("idtoken credential provider was called with different secret params"))
+		Expect(token).To(BeNil())
+		Expect(expiresIn).To(BeNil())
+		Expect(found).To(BeFalse())
+	})
 })

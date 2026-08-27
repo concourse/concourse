@@ -35,10 +35,10 @@ type Vault struct {
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
+func (v Vault) NewSecretLookupPaths(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range v.LookupTemplates {
-		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, params.Team, params.Pipeline); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
@@ -52,7 +52,7 @@ func (v Vault) NewSecretLookupPaths(teamName string, pipelineName string, allowR
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (v Vault) Get(secretPath string) (any, *time.Time, bool, error) {
+func (v Vault) Get(secretPath string, _ creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	if v.LoggedIn != nil {
 		select {
 		case <-v.LoggedIn:

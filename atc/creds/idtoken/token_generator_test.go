@@ -83,72 +83,75 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline))
 	})
 
-	It("respects subject scope team", func() {
-		tokenGenerator.SubjectScope = idtoken.SubjectScopeTeam
-		token, _, err := tokenGenerator.GenerateToken(params)
-		Expect(err).ToNot(HaveOccurred())
+	Context("subject_scope", func() {
+		It("respects subject scope team", func() {
+			tokenGenerator.SubjectScope = idtoken.SubjectScopeTeam
+			token, _, err := tokenGenerator.GenerateToken(params)
+			Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
-		Expect(err).ToNot(HaveOccurred())
+			parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+			Expect(err).ToNot(HaveOccurred())
 
-		claims := jwt.Claims{}
-		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+			claims := jwt.Claims{}
+			err = parsed.Claims(rsaVerificationKey, &claims)
+			Expect(err).To(Succeed())
 
-		Expect(claims.Subject).To(Equal(params.Team))
-	})
+			Expect(claims.Subject).To(Equal(params.Team))
+		})
 
-	It("respects subject scope instance", func() {
-		tokenGenerator.SubjectScope = idtoken.SubjectScopeInstance
-		token, _, err := tokenGenerator.GenerateToken(params)
-		Expect(err).ToNot(HaveOccurred())
+		It("respects subject scope instance", func() {
+			tokenGenerator.SubjectScope = idtoken.SubjectScopeInstance
+			token, _, err := tokenGenerator.GenerateToken(params)
+			Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
-		Expect(err).ToNot(HaveOccurred())
+			parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+			Expect(err).ToNot(HaveOccurred())
 
-		claims := jwt.Claims{}
-		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+			claims := jwt.Claims{}
+			err = parsed.Claims(rsaVerificationKey, &claims)
+			Expect(err).To(Succeed())
 
-		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline + "/" + params.InstanceVars.String()))
-	})
+			Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline + "/" + params.InstanceVars.String()))
+		})
 
-	It("respects subject scope job", func() {
-		tokenGenerator.SubjectScope = idtoken.SubjectScopeJob
-		token, _, err := tokenGenerator.GenerateToken(params)
-		Expect(err).ToNot(HaveOccurred())
+		It("respects subject scope job", func() {
+			tokenGenerator.SubjectScope = idtoken.SubjectScopeJob
+			token, _, err := tokenGenerator.GenerateToken(params)
+			Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
-		Expect(err).ToNot(HaveOccurred())
+			parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+			Expect(err).ToNot(HaveOccurred())
 
-		claims := jwt.Claims{}
-		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+			claims := jwt.Claims{}
+			err = parsed.Claims(rsaVerificationKey, &claims)
+			Expect(err).To(Succeed())
 
-		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline + "/" + params.InstanceVars.String() + "/" + params.Job))
-	})
+			Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline + "/" + params.InstanceVars.String() + "/" + params.Job))
+		})
 
-	It("escapes sub parts safely", func() {
-		params = creds.SecretLookupParams{
-			Team:     "fake/team",
-			Pipeline: "fake/pipeline",
-			InstanceVars: atc.InstanceVars{
-				"fake/foo": "fake/bar",
-			},
-			Job: "fake/job",
-		}
-		tokenGenerator.SubjectScope = idtoken.SubjectScopeJob
-		token, _, err := tokenGenerator.GenerateToken(params)
-		Expect(err).ToNot(HaveOccurred())
+		It("escapes sub parts safely", func() {
+			params = creds.SecretLookupParams{
+				Team:     "fake/team",
+				Pipeline: "fake/pipeline",
+				InstanceVars: atc.InstanceVars{
+					"fake/foo": "fake/bar",
+				},
+				Job: "fake/job",
+			}
+			tokenGenerator.SubjectScope = idtoken.SubjectScopeJob
+			token, _, err := tokenGenerator.GenerateToken(params)
+			Expect(err).ToNot(HaveOccurred())
 
-		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
-		Expect(err).ToNot(HaveOccurred())
+			parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+			Expect(err).ToNot(HaveOccurred())
 
-		claims := jwt.Claims{}
-		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+			claims := jwt.Claims{}
+			err = parsed.Claims(rsaVerificationKey, &claims)
+			Expect(err).To(Succeed())
 
-		Expect(claims.Subject).To(Equal("fake%2Fteam/fake%2Fpipeline/\"fake%2Ffoo\":\"fake%2Fbar\"/fake%2Fjob"))
+			Expect(claims.Subject).To(Equal("fake%2Fteam/fake%2Fpipeline/\"fake%2Ffoo\":\"fake%2Fbar\"/fake%2Fjob"))
+		})
+
 	})
 
 	It("adds aud claim when requested", func() {
