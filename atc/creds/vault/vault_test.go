@@ -119,7 +119,7 @@ var _ = Describe("Vault", func() {
 						},
 					}},
 				}
-				value, expiration, found, err := v.Get("/concourse/team/pipeline/foo")
+				value, expiration, found, err := v.Get("/concourse/team/pipeline/foo", creds.SecretLookupParams{})
 				Expect(value).To(BeEquivalentTo("bar"))
 				Expect(expiration).ToNot(BeNil())
 				Expect(found).To(BeTrue())
@@ -384,7 +384,7 @@ var _ = Describe("Vault KV2", func() {
 					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
 				),
 			)
-			value, expiration, found, err := v.Get("team/pipeline/foo")
+			value, expiration, found, err := v.Get("team/pipeline/foo", creds.SecretLookupParams{})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(expiration).To(BeNil())
 			Expect(found).To(BeTrue())

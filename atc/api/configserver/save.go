@@ -99,7 +99,13 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if checkCredentials {
-		variables := creds.NewVariables(s.secretManager, creds.SecretLookupParams{Team: teamName, Pipeline: pipelineName}, false)
+		variables := creds.NewVariables(s.secretManager,
+			creds.SecretLookupParams{
+				Team:         teamName,
+				Pipeline:     pipelineName,
+				InstanceVars: pipelineRef.InstanceVars,
+			},
+			false)
 
 		errs := validateCredParams(variables, config, session)
 		if errs != nil {
