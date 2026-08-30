@@ -240,7 +240,7 @@ var _ = Describe("Filesystem", func() {
 			Expect(driver.DestroyVolumeCallCount()).To(Equal(2))
 		})
 
-		It("collects live and init handles and passes them to RemoveOrphanedResources", func() {
+		It("passes a live isKnown checker for init and live handles", func() {
 			// Create live and init volume directories
 			Expect(os.Mkdir(filepath.Join(parentDir, "live/live-vol-1"), 0755)).To(Succeed())
 			Expect(os.Mkdir(filepath.Join(parentDir, "live/live-vol-2"), 0755)).To(Succeed())
@@ -251,11 +251,45 @@ var _ = Describe("Filesystem", func() {
 
 			Expect(driver.RemoveOrphanedResourcesCallCount()).To(Equal(1))
 
-			knownHandles := driver.RemoveOrphanedResourcesArgsForCall(0)
-			Expect(knownHandles).To(HaveKey("live-vol-1"))
-			Expect(knownHandles).To(HaveKey("live-vol-2"))
-			Expect(knownHandles).To(HaveKey("init-vol-1"))
-			Expect(knownHandles).To(HaveLen(3))
+			isKnown := driver.RemoveOrphanedResourcesArgsForCall(0)
+			Expect(isKnown("live-vol-1")).To(BeTrue())
+			Expect(isKnown("live-vol-2")).To(BeTrue())
+			Expect(isKnown("init-vol-1")).To(BeTrue())
+			Expect(isKnown("unknown-vol")).To(BeFalse())
+
+			// Live check, not a snapshot: a volume created after sweep
+			// started is still known (would have been missing from a map).
+			Expect(os.Mkdir(filepath.Join(parentDir, "init/late-init"), 0755)).To(Succeed())
+			Expect(isKnown("late-init")).To(BeTrue())
+
+			// init-first then live is safe against init→live rename.
+			Expect(os.Mkdir(filepath.Join(parentDir, "init/promoting"), 0755)).To(Succeed())
+			Expect(isKnown("promoting")).To(BeTrue())
+			Expect(os.Rename(
+				filepath.Join(parentDir, "init/promoting"),
+				filepath.Join(parentDir, "live/promoting"),
+			)).To(Succeed())
+			Expect(isKnown("promoting")).To(BeTrue())
+		})
+
+		It("treats a non-ErrNotExist stat as known so overlays are not mass-deleted", func() {
+			err := fs.CleanupOrphanedEntries()
+			Expect(err).ToNot(HaveOccurred())
+
+			isKnown := driver.RemoveOrphanedResourcesArgsForCall(0)
+			Expect(isKnown("unknown-vol")).To(BeFalse())
+
+			initDir := filepath.Join(parentDir, "init")
+			liveDir := filepath.Join(parentDir, "live")
+			Expect(os.Chmod(initDir, 0)).To(Succeed())
+			Expect(os.Chmod(liveDir, 0)).To(Succeed())
+			defer func() {
+				_ = os.Chmod(initDir, 0755)
+				_ = os.Chmod(liveDir, 0755)
+			}()
+
+			// Permission/IO must not be treated as "unknown" (orphan).
+			Expect(isKnown("any-handle")).To(BeTrue())
 		})
 
 		It("logs errors from dead volume cleanup but continues", func() {
@@ -275,8 +309,8 @@ var _ = Describe("Filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(driver.RemoveOrphanedResourcesCallCount()).To(Equal(1))
-			knownHandles := driver.RemoveOrphanedResourcesArgsForCall(0)
-			Expect(knownHandles).To(BeEmpty())
+			isKnown := driver.RemoveOrphanedResourcesArgsForCall(0)
+			Expect(isKnown("anything")).To(BeFalse())
 		})
 	})
 })

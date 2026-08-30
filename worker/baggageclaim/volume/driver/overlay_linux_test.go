@@ -1,6 +1,7 @@
 package driver_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+func knownHandles(handles ...string) func(string) bool {
+	set := make(map[string]struct{}, len(handles))
+	for _, h := range handles {
+		set[h] = struct{}{}
+	}
+	return func(handle string) bool {
+		_, ok := set[handle]
+		return ok
+	}
+}
 
 var _ = Describe("Overlay", func() {
 	Context("Driver", func() {
@@ -135,12 +147,7 @@ var _ = Describe("Overlay", func() {
 			// orphan-vol-2 has no corresponding work dir
 			Expect(os.Mkdir(filepath.Join(overlaysDir, "orphan-vol-2"), 0755)).To(Succeed())
 
-			knownHandles := map[string]struct{}{
-				"known-vol-1": {},
-				"known-vol-2": {},
-			}
-
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles("known-vol-1", "known-vol-2"))
 			Expect(err).ToNot(HaveOccurred())
 
 			// Known handles should still exist
@@ -161,16 +168,53 @@ var _ = Describe("Overlay", func() {
 			// Create a work dir with no layer dir
 			Expect(os.Mkdir(filepath.Join(overlaysDir, "work", "work-only-orphan"), 0755)).To(Succeed())
 
-			knownHandles := map[string]struct{}{}
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles())
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(filepath.Join(overlaysDir, "work", "work-only-orphan")).ToNot(BeADirectory())
 		})
 
+		// overlayMount MkdirAll(workDir) then Mount. A stale snapshot of
+		// live/+init/ taken before initRawVolume (or during init→live rename)
+		// does not contain this handle. Deleting the work dir makes the later
+		// Mount / a live overlay hit ENOENT. Live isKnown stats init/ at
+		// removal time so the in-flight volume is kept; true work-only
+		// orphans are still deleted.
+		It("does not remove an in-flight work dir missing from a stale snapshot", func() {
+			inFlight := "in-flight-vol"
+			workPath := filepath.Join(overlaysDir, "work", inFlight)
+			Expect(os.Mkdir(workPath, 0755)).To(Succeed())
+
+			orphanPath := filepath.Join(overlaysDir, "work", "work-only-orphan")
+			Expect(os.Mkdir(orphanPath, 0755)).To(Succeed())
+
+			initDir := filepath.Join(filepath.Dir(overlaysDir), "init")
+			Expect(os.MkdirAll(initDir, 0755)).To(Succeed())
+			// Handle is absent from the (empty) snapshot but present in init/
+			// by the time the sweeper considers this work dir — or it appears
+			// during the sweep via this live check.
+			Expect(os.Mkdir(filepath.Join(initDir, inFlight), 0755)).To(Succeed())
+
+			isKnown := func(handle string) bool {
+				_, err := os.Stat(filepath.Join(initDir, handle))
+				if err == nil {
+					return true
+				}
+				if errors.Is(err, os.ErrNotExist) {
+					return false
+				}
+				return true
+			}
+
+			err := overlayDrv.RemoveOrphanedResources(isKnown)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(workPath).To(BeADirectory())
+			Expect(orphanPath).ToNot(BeADirectory())
+		})
+
 		It("handles an empty overlays directory", func() {
-			knownHandles := map[string]struct{}{}
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -181,8 +225,7 @@ var _ = Describe("Overlay", func() {
 			})
 
 			It("does not error", func() {
-				knownHandles := map[string]struct{}{}
-				err := overlayDrv.RemoveOrphanedResources(knownHandles)
+				err := overlayDrv.RemoveOrphanedResources(knownHandles())
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})

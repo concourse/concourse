@@ -53,10 +53,10 @@ type FakeDriver struct {
 	recoverReturnsOnCall map[int]struct {
 		result1 error
 	}
-	RemoveOrphanedResourcesStub        func(map[string]struct{}) error
+	RemoveOrphanedResourcesStub        func(func(string) bool) error
 	removeOrphanedResourcesMutex       sync.RWMutex
 	removeOrphanedResourcesArgsForCall []struct {
-		arg1 map[string]struct{}
+		arg1 func(string) bool
 	}
 	removeOrphanedResourcesReturns struct {
 		result1 error
@@ -313,11 +313,11 @@ func (fake *FakeDriver) RecoverReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeDriver) RemoveOrphanedResources(arg1 map[string]struct{}) error {
+func (fake *FakeDriver) RemoveOrphanedResources(arg1 func(string) bool) error {
 	fake.removeOrphanedResourcesMutex.Lock()
 	ret, specificReturn := fake.removeOrphanedResourcesReturnsOnCall[len(fake.removeOrphanedResourcesArgsForCall)]
 	fake.removeOrphanedResourcesArgsForCall = append(fake.removeOrphanedResourcesArgsForCall, struct {
-		arg1 map[string]struct{}
+		arg1 func(string) bool
 	}{arg1})
 	stub := fake.RemoveOrphanedResourcesStub
 	fakeReturns := fake.removeOrphanedResourcesReturns
@@ -338,13 +338,13 @@ func (fake *FakeDriver) RemoveOrphanedResourcesCallCount() int {
 	return len(fake.removeOrphanedResourcesArgsForCall)
 }
 
-func (fake *FakeDriver) RemoveOrphanedResourcesCalls(stub func(map[string]struct{}) error) {
+func (fake *FakeDriver) RemoveOrphanedResourcesCalls(stub func(func(string) bool) error) {
 	fake.removeOrphanedResourcesMutex.Lock()
 	defer fake.removeOrphanedResourcesMutex.Unlock()
 	fake.RemoveOrphanedResourcesStub = stub
 }
 
-func (fake *FakeDriver) RemoveOrphanedResourcesArgsForCall(i int) map[string]struct{} {
+func (fake *FakeDriver) RemoveOrphanedResourcesArgsForCall(i int) func(string) bool {
 	fake.removeOrphanedResourcesMutex.RLock()
 	defer fake.removeOrphanedResourcesMutex.RUnlock()
 	argsForCall := fake.removeOrphanedResourcesArgsForCall[i]

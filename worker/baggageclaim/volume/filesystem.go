@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -201,33 +202,39 @@ func (fs *filesystem) CleanupOrphanedEntries() error {
 		}
 	}
 
-	// Collect live and init handles, then ask the driver to remove
-	// any orphaned driver-specific resources.
-	knownHandles := map[string]struct{}{}
-	liveDirs, err := os.ReadDir(fs.liveDir)
-	if err != nil {
-		return fmt.Errorf("read live dir: %w", err)
-	}
-
-	for _, entry := range liveDirs {
-		knownHandles[entry.Name()] = struct{}{}
-	}
-
-	initDirs, err := os.ReadDir(fs.initDir)
-	if err != nil {
-		return fmt.Errorf("read init dir: %w", err)
-	}
-
-	for _, entry := range initDirs {
-		knownHandles[entry.Name()] = struct{}{}
-	}
-
-	err = fs.driver.RemoveOrphanedResources(knownHandles)
+	// Check known-ness at removal time (init first, then live) so a
+	// volume created or promoted during the sweep is not treated as
+	// an orphan. A snapshot of both dirs can miss a handle that is
+	// renamed from init/ to live/ between the two reads, or that is
+	// created after the snapshot.
+	err = fs.driver.RemoveOrphanedResources(fs.volumeExists)
 	if err != nil {
 		fs.log.Error("failed-to-remove-orphaned-driver-resources", err)
 	}
 
 	return nil
+}
+
+func (fs *filesystem) volumeExists(handle string) bool {
+	// init/ first, then live/: a rename from init to live cannot miss both.
+	if fs.pathKnown(fs.initVolumePath(handle)) {
+		return true
+	}
+	return fs.pathKnown(fs.liveVolumePath(handle))
+}
+
+// pathKnown reports whether a volume path should be treated as present.
+// Stat errors other than ErrNotExist (permission, IO) fail closed: treat
+// the path as known so the sweeper will not delete every overlay.
+func (fs *filesystem) pathKnown(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
 }
 
 func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {
