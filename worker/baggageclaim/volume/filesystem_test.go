@@ -281,14 +281,21 @@ var _ = Describe("Filesystem", func() {
 
 			initDir := filepath.Join(parentDir, "init")
 			liveDir := filepath.Join(parentDir, "live")
-			Expect(os.Chmod(initDir, 0)).To(Succeed())
-			Expect(os.Chmod(liveDir, 0)).To(Succeed())
+			// chmod 0 is not a Stat error as root (CI unit-baggageclaim).
+			// Replace the dirs with files so Stat(init/any-handle) returns
+			// ENOTDIR, which is not ErrNotExist even as uid 0.
+			Expect(os.RemoveAll(initDir)).To(Succeed())
+			Expect(os.RemoveAll(liveDir)).To(Succeed())
+			Expect(os.WriteFile(initDir, nil, 0644)).To(Succeed())
+			Expect(os.WriteFile(liveDir, nil, 0644)).To(Succeed())
 			defer func() {
-				_ = os.Chmod(initDir, 0755)
-				_ = os.Chmod(liveDir, 0755)
+				_ = os.Remove(initDir)
+				_ = os.Remove(liveDir)
+				_ = os.Mkdir(initDir, 0755)
+				_ = os.Mkdir(liveDir, 0755)
 			}()
 
-			// Permission/IO must not be treated as "unknown" (orphan).
+			// A Stat error other than ErrNotExist must not be treated as "unknown" (orphan).
 			Expect(isKnown("any-handle")).To(BeTrue())
 		})
 
