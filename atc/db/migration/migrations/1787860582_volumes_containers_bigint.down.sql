@@ -4,12 +4,19 @@ ALTER TABLE containers
     ALTER COLUMN image_get_container_id TYPE int,
     ALTER COLUMN resource_config_check_session_id TYPE int;
 
+ALTER TABLE volumes DROP CONSTRAINT volumes_parent_id_fkey;
+
 ALTER TABLE volumes
     ALTER COLUMN id TYPE int,
     ALTER COLUMN parent_id TYPE int,
     ALTER COLUMN container_id TYPE int,
     ALTER COLUMN worker_task_cache_id TYPE int,
     ALTER COLUMN worker_resource_cache_id TYPE int;
+
+ALTER TABLE volumes
+    ADD CONSTRAINT volumes_parent_id_fkey
+    FOREIGN KEY (parent_id, parent_state)
+    REFERENCES volumes(id, state) DEFERRABLE;
 
 ALTER TABLE resource_caches
     ALTER COLUMN id TYPE int;
