@@ -400,6 +400,61 @@ all =
                         |> Tuple.first
                         |> Common.queryView
                         |> Query.has [ style "margin-bottom" "12px" ]
+            , test "favorites section is not rendered when no pipelines are favorited" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Application.handleDelivery (GroupListViewReceived (Ok True))
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.hasNot [ text "favorite pipelines" ]
+            , test "favorites section is rendered when a pipeline is favorited" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Application.handleDelivery (GroupListViewReceived (Ok True))
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.has [ text "favorite pipelines" ]
+            , test "favorited pipeline is rendered in both sections, with distinct dom ids" <|
+                \_ ->
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Application.handleDelivery (GroupListViewReceived (Ok True))
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Expect.all
+                            [ Query.has
+                                [ id <|
+                                    Effects.toHtmlID <|
+                                        Msgs.PipelineCardFavoritedIcon Msgs.FavoritesSection 1
+                                ]
+                            , Query.has
+                                [ id <|
+                                    Effects.toHtmlID <|
+                                        Msgs.PipelineCardFavoritedIcon Msgs.AllPipelinesSection 1
+                                ]
+                            ]
+            , test "rows in the favorites section are not draggable" <|
+                \_ ->
+                    -- the row in the all pipelines section is draggable, the
+                    -- one in the favorites section is not
+                    whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
+                        |> gotPipelines [ pipelineInstance BuildStatusSucceeded False 1 ]
+                        |> Application.handleDelivery (GroupListViewReceived (Ok True))
+                        |> Tuple.first
+                        |> Application.handleDelivery
+                            (FavoritedPipelinesReceived <| Ok <| Set.singleton 1)
+                        |> Tuple.first
+                        |> Common.queryView
+                        |> Query.findAll [ attribute <| Attr.draggable "true" ]
+                        |> Query.count (Expect.equal 1)
             , test "list view toggle is on when flag is set" <|
                 \_ ->
                     whenOnDashboardViewingInstanceGroup { dashboardView = ViewNonArchivedPipelines }
