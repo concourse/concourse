@@ -896,9 +896,6 @@ all =
                                         }
                                 )
                 , test "renders under the DOM id that hovering looks up" <|
-                    -- a DomID with no toHtmlID branch falls through to the
-                    -- catch-all "", so hovering calls getElementById("") and
-                    -- the tooltip never resolves
                     \_ ->
                         withUserData
                             |> Common.queryView
