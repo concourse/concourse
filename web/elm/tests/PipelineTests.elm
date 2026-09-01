@@ -895,6 +895,25 @@ all =
                                         , image = Assets.InformationOutlineIcon
                                         }
                                 )
+                , test "renders under the DOM id that hovering looks up" <|
+                    -- a DomID with no toHtmlID branch falls through to the
+                    -- catch-all "", so hovering calls getElementById("") and
+                    -- the tooltip never resolves
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.has [ id <| Effects.toHtmlID TopBarInfoIcon ]
+                , test "hovering it asks for the viewport of that element" <|
+                    \_ ->
+                        withUserData
+                            |> Application.update
+                                (Msgs.Update <| Hover <| Just TopBarInfoIcon)
+                            |> Tuple.second
+                            |> Common.contains (Effects.GetViewportOf TopBarInfoIcon)
+                , test "hovering it shows the pipeline info tooltip" <|
+                    \_ ->
+                        withUserData
+                            |> Common.expectTooltip TopBarInfoIcon "pipeline info"
                 ]
             , describe "pipeline name tooltip" <|
                 let
