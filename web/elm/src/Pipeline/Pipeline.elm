@@ -14,6 +14,7 @@ module Pipeline.Pipeline exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -61,6 +62,7 @@ import Time
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.FavoritedIcon as FavoritedIcon
+import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 import Views.SearchBar as SearchBar
 import Views.Styles
@@ -484,6 +486,7 @@ view session model =
                             , timeZone = session.timeZone
                             }
                     , PinMenu.viewPinMenu session model
+                    , viewInfoIcon session model
                     , Html.div
                         Styles.favoritedIcon
                         [ FavoritedIcon.view
@@ -531,9 +534,61 @@ view session model =
         ]
 
 
+viewInfoIcon : { a | hovered : HoverState.HoverState } -> Model -> Html Message
+viewInfoIcon session model =
+    if hasUserData model.pipeline then
+        Html.a
+            (id "top-bar-info-icon"
+                :: href
+                    (Routes.toString <|
+                        Routes.PipelineInfo model.pipelineLocator
+                    )
+                :: onMouseEnter (Hover <| Just TopBarInfoIcon)
+                :: onMouseLeave (Hover Nothing)
+                :: Styles.infoIcon
+            )
+            [ Icon.icon
+                { sizePx = 20, image = Assets.InformationOutlineIcon }
+                [ style "margin" "17px"
+                , style "opacity" <|
+                    if HoverState.isHovered TopBarInfoIcon session.hovered then
+                        "1"
+
+                    else
+                        "0.5"
+                ]
+            ]
+
+    else
+        Html.text ""
+
+
+hasUserData : WebData Concourse.Pipeline -> Bool
+hasUserData pipeline =
+    case pipeline of
+        RemoteData.Success { userData } ->
+            case userData of
+                Just _ ->
+                    True
+
+                Nothing ->
+                    False
+
+        _ ->
+            False
+
+
 tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip model session =
     case session.hovered of
+        HoverState.Tooltip TopBarInfoIcon _ ->
+            Just
+                { body = Html.text "pipeline info"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         HoverState.Tooltip (TopBarPipelineName _) _ ->
             case lastUpdatedAt model.pipeline of
                 Just time ->

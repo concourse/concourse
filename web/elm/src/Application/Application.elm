@@ -666,6 +666,9 @@ routeMatchesModel route model =
         ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
             True
 
+        ( Routes.PipelineInfo _, SubPage.PipelineInfoModel _ ) ->
+            True
+
         _ ->
             False
 

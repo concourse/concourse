@@ -1153,6 +1153,7 @@ type alias Pipeline =
     , lastUpdatedAt : Time.Posix
     , backgroundImage : Maybe String
     , backgroundFilter : Maybe String
+    , userData : Maybe Json.Decode.Value
     }
 
 
@@ -1181,6 +1182,7 @@ encodePipeline pipeline =
                 , ( "background_filter", pipeline.backgroundFilter |> Json.Encode.Extra.maybe Json.Encode.string )
                 ]
           )
+        , ( "user_data", pipeline.userData |> Json.Encode.Extra.maybe identity )
         ]
 
 
@@ -1200,6 +1202,13 @@ decodePipeline =
         |> andMap (Json.Decode.field "last_updated" (Json.Decode.map dateFromSeconds Json.Decode.int))
         |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_image" ] Json.Decode.string))
         |> andMap (Json.Decode.maybe (Json.Decode.at [ "display", "background_filter" ] Json.Decode.string))
+        -- an explicit `"user_data": null` means "unset" the same way an absent
+        -- key does; `Json.Decode.value` on its own would happily accept null
+        |> andMap
+            (Json.Decode.maybe
+                (Json.Decode.field "user_data" (Json.Decode.nullable Json.Decode.value))
+                |> Json.Decode.map (Maybe.andThen identity)
+            )
 
 
 encodePipelineGroup : PipelineGroup -> Json.Encode.Value

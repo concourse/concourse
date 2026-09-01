@@ -30,6 +30,7 @@ type Asset
     | ConcourseLogoWhite
     | CircleOutlineIcon CircleOutlineIcon
     | CogsIcon
+    | InformationOutlineIcon
     | RunningLegend
     | NotBlockingCheckIcon
     | RerunIcon
@@ -235,6 +236,9 @@ toPath asset =
 
         CogsIcon ->
             basePath ++ [ "ic-cogs.svg" ]
+
+        InformationOutlineIcon ->
+            basePath ++ [ "ic-information-outline.svg" ]
 
         RunningLegend ->
             basePath ++ [ "ic-running-legend.svg" ]
