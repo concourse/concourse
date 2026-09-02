@@ -59,9 +59,9 @@ func (flag *GiteaFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GiteaTeamFlags struct {
-	Users []string `long:"user" description:"A whitelisted Gitea user" value-name:"USERNAME"`
-	Orgs  []string `long:"org" description:"A whitelisted Gitea org" value-name:"ORG_NAME"`
-	Teams []string `long:"team" description:"A whitelisted Gitea team" value-name:"ORG_NAME:TEAM_NAME"`
+	Users []string `long:"user" description:"An allowlisted Gitea user" value-name:"USERNAME"`
+	Orgs  []string `long:"org" description:"An allowlisted Gitea org" value-name:"ORG_NAME"`
+	Teams []string `long:"team" description:"An allowlisted Gitea team" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
 func (flag *GiteaTeamFlags) GetUsers() []string {
