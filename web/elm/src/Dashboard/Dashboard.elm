@@ -1441,8 +1441,61 @@ cardsView session params teamCards =
             params.highDensity && not noPipelines
 
         ( headerView, offsetHeight ) =
-            if (highDensity && not viewingInstanceGroups) || (params.groupListView && viewingInstanceGroups) then
+            if highDensity && not viewingInstanceGroups then
                 ( [], 0 )
+
+            else if params.groupListView && viewingInstanceGroups then
+                let
+                    favoritedSections =
+                        teamCards
+                            |> List.map
+                                (\section ->
+                                    { section
+                                        | cards =
+                                            List.filter
+                                                (\c ->
+                                                    case c of
+                                                        PipelineCard p ->
+                                                            Favorites.isPipelineFavorited session p
+
+                                                        InstancedPipelineCard p ->
+                                                            Favorites.isPipelineFavorited session p
+
+                                                        InstanceGroupCard p _ ->
+                                                            Favorites.isInstanceGroupFavorited session (Concourse.toInstanceGroupId p)
+                                                )
+                                                section.cards
+                                    }
+                                )
+                            |> List.filter (\s -> not (List.isEmpty s.cards))
+
+                    allPipelinesHeader =
+                        Html.div Styles.pipelineSectionHeader [ Html.text "all pipelines" ]
+                in
+                if List.isEmpty teamCards then
+                    ( [], 0 )
+
+                else if List.isEmpty favoritedSections then
+                    ( [ allPipelinesHeader ], 0 )
+
+                else
+                    ( Html.div Styles.pipelineSectionHeader [ Html.text "favorite pipelines" ]
+                        :: Group.listViewFavoritePipelines
+                            { pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                            , pipelineJobs = params.pipelineJobs
+                            , jobs = jobs
+                            , dashboardView = params.dashboardView
+                            , query = params.query
+                            , now = params.now
+                            }
+                            session
+                            session.hovered
+                            favoritedSections
+                        ++ [ Views.Styles.separator 0
+                           , allPipelinesHeader
+                           ]
+                    , 0
+                    )
 
             else
                 let

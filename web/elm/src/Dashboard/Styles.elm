@@ -18,9 +18,7 @@ module Dashboard.Styles exposing
     , infoBar
     , inlineInstanceVar
     , instanceGroupCard
-    , instanceGroupCardBadge
     , instanceGroupCardBanner
-    , instanceGroupCardBannerHd
     , instanceGroupCardBody
     , instanceGroupCardBodyHd
     , instanceGroupCardFooter
@@ -152,7 +150,7 @@ groupPageContent isListView =
     , style "flex-flow" "column wrap"
     , style "padding" <|
         if isListView then
-            "30px"
+            "0"
 
         else
             "30px 0"
@@ -325,22 +323,6 @@ pipelineCardBody =
     ]
 
 
-instanceGroupCardBadge : List (Html.Attribute msg)
-instanceGroupCardBadge =
-    [ style "background" "#f2f2f2"
-    , style "border-radius" "4px"
-    , style "color" "#222"
-    , style "display" "flex"
-    , style "letter-spacing" "0"
-    , style "margin-right" "8px"
-    , style "width" "20px"
-    , style "height" "20px"
-    , style "flex-shrink" "0"
-    , style "align-items" "center"
-    , style "justify-content" "center"
-    ]
-
-
 instanceGroupCardBody : List (Html.Attribute msg)
 instanceGroupCardBody =
     [ style "background-color" Colors.card
@@ -457,13 +439,6 @@ instanceGroupCardHd =
     , style "background-color" Colors.card
     , style "font-size" "19px"
     , style "letter-spacing" "1px"
-    ]
-
-
-instanceGroupCardBannerHd : List (Html.Attribute msg)
-instanceGroupCardBannerHd =
-    [ style "width" "8px"
-    , style "background-color" Colors.card
     ]
 
 
@@ -1134,7 +1109,7 @@ endDropZone { active, anyDragHappening } =
 
 listViewTeamGroup : List (Html.Attribute msg)
 listViewTeamGroup =
-    [ style "margin-bottom" "32px"
+    [ style "margin-bottom" "12px"
     ]
 
 
@@ -1142,7 +1117,7 @@ listViewTeamHeader : List (Html.Attribute msg)
 listViewTeamHeader =
     [ style "display" "flex"
     , style "align-items" "center"
-    , style "margin-bottom" "32px"
+    , style "margin-bottom" "12px"
     , style "background" ColorValues.grey80
     , style "z-index" "2"
     , style "opacity" "0.9"
@@ -1165,6 +1140,7 @@ listView : List (Html.Attribute msg)
 listView =
     [ style "width" "100%"
     , style "box-sizing" "border-box"
+    , style "padding" "0 30px"
     ]
 
 
