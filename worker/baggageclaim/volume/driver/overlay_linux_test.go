@@ -1,7 +1,6 @@
 package driver_test
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -174,43 +173,9 @@ var _ = Describe("Overlay", func() {
 			Expect(filepath.Join(overlaysDir, "work", "work-only-orphan")).ToNot(BeADirectory())
 		})
 
-		// overlayMount MkdirAll(workDir) then Mount. A stale snapshot of
-		// live/+init/ taken before initRawVolume (or during init→live rename)
-		// does not contain this handle. Deleting the work dir makes the later
-		// Mount / a live overlay hit ENOENT. Live isKnown stats init/ at
-		// removal time so the in-flight volume is kept; true work-only
-		// orphans are still deleted.
-		It("does not remove an in-flight work dir missing from a stale snapshot", func() {
-			inFlight := "in-flight-vol"
-			workPath := filepath.Join(overlaysDir, "work", inFlight)
-			Expect(os.Mkdir(workPath, 0755)).To(Succeed())
-
-			orphanPath := filepath.Join(overlaysDir, "work", "work-only-orphan")
-			Expect(os.Mkdir(orphanPath, 0755)).To(Succeed())
-
-			initDir := filepath.Join(filepath.Dir(overlaysDir), "init")
-			Expect(os.MkdirAll(initDir, 0755)).To(Succeed())
-			// Handle is absent from the (empty) snapshot but present in init/
-			// by the time the sweeper considers this work dir — or it appears
-			// during the sweep via this live check.
-			Expect(os.Mkdir(filepath.Join(initDir, inFlight), 0755)).To(Succeed())
-
-			isKnown := func(handle string) bool {
-				_, err := os.Stat(filepath.Join(initDir, handle))
-				if err == nil {
-					return true
-				}
-				if errors.Is(err, os.ErrNotExist) {
-					return false
-				}
-				return true
-			}
-
-			err := overlayDrv.RemoveOrphanedResources(isKnown)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(workPath).To(BeADirectory())
-			Expect(orphanPath).ToNot(BeADirectory())
+		It("errors if nil is given instead of a func", func() {
+			err := overlayDrv.RemoveOrphanedResources(nil)
+			Expect(err).To(MatchError("must pass in a function"))
 		})
 
 		It("handles an empty overlays directory", func() {

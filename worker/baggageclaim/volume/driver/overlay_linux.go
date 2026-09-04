@@ -257,7 +257,7 @@ func (driver *OverlayDriver) workDir(vol volume.FilesystemVolume) string {
 
 func (driver *OverlayDriver) RemoveOrphanedResources(isKnown func(handle string) bool) error {
 	if isKnown == nil {
-		isKnown = func(string) bool { return false }
+		return errors.New("must pass in a function")
 	}
 
 	_, err := os.Stat(driver.OverlaysDir)
