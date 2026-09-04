@@ -137,10 +137,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 						Expect(scenario.Job("some-job").SaveNextInputMapping(db.InputMapping{
 							"whatever": db.InputResult{
 								Input: &db.AlgorithmInput{
-									AlgorithmVersion: db.AlgorithmVersion{
-										Version:    db.ResourceVersion(versionSHA256),
-										ResourceID: scenario.Resource("some-resource").ID(),
-									},
+									Version:    db.ResourceVersion(versionSHA256),
+									ResourceID: scenario.Resource("some-resource").ID(),
 								},
 							},
 						}, true)).To(Succeed())

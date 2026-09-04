@@ -3,6 +3,7 @@ package db_test
 import (
 	"context"
 	"database/sql"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -150,11 +151,11 @@ var _ = Describe("VersionsDB", func() {
 			})
 
 			It("returns all of the builds, newest first, with reruns relative to original build's order, and then finishes", func() {
-				for i := len(fillerBuilds) - 1; i >= 0; i-- {
+				for _, fillerBuild := range slices.Backward(fillerBuilds) {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(ok).To(BeTrue())
-					Expect(buildID).To(Equal(fillerBuilds[i].ID()))
+					Expect(buildID).To(Equal(fillerBuild.ID()))
 				}
 
 				buildID, ok, err := paginatedBuilds.Next(ctx)
@@ -294,11 +295,11 @@ var _ = Describe("VersionsDB", func() {
 			})
 
 			It("finishes after the rerun", func() {
-				for i := len(fillerBuilds) - 1; i >= 0; i-- {
+				for _, fillerBuild := range slices.Backward(fillerBuilds) {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(ok).To(BeTrue())
-					Expect(buildID).To(Equal(fillerBuilds[i].ID()))
+					Expect(buildID).To(Equal(fillerBuild.ID()))
 				}
 
 				buildID, ok, err := paginatedBuilds.Next(ctx)
@@ -344,11 +345,11 @@ var _ = Describe("VersionsDB", func() {
 			})
 
 			It("returns the original build after the rerun", func() {
-				for i := len(fillerBuilds) - 1; i >= 0; i-- {
+				for _, fillerBuild := range slices.Backward(fillerBuilds) {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(ok).To(BeTrue())
-					Expect(buildID).To(Equal(fillerBuilds[i].ID()))
+					Expect(buildID).To(Equal(fillerBuild.ID()))
 				}
 
 				buildID, ok, err := paginatedBuilds.Next(ctx)
@@ -411,11 +412,11 @@ var _ = Describe("VersionsDB", func() {
 			})
 
 			It("returns all builds, and then all three reruns, and finishes", func() {
-				for i := len(fillerBuilds) - 1; i >= 0; i-- {
+				for _, fillerBuild := range slices.Backward(fillerBuilds) {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(ok).To(BeTrue())
-					Expect(buildID).To(Equal(fillerBuilds[i].ID()))
+					Expect(buildID).To(Equal(fillerBuild.ID()))
 				}
 
 				buildID, ok, err := paginatedBuilds.Next(ctx)
@@ -537,11 +538,11 @@ var _ = Describe("VersionsDB", func() {
 				Expect(ok).To(BeTrue())
 				Expect(buildID).To(Equal(cursorBuild.ID()))
 
-				for i := len(olderBuilds) - 1; i >= 0; i-- {
+				for _, olderBuild := range slices.Backward(olderBuilds) {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(ok).To(BeTrue())
-					Expect(buildID).To(Equal(olderBuilds[i].ID()))
+					Expect(buildID).To(Equal(olderBuild.ID()))
 				}
 
 				buildID, ok, err = paginatedBuilds.Next(ctx)
@@ -616,11 +617,11 @@ var _ = Describe("VersionsDB", func() {
 				Expect(ok).To(BeTrue())
 				Expect(buildID).To(Equal(cursorBuild.ID()))
 
-				for i := len(olderBuilds) - 1; i >= 0; i-- {
+				for _, olderBuild := range slices.Backward(olderBuilds) {
 					buildID, ok, err := paginatedBuilds.Next(ctx)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(ok).To(BeTrue())
-					Expect(buildID).To(Equal(olderBuilds[i].ID()))
+					Expect(buildID).To(Equal(olderBuild.ID()))
 				}
 
 				buildID, ok, err = paginatedBuilds.Next(ctx)

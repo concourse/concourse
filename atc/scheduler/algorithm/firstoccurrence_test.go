@@ -283,10 +283,8 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256("v2")),
-							ResourceID: 1,
-						},
+						Version:         db.ResourceVersion(convertToSHA256("v2")),
+						ResourceID:      1,
 						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
@@ -313,9 +311,8 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256("v2")),
-							ResourceID: 1},
+						Version:         db.ResourceVersion(convertToSHA256("v2")),
+						ResourceID:      1,
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -342,9 +339,8 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256("v2")),
-							ResourceID: 1},
+						Version:         db.ResourceVersion(convertToSHA256("v2")),
+						ResourceID:      1,
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -371,9 +367,8 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256("v2")),
-							ResourceID: 1},
+						Version:         db.ResourceVersion(convertToSHA256("v2")),
+						ResourceID:      1,
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -399,9 +394,8 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256("v2")),
-							ResourceID: 1},
+						Version:         db.ResourceVersion(convertToSHA256("v2")),
+						ResourceID:      1,
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -445,9 +439,8 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256("v2")),
-							ResourceID: 1},
+						Version:         db.ResourceVersion(convertToSHA256("v2")),
+						ResourceID:      1,
 						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
@@ -490,10 +483,8 @@ var _ = Describe("Resolve", func() {
 			Expect(inputMapping).To(Equal(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256("v3")),
-							ResourceID: 1,
-						},
+						Version:         db.ResourceVersion(convertToSHA256("v3")),
+						ResourceID:      1,
 						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},

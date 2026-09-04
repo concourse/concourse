@@ -86,7 +86,7 @@ func (fs *BtrfsFilesystem) Delete() error {
 		return err
 	}
 
-	loopbackDevice := strings.Split(loopbackOutput, ":")[0]
+	loopbackDevice, _, _ := strings.Cut(loopbackOutput, ":")
 
 	_, err = fs.run(exec.Command(
 		"losetup",
