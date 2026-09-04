@@ -68,8 +68,7 @@ func (c Container) Run(_ context.Context, spec runtime.ProcessSpec, io runtime.P
 	process, err := c.GardenContainer.Run(streamCtx, toGardenProcessSpec(spec, properties), toGardenProcessIO(io))
 	if err != nil {
 		cancelStream()
-		var exeNotFound garden.ExecutableNotFoundError
-		if errors.As(err, &exeNotFound) {
+		if exeNotFound, ok := errors.AsType[garden.ExecutableNotFoundError](err); ok {
 			return nil, runtime.ExecutableNotFoundError{Message: exeNotFound.Message}
 		}
 		return nil, fmt.Errorf("start process: %w", err)

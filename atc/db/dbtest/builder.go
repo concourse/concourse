@@ -699,10 +699,8 @@ func (builder Builder) WithNextInputMapping(jobName string, inputs JobInputs) Se
 
 			mapping[input.Name] = db.InputResult{
 				Input: &db.AlgorithmInput{
-					AlgorithmVersion: db.AlgorithmVersion{
-						Version:    db.ResourceVersion(sha256Version(i.Version)),
-						ResourceID: input.ResourceID,
-					},
+					Version:         db.ResourceVersion(sha256Version(i.Version)),
+					ResourceID:      input.ResourceID,
 					FirstOccurrence: i.FirstOccurrence,
 				},
 				PassedBuildIDs: buildIDs,
