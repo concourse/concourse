@@ -212,7 +212,7 @@ var _ = Describe("Access Tokens", func() {
 			factory := token.Factory{}
 			expectExpiry := jwt.NewNumericDate(time.Now())
 			rawToken, err := factory.GenerateAccessToken(db.Claims{
-				Claims: jwt.Claims{Expiry: expectExpiry},
+				Expiry: expectExpiry,
 			})
 			Expect(err).ToNot(HaveOccurred())
 			expiry, err := factory.ParseExpiry(rawToken)

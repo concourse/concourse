@@ -1483,27 +1483,23 @@ var _ = Describe("Pipelines API", func() {
 							},
 							BuildOutputs: []atc.DebugBuildOutput{
 								{
-									DebugResourceVersion: atc.DebugResourceVersion{
-										VersionID:  73,
-										ResourceID: 127,
-										CheckOrder: 123,
-										ScopeID:    111,
-									},
-									BuildID: 66,
-									JobID:   13,
+									VersionID:  73,
+									ResourceID: 127,
+									CheckOrder: 123,
+									ScopeID:    111,
+									BuildID:    66,
+									JobID:      13,
 								},
 							},
 							BuildInputs: []atc.DebugBuildInput{
 								{
-									DebugResourceVersion: atc.DebugResourceVersion{
-										VersionID:  66,
-										ResourceID: 77,
-										CheckOrder: 88,
-										ScopeID:    222,
-									},
-									BuildID:   66,
-									JobID:     13,
-									InputName: "some-input-name",
+									VersionID:  66,
+									ResourceID: 77,
+									CheckOrder: 88,
+									ScopeID:    222,
+									BuildID:    66,
+									JobID:      13,
+									InputName:  "some-input-name",
 								},
 							},
 							BuildReruns: []atc.DebugBuildRerun{
