@@ -53,6 +53,7 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 		Expect(claims.Team).To(Equal(teamName))
 		Expect(claims.Pipeline).To(Equal(testPipelineName))
 		Expect(claims.Subject).To(Equal(teamName + "/" + testPipelineName))
+		Expect(claims.ID).ToNot(BeEmpty())
 	}, DefaultSpecTimeout)
 
 	It("creates valid custom idtoken", func(ctx SpecContext) {
@@ -86,6 +87,10 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 		jwksURI, ok := cfg["jwks_uri"].(string)
 		Expect(ok).To(BeTrue())
 		Expect(jwksURI).To(Equal(issuer + "/.well-known/jwks.json"))
+
+		// relying parties read this to decide what a token carries, so assert
+		// the whole advertised set rather than any single claim
+		Expect(cfg["claims_supported"]).To(ConsistOf("aud", "iat", "iss", "jti", "sub"))
 	}, DefaultSpecTimeout)
 })
 
