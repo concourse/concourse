@@ -314,6 +314,7 @@ func (b *inMemoryCheckBuild) RunStateID() string {
 func (b *inMemoryCheckBuild) IsRunning() bool           { return b.endTime.IsZero() }
 func (b *inMemoryCheckBuild) IsManuallyTriggered() bool { return false }
 func (b *inMemoryCheckBuild) CreateTime() time.Time     { return b.createTime }
+func (b *inMemoryCheckBuild) ArchivedPipelines() []ArchivedPipelineInfo { return nil }
 
 func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier { return b.spanContext }
 
