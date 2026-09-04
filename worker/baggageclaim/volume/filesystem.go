@@ -69,15 +69,18 @@ const (
 var _ Filesystem = (*filesystem)(nil)
 
 type filesystem struct {
-	log    lager.Logger
-	driver Driver
+	log       lager.Logger
+	driver    Driver
+	pathKnown func(string) bool
 
 	initDir string
 	liveDir string
 	deadDir string
 }
 
-func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesystem, error) {
+type FSOption func(*filesystem) error
+
+func NewFilesystem(logger lager.Logger, driver Driver, parentDir string, opts ...FSOption) (Filesystem, error) {
 	initDir := filepath.Join(parentDir, initDirname)
 	liveDir := filepath.Join(parentDir, liveDirname)
 	deadDir := filepath.Join(parentDir, deadDirname)
@@ -97,14 +100,31 @@ func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesy
 		return nil, err
 	}
 
-	return &filesystem{
-		log:    logger.Session("filesystem"),
-		driver: driver,
+	fs := &filesystem{
+		log:       logger.Session("filesystem"),
+		driver:    driver,
+		pathKnown: pathKnown,
 
 		initDir: initDir,
 		liveDir: liveDir,
 		deadDir: deadDir,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		err = opt(fs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return fs, nil
+}
+
+func WithPathKnownFunc(p func(string) bool) FSOption {
+	return func(f *filesystem) error {
+		f.pathKnown = p
+		return nil
+	}
 }
 
 func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
@@ -202,11 +222,6 @@ func (fs *filesystem) CleanupOrphanedEntries() error {
 		}
 	}
 
-	// Check known-ness at removal time (init first, then live) so a
-	// volume created or promoted during the sweep is not treated as
-	// an orphan. A snapshot of both dirs can miss a handle that is
-	// renamed from init/ to live/ between the two reads, or that is
-	// created after the snapshot.
 	err = fs.driver.RemoveOrphanedResources(fs.volumeExists)
 	if err != nil {
 		fs.log.Error("failed-to-remove-orphaned-driver-resources", err)
@@ -223,10 +238,7 @@ func (fs *filesystem) volumeExists(handle string) bool {
 	return fs.pathKnown(fs.liveVolumePath(handle))
 }
 
-// pathKnown reports whether a volume path should be treated as present.
-// Stat errors other than ErrNotExist (permission, IO) fail closed: treat
-// the path as known so the sweeper will not delete every overlay.
-func (fs *filesystem) pathKnown(path string) bool {
+func pathKnown(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true
