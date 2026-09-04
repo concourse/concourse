@@ -6,6 +6,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -20,10 +22,11 @@ type PipelineLifecycle interface {
 	DestroyArchivedPipelines(time.Duration) error
 }
 
-func NewPipelineLifecycle(conn DbConn, lockFactory lock.LockFactory) PipelineLifecycle {
+func NewPipelineLifecycle(conn DbConn, lockFactory lock.LockFactory, aud auditor.Auditor) PipelineLifecycle {
 	return &pipelineLifecycle{
 		conn:        conn,
 		lockFactory: lockFactory,
+		auditor:     aud,
 	}
 }
 
@@ -32,6 +35,7 @@ var _ PipelineLifecycle = (*pipelineLifecycle)(nil)
 type pipelineLifecycle struct {
 	conn        DbConn
 	lockFactory lock.LockFactory
+	auditor     auditor.Auditor
 }
 
 func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
@@ -82,7 +86,7 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	}
 	defer pipelinesToArchive.Close()
 
-	_, err = archivePipelines(tx, pl.conn, pl.lockFactory, pipelinesToArchive)
+	archived, err := archivePipelines(tx, pl.conn, pl.lockFactory, pipelinesToArchive)
 	if err != nil {
 		return err
 	}
@@ -90,6 +94,14 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	err = tx.Commit()
 	if err != nil {
 		return err
+	}
+
+	for _, p := range archived {
+		pl.auditor.AuditInternal(atc.ArchivePipeline, map[string][]string{
+			":pipeline_name": {p.name},
+			":team_name":     {p.teamName},
+			":triggered_by":  {"abandoned-pipeline-gc"},
+		})
 	}
 
 	return nil
