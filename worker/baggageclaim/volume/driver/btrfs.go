@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -76,8 +77,8 @@ func (driver *BtrFSDriver) DestroyVolume(vol volume.FilesystemVolume) error {
 		return fmt.Errorf("recursively walking subvolumes for %s failed: %v", vol.DataPath(), err)
 	}
 
-	for i := len(volumePathsToDelete) - 1; i >= 0; i-- {
-		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", volumePathsToDelete[i])
+	for _, v := range slices.Backward(volumePathsToDelete) {
+		_, _, err := driver.run(driver.btrfsBin, "subvolume", "delete", v)
 		if err != nil {
 			return err
 		}
