@@ -5,8 +5,8 @@ package runtime_test
 import (
 	"errors"
 
-	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/runtimefakes"
+	"github.com/concourse/concourse/v8/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime/runtimefakes"
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

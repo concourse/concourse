@@ -10,18 +10,18 @@ import (
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/exec/build"
+	"github.com/concourse/concourse/v8/atc/exec/execfakes"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/policy/policyfakes"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
+	"github.com/concourse/concourse/v8/tracing"
+	"github.com/concourse/concourse/v8/vars"
 	"github.com/onsi/gomega/gbytes"
 )
 
@@ -538,11 +538,11 @@ jobs:
 					fakeStreamer.StreamFileCalls(func(_ context.Context, _ runtime.Artifact, path string) (io.ReadCloser, error) {
 						switch path {
 						case "pipeline.yml":
-							return &fakeReadCloser{str: pipelineWithVarFiles}, nil
+							return gbytes.BufferWithBytes([]byte(pipelineWithVarFiles)), nil
 						case "second-vars.yml":
-							return &fakeReadCloser{str: "foo: from-second-file\nbar: from-second-file\n"}, nil
+							return gbytes.BufferWithBytes([]byte("foo: from-second-file\nbar: from-second-file\n")), nil
 						case "first-vars.yml":
-							return &fakeReadCloser{str: "bar: from-first-file\n"}, nil
+							return gbytes.BufferWithBytes([]byte("bar: from-first-file\n")), nil
 						default:
 							return nil, errors.New("unexpected file: " + path)
 						}

@@ -7,8 +7,8 @@ import (
 	"syscall"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/driver"
 	"github.com/moby/sys/mountinfo"
 
 	. "github.com/onsi/ginkgo/v2"

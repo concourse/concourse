@@ -7,7 +7,7 @@ name = "go"
 enabled = true
 
   [analyzers.meta]
-  import_paths = ["github.com/concourse/concourse"]
+  import_paths = ["github.com/concourse/concourse/v8"]
 
 [[analyzers]]
 name = "test-coverage"

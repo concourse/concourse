@@ -3,11 +3,11 @@ package flaghelpers_test
 import (
 	"encoding/json"
 
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/vars"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/flaghelpers"
 )
 
 var _ = Describe("YAMLVariablePair", func() {

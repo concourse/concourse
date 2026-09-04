@@ -4,7 +4,7 @@ import (
 	"maps"
 	"sync"
 
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/runtime"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate

@@ -9,8 +9,8 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient"
 )
 
 // How long Process.Wait waits for a process to exit after sending it a SIGTERM

@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 	"github.com/google/uuid"
 	"github.com/onsi/gomega/gexec"
 )
@@ -102,7 +102,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		config.FlyBin, err = downloadFly(config.ATCURL)
 		Expect(err).ToNot(HaveOccurred())
 	} else {
-		config.FlyBin, err = gexec.Build("github.com/concourse/concourse/fly")
+		config.FlyBin, err = gexec.Build("github.com/concourse/concourse/v8/fly")
 		Expect(err).ToNot(HaveOccurred())
 	}
 

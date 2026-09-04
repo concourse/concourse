@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	concourseCmd "github.com/concourse/concourse/cmd"
-	"github.com/concourse/concourse/flag"
-	"github.com/concourse/concourse/worker/workercmd"
+	concourseCmd "github.com/concourse/concourse/v8/cmd"
+	"github.com/concourse/concourse/v8/flag"
+	"github.com/concourse/concourse/v8/worker/workercmd"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"

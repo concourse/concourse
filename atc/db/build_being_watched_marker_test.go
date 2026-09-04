@@ -5,7 +5,7 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"context"
 	"fmt"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"

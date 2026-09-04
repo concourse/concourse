@@ -3,7 +3,7 @@ package worker
 import (
 	"context"
 
-	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/v8/tsa"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate

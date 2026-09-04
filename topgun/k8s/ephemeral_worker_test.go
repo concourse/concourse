@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/v8/topgun"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

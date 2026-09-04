@@ -10,7 +10,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/tedsuo/rata"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 )
 
 type volumeFuture struct {

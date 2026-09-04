@@ -3,7 +3,7 @@ package skycmd_test
 import (
 	"os"
 
-	"github.com/concourse/concourse/skymarshal/skycmd"
+	"github.com/concourse/concourse/v8/skymarshal/skycmd"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/vito/twentythousandtonnesofcrudeoil"
 

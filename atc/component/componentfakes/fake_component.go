@@ -4,7 +4,7 @@ package componentfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/component"
+	"github.com/concourse/concourse/v8/atc/component"
 )
 
 type FakeComponent struct {

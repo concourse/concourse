@@ -1,6 +1,6 @@
 package volume
 
-import "github.com/concourse/concourse/worker/baggageclaim/uidgid"
+import "github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
 
 func NewRepositoryWithStreamers(
 	filesystem Filesystem,

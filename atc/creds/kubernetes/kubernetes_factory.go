@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 )
 
 type kubernetesFactory struct {

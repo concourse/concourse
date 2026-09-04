@@ -4,7 +4,7 @@ package encryptionfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/v8/atc/db/encryption"
 )
 
 type FakeStrategy struct {

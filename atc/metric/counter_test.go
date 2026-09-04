@@ -1,7 +1,7 @@
 package metric_test
 
 import (
-	. "github.com/concourse/concourse/atc/metric"
+	. "github.com/concourse/concourse/v8/atc/metric"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

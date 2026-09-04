@@ -5,10 +5,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/concourse/atc/api"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
+	"github.com/concourse/concourse/v8/atc/api"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/worker"
 )
 
 type FakePool struct {

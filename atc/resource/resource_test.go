@@ -5,9 +5,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
 	"github.com/stretchr/testify/require"
 )
 

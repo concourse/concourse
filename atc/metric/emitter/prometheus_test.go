@@ -12,9 +12,9 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/metric/emitter"
-	"github.com/concourse/concourse/atc/metric/emitter/emitterfakes"
+	"github.com/concourse/concourse/v8/atc/metric"
+	"github.com/concourse/concourse/v8/atc/metric/emitter"
+	"github.com/concourse/concourse/v8/atc/metric/emitter/emitterfakes"
 )
 
 var _ = Describe("PrometheusEmitter garbage collector", func() {

@@ -3,9 +3,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/commands/internal/interaction"
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v8/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/interaction"
+	"github.com/concourse/concourse/v8/fly/rc"
 )
 
 type ClearTaskCacheCommand struct {

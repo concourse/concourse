@@ -18,9 +18,9 @@ import (
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
 
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/api"
+	"github.com/concourse/concourse/v8/tracing"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/api"
 	"github.com/concourse/retryhttp"
 )
 

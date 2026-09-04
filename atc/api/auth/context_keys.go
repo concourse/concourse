@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/concourse/concourse/atc"
+import "github.com/concourse/concourse/v8/atc"
 
 const BuildContextKey atc.ContextKey = "build"
 const PipelineContextKey atc.ContextKey = "pipeline"

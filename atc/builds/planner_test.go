@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/builds"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/builds"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

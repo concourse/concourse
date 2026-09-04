@@ -5,7 +5,7 @@ package integration_test
 import (
 	"syscall"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/moby/sys/mountinfo"
 
 	. "github.com/onsi/ginkgo/v2"
