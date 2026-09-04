@@ -80,8 +80,7 @@ func (cmd Cmd) Start(t *testing.T, args ...string) *exec.Cmd {
 func (cmd Cmd) Run(t *testing.T, args ...string) {
 	err := cmd.Try(args...)
 	if err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			if exitErr.ExitCode() != cmd.ExpectExitCode {
 				t.Fatalf("ExitCode %d != %d", exitErr.ExitCode(), cmd.ExpectExitCode)
 			}

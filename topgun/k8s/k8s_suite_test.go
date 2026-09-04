@@ -337,7 +337,7 @@ func getPods(namespace string, listOptions metav1.ListOptions) []corev1.Pod {
 }
 
 func getNotRunningPodLogs() {
-	events, _ := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "status.phase!=Running", TypeMeta: metav1.TypeMeta{Kind: "Pod"}})
+	events, _ := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "status.phase!=Running", Kind: "Pod"})
 	for _, item := range events.Items {
 		fmt.Println(item)
 	}

@@ -98,9 +98,7 @@ var _ = Describe("Verifier", func() {
 			BeforeEach(func() {
 				oneHourAgo := jwt.NewNumericDate(time.Now().Add(-1 * time.Hour))
 				accessToken.Claims = db.Claims{
-					Claims: jwt.Claims{
-						Expiry: oneHourAgo,
-					},
+					Expiry: oneHourAgo,
 				}
 			})
 
@@ -113,10 +111,8 @@ var _ = Describe("Verifier", func() {
 			BeforeEach(func() {
 				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
 				accessToken.Claims = db.Claims{
-					Claims: jwt.Claims{
-						Expiry:   oneHourFromNow,
-						Audience: []string{"invalid"},
-					},
+					Expiry:   oneHourFromNow,
+					Audience: []string{"invalid"},
 				}
 			})
 
@@ -129,10 +125,8 @@ var _ = Describe("Verifier", func() {
 			BeforeEach(func() {
 				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
 				accessToken.Claims = db.Claims{
-					Claims: jwt.Claims{
-						Expiry:   oneHourFromNow,
-						Audience: []string{"some-aud"},
-					},
+					Expiry:   oneHourFromNow,
+					Audience: []string{"some-aud"},
 				}
 			})
 

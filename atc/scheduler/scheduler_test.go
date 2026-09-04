@@ -99,10 +99,8 @@ var _ = Describe("Scheduler", func() {
 					expectedInputMapping = map[string]db.InputResult{
 						"input-1": db.InputResult{
 							Input: &db.AlgorithmInput{
-								AlgorithmVersion: db.AlgorithmVersion{
-									ResourceID: 1,
-									Version:    db.ResourceVersion("1"),
-								},
+								ResourceID:      1,
+								Version:         db.ResourceVersion("1"),
 								FirstOccurrence: true,
 							},
 						},
