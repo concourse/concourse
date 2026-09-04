@@ -16,6 +16,12 @@ type FakeAuditor struct {
 		arg2 string
 		arg3 *http.Request
 	}
+	AuditInternalStub        func(string, map[string][]string)
+	auditInternalMutex       sync.RWMutex
+	auditInternalArgsForCall []struct {
+		arg1 string
+		arg2 map[string][]string
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -52,6 +58,39 @@ func (fake *FakeAuditor) AuditArgsForCall(i int) (string, string, *http.Request)
 	defer fake.auditMutex.RUnlock()
 	argsForCall := fake.auditArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeAuditor) AuditInternal(arg1 string, arg2 map[string][]string) {
+	fake.auditInternalMutex.Lock()
+	fake.auditInternalArgsForCall = append(fake.auditInternalArgsForCall, struct {
+		arg1 string
+		arg2 map[string][]string
+	}{arg1, arg2})
+	stub := fake.AuditInternalStub
+	fake.recordInvocation("AuditInternal", []interface{}{arg1, arg2})
+	fake.auditInternalMutex.Unlock()
+	if stub != nil {
+		fake.AuditInternalStub(arg1, arg2)
+	}
+}
+
+func (fake *FakeAuditor) AuditInternalCallCount() int {
+	fake.auditInternalMutex.RLock()
+	defer fake.auditInternalMutex.RUnlock()
+	return len(fake.auditInternalArgsForCall)
+}
+
+func (fake *FakeAuditor) AuditInternalCalls(stub func(string, map[string][]string)) {
+	fake.auditInternalMutex.Lock()
+	defer fake.auditInternalMutex.Unlock()
+	fake.AuditInternalStub = stub
+}
+
+func (fake *FakeAuditor) AuditInternalArgsForCall(i int) (string, map[string][]string) {
+	fake.auditInternalMutex.RLock()
+	defer fake.auditInternalMutex.RUnlock()
+	argsForCall := fake.auditInternalArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeAuditor) Invocations() map[string][][]interface{} {
