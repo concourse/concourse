@@ -3,8 +3,8 @@ package idtoken_test
 import (
 	"testing"
 
-	"github.com/concourse/concourse/atc/creds/idtoken"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/creds/idtoken"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/go-jose/go-jose/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

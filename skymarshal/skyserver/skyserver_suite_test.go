@@ -9,10 +9,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/skymarshal/skyserver"
-	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
+	"github.com/concourse/concourse/v8/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/skymarshal/skyserver"
+	"github.com/concourse/concourse/v8/skymarshal/token/tokenfakes"
 
 	"github.com/onsi/gomega/ghttp"
 	"golang.org/x/oauth2"

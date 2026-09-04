@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
-	"github.com/concourse/concourse/worker/runtime/runtimefakes"
+	"github.com/concourse/concourse/v8/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/v8/worker/runtime/runtimefakes"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/errdefs"
 	"github.com/stretchr/testify/require"

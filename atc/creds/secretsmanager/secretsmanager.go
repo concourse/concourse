@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 
 	lager "code.cloudfoundry.org/lager/v3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"

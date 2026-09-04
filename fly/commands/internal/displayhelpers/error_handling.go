@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v8/fly/ui"
 )
 
 func PrintDeprecationWarningHeader() {

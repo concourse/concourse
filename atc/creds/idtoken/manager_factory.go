@@ -3,8 +3,8 @@ package idtoken
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db"
 	flags "github.com/jessevdk/go-flags"
 )
 

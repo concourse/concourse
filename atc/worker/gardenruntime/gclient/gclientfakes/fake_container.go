@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient"
 )
 
 type FakeContainer struct {

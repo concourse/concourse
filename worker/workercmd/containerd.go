@@ -13,11 +13,11 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/localip"
-	concourseCmd "github.com/concourse/concourse/cmd"
-	"github.com/concourse/concourse/worker/network"
-	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd"
-	bespec "github.com/concourse/concourse/worker/runtime/spec"
+	concourseCmd "github.com/concourse/concourse/v8/cmd"
+	"github.com/concourse/concourse/v8/worker/network"
+	"github.com/concourse/concourse/v8/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd"
+	bespec "github.com/concourse/concourse/v8/worker/runtime/spec"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )

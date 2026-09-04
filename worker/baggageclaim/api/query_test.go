@@ -6,8 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/worker/baggageclaim/api"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/api"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 )
 
 var _ = Describe("Query Parameters", func() {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/go-jose/go-jose/v4/jwt"
 )
 

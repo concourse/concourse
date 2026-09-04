@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/tracing"
 )
 
 type Resolver interface {

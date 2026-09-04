@@ -1,21 +1,21 @@
 package commands
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
-	"github.com/concourse/concourse/fly/commands/internal/validatepipelinehelpers"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/validatepipelinehelpers"
 
 	// dynamically registered credential managers
-	_ "github.com/concourse/concourse/atc/creds/conjur"
-	_ "github.com/concourse/concourse/atc/creds/credhub"
-	_ "github.com/concourse/concourse/atc/creds/dummy"
-	"github.com/concourse/concourse/atc/creds/idtoken"
-	_ "github.com/concourse/concourse/atc/creds/kubernetes"
-	_ "github.com/concourse/concourse/atc/creds/secretsmanager"
-	_ "github.com/concourse/concourse/atc/creds/ssm"
-	_ "github.com/concourse/concourse/atc/creds/vault"
+	_ "github.com/concourse/concourse/v8/atc/creds/conjur"
+	_ "github.com/concourse/concourse/v8/atc/creds/credhub"
+	_ "github.com/concourse/concourse/v8/atc/creds/dummy"
+	"github.com/concourse/concourse/v8/atc/creds/idtoken"
+	_ "github.com/concourse/concourse/v8/atc/creds/kubernetes"
+	_ "github.com/concourse/concourse/v8/atc/creds/secretsmanager"
+	_ "github.com/concourse/concourse/v8/atc/creds/ssm"
+	_ "github.com/concourse/concourse/v8/atc/creds/vault"
 )
 
 type ValidatePipelineCommand struct {

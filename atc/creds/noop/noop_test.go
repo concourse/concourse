@@ -3,7 +3,7 @@ package noop_test
 import (
 	"time"
 
-	. "github.com/concourse/concourse/atc/creds/noop"
+	. "github.com/concourse/concourse/v8/atc/creds/noop"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/lock"
 )
 
 var ErrResourceCacheAlreadyExists = errors.New("resource-cache-already-exists")

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/concourse/atc/syslog"
+	"github.com/concourse/concourse/v8/atc/syslog"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/square/certstrap/pkix"

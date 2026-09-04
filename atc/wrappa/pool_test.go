@@ -3,7 +3,7 @@ package wrappa_test
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/concourse/concourse/v8/atc/wrappa"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

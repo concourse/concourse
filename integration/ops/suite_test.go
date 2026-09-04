@@ -3,7 +3,7 @@ package ops_test
 import (
 	"testing"
 
-	"github.com/concourse/concourse/integration/internal/flytest"
+	"github.com/concourse/concourse/v8/integration/internal/flytest"
 	"github.com/stretchr/testify/require"
 )
 

@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	. "github.com/concourse/concourse/atc/tls"
+	"github.com/concourse/concourse/v8/atc"
+	. "github.com/concourse/concourse/v8/atc/tls"
 	"github.com/madflojo/testcerts"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

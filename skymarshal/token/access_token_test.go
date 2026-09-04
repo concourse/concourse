@@ -6,13 +6,13 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/concourse/concourse/atc/atcfakes"
+	"github.com/concourse/concourse/v8/atc/atcfakes"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/skymarshal/token"
-	"github.com/concourse/concourse/skymarshal/token/tokenfakes"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/skymarshal/token"
+	"github.com/concourse/concourse/v8/skymarshal/token/tokenfakes"
 	"github.com/go-jose/go-jose/v4/jwt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -4,7 +4,7 @@ package volumefakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 )
 
 type FakeLockManager struct {

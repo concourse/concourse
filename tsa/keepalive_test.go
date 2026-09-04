@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/concourse/tsa/tsafakes"
+	"github.com/concourse/concourse/v8/tsa"
+	"github.com/concourse/concourse/v8/tsa/tsafakes"
 	"golang.org/x/crypto/ssh"
 
 	. "github.com/onsi/ginkgo/v2"

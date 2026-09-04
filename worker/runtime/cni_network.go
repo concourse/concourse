@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/concourse/concourse/worker/runtime/iptables"
+	"github.com/concourse/concourse/v8/worker/runtime/iptables"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/go-cni"
 	"github.com/containernetworking/cni/pkg/types"

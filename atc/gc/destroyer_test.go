@@ -3,10 +3,10 @@ package gc_test
 import (
 	"errors"
 
-	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/v8/atc/gc"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/creds/vault"
+	"github.com/concourse/concourse/v8/atc/creds/vault"
 	"github.com/hashicorp/vault/api"
 	"github.com/jessevdk/go-flags"
 	"github.com/square/certstrap/pkix"

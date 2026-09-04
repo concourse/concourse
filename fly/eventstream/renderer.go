@@ -3,7 +3,7 @@ package eventstream
 import (
 	"os"
 
-	"github.com/concourse/concourse/go-concourse/concourse/eventstream"
+	"github.com/concourse/concourse/v8/go-concourse/concourse/eventstream"
 	"github.com/vito/go-sse/sse"
 )
 

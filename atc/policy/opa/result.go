@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/vars"
 )
 
 type opaResult struct {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/flag"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

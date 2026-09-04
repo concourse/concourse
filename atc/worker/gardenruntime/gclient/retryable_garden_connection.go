@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient/connection"
 )
 
 type RetryableConnection struct {

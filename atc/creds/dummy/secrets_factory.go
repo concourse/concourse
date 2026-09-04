@@ -1,8 +1,8 @@
 package dummy
 
 import (
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/vars"
 )
 
 type SecretsFactory struct {

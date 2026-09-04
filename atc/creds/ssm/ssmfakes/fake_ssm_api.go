@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	ssma "github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/concourse/concourse/atc/creds/ssm"
+	"github.com/concourse/concourse/v8/atc/creds/ssm"
 )
 
 type FakeSsmAPI struct {

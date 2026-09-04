@@ -1,8 +1,8 @@
 package present
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 func PublicBuildInput(input db.BuildInput, pipelineID int) atc.PublicBuildInput {

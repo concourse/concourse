@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/event"
 )
 
 var ErrEndOfBuildEventStream = errors.New("end of build event stream")

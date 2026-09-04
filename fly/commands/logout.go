@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v8/fly/rc"
 )
 
 type LogoutCommand struct {

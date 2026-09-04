@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v8/fly/rc"
 )
 
 func init() {

@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/concourse/concourse/atc/metric/metricfakes"
+	"github.com/concourse/concourse/v8/atc/metric/metricfakes"
 
-	. "github.com/concourse/concourse/atc/metric"
+	. "github.com/concourse/concourse/v8/atc/metric"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

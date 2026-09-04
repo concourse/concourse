@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	secretsmanagera "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/concourse/concourse/atc/creds/secretsmanager"
+	"github.com/concourse/concourse/v8/atc/creds/secretsmanager"
 )
 
 type FakeSecretsManagerAPI struct {

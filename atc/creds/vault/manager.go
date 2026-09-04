@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 	"github.com/go-viper/mapstructure/v2"
 )
 

@@ -3,8 +3,8 @@ package tsa
 import (
 	"math/rand/v2"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/flag"
 	"github.com/tedsuo/rata"
 )
 

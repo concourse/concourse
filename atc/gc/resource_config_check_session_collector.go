@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/metric"
 	multierror "github.com/hashicorp/go-multierror"
 )
 

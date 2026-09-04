@@ -11,11 +11,11 @@ import (
 	"github.com/tedsuo/ifrit"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/postgresrunner"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/metric"
+	"github.com/concourse/concourse/v8/atc/postgresrunner"
+	"github.com/concourse/concourse/v8/tracing"
 )
 
 var (

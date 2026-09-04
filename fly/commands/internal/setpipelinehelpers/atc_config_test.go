@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/concourse/atc"
-	. "github.com/concourse/concourse/fly/commands/internal/setpipelinehelpers"
+	"github.com/concourse/concourse/v8/atc"
+	. "github.com/concourse/concourse/v8/fly/commands/internal/setpipelinehelpers"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"sync"
 
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient/connection"
 	"github.com/tedsuo/rata"
 )
 

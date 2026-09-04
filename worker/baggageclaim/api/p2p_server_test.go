@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/worker/baggageclaim/api"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/api"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

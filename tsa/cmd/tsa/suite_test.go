@@ -19,8 +19,8 @@ import (
 	gserver "code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/localip"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/tsa"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -39,7 +39,7 @@ var tsaPath string
 
 var _ = BeforeSuite(func() {
 	var err error
-	tsaPath, err = gexec.Build("github.com/concourse/concourse/tsa/cmd/tsa", "-ldflags", "-X 'github.com/concourse/concourse/atc/worker/gardenruntime/gclient.idleConnTimeoutOverride=5s'")
+	tsaPath, err = gexec.Build("github.com/concourse/concourse/v8/tsa/cmd/tsa", "-ldflags", "-X 'github.com/concourse/concourse/atc/worker/gardenruntime/gclient.idleConnTimeoutOverride=5s'")
 	Expect(err).NotTo(HaveOccurred())
 })
 

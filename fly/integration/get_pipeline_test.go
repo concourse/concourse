@@ -15,7 +15,7 @@ import (
 	"github.com/tedsuo/rata"
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 )
 
 var _ = Describe("get-pipeline", func() {

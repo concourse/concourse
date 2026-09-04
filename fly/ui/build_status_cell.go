@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/concourse/concourse/atc"
+import "github.com/concourse/concourse/v8/atc"
 
 func BuildStatusCell(status atc.BuildStatus) TableCell {
 	var statusCell TableCell

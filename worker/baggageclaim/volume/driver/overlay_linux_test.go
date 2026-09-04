@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/driver"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

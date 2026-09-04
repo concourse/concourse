@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/v8/atc/compression"
 )
 
 type Artifact struct {
