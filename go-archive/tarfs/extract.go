@@ -79,7 +79,7 @@ func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool
 	fileInfo := header.FileInfo()
 	fileMode := fileInfo.Mode()
 
-	err := RootMkdirAll(root, filepath.Dir(filePath), 0755)
+	err := root.MkdirAll(filepath.Dir(filePath), 0755)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool
 		}
 
 	case tar.TypeDir:
-		err := RootMkdirAll(root, filePath, fileMode.Perm())
+		err := root.MkdirAll(filePath, fileMode.Perm())
 		if err != nil {
 			return err
 		}
@@ -231,9 +231,4 @@ func stripRoot(p string) string {
 	// Removes all leading forward and backwards slashes
 	p = strings.TrimLeft(p, `/\`)
 	return p
-}
-
-// Workaround for https://github.com/golang/go/issues/80308
-func RootMkdirAll(r *os.Root, path string, perm os.FileMode) error {
-	return r.MkdirAll(strings.TrimSuffix(path, "/"), perm)
 }
