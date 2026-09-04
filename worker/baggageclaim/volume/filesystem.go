@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,15 +69,18 @@ const (
 var _ Filesystem = (*filesystem)(nil)
 
 type filesystem struct {
-	log    lager.Logger
-	driver Driver
+	log       lager.Logger
+	driver    Driver
+	pathKnown func(string) bool
 
 	initDir string
 	liveDir string
 	deadDir string
 }
 
-func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesystem, error) {
+type FSOption func(*filesystem) error
+
+func NewFilesystem(logger lager.Logger, driver Driver, parentDir string, opts ...FSOption) (Filesystem, error) {
 	initDir := filepath.Join(parentDir, initDirname)
 	liveDir := filepath.Join(parentDir, liveDirname)
 	deadDir := filepath.Join(parentDir, deadDirname)
@@ -96,14 +100,31 @@ func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesy
 		return nil, err
 	}
 
-	return &filesystem{
-		log:    logger.Session("filesystem"),
-		driver: driver,
+	fs := &filesystem{
+		log:       logger.Session("filesystem"),
+		driver:    driver,
+		pathKnown: pathKnown,
 
 		initDir: initDir,
 		liveDir: liveDir,
 		deadDir: deadDir,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		err = opt(fs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return fs, nil
+}
+
+func WithPathKnownFunc(p func(string) bool) FSOption {
+	return func(f *filesystem) error {
+		f.pathKnown = p
+		return nil
+	}
 }
 
 func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
@@ -201,33 +222,31 @@ func (fs *filesystem) CleanupOrphanedEntries() error {
 		}
 	}
 
-	// Collect live and init handles, then ask the driver to remove
-	// any orphaned driver-specific resources.
-	knownHandles := map[string]struct{}{}
-	liveDirs, err := os.ReadDir(fs.liveDir)
-	if err != nil {
-		return fmt.Errorf("read live dir: %w", err)
-	}
-
-	for _, entry := range liveDirs {
-		knownHandles[entry.Name()] = struct{}{}
-	}
-
-	initDirs, err := os.ReadDir(fs.initDir)
-	if err != nil {
-		return fmt.Errorf("read init dir: %w", err)
-	}
-
-	for _, entry := range initDirs {
-		knownHandles[entry.Name()] = struct{}{}
-	}
-
-	err = fs.driver.RemoveOrphanedResources(knownHandles)
+	err = fs.driver.RemoveOrphanedResources(fs.volumeExists)
 	if err != nil {
 		fs.log.Error("failed-to-remove-orphaned-driver-resources", err)
 	}
 
 	return nil
+}
+
+func (fs *filesystem) volumeExists(handle string) bool {
+	// init/ first, then live/: a rename from init to live cannot miss both.
+	if fs.pathKnown(fs.initVolumePath(handle)) {
+		return true
+	}
+	return fs.pathKnown(fs.liveVolumePath(handle))
+}
+
+func pathKnown(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	return true
 }
 
 func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {

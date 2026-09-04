@@ -13,6 +13,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+func knownHandles(handles ...string) func(string) bool {
+	set := make(map[string]struct{}, len(handles))
+	for _, h := range handles {
+		set[h] = struct{}{}
+	}
+	return func(handle string) bool {
+		_, ok := set[handle]
+		return ok
+	}
+}
+
 var _ = Describe("Overlay", func() {
 	Context("Driver", func() {
 		var tmpdir string
@@ -135,12 +146,7 @@ var _ = Describe("Overlay", func() {
 			// orphan-vol-2 has no corresponding work dir
 			Expect(os.Mkdir(filepath.Join(overlaysDir, "orphan-vol-2"), 0755)).To(Succeed())
 
-			knownHandles := map[string]struct{}{
-				"known-vol-1": {},
-				"known-vol-2": {},
-			}
-
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles("known-vol-1", "known-vol-2"))
 			Expect(err).ToNot(HaveOccurred())
 
 			// Known handles should still exist
@@ -161,16 +167,19 @@ var _ = Describe("Overlay", func() {
 			// Create a work dir with no layer dir
 			Expect(os.Mkdir(filepath.Join(overlaysDir, "work", "work-only-orphan"), 0755)).To(Succeed())
 
-			knownHandles := map[string]struct{}{}
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles())
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(filepath.Join(overlaysDir, "work", "work-only-orphan")).ToNot(BeADirectory())
 		})
 
+		It("errors if nil is given instead of a func", func() {
+			err := overlayDrv.RemoveOrphanedResources(nil)
+			Expect(err).To(MatchError("must pass in a function"))
+		})
+
 		It("handles an empty overlays directory", func() {
-			knownHandles := map[string]struct{}{}
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -181,8 +190,7 @@ var _ = Describe("Overlay", func() {
 			})
 
 			It("does not error", func() {
-				knownHandles := map[string]struct{}{}
-				err := overlayDrv.RemoveOrphanedResources(knownHandles)
+				err := overlayDrv.RemoveOrphanedResources(knownHandles())
 				Expect(err).ToNot(HaveOccurred())
 			})
 		})
