@@ -182,7 +182,7 @@ type job struct {
 }
 
 func newEmptyJob(conn DbConn, lockFactory lock.LockFactory) *job {
-	return &job{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &job{conn: conn, lockFactory: lockFactory}
 }
 
 func (j *job) SetHasNewInputs(hasNewInputs bool) error {

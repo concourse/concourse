@@ -26,13 +26,13 @@ var _ = Describe("Access Token Lifecycle", func() {
 		tomorrow := jwt.NewNumericDate(now().Add(24 * time.Hour))
 		yesterday := jwt.NewNumericDate(now().Add(-24 * time.Hour))
 		factory.CreateAccessToken("expiredToken1", db.Claims{
-			Claims: jwt.Claims{Expiry: yesterday},
+			Expiry: yesterday,
 		})
 		factory.CreateAccessToken("expiredToken2", db.Claims{
-			Claims: jwt.Claims{Expiry: yesterday},
+			Expiry: yesterday,
 		})
 		factory.CreateAccessToken("activeToken", db.Claims{
-			Claims: jwt.Claims{Expiry: tomorrow},
+			Expiry: tomorrow,
 		})
 
 		By("removing expired tokens")
@@ -49,7 +49,7 @@ var _ = Describe("Access Token Lifecycle", func() {
 		By("having a token that is 24 hours old")
 		yesterday := jwt.NewNumericDate(now().Add(-24 * time.Hour))
 		factory.CreateAccessToken("expiredToken", db.Claims{
-			Claims: jwt.Claims{Expiry: yesterday},
+			Expiry: yesterday,
 		})
 
 		By("removing expired tokens with leeway of 25 hours")

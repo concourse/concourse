@@ -126,7 +126,7 @@ func userInfoHandler() http.HandlerFunc {
 func validAccessToken(expiry time.Time) string {
 	GinkgoHelper()
 	accessToken, err := token.Factory{}.GenerateAccessToken(db.Claims{
-		Claims: jwt.Claims{Expiry: jwt.NewNumericDate(expiry)}},
+		Expiry: jwt.NewNumericDate(expiry)},
 	)
 	if err != nil {
 		panic(err)
