@@ -82,7 +82,7 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	}
 	defer pipelinesToArchive.Close()
 
-	err = archivePipelines(tx, pl.conn, pl.lockFactory, pipelinesToArchive)
+	_, err = archivePipelines(tx, pl.conn, pl.lockFactory, pipelinesToArchive)
 	if err != nil {
 		return err
 	}
@@ -95,12 +95,12 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	return nil
 }
 
-func archivePipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) error {
+func archivePipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) ([]pipeline, error) {
 	var toArchive []pipeline
 	for rows.Next() {
 		p := newPipeline(conn, lockFactory)
 		if err := scanPipeline(p, rows); err != nil {
-			return err
+			return nil, err
 		}
 
 		toArchive = append(toArchive, *p)
@@ -109,11 +109,11 @@ func archivePipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sq
 	for _, pipeline := range toArchive {
 		err := pipeline.archive(tx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return toArchive, nil
 }
 
 func (p *pipelineLifecycle) RemoveBuildEventsForDeletedPipelines() error {
