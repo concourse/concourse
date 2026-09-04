@@ -57,8 +57,13 @@ func (g TokenGenerator) GenerateToken(params creds.SecretLookupParams) (token st
 		return "", time.Time{}, err
 	}
 
+	jti, err := uuid.NewRandom()
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("error generating UUID: %w", err)
+	}
+
 	claims := jwt.Claims{
-		ID:       g.generateId(),
+		ID:       jti.String(),
 		Issuer:   g.Issuer,
 		IssuedAt: jwt.NewNumericDate(now),
 		Audience: jwt.Audience(g.Audience),
@@ -109,17 +114,6 @@ func (g TokenGenerator) getSigningKey() (*jose.SigningKey, error) {
 		Algorithm: alg,
 		Key:       latestKey.JWK(),
 	}, nil
-}
-
-// generateId returns a new value for a token's jti claim.
-//
-// The only requirement on it is uniqueness. The format is free to change, and
-// Concourse does not need to remember the values it issues.
-//
-// RFC 7519 section 4.1.7 (uniqueness)
-// RFC 7523 section 3 (replay prevention)
-func (g TokenGenerator) generateId() string {
-	return uuid.NewString()
 }
 
 func (g TokenGenerator) generateSubject(params creds.SecretLookupParams) string {
