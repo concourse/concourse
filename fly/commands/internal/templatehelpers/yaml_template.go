@@ -3,6 +3,7 @@ package templatehelpers
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
@@ -70,8 +71,8 @@ func (yamlTemplate YamlTemplateWithParams) Evaluate(strict bool) ([]byte, error)
 
 	// second, we take all files. with values in the files specified later on command line taking precedence over the
 	// same values in the files specified earlier on command line
-	for i := len(yamlTemplate.templateVariablesFiles) - 1; i >= 0; i-- {
-		path := yamlTemplate.templateVariablesFiles[i]
+	for _, path := range slices.Backward(yamlTemplate.templateVariablesFiles) {
+
 		templateVars, err := os.ReadFile(string(path))
 		if err != nil {
 			return nil, fmt.Errorf("could not read template variables file (%s): %s", string(path), err.Error())
