@@ -1184,6 +1184,7 @@ func (cmd *RunCommand) backendComponents(
 		lockFactory,
 		rateLimiter,
 		policyChecker,
+		aud,
 	)
 
 	buildEventWatcher, err := db.NewBuildBeingWatchedMarker(logger, dbConn, db.DefaultBuildBeingWatchedMarkDuration, clock.NewClock())
@@ -1900,6 +1901,7 @@ func (cmd *RunCommand) constructEngine(
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
+	aud auditor.Auditor,
 ) engine.Engine {
 	return engine.NewEngine(
 		engine.NewStepperFactory(
@@ -1929,6 +1931,7 @@ func (cmd *RunCommand) constructEngine(
 		),
 		secretManager,
 		cmd.varSourcePool,
+		aud,
 	)
 }
 
