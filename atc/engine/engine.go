@@ -6,9 +6,12 @@ import (
 	"sync"
 	"time"
 
+	"strconv"
+
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/db"
@@ -25,6 +28,7 @@ func NewEngine(
 	stepperFactory StepperFactory,
 	secrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
+	aud auditor.Auditor,
 ) Engine {
 	return Engine{
 		stepperFactory: stepperFactory,
@@ -34,6 +38,7 @@ func NewEngine(
 
 		globalSecrets: secrets,
 		varSourcePool: varSourcePool,
+		auditor:       aud,
 	}
 }
 
@@ -45,6 +50,7 @@ type Engine struct {
 
 	globalSecrets creds.Secrets
 	varSourcePool creds.VarSourcePool
+	auditor       auditor.Auditor
 }
 
 func (engine Engine) Drain(ctx context.Context) {
@@ -66,6 +72,7 @@ func (engine Engine) NewBuild(build db.Build) builds.Runnable {
 		engine.stepperFactory,
 		engine.globalSecrets,
 		engine.varSourcePool,
+		engine.auditor,
 		engine.release,
 		engine.trackedStates,
 		engine.waitGroup,
@@ -77,6 +84,7 @@ func NewBuild(
 	builder StepperFactory,
 	globalSecrets creds.Secrets,
 	varSourcePool creds.VarSourcePool,
+	aud auditor.Auditor,
 	release chan bool,
 	trackedStates *sync.Map,
 	waitGroup *sync.WaitGroup,
@@ -87,6 +95,7 @@ func NewBuild(
 
 		globalSecrets: globalSecrets,
 		varSourcePool: varSourcePool,
+		auditor:       aud,
 
 		release:       release,
 		trackedStates: trackedStates,
@@ -100,6 +109,7 @@ type engineBuild struct {
 
 	globalSecrets creds.Secrets
 	varSourcePool creds.VarSourcePool
+	auditor       auditor.Auditor
 
 	release       chan bool
 	trackedStates *sync.Map
@@ -268,6 +278,16 @@ func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 	if err := b.build.Finish(db.BuildStatus(status)); err != nil {
 		logger.Error("failed-to-finish-build", err)
 		return
+	}
+
+	for _, p := range b.build.ArchivedPipelines() {
+		b.auditor.AuditInternal(atc.ArchivePipeline, map[string][]string{
+			":pipeline_name":         {p.Name},
+			":team_name":             {p.TeamName},
+			":triggered_by_pipeline": {b.build.PipelineName()},
+			":triggered_by_job":      {b.build.JobName()},
+			":triggered_by_build_id": {strconv.Itoa(b.build.ID())},
+		})
 	}
 
 	if b.build.JobID() == 0 {

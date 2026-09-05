@@ -1123,7 +1123,21 @@ func (cmd *RunCommand) backendComponents(
 	dbCheckFactory := db.NewCheckFactory(dbConn, lockFactory, secretManager, cmd.varSourcePool, checkBuildsChan, util.NewSequenceGenerator(1))
 	dbPipelineFactory := db.NewPipelineFactory(dbConn, lockFactory)
 	dbJobFactory := db.NewJobFactory(dbConn, lockFactory)
-	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory)
+
+	aud := auditor.NewAuditor(
+		cmd.Auditor.EnableBuildAuditLog,
+		cmd.Auditor.EnableContainerAuditLog,
+		cmd.Auditor.EnableJobAuditLog,
+		cmd.Auditor.EnablePipelineAuditLog,
+		cmd.Auditor.EnableResourceAuditLog,
+		cmd.Auditor.EnableSystemAuditLog,
+		cmd.Auditor.EnableTeamAuditLog,
+		cmd.Auditor.EnableWorkerAuditLog,
+		cmd.Auditor.EnableVolumeAuditLog,
+		logger,
+	)
+
+	dbPipelineLifecycle := db.NewPipelineLifecycle(dbConn, lockFactory, aud)
 	dbPipelinePauser := db.NewPipelinePauser(dbConn, lockFactory)
 	dbSigningKeyFactory := db.NewSigningKeyFactory(dbConn)
 
@@ -1170,6 +1184,7 @@ func (cmd *RunCommand) backendComponents(
 		lockFactory,
 		rateLimiter,
 		policyChecker,
+		aud,
 	)
 
 	buildEventWatcher, err := db.NewBuildBeingWatchedMarker(logger, dbConn, db.DefaultBuildBeingWatchedMarkDuration, clock.NewClock())
@@ -1385,7 +1400,21 @@ func (cmd *RunCommand) gcComponents(
 	resourceConfigCheckSessionLifecycle := db.NewResourceConfigCheckSessionLifecycle(gcConn)
 	dbBuildFactory := db.NewBuildFactory(gcConn, lockFactory, cmd.GC.OneOffBuildGracePeriod, cmd.GC.FailedGracePeriod)
 	dbResourceConfigFactory := db.NewResourceConfigFactory(gcConn, lockFactory)
-	dbPipelineLifecycle := db.NewPipelineLifecycle(gcConn, lockFactory)
+
+	aud := auditor.NewAuditor(
+		cmd.Auditor.EnableBuildAuditLog,
+		cmd.Auditor.EnableContainerAuditLog,
+		cmd.Auditor.EnableJobAuditLog,
+		cmd.Auditor.EnablePipelineAuditLog,
+		cmd.Auditor.EnableResourceAuditLog,
+		cmd.Auditor.EnableSystemAuditLog,
+		cmd.Auditor.EnableTeamAuditLog,
+		cmd.Auditor.EnableWorkerAuditLog,
+		cmd.Auditor.EnableVolumeAuditLog,
+		logger,
+	)
+
+	dbPipelineLifecycle := db.NewPipelineLifecycle(gcConn, lockFactory, aud)
 	dbCheckLifecycle := db.NewCheckLifecycle(gcConn)
 
 	dbVolumeRepository := db.NewVolumeRepository(gcConn)
@@ -1872,6 +1901,7 @@ func (cmd *RunCommand) constructEngine(
 	lockFactory lock.LockFactory,
 	rateLimiter engine.RateLimiter,
 	policyChecker policy.Checker,
+	aud auditor.Auditor,
 ) engine.Engine {
 	return engine.NewEngine(
 		engine.NewStepperFactory(
@@ -1901,6 +1931,7 @@ func (cmd *RunCommand) constructEngine(
 		),
 		secretManager,
 		cmd.varSourcePool,
+		aud,
 	)
 }
 
