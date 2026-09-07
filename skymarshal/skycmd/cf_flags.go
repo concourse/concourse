@@ -69,14 +69,14 @@ func (flag *CFFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type CFTeamFlags struct {
-	Users            []string `long:"user" description:"A whitelisted CloudFoundry user" value-name:"USERNAME"`
-	Orgs             []string `long:"org" description:"A whitelisted CloudFoundry org" value-name:"ORG_NAME"`
-	Spaces           []string `long:"space" description:"(Deprecated) A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME"`
-	SpacesAll        []string `long:"space-with-any-role" description:"A whitelisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_any_role"`
-	SpacesDeveloper  []string `long:"space-with-developer-role" description:"A whitelisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_developer_role"`
-	SpacesAuditor    []string `long:"space-with-auditor-role" description:"A whitelisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_auditor_role"`
-	SpacesManager    []string `long:"space-with-manager-role" description:"A whitelisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_manager_role"`
-	SpaceGuids       []string `long:"space-guid" description:"A whitelisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
+	Users            []string `long:"user" description:"An allowlisted CloudFoundry user" value-name:"USERNAME"`
+	Orgs             []string `long:"org" description:"An allowlisted CloudFoundry org" value-name:"ORG_NAME"`
+	Spaces           []string `long:"space" description:"(Deprecated) An allowlisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME"`
+	SpacesAll        []string `long:"space-with-any-role" description:"An allowlisted CloudFoundry space for users with any role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_any_role"`
+	SpacesDeveloper  []string `long:"space-with-developer-role" description:"An allowlisted CloudFoundry space for users with the 'developer' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_developer_role"`
+	SpacesAuditor    []string `long:"space-with-auditor-role" description:"An allowlisted CloudFoundry space for users with the 'auditor' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_auditor_role"`
+	SpacesManager    []string `long:"space-with-manager-role" description:"An allowlisted CloudFoundry space for users with the 'manager' role" value-name:"ORG_NAME:SPACE_NAME" mapstructure:"spaces_with_manager_role"`
+	SpaceGuids       []string `long:"space-guid" description:"An allowlisted CloudFoundry space guid" value-name:"SPACE_GUID" mapstructure:"space_guids"`
 	SpaceGuidsLegacy []string `mapstructure:"spaceguids"`
 }
 

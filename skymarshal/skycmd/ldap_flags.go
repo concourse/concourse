@@ -108,8 +108,8 @@ func (flag *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type LDAPTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"A whitelisted LDAP user" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"A whitelisted LDAP group" value-name:"GROUP_NAME"`
+	Users  []string `json:"users" long:"user" description:"An allowlisted LDAP user" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"An allowlisted LDAP group" value-name:"GROUP_NAME"`
 }
 
 func (flag *LDAPTeamFlags) GetUsers() []string {

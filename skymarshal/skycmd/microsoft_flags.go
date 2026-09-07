@@ -58,8 +58,8 @@ func (flag *MicrosoftFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type MicrosoftTeamFlags struct {
-	Users  []string `long:"user" description:"A whitelisted Microsoft user" value-name:"USERNAME"`
-	Groups []string `long:"group" description:"A whitelisted Microsoft group" value-name:"GROUP_NAME"`
+	Users  []string `long:"user" description:"An allowlisted Microsoft user" value-name:"USERNAME"`
+	Groups []string `long:"group" description:"An allowlisted Microsoft group" value-name:"GROUP_NAME"`
 }
 
 func (flag *MicrosoftTeamFlags) GetUsers() []string {

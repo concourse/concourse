@@ -152,8 +152,6 @@ func (s *IntegrationSuite) setupRootfs() {
 
 	err = cmd.Run()
 	s.NoError(err)
-
-	return
 }
 
 func (s *IntegrationSuite) AfterTest(suiteName, testName string) {
@@ -1284,6 +1282,21 @@ func (s *IntegrationSuite) TestNewContainerEnforcesTimeoutOnTask() {
 	s.Error(err, "Task via GetContainer should also return 'not found'")
 
 	s.NoError(s.containerdProcess.Process.Signal(syscall.SIGSTOP))
+
+	s.Eventually(func() bool {
+		procStat, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", s.containerdProcess.Process.Pid))
+		if err != nil {
+			s.T().Log("failed to read containerd /proc/%/stat:", err)
+			return false
+		}
+
+		i := bytes.LastIndexByte(procStat, ')')
+		if i < 0 || i+2 >= len(procStat) {
+			s.T().Log("malformed stat")
+			return false
+		}
+		return procStat[i+2] == 'T'
+	}, 3*time.Second, 50*time.Millisecond, "wait for containerd process to be frozen")
 
 	start := time.Now()
 	_, err = contViaNew.Task(context.Background(), nil)

@@ -74,8 +74,8 @@ func (flag *SAMLFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type SAMLTeamFlags struct {
-	Users  []string `json:"users" long:"user" description:"A whitelisted SAML user" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" description:"A whitelisted SAML group. Wrap a group in double quotes to keep it from being split on commas when set via environment variable." value-name:"GROUP_NAME"`
+	Users  []string `json:"users" long:"user" description:"An allowlisted SAML user" value-name:"USERNAME"`
+	Groups []string `json:"groups" long:"group" description:"An allowlisted SAML group. Wrap a group in double quotes to keep it from being split on commas when set via environment variable." value-name:"GROUP_NAME"`
 }
 
 func (flag *SAMLTeamFlags) GetUsers() []string {

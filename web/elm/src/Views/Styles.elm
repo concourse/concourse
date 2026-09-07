@@ -148,6 +148,12 @@ pageBelowTopBar hideUI route =
                     , style "height" "100%"
                     , style "display" "flex"
                     ]
+
+                Routes.PipelineInfo _ ->
+                    [ style "box-sizing" "border-box"
+                    , style "height" "100%"
+                    , style "display" "flex"
+                    ]
            )
 
 

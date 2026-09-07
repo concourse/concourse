@@ -3,6 +3,7 @@ module Dashboard.Group exposing
     , Section
     , hdView
     , listView
+    , listViewFavoritePipelines
     , ordering
     , pipelineNotSetView
     , view
@@ -426,6 +427,8 @@ listView params session hovered sections =
                                         , query = params.query
                                         , now = params.now
                                         , dragState = params.dragState
+                                        , isDraggable = True
+                                        , section = AllPipelinesSection
                                         }
                                         session
                                         hovered
@@ -433,6 +436,56 @@ listView params session hovered sections =
                                     ]
                                 )
                             |> (\rows -> rows ++ [ endDropZoneView params.dragState params.dropState section.teamName ])
+                    )
+                ]
+        )
+        sections
+
+
+listViewFavoritePipelines :
+    { pipelinesWithResourceErrors : Set Concourse.DatabaseID
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    , dashboardView : Routes.DashboardView
+    , query : String
+    , now : Maybe Time.Posix
+    }
+    -> Session
+    -> HoverState.HoverState
+    -> List (Section Card)
+    -> List (Html Message)
+listViewFavoritePipelines params session hovered sections =
+    List.map
+        (\section ->
+            Html.div Styles.listViewTeamGroup
+                [ Html.div Styles.listViewTeamHeader
+                    [ Html.div Styles.listViewTeamName
+                        [ Html.text section.header ]
+                    ]
+                , Html.div
+                    (Styles.listView
+                        ++ [ style "display" "flex"
+                           , style "flex-direction" "column"
+                           , style "gap" "3px"
+                           ]
+                    )
+                    (section.cards
+                        |> sortPipelinesForListView
+                        |> List.map
+                            (renderPipelineRow
+                                { pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                , pipelineJobs = params.pipelineJobs
+                                , jobs = params.jobs
+                                , dashboardView = params.dashboardView
+                                , query = params.query
+                                , now = params.now
+                                , dragState = NotDragging
+                                , isDraggable = False
+                                , section = FavoritesSection
+                                }
+                                session
+                                hovered
+                            )
                     )
                 ]
         )
@@ -471,6 +524,8 @@ renderPipelineRow :
     , query : String
     , now : Maybe Time.Posix
     , dragState : DragState
+    , isDraggable : Bool
+    , section : PipelinesSection
     }
     -> Session
     -> HoverState.HoverState
@@ -502,19 +557,23 @@ renderPipelineRow params session hovered card =
 
                 NotDragging ->
                     False
+
+        dragAttrs =
+            if params.isDraggable then
+                [ attribute "ondragstart" "event.dataTransfer.setData('text/plain', '');"
+                , draggable "true"
+                , on "dragstart" (Json.Decode.succeed (DragStart <| card))
+                , on "dragend" (Json.Decode.succeed DragEnd)
+                ]
+
+            else
+                []
     in
     case card of
         InstanceGroupCard pipeline _ ->
             Html.div
                 (Styles.listViewRowContainer isBeingDragged
-                    ++ [ attribute
-                            "ondragstart"
-                            "event.dataTransfer.setData('text/plain', '');"
-                       , draggable "true"
-                       , on "dragstart"
-                            (Json.Decode.succeed (DragStart <| card))
-                       , on "dragend" (Json.Decode.succeed DragEnd)
-                       ]
+                    ++ dragAttrs
                 )
                 [ Html.div
                     (Styles.listViewRowOverlay anyDragHappening
@@ -552,15 +611,7 @@ renderPipelineRow params session hovered card =
             in
             Html.div
                 (Styles.listViewRowContainer isBeingDragged
-                    ++ [ style "align-items" "stretch"
-                       , attribute
-                            "ondragstart"
-                            "event.dataTransfer.setData('text/plain', '');"
-                       , draggable "true"
-                       , on "dragstart"
-                            (Json.Decode.succeed (DragStart <| card))
-                       , on "dragend" (Json.Decode.succeed DragEnd)
-                       ]
+                    ++ (style "align-items" "stretch" :: dragAttrs)
                 )
                 [ Html.div
                     (Styles.listViewRowOverlay anyDragHappening
@@ -586,7 +637,7 @@ renderPipelineRow params session hovered card =
                         ]
                     ]
                 , Html.div Styles.listViewInstancedPipelineButtons
-                    (renderPipelineButtons pipeline AllPipelinesSection session hovered)
+                    (renderPipelineButtons pipeline params.section session hovered)
                 ]
 
         PipelineCard pipeline ->
@@ -596,14 +647,7 @@ renderPipelineRow params session hovered card =
             in
             Html.div
                 (Styles.listViewRowContainer isBeingDragged
-                    ++ [ attribute
-                            "ondragstart"
-                            "event.dataTransfer.setData('text/plain', '');"
-                       , draggable "true"
-                       , on "dragstart"
-                            (Json.Decode.succeed (DragStart <| card))
-                       , on "dragend" (Json.Decode.succeed DragEnd)
-                       ]
+                    ++ dragAttrs
                 )
                 [ Html.div
                     (Styles.listViewRowOverlay anyDragHappening
@@ -626,7 +670,7 @@ renderPipelineRow params session hovered card =
                             , Html.div Styles.listViewPipelineStatus
                                 [ Html.text (getPipelineStatusText pipelineJobs pipeline params.now) ]
                             , Html.div Styles.listViewPipelineButtonsContainer
-                                (renderStepStatusBlocks pipeline.id pipelineJobs ++ renderPipelineButtons pipeline AllPipelinesSection session hovered)
+                                (renderStepStatusBlocks pipeline.id pipelineJobs ++ renderPipelineButtons pipeline params.section session hovered)
                             ]
                         ]
                     ]

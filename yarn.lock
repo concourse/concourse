@@ -5087,6 +5087,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"terser@npm:^5.50.0":
+  version: 5.50.0
+  resolution: "terser@npm:5.50.0"
+  dependencies:
+    "@jridgewell/source-map": "npm:^0.3.3"
+    acorn: "npm:^8.15.0"
+    commander: "npm:^2.20.0"
+    source-map-support: "npm:~0.5.20"
+  bin:
+    terser: bin/terser
+  checksum: 10c0/d932282186239fcdc53ffb67568c7e9f2a2c58e21618d71500fc855f7f6bb2efdf061d383313880ae8bb45c7ba7c089e50978a689e1a6e2bbd5307fb639f1113
+  languageName: node
+  linkType: hard
+
 "text-decoder@npm:^1.1.0":
   version: 1.2.7
   resolution: "text-decoder@npm:1.2.7"
@@ -5229,15 +5243,6 @@ __metadata:
   version: 0.0.7
   resolution: "typedarray@npm:0.0.7"
   checksum: 10c0/4cf120c698e86cf7960e4805b6695f783b1ef3a4ab8e2aadc4244802db1469b66f88bff340527c74896225f025fe14f80b4893573f0397738fd4fd3a52032c47
-  languageName: node
-  linkType: hard
-
-"uglify-js@npm:^3.19.3":
-  version: 3.19.3
-  resolution: "uglify-js@npm:3.19.3"
-  bin:
-    uglifyjs: bin/uglifyjs
-  checksum: 10c0/83b0a90eca35f778e07cad9622b80c448b6aad457c9ff8e568afed978212b42930a95f9e1be943a1ffa4258a3340fbb899f41461131c05bb1d0a9c303aed8479
   languageName: node
   linkType: hard
 
@@ -5410,7 +5415,7 @@ __metadata:
     puppeteer: "npm:^24.37.3"
     request: "npm:^2.88.2"
     simple-icons: "npm:^16.18.1"
-    uglify-js: "npm:^3.19.3"
+    terser: "npm:^5.50.0"
     uuid: "npm:^14.0.0"
     webpack: "npm:^5.105.2"
     webpack-cli: "npm:7.0.2"

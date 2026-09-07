@@ -54,8 +54,8 @@ func (flag *GitlabFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GitlabTeamFlags struct {
-	Users  []string `long:"user" description:"A whitelisted GitLab user" value-name:"USERNAME"`
-	Groups []string `long:"group" description:"A whitelisted GitLab group" value-name:"GROUP_NAME"`
+	Users  []string `long:"user" description:"An allowlisted GitLab user" value-name:"USERNAME"`
+	Groups []string `long:"group" description:"An allowlisted GitLab group" value-name:"GROUP_NAME"`
 }
 
 func (flag *GitlabTeamFlags) GetUsers() []string {

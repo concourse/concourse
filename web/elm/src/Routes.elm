@@ -55,6 +55,7 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page, groups : List String }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
+    | PipelineInfo Concourse.PipelineIdentifier
     | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
       -- the version field is really only used as a hack to populate the breadcrumbs, it's not actually used by anyhting else
@@ -268,6 +269,20 @@ pipeline =
         (pipelineIdentifier <?> Query.custom "group" identity)
 
 
+pipelineInfo : Parser ((InstanceVars -> Route) -> a) a
+pipelineInfo =
+    map
+        (\{ teamName, pipelineName } ->
+            \iv ->
+                PipelineInfo
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , pipelineInstanceVars = iv
+                    }
+        )
+        (pipelineIdentifier </> s "info")
+
+
 dashboard : Parser ((b -> Route) -> a) a
 dashboard =
     map (\st view -> always <| Dashboard { searchType = st, dashboardView = view }) <|
@@ -476,6 +491,7 @@ sitemap =
         [ resource
         , job
         , dashboard
+        , pipelineInfo
         , pipeline
         , build
         , oneOffBuild
@@ -517,6 +533,11 @@ toString route =
         Pipeline { id, groups } ->
             pipelineIdBuilder id
                 |> appendQuery (groups |> List.map (Builder.string "group"))
+                |> RouteBuilder.build
+
+        PipelineInfo id ->
+            pipelineIdBuilder id
+                |> appendPath [ "info" ]
                 |> RouteBuilder.build
 
         Dashboard { searchType, dashboardView } ->
@@ -622,6 +643,9 @@ extractPid route =
         Pipeline { id } ->
             Just id
 
+        PipelineInfo id ->
+            Just id
+
         _ ->
             Nothing
 
@@ -667,6 +691,9 @@ getGroups route =
         Causality { groups } ->
             groups
 
+        PipelineInfo _ ->
+            []
+
         OneOffBuild _ ->
             []
 
@@ -697,6 +724,9 @@ withGroups groups route =
 
         Causality params ->
             Causality { params | groups = groups }
+
+        PipelineInfo _ ->
+            route
 
         OneOffBuild _ ->
             route

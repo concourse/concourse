@@ -943,6 +943,9 @@ toHtmlID domId =
         TopBarPinIcon ->
             "top-bar-pin-icon"
 
+        TopBarInfoIcon ->
+            "top-bar-info-icon"
+
         CommentBar id ->
             "comment-bar-" ++ toHtmlID id
 

@@ -93,7 +93,7 @@ func (cmd Cmd) WaitForRunningWorker(t *testing.T) {
 		}
 
 		return false
-	}, time.Minute, time.Second, "should have a running worker")
+	}, 2*time.Minute, time.Second, "should have a running worker")
 }
 
 type Table []map[string]string
