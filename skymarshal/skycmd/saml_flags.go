@@ -3,6 +3,7 @@ package skycmd
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/concourse/concourse/flag"
 	"github.com/concourse/dex/connector/saml"
@@ -74,7 +75,7 @@ func (flag *SAMLFlags) Serialize(redirectURI string) ([]byte, error) {
 
 type SAMLTeamFlags struct {
 	Users  []string `json:"users" long:"user" description:"A whitelisted SAML user" value-name:"USERNAME"`
-	Groups []string `json:"groups" long:"group" env:"CONCOURSE_MAIN_TEAM_SAML_GROUP" description:"A whitelisted SAML group" value-name:"GROUP_NAME"`
+	Groups []string `json:"groups" long:"group" description:"A whitelisted SAML group. Wrap a group in double quotes to keep it from being split on commas when set via environment variable." value-name:"GROUP_NAME"`
 }
 
 func (flag *SAMLTeamFlags) GetUsers() []string {
@@ -82,5 +83,41 @@ func (flag *SAMLTeamFlags) GetUsers() []string {
 }
 
 func (flag *SAMLTeamFlags) GetGroups() []string {
-	return flag.Groups
+	return rejoinQuotedGroups(flag.Groups)
+}
+
+// Environment values for slice flags are split on commas before they reach
+// this struct, which breaks LDAP-style group DNs such as
+// 'CN=admins,OU=Groups,DC=example,DC=com'. A group wrapped in double quotes
+// is reassembled from the split pieces and the quotes are stripped, so
+// CONCOURSE_MAIN_TEAM_SAML_GROUP='"CN=admins,OU=Groups,DC=example,DC=com"'
+// yields a single group. Unquoted values keep the existing comma-split
+// behavior.
+func rejoinQuotedGroups(values []string) []string {
+	var groups []string
+
+	for i := 0; i < len(values); i++ {
+		value := values[i]
+		if !strings.HasPrefix(value, `"`) {
+			groups = append(groups, value)
+			continue
+		}
+
+		joined := value
+		last := i
+		for (len(joined) < 2 || !strings.HasSuffix(joined, `"`)) && last+1 < len(values) {
+			last++
+			joined += "," + values[last]
+		}
+
+		if len(joined) >= 2 && strings.HasSuffix(joined, `"`) {
+			groups = append(groups, joined[1:len(joined)-1])
+			i = last
+		} else {
+			// no closing quote; leave the value untouched
+			groups = append(groups, value)
+		}
+	}
+
+	return groups
 }
