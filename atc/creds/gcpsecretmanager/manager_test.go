@@ -64,25 +64,6 @@ var _ = Describe("Manager", func() {
 			Entry("slash", "proj/ect"),
 		)
 
-		DescribeTable("accepts a valid secret version",
-			func(version string) {
-				manager.SecretVersion = version
-				Expect(manager.Validate()).To(BeNil())
-			},
-			Entry("latest", "latest"),
-			Entry("numeric", "42"),
-		)
-
-		DescribeTable("rejects an invalid secret version",
-			func(version string) {
-				manager.SecretVersion = version
-				Expect(manager.Validate()).To(HaveOccurred())
-			},
-			Entry("path traversal", "latest/../../admin"),
-			Entry("wildcard", "*"),
-			Entry("arbitrary", "newest"),
-		)
-
 		It("rejects both credentials file and credentials json", func() {
 			manager.CredentialsFile = "/tmp/key.json"
 			manager.CredentialsJSON = `{"type":"service_account"}`
@@ -126,7 +107,6 @@ var _ = Describe("Manager", func() {
 				ProjectID:              "my-test-project",
 				CredentialsJSON:        `{"type":"service_account","private_key":"SUPER-SECRET-KEY"}`,
 				CredentialsFile:        "/etc/concourse/sa-key.json",
-				SecretVersion:          "latest",
 				PipelineSecretTemplate: gcpsecretmanager.DefaultPipelineSecretTemplate,
 				TeamSecretTemplate:     gcpsecretmanager.DefaultTeamSecretTemplate,
 				SharedSecretTemplate:   gcpsecretmanager.DefaultSharedSecretTemplate,
@@ -151,7 +131,6 @@ var _ = Describe("Manager", func() {
 			Expect(json.Unmarshal(body, &out)).To(Succeed())
 
 			Expect(out).To(HaveKeyWithValue("project", "my-test-project"))
-			Expect(out).To(HaveKeyWithValue("secret_version", "latest"))
 			Expect(out).To(HaveKeyWithValue("shared_secret_template", gcpsecretmanager.DefaultSharedSecretTemplate))
 			Expect(out).To(HaveKey("health"))
 		})
@@ -191,7 +170,6 @@ var _ = Describe("Manager", func() {
 			gcpManager, ok := m.(*gcpsecretmanager.Manager)
 			Expect(ok).To(BeTrue())
 			Expect(gcpManager.ProjectID).To(Equal("my-test-project"))
-			Expect(gcpManager.SecretVersion).To(Equal(gcpsecretmanager.DefaultSecretVersion))
 			Expect(gcpManager.RequestTimeout).To(Equal(gcpsecretmanager.DefaultRequestTimeout))
 			Expect(gcpManager.SharedSecretTemplate).To(Equal(gcpsecretmanager.DefaultSharedSecretTemplate))
 			Expect(m.Validate()).To(BeNil())

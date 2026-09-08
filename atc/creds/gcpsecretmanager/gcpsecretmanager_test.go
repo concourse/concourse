@@ -64,7 +64,6 @@ var _ = Describe("SecretManager", func() {
 			lagertest.NewTestLogger("gcpsecretmanager"),
 			api,
 			testProject,
-			"latest",
 			time.Second,
 			templates,
 		)
@@ -100,19 +99,11 @@ var _ = Describe("SecretManager", func() {
 	})
 
 	Describe("Get()", func() {
-		It("addresses the configured project and version", func() {
+		It("addresses the configured project and always reads the latest version", func() {
 			_, _, found, err := secrets.Get("concourse--main--mysecret")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 			Expect(lastCalled).To(Equal("projects/my-test-project/secrets/concourse--main--mysecret/versions/latest"))
-		})
-
-		It("honours a pinned numeric version", func() {
-			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, "7", time.Second, templates)
-
-			_, _, _, err := secrets.Get("concourse--main--mysecret")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(lastCalled).To(Equal("projects/my-test-project/secrets/concourse--main--mysecret/versions/7"))
 		})
 
 		It("returns a plain payload as a string", func() {
@@ -150,7 +141,7 @@ var _ = Describe("SecretManager", func() {
 		})
 
 		It("falls back to the default timeout when none is configured", func() {
-			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, "latest", 0, templates)
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates)
 
 			_, _, found, err := secrets.Get("concourse--main--mysecret")
 			Expect(err).ToNot(HaveOccurred())

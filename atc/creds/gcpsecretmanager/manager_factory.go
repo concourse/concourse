@@ -34,7 +34,6 @@ func (factory *managerFactory) AddConfig(group *flags.Group) creds.Manager {
 
 func (factory *managerFactory) NewInstance(config any) (creds.Manager, error) {
 	manager := &Manager{
-		SecretVersion:          DefaultSecretVersion,
 		RequestTimeout:         DefaultRequestTimeout,
 		PipelineSecretTemplate: DefaultPipelineSecretTemplate,
 		TeamSecretTemplate:     DefaultTeamSecretTemplate,
