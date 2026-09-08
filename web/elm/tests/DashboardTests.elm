@@ -826,6 +826,7 @@ all =
                             , shiftKey = True
                             , metaKey = False
                             , code = Keyboard.Slash
+                            , key = "?"
                             }
                         )
                     |> Tuple.first
@@ -880,6 +881,7 @@ all =
                             , shiftKey = True
                             , metaKey = False
                             , code = Keyboard.Slash
+                            , key = "?"
                             }
                         )
                     |> Tuple.first
@@ -1867,6 +1869,7 @@ all =
                                     , shiftKey = True
                                     , metaKey = False
                                     , code = Keyboard.Slash
+                                    , key = "?"
                                     }
                             )
                         |> Tuple.first
