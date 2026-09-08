@@ -21,7 +21,6 @@ const (
 	DefaultTeamSecretTemplate     = "concourse--{{.Team}}--{{.Secret}}"
 	DefaultSharedSecretTemplate   = "concourse--{{.Secret}}"
 
-	DefaultSecretVersion  = "latest"
 	DefaultRequestTimeout = 10 * time.Second
 
 	healthCheckSecretID = "__concourse-health-check"
@@ -30,9 +29,6 @@ const (
 // Either a project ID (6-30 chars) or a numeric project number.
 var projectPattern = regexp.MustCompile(`^([a-z][a-z0-9-]{4,28}[a-z0-9]|[0-9]+)$`)
 
-// The "latest" alias or a specific numeric version.
-var versionPattern = regexp.MustCompile(`^(latest|[0-9]+)$`)
-
 type Manager struct {
 	ProjectID string `mapstructure:"project" long:"project" description:"GCP project ID containing the secrets"`
 
@@ -40,7 +36,6 @@ type Manager struct {
 	CredentialsFile string `mapstructure:"credentials_file" long:"credentials-file" description:"Path to a GCP service account JSON key file. Leave unset to use Application Default Credentials / Workload Identity."`
 	CredentialsJSON string `mapstructure:"credentials_json" long:"credentials-json" description:"Inline GCP service account JSON key. Leave unset to use Application Default Credentials / Workload Identity."`
 
-	SecretVersion  string        `mapstructure:"secret_version" long:"secret-version" default:"latest" description:"Secret version to access; either 'latest' or a specific numeric version"`
 	RequestTimeout time.Duration `mapstructure:"request_timeout" long:"request-timeout" default:"10s" description:"Timeout applied to each Secret Manager API request"`
 
 	PipelineSecretTemplate string `mapstructure:"pipeline_secret_template" long:"pipeline-secret-template" default:"concourse--{{.Team}}--{{.Pipeline}}--{{.Secret}}" description:"Google Secret Manager secret ID template used for pipeline specific parameter"`
@@ -61,7 +56,6 @@ func (manager *Manager) Init(log lager.Logger) error {
 		log,
 		client,
 		manager.ProjectID,
-		manager.secretVersionOrDefault(),
 		manager.requestTimeoutOrDefault(),
 		nil,
 	)
@@ -101,7 +95,6 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(&map[string]any{
 		"project":                  manager.ProjectID,
-		"secret_version":           manager.secretVersionOrDefault(),
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,
 		"shared_secret_template":   manager.SharedSecretTemplate,
@@ -116,10 +109,6 @@ func (manager *Manager) IsConfigured() bool {
 func (manager *Manager) Validate() error {
 	if !projectPattern.MatchString(manager.ProjectID) {
 		return fmt.Errorf("invalid GCP project %q: must be a valid project ID or project number", manager.ProjectID)
-	}
-
-	if !versionPattern.MatchString(manager.secretVersionOrDefault()) {
-		return fmt.Errorf("invalid secret version %q: must be 'latest' or a numeric version", manager.SecretVersion)
 	}
 
 	if manager.RequestTimeout < 0 {
@@ -178,7 +167,6 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		log,
 		manager.SecretManager.api,
 		manager.ProjectID,
-		manager.secretVersionOrDefault(),
 		manager.requestTimeoutOrDefault(),
 		[]*creds.SecretTemplate{pipelineSecretTemplate, teamSecretTemplate, sharedSecretTemplate},
 	), nil
@@ -225,13 +213,6 @@ func validateTemplate(tmpl *creds.SecretTemplate) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
-}
-
-func (manager *Manager) secretVersionOrDefault() string {
-	if manager.SecretVersion == "" {
-		return DefaultSecretVersion
-	}
-	return manager.SecretVersion
 }
 
 func (manager *Manager) requestTimeoutOrDefault() time.Duration {

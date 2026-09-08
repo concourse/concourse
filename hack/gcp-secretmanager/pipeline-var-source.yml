@@ -16,7 +16,6 @@ var_sources:
   type: gcpsecretmanager
   config:
     project: ((gcp_project))
-    secret_version: latest
     request_timeout: 10s
 
 jobs:

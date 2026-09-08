@@ -11,7 +11,6 @@ type secretManagerFactory struct {
 	log             lager.Logger
 	api             SecretManagerAPI
 	projectID       string
-	secretVersion   string
 	requestTimeout  time.Duration
 	secretTemplates []*creds.SecretTemplate
 }
@@ -20,7 +19,6 @@ func NewSecretManagerFactory(
 	log lager.Logger,
 	api SecretManagerAPI,
 	projectID string,
-	secretVersion string,
 	requestTimeout time.Duration,
 	secretTemplates []*creds.SecretTemplate,
 ) *secretManagerFactory {
@@ -28,7 +26,6 @@ func NewSecretManagerFactory(
 		log:             log,
 		api:             api,
 		projectID:       projectID,
-		secretVersion:   secretVersion,
 		requestTimeout:  requestTimeout,
 		secretTemplates: secretTemplates,
 	}
@@ -39,7 +36,6 @@ func (factory *secretManagerFactory) NewSecrets() creds.Secrets {
 		factory.log,
 		factory.api,
 		factory.projectID,
-		factory.secretVersion,
 		factory.requestTimeout,
 		factory.secretTemplates,
 	)

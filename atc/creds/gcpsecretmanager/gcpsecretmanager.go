@@ -32,6 +32,9 @@ var secretIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,255}$`)
 
 var ErrInvalidSecretID = errors.New("invalid Google Secret Manager secret ID")
 
+// secretVersion is the version Concourse resolves for every secret.
+const secretVersion = "latest"
+
 type SecretID string
 
 func NewSecretID(proposed string) (SecretID, error) {
@@ -47,7 +50,6 @@ type SecretManager struct {
 	log             lager.Logger
 	api             SecretManagerAPI
 	projectID       string
-	secretVersion   string
 	requestTimeout  time.Duration
 	secretTemplates []*creds.SecretTemplate
 }
@@ -56,7 +58,6 @@ func NewSecretManager(
 	log lager.Logger,
 	api SecretManagerAPI,
 	projectID string,
-	secretVersion string,
 	requestTimeout time.Duration,
 	secretTemplates []*creds.SecretTemplate,
 ) *SecretManager {
@@ -69,7 +70,6 @@ func NewSecretManager(
 		log:             log,
 		api:             api,
 		projectID:       projectID,
-		secretVersion:   secretVersion,
 		requestTimeout:  requestTimeout,
 		secretTemplates: secretTemplates,
 	}
@@ -115,7 +115,7 @@ func (s *SecretManager) getSecretByID(secretPath string) (any, *time.Time, bool,
 	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
 	defer cancel()
 
-	name := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", s.projectID, secretID, s.secretVersion)
+	name := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", s.projectID, secretID, secretVersion)
 
 	resp, err := s.api.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
 		Name: name,
