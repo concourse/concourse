@@ -163,12 +163,10 @@ func (fs *filesystem) LookupVolume(handle string) (FilesystemLiveVolume, bool, e
 	}
 
 	return &liveVolume{
-		baseVolume: baseVolume{
-			fs: fs,
+		fs: fs,
 
-			handle: handle,
-			dir:    volumePath,
-		},
+		handle: handle,
+		dir:    volumePath,
 	}, true, nil
 }
 
@@ -184,12 +182,10 @@ func (fs *filesystem) ListVolumes() ([]FilesystemLiveVolume, error) {
 		handle := liveDir.Name()
 
 		response = append(response, &liveVolume{
-			baseVolume: baseVolume{
-				fs: fs,
+			fs: fs,
 
-				handle: handle,
-				dir:    fs.liveVolumePath(handle),
-			},
+			handle: handle,
+			dir:    fs.liveVolumePath(handle),
 		})
 	}
 
@@ -210,11 +206,9 @@ func (fs *filesystem) CleanupOrphanedEntries() error {
 		fs.log.Debug("cleaning-up-dead-volume", lager.Data{"handle": handle})
 
 		deadVol := &deadVolume{
-			baseVolume: baseVolume{
-				fs:     fs,
-				handle: handle,
-				dir:    fs.deadVolumePath(handle),
-			},
+			fs:     fs,
+			handle: handle,
+			dir:    fs.deadVolumePath(handle),
 		}
 
 		if err := deadVol.Destroy(); err != nil {
@@ -258,12 +252,10 @@ func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {
 	}
 
 	volume := &initVolume{
-		baseVolume: baseVolume{
-			fs: fs,
+		fs: fs,
 
-			handle: handle,
-			dir:    volumePath,
-		},
+		handle: handle,
+		dir:    volumePath,
 	}
 
 	err = volume.StoreProperties(Properties{})
@@ -330,12 +322,10 @@ func (base *baseVolume) Parent() (FilesystemLiveVolume, bool, error) {
 	}
 
 	return &liveVolume{
-		baseVolume: baseVolume{
-			fs: base.fs,
+		fs: base.fs,
 
-			handle: filepath.Base(parentDir),
-			dir:    parentDir,
-		},
+		handle: filepath.Base(parentDir),
+		dir:    parentDir,
 	}, true, nil
 }
 
@@ -349,12 +339,10 @@ func (base *baseVolume) Destroy() error {
 	}
 
 	deadVol := &deadVolume{
-		baseVolume: baseVolume{
-			fs: base.fs,
+		fs: base.fs,
 
-			handle: base.handle,
-			dir:    deadDir,
-		},
+		handle: base.handle,
+		dir:    deadDir,
 	}
 
 	return deadVol.Destroy()
@@ -392,12 +380,10 @@ func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
 	}
 
 	return &liveVolume{
-		baseVolume: baseVolume{
-			fs: vol.fs,
+		fs: vol.fs,
 
-			handle: vol.handle,
-			dir:    liveDir,
-		},
+		handle: vol.handle,
+		dir:    liveDir,
 	}, nil
 }
 

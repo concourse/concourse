@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -204,7 +205,7 @@ func (pb *planBuilder) buildAcrossStep(plan atc.Plan) exec.Step {
 func (pb *planBuilder) buildDoStep(plan atc.Plan) exec.Step {
 	var step exec.Step = exec.IdentityStep{}
 
-	for i := len(*plan.Do) - 1; i >= 0; i-- {
+	for i := range slices.Backward(*plan.Do) {
 		innerPlan := (*plan.Do)[i]
 		innerPlan.Attempts = plan.Attempts
 		previous := pb.buildStep(innerPlan)

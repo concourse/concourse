@@ -190,7 +190,7 @@ type resource struct {
 }
 
 func newEmptyResource(conn DbConn, lockFactory lock.LockFactory) *resource {
-	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &resource{conn: conn, lockFactory: lockFactory}
 }
 
 type ResourceNotFoundError struct {

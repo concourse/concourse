@@ -1493,30 +1493,24 @@ var _ = Describe("Job", func() {
 				inputVersions := db.InputMapping{
 					"some-input-1": db.InputResult{
 						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToSHA256(versions[0].Version)),
-								ResourceID: scenario.Resource("some-resource").ID(),
-							},
+							Version:         db.ResourceVersion(convertToSHA256(versions[0].Version)),
+							ResourceID:      scenario.Resource("some-resource").ID(),
 							FirstOccurrence: false,
 						},
 						PassedBuildIDs: []int{},
 					},
 					"some-input-2": db.InputResult{
 						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToSHA256(versions[1].Version)),
-								ResourceID: scenario.Resource("some-resource").ID(),
-							},
+							Version:         db.ResourceVersion(convertToSHA256(versions[1].Version)),
+							ResourceID:      scenario.Resource("some-resource").ID(),
 							FirstOccurrence: false,
 						},
 						PassedBuildIDs: []int{},
 					},
 					"some-input-3": db.InputResult{
 						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
-								ResourceID: scenario.Resource("some-resource").ID(),
-							},
+							Version:         db.ResourceVersion(convertToSHA256(versions[2].Version)),
+							ResourceID:      scenario.Resource("some-resource").ID(),
 							FirstOccurrence: false,
 						},
 						PassedBuildIDs: []int{},
@@ -1633,20 +1627,16 @@ var _ = Describe("Job", func() {
 			inputVersions := db.InputMapping{
 				"some-input-1": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(versions[0].Version)),
-							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(versions[0].Version)),
+						ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
 				},
 				"some-input-2": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(versions[1].Version)),
-							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(versions[1].Version)),
+						ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -1658,10 +1648,8 @@ var _ = Describe("Job", func() {
 			pipeline2InputVersions := db.InputMapping{
 				"some-input-3": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
-							ResourceID: scenarioPipeline2.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(versions[2].Version)),
+						ResourceID:      scenarioPipeline2.Resource("some-resource").ID(),
 						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
@@ -1695,20 +1683,16 @@ var _ = Describe("Job", func() {
 			inputVersions2 := db.InputMapping{
 				"some-input-2": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
-							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(versions[2].Version)),
+						ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 						FirstOccurrence: false,
 					},
 					PassedBuildIDs: []int{},
 				},
 				"some-input-3": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(versions[2].Version)),
-							ResourceID: scenarioPipeline1.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(versions[2].Version)),
+						ResourceID:      scenarioPipeline1.Resource("some-resource").ID(),
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},

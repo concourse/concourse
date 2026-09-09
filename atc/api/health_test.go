@@ -20,11 +20,11 @@ import (
 
 // fakeRowScanner is a minimal squirrel.RowScanner that returns a fixed bool.
 type fakeRowScanner struct {
-	val interface{}
+	val any
 	err error
 }
 
-func (f *fakeRowScanner) Scan(dest ...interface{}) error {
+func (f *fakeRowScanner) Scan(dest ...any) error {
 	if f.err != nil {
 		return f.err
 	}

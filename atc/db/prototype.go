@@ -154,7 +154,7 @@ func (p *prototype) CurrentPinnedVersion() atc.Version { return nil }
 func (p *prototype) HasWebhook() bool { return false }
 
 func newEmptyPrototype(conn DbConn, lockFactory lock.LockFactory) *prototype {
-	return &prototype{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &prototype{conn: conn, lockFactory: lockFactory}
 }
 
 func (p *prototype) Reload() (bool, error) {

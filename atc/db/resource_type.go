@@ -217,7 +217,7 @@ func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 func (t *resourceType) HasWebhook() bool                  { return false }
 
 func newEmptyResourceType(conn DbConn, lockFactory lock.LockFactory) *resourceType {
-	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &resourceType{conn: conn, lockFactory: lockFactory}
 }
 
 func (t *resourceType) Reload() (bool, error) {

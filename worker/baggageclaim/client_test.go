@@ -206,11 +206,9 @@ var _ = Describe("Baggage Claim Client", func() {
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/volumes-async/some-handle"),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-								Handle: "some-handle",
-								Path:   "some-path",
-								VolumeOpts: volume.VolumeOpts{
-									Properties: volume.Properties{},
-								},
+								Handle:     "some-handle",
+								Path:       "some-path",
+								Properties: volume.Properties{},
 							}),
 						),
 						ghttp.CombineHandlers(
@@ -246,11 +244,9 @@ var _ = Describe("Baggage Claim Client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-handle"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							Handle: "some-handle",
-							Path:   "some-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{},
-							},
+							Handle:     "some-handle",
+							Path:       "some-path",
+							Properties: volume.Properties{},
 						}),
 					),
 					ghttp.CombineHandlers(
@@ -308,11 +304,9 @@ var _ = Describe("Baggage Claim Client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-handle"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							Handle: "some-handle",
-							Path:   "some-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{},
-							},
+							Handle:     "some-handle",
+							Path:       "some-path",
+							Properties: volume.Properties{},
 						}),
 					),
 					ghttp.CombineHandlers(
@@ -380,11 +374,9 @@ var _ = Describe("Baggage Claim Client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-handle"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							Handle: "some-handle",
-							Path:   "some-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{},
-							},
+							Handle:     "some-handle",
+							Path:       "some-path",
+							Properties: volume.Properties{},
 						}),
 					),
 					ghttp.CombineHandlers(
@@ -427,11 +419,9 @@ var _ = Describe("Baggage Claim Client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-handle"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							Handle: "some-handle",
-							Path:   "some-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{},
-							},
+							Handle:     "some-handle",
+							Path:       "some-path",
+							Properties: volume.Properties{},
 						}),
 					),
 					ghttp.CombineHandlers(
@@ -486,11 +476,9 @@ var _ = Describe("Baggage Claim Client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-handle"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							Handle: "some-handle",
-							Path:   "some-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{},
-							},
+							Handle:     "some-handle",
+							Path:       "some-path",
+							Properties: volume.Properties{},
 						}),
 					),
 					ghttp.CombineHandlers(

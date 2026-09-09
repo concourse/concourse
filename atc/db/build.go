@@ -285,7 +285,7 @@ type build struct {
 }
 
 func newEmptyBuild(conn DbConn, lockFactory lock.LockFactory) *build {
-	return &build{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &build{conn: conn, lockFactory: lockFactory}
 }
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
@@ -1451,10 +1451,8 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 
 		inputs[inputName] = InputResult{
 			Input: &AlgorithmInput{
-				AlgorithmVersion: AlgorithmVersion{
-					ResourceID: resourceID,
-					Version:    ResourceVersion(versionSHA256),
-				},
+				ResourceID:      resourceID,
+				Version:         ResourceVersion(versionSHA256),
 				FirstOccurrence: firstOccurrence,
 			},
 		}
@@ -1614,10 +1612,8 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 
 		inputs[inputName] = InputResult{
 			Input: &AlgorithmInput{
-				AlgorithmVersion: AlgorithmVersion{
-					ResourceID: resourceID,
-					Version:    ResourceVersion(versionSHA256),
-				},
+				ResourceID:      resourceID,
+				Version:         ResourceVersion(versionSHA256),
 				FirstOccurrence: firstOccurrence,
 			},
 		}
