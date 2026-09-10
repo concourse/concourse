@@ -90,7 +90,7 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 
 		// relying parties read this to decide what a token carries, so assert
 		// the whole advertised set rather than any single claim
-		Expect(cfg["claims_supported"]).To(ConsistOf("aud", "iat", "iss", "jti", "sub"))
+		Expect(cfg["claims_supported"]).To(ConsistOf("aud", "exp", "iat", "iss", "jti", "sub"))
 	}, DefaultSpecTimeout)
 })
 

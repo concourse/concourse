@@ -20,7 +20,7 @@ func (s *Server) OpenIDConfiguration(w http.ResponseWriter, r *http.Request) {
 	}{
 		Issuer:                           s.oidcIssuer,
 		JWKSUri:                          s.oidcIssuer + "/.well-known/jwks.json",
-		ClaimsSupported:                  []string{"aud", "iat", "iss", "jti", "sub"},
+		ClaimsSupported:                  []string{"aud", "exp", "iat", "iss", "jti", "sub"},
 		ResponseTypesSupported:           []string{"idtoken"},
 		IDTokenSigningAlgValuesSupported: []string{string(jose.RS256), string(jose.ES256)},
 		SubjectTypesSupported:            []string{"public"},
