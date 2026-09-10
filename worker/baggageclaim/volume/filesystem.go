@@ -1,7 +1,6 @@
 package volume
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -230,17 +229,6 @@ func (fs *filesystem) volumeExists(handle string) bool {
 		return true
 	}
 	return fs.pathKnown(fs.liveVolumePath(handle))
-}
-
-func pathKnown(path string) bool {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true
-	}
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return true
 }
 
 func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {
