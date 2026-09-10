@@ -4,6 +4,7 @@
 *.iml
 node_modules
 .yarn
+package-lock.json
 *-packr.go
 tags
 web/public/elm.js
