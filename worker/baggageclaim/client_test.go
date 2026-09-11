@@ -14,10 +14,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/api"
-	"github.com/concourse/concourse/worker/baggageclaim/client"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/api"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/client"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 )
 
 var _ = Describe("Baggage Claim Client", func() {

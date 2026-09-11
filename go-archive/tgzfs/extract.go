@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/concourse/concourse/go-archive/tarfs"
+	"github.com/concourse/concourse/v8/go-archive/tarfs"
 	"github.com/klauspost/compress/gzip"
 )
 

@@ -2,8 +2,8 @@ package policychecker_test
 
 import (
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/policy/policyfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 

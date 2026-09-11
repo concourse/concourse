@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/v8/skymarshal/token"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

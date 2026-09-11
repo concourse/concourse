@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

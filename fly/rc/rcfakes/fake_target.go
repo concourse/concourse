@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"sync"
 
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/fly/rc"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 )
 
 type FakeTarget struct {

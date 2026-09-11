@@ -10,14 +10,14 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/v3/lagertest"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/engine"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/policy/policyfakes"
+	"github.com/concourse/concourse/v8/vars"
 )
 
 var _ = Describe("SetPipelineStepDelegate", func() {

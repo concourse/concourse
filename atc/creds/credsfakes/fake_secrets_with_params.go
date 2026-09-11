@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 )
 
 type FakeSecretsWithParams struct {

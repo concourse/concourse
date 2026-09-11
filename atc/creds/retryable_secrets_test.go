@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/credsfakes"
+	"github.com/concourse/concourse/v8/vars"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

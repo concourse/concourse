@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/v8/atc/postgresrunner"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/tedsuo/ifrit"
 	ginkgomon "github.com/tedsuo/ifrit/ginkgomon_v2"

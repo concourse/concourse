@@ -4,7 +4,7 @@ package gcfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/v8/atc/gc"
 )
 
 type FakeDestroyer struct {

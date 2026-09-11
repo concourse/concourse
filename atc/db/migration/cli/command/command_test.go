@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	cmd "github.com/concourse/concourse/atc/db/migration/cli/command"
+	cmd "github.com/concourse/concourse/v8/atc/db/migration/cli/command"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

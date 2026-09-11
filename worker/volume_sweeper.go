@@ -8,7 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 )
 
 // volumeSweeper is an ifrit.Runner that periodically reports and

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/skymarshal/legacyserver"
+	"github.com/concourse/concourse/v8/skymarshal/legacyserver"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

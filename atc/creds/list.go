@@ -1,6 +1,6 @@
 package creds
 
-import "github.com/concourse/concourse/vars"
+import "github.com/concourse/concourse/v8/vars"
 
 type List struct {
 	variablesResolver vars.Variables

@@ -1,9 +1,9 @@
 package present
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/accessor"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 func Job(

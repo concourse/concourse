@@ -1,8 +1,8 @@
 package policy_test
 
 import (
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/policy/policyfakes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

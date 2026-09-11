@@ -3,7 +3,7 @@ package tracing_test
 import (
 	"context"
 
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"

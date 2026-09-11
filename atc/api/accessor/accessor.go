@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate

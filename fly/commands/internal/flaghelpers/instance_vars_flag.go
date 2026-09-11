@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/vars"
 	"sigs.k8s.io/yaml"
 )
 

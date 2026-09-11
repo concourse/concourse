@@ -8,8 +8,8 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/v8/atc/api/accessor"
+	"github.com/concourse/concourse/v8/atc/policy"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate

@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/concourse/concourse/atc/component"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/pauser"
+	"github.com/concourse/concourse/v8/atc/component"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/pauser"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

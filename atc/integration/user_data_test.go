@@ -1,8 +1,8 @@
 package integration_test
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"

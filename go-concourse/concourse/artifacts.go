@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/internal"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/go-concourse/concourse/internal"
 	"github.com/tedsuo/rata"
 )
 

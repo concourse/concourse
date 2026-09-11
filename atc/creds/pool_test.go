@@ -6,10 +6,10 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 
 	// load dummy credential manager
-	_ "github.com/concourse/concourse/atc/creds/dummy"
+	_ "github.com/concourse/concourse/v8/atc/creds/dummy"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

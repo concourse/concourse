@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/fly/commands/internal/flaghelpers"
 )
 
 var _ = Describe("PipelineFlag", func() {

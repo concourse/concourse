@@ -10,7 +10,7 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/onsi/gomega/ghttp"
 
-	. "github.com/concourse/concourse/worker"
+	. "github.com/concourse/concourse/v8/worker"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

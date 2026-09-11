@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/concourse/concourse/atc/component"
-	"github.com/concourse/concourse/atc/component/componentfakes"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/lock/lockfakes"
+	"github.com/concourse/concourse/v8/atc/component"
+	"github.com/concourse/concourse/v8/atc/component/componentfakes"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/db/lock/lockfakes"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

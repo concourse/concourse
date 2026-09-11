@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 	"code.cloudfoundry.org/garden/routes"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient/connection"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"

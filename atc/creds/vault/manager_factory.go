@@ -3,7 +3,7 @@ package vault
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 	"github.com/jessevdk/go-flags"
 )
 

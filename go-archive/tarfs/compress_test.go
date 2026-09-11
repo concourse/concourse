@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/go-archive/tarfs"
+	"github.com/concourse/concourse/v8/go-archive/tarfs"
 )
 
 var _ = Describe("Compress", func() {

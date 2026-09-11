@@ -3,8 +3,8 @@ package algorithm
 import (
 	"context"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"

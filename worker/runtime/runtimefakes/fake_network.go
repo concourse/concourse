@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/concourse/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime"
 	"github.com/containerd/containerd/v2/client"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )

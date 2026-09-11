@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	lager "code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 )
 
 type FakeStrategy struct {

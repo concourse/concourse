@@ -6,9 +6,9 @@ import (
 	"io"
 	"os/exec"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/go-archive/tgzfs"
 	"github.com/vbauerster/mpb/v8"
 )
 

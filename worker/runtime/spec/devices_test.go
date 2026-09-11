@@ -5,7 +5,7 @@ package spec_test
 import (
 	"testing"
 
-	"github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/concourse/concourse/v8/worker/runtime/spec"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

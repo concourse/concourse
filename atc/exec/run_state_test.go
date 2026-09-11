@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/exec/execfakes"
+	"github.com/concourse/concourse/v8/vars"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

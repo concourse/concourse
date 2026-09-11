@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	. "github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/concourse/worker/baggageclaim/volume/volumefakes"
+	. "github.com/concourse/concourse/v8/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/volumefakes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

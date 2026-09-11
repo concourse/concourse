@@ -3,7 +3,7 @@ package compression
 import (
 	"io"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 )
 
 type noCompression struct{}

@@ -12,8 +12,8 @@ import (
 	flags "github.com/jessevdk/go-flags"
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/flag"
 )
 
 var connectors []*Connector

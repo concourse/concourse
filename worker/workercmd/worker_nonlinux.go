@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/flag"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )

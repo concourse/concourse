@@ -8,7 +8,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/runtime"
 )
 
 type ProcessStub struct {

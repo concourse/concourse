@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/concourse/concourse/atc/compression"
+	"github.com/concourse/concourse/v8/atc/compression"
 	"github.com/stretchr/testify/require"
 )
 

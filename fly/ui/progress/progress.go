@@ -3,7 +3,7 @@ package progress
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v8/fly/ui"
 	"github.com/vbauerster/mpb/v8"
 	"github.com/vbauerster/mpb/v8/decor"
 	"golang.org/x/sync/errgroup"

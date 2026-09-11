@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/vars"
 	"sigs.k8s.io/yaml"
 )
 

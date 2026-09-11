@@ -10,9 +10,9 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/scheduler/algorithm"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"

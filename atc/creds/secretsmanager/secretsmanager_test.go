@@ -8,11 +8,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/secretsmanager/secretsmanagerfakes"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/secretsmanager/secretsmanagerfakes"
+	"github.com/concourse/concourse/v8/vars"
 
-	. "github.com/concourse/concourse/atc/creds/secretsmanager"
+	. "github.com/concourse/concourse/v8/atc/creds/secretsmanager"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

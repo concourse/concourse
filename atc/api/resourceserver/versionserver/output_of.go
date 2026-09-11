@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/present"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 func (s *Server) ListBuildsWithVersionAsOutput(pipeline db.Pipeline) http.Handler {

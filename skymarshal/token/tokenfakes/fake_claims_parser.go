@@ -4,8 +4,8 @@ package tokenfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/skymarshal/token"
 )
 
 type FakeClaimsParser struct {
