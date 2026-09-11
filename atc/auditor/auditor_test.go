@@ -590,4 +590,45 @@ var _ = Describe("Audit", func() {
 			})
 		})
 	})
+
+	Describe("AuditInternal", func() {
+		var params map[string][]string
+
+		BeforeEach(func() {
+			params = map[string][]string{
+				":pipeline_name": {"my-pipeline"},
+				":team_name":     {"my-team"},
+			}
+		})
+
+		Context("When EnablePipelineAuditLog is true with ArchivePipeline action", func() {
+			BeforeEach(func() {
+				EnablePipelineAuditLog = true
+			})
+
+			It("creates an audit log with user 'system'", func() {
+				aud.AuditInternal(atc.ArchivePipeline, params)
+				logs := logger.Logs()
+				Expect(len(logs)).To(Equal(1))
+				Expect(logs[0].Data["action"]).To(Equal(atc.ArchivePipeline))
+				Expect(logs[0].Data["user"]).To(Equal("system"))
+				Expect(logs[0].Data["parameters"]).To(Equal(map[string]interface{}{
+					":pipeline_name": []interface{}{"my-pipeline"},
+					":team_name":     []interface{}{"my-team"},
+				}))
+			})
+		})
+
+		Context("When EnablePipelineAuditLog is false with ArchivePipeline action", func() {
+			BeforeEach(func() {
+				EnablePipelineAuditLog = false
+			})
+
+			It("does not create a log", func() {
+				aud.AuditInternal(atc.ArchivePipeline, params)
+				logs := logger.Logs()
+				Expect(len(logs)).To(Equal(0))
+			})
+		})
+	})
 })

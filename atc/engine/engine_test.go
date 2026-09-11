@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/builds"
 	"github.com/concourse/concourse/atc/creds/credsfakes"
 	"github.com/concourse/concourse/atc/db"
@@ -34,6 +35,7 @@ var _ = Describe("Engine", func() {
 
 		fakeGlobalCreds   *credsfakes.FakeSecrets
 		fakeVarSourcePool *credsfakes.FakeVarSourcePool
+		fakeAuditor       *auditorfakes.FakeAuditor
 	)
 
 	BeforeEach(func() {
@@ -44,6 +46,7 @@ var _ = Describe("Engine", func() {
 
 		fakeGlobalCreds = new(credsfakes.FakeSecrets)
 		fakeVarSourcePool = new(credsfakes.FakeVarSourcePool)
+		fakeAuditor = new(auditorfakes.FakeAuditor)
 	})
 
 	Describe("NewBuild", func() {
@@ -53,7 +56,7 @@ var _ = Describe("Engine", func() {
 		)
 
 		BeforeEach(func() {
-			engine = NewEngine(fakeStepperFactory, fakeGlobalCreds, fakeVarSourcePool)
+			engine = NewEngine(fakeStepperFactory, fakeGlobalCreds, fakeVarSourcePool, fakeAuditor)
 		})
 
 		JustBeforeEach(func() {
@@ -83,6 +86,7 @@ var _ = Describe("Engine", func() {
 				fakeStepperFactory,
 				fakeGlobalCreds,
 				fakeVarSourcePool,
+				fakeAuditor,
 				release,
 				trackedStates,
 				waitGroup,
@@ -245,6 +249,39 @@ var _ = Describe("Engine", func() {
 										waitGroup.Wait()
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusSucceeded))
+									})
+
+									Context("when the build archived pipelines", func() {
+										BeforeEach(func() {
+											fakeBuild.ArchivedPipelinesReturns([]db.ArchivedPipelineInfo{
+												{Name: "child-pipeline", TeamName: "main"},
+											})
+											fakeBuild.PipelineNameReturns("parent-pipeline")
+											fakeBuild.JobNameReturns("some-job")
+										})
+
+										It("emits an audit log for each archived pipeline", func() {
+											waitGroup.Wait()
+											Expect(fakeAuditor.AuditInternalCallCount()).To(Equal(1))
+											action, params := fakeAuditor.AuditInternalArgsForCall(0)
+											Expect(action).To(Equal(atc.ArchivePipeline))
+											Expect(params[":pipeline_name"]).To(Equal([]string{"child-pipeline"}))
+											Expect(params[":team_name"]).To(Equal([]string{"main"}))
+											Expect(params[":triggered_by_pipeline"]).To(Equal([]string{"parent-pipeline"}))
+											Expect(params[":triggered_by_job"]).To(Equal([]string{"some-job"}))
+											Expect(params[":triggered_by_build_id"]).To(Equal([]string{"128"}))
+										})
+									})
+
+									Context("when no pipelines were archived", func() {
+										BeforeEach(func() {
+											fakeBuild.ArchivedPipelinesReturns(nil)
+										})
+
+										It("does not emit any audit logs", func() {
+											waitGroup.Wait()
+											Expect(fakeAuditor.AuditInternalCallCount()).To(Equal(0))
+										})
 									})
 								})
 
