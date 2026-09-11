@@ -4,6 +4,10 @@ type Plan struct {
 	ID       PlanID `json:"id"`
 	Attempts []int  `json:"attempts,omitempty"`
 
+	// PinWorker, when set on the root plan, causes every step in the build to
+	// select and stay on a single worker for the duration of the build.
+	PinWorker bool `json:"pin_worker,omitempty"`
+
 	Get         *GetPlan         `json:"get,omitempty"`
 	Put         *PutPlan         `json:"put,omitempty"`
 	Check       *CheckPlan       `json:"check,omitempty"`
