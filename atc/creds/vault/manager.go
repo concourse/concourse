@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -144,14 +145,16 @@ func (manager VaultManager) Validate() error {
 		return fmt.Errorf("invalid URL: %s", err)
 	}
 
-	switch u.Scheme {
-	case "http", "https":
-	default:
-		return fmt.Errorf("invalid scheme %q: must be http or https", u.Scheme)
-	}
+	if !strings.Contains(manager.URL, "((") {
+		switch u.Scheme {
+		case "http", "https":
+		default:
+			return fmt.Errorf("invalid scheme %q: must be http or https", u.Scheme)
+		}
 
-	if u.Hostname() == "" {
-		return fmt.Errorf("URL must specify a host")
+		if u.Hostname() == "" {
+			return fmt.Errorf("URL must specify a host")
+		}
 	}
 
 	if manager.PathPrefix == "" {
