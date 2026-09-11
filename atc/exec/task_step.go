@@ -169,13 +169,18 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		taskConfigSource = FileConfigSource{ConfigPath: step.plan.ConfigPath, Streamer: step.streamer}
 
 		// for interpolation - use 'vars' from the pipeline, and then fill remaining with cred variables.
-		// this 2-phase strategy allows to interpolate 'vars' by cred variables.
+		// this pass reads the file as written, before it is parsed, so a var may
+		// stand in for a field that is not a string, such as container_limits.
+		configVars := []vars.Variables{}
 		if len(step.plan.Vars) > 0 {
-			taskConfigSource = InterpolateTemplateConfigSource{
-				ConfigSource:  taskConfigSource,
-				Vars:          []vars.Variables{vars.StaticVariables(step.plan.Vars)},
-				ExpectAllKeys: false,
-			}
+			configVars = append(configVars, vars.StaticVariables(step.plan.Vars))
+		}
+		configVars = append(configVars, state)
+
+		taskConfigSource = InterpolateTemplateConfigSource{
+			ConfigSource:  taskConfigSource,
+			Vars:          configVars,
+			ExpectAllKeys: false,
 		}
 		taskVars = []vars.Variables{state}
 	} else {
