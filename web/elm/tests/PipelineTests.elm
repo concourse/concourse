@@ -222,6 +222,7 @@ all =
                                         , shiftKey = False
                                         , metaKey = False
                                         , code = Keyboard.A
+                                        , key = "a"
                                         }
                                 )
                             |> Tuple.second
@@ -236,6 +237,7 @@ all =
                                         , shiftKey = False
                                         , metaKey = False
                                         , code = Keyboard.F
+                                        , key = "f"
                                         }
                                 )
                             |> Tuple.second
@@ -250,6 +252,7 @@ all =
                                         , shiftKey = True
                                         , metaKey = False
                                         , code = Keyboard.F
+                                        , key = "F"
                                         }
                                 )
                             |> Tuple.second

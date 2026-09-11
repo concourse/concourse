@@ -16,16 +16,18 @@ type alias KeyEvent =
     , shiftKey : Bool
     , metaKey : Bool
     , code : KeyCode
+    , key : String
     }
 
 
 decodeKeyEvent : Json.Decode.Decoder KeyEvent
 decodeKeyEvent =
-    Json.Decode.map4 KeyEvent
+    Json.Decode.map5 KeyEvent
         (Json.Decode.field "ctrlKey" Json.Decode.bool)
         (Json.Decode.field "shiftKey" Json.Decode.bool)
         (Json.Decode.field "metaKey" Json.Decode.bool)
         (Json.Decode.field "code" decodeKeyCode)
+        (Json.Decode.field "key" Json.Decode.string)
 
 
 type KeyCode

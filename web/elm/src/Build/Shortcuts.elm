@@ -123,8 +123,8 @@ handleKeyPressed : Keyboard.KeyEvent -> ET (ShortcutsModel r)
 handleKeyPressed keyEvent ( model, effects ) =
     let
         newModel =
-            case ( model.previousKeyPress, keyEvent.shiftKey, keyEvent.code ) of
-                ( Nothing, False, Keyboard.G ) ->
+            case ( model.previousKeyPress, keyEvent.key ) of
+                ( Nothing, "g" ) ->
                     { model | previousKeyPress = Just keyEvent }
 
                 _ ->
@@ -134,37 +134,37 @@ handleKeyPressed keyEvent ( model, effects ) =
         ( newModel, effects )
 
     else
-        case ( keyEvent.code, keyEvent.shiftKey ) of
-            ( Keyboard.J, False ) ->
+        case keyEvent.key of
+            "j" ->
                 ( newModel, [ Scroll Down bodyId ] )
 
-            ( Keyboard.K, False ) ->
+            "k" ->
                 ( newModel, [ Scroll Up bodyId ] )
 
-            ( Keyboard.G, True ) ->
+            "G" ->
                 ( { newModel | autoScroll = True }, [ Scroll ToBottom bodyId ] )
 
-            ( Keyboard.G, False ) ->
+            "g" ->
                 if
-                    (model.previousKeyPress |> Maybe.map .code)
-                        == Just Keyboard.G
+                    (model.previousKeyPress |> Maybe.map .key)
+                        == Just "g"
                 then
                     ( { newModel | autoScroll = False }, [ Scroll ToTop bodyId ] )
 
                 else
                     ( newModel, effects )
 
-            ( Keyboard.Slash, True ) ->
+            "?" ->
                 ( { newModel | showHelp = not newModel.showHelp }, effects )
 
-            ( Keyboard.Escape, False ) ->
+            "Escape" ->
                 if model.showHelp then
                     ( { newModel | showHelp = False }, effects )
 
                 else
                     ( newModel, effects )
 
-            ( Keyboard.H, False ) ->
+            "h" ->
                 case nextHistoryItem model.history (historyItem model) of
                     Just item ->
                         ( newModel
@@ -181,7 +181,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                     Nothing ->
                         ( newModel, effects )
 
-            ( Keyboard.L, False ) ->
+            "l" ->
                 case prevHistoryItem newModel.history (historyItem newModel) of
                     Just item ->
                         ( newModel
@@ -198,7 +198,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                     Nothing ->
                         ( newModel, effects )
 
-            ( Keyboard.T, True ) ->
+            "T" ->
                 if not newModel.isTriggerBuildKeyDown then
                     (newModel.job
                         |> Maybe.map (DoTriggerBuild >> (::) >> Tuple.mapSecond)
@@ -209,7 +209,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                 else
                     ( newModel, effects )
 
-            ( Keyboard.R, True ) ->
+            "R" ->
                 ( newModel
                 , effects
                     ++ (if Concourse.BuildStatus.isRunning newModel.status then
@@ -231,7 +231,7 @@ handleKeyPressed keyEvent ( model, effects ) =
                        )
                 )
 
-            ( Keyboard.A, True ) ->
+            "A" ->
                 if Just (historyItem newModel) == List.head newModel.history then
                     ( newModel, DoAbortBuild newModel.id :: effects )
 
