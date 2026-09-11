@@ -911,7 +911,8 @@ var _ = Describe("Build", func() {
 
 			It("returns empty ArchivedPipelines when no pipelines are archived", func() {
 				build2, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
-				_, _, _ = build2.SavePipeline(atc.PipelineRef{Name: "child1-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(1), false)
+				_, _, err := build2.SavePipeline(atc.PipelineRef{Name: "child1-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, childPipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
 				build2.Finish(db.BuildStatusSucceeded)
 
 				Expect(build2.ArchivedPipelines()).To(BeEmpty())
