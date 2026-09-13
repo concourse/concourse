@@ -25,6 +25,14 @@ type TaskConfigSource interface {
 	Warnings() []string
 }
 
+// RawTaskConfigSource is a TaskConfigSource that can also hand back the config
+// as it was written, along with a description of where it came from. Interpolating
+// those bytes lets a var stand in for a field that is not a string, such as the
+// values under container_limits.
+type RawTaskConfigSource interface {
+	FetchRawConfig(context.Context, lager.Logger, *build.Repository) ([]byte, string, error)
+}
+
 // StaticConfigSource represents a statically configured TaskConfig.
 type StaticConfigSource struct {
 	Config *atc.TaskConfig
@@ -66,9 +74,20 @@ type FileConfigSource struct {
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
 func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, repo *build.Repository) (atc.TaskConfig, error) {
+	byteConfig, source, err := configSource.FetchRawConfig(ctx, logger, repo)
+	if err != nil {
+		return atc.TaskConfig{}, err
+	}
+
+	return newTaskConfig(byteConfig, source)
+}
+
+// FetchRawConfig reads the specified file from the artifact.Repository and
+// returns its contents without parsing them.
+func (configSource FileConfigSource) FetchRawConfig(ctx context.Context, logger lager.Logger, repo *build.Repository) ([]byte, string, error) {
 	segs := strings.SplitN(configSource.ConfigPath, "/", 2)
 	if len(segs) != 2 {
-		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.ConfigPath}
+		return nil, "", UnspecifiedArtifactSourceError{configSource.ConfigPath}
 	}
 
 	sourceName := build.ArtifactName(segs[0])
@@ -76,26 +95,30 @@ func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lag
 
 	artifact, _, found := repo.ArtifactFor(sourceName)
 	if !found {
-		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
+		return nil, "", UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
 	}
 	stream, err := configSource.Streamer.StreamFile(lagerctx.NewContext(ctx, logger), artifact, filePath)
 	if err != nil {
 		if err == baggageclaim.ErrFileNotFound {
-			return atc.TaskConfig{}, fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)
+			return nil, "", fmt.Errorf("task config '%s/%s' not found", sourceName, filePath)
 		}
-		return atc.TaskConfig{}, err
+		return nil, "", err
 	}
 
 	defer stream.Close()
 
 	byteConfig, err := io.ReadAll(stream)
-	if err != nil {
-		return atc.TaskConfig{}, err
-	}
+	return byteConfig, configSource.ConfigPath, err
+}
 
+// newTaskConfig parses a task config, naming the file it came from when it is known.
+func newTaskConfig(byteConfig []byte, source string) (atc.TaskConfig, error) {
 	config, err := atc.NewTaskConfig(byteConfig)
 	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes %s: %s", configSource.ConfigPath, err)
+		if source == "" {
+			return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes: %s", err)
+		}
+		return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes %s: %s", source, err)
 	}
 
 	return config, nil
@@ -104,6 +127,8 @@ func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lag
 func (configSource FileConfigSource) Warnings() []string {
 	return []string{}
 }
+
+var _ RawTaskConfigSource = FileConfigSource{}
 
 // BaseResourceTypeDefaultsApplySource applies base resource type defaults to image_source.
 type BaseResourceTypeDefaultsApplySource struct {
@@ -207,14 +232,9 @@ type InterpolateTemplateConfigSource struct {
 
 // FetchConfig returns the interpolated configuration
 func (configSource InterpolateTemplateConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, source *build.Repository) (atc.TaskConfig, error) {
-	taskConfig, err := configSource.ConfigSource.FetchConfig(ctx, logger, source)
+	byteConfig, from, err := configSource.fetchByteConfig(ctx, logger, source)
 	if err != nil {
 		return atc.TaskConfig{}, err
-	}
-
-	byteConfig, err := yaml.Marshal(taskConfig)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to marshal task config: %s", err)
 	}
 
 	// process task config using the provided variables
@@ -223,12 +243,29 @@ func (configSource InterpolateTemplateConfigSource) FetchConfig(ctx context.Cont
 		return atc.TaskConfig{}, fmt.Errorf("failed to interpolate task config: %s", err)
 	}
 
-	taskConfig, err = atc.NewTaskConfig(byteConfig)
-	if err != nil {
-		return atc.TaskConfig{}, fmt.Errorf("failed to create task config from bytes: %s", err)
+	return newTaskConfig(byteConfig, from)
+}
+
+// fetchByteConfig returns the config to interpolate. When the underlying source
+// can hand back the config as written, it is used untouched, so a var may stand
+// in for a field the parser would reject before it is resolved. Otherwise the
+// config has already been parsed and is marshalled back.
+func (configSource InterpolateTemplateConfigSource) fetchByteConfig(ctx context.Context, logger lager.Logger, source *build.Repository) ([]byte, string, error) {
+	if rawSource, ok := configSource.ConfigSource.(RawTaskConfigSource); ok {
+		return rawSource.FetchRawConfig(ctx, logger, source)
 	}
 
-	return taskConfig, nil
+	taskConfig, err := configSource.ConfigSource.FetchConfig(ctx, logger, source)
+	if err != nil {
+		return nil, "", err
+	}
+
+	byteConfig, err := yaml.Marshal(taskConfig)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal task config: %s", err)
+	}
+
+	return byteConfig, "", nil
 }
 
 func (configSource InterpolateTemplateConfigSource) Warnings() []string {
