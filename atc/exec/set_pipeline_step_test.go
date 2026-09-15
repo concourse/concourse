@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
@@ -87,6 +88,22 @@ jobs:
         path: echo
         args:
          - ((branch))
+`
+
+	const pipelineWithVarFiles = `
+---
+jobs:
+- name: some-job
+  plan:
+  - task: some-task
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      run:
+        path: echo
+        args: [((foo)), ((bar))]
 `
 
 	var pipelineObject = atc.Config{
@@ -482,6 +499,43 @@ jobs:
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 					_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 					Expect(succeeded).To(BeTrue())
+				})
+			})
+
+			Context("when vars and var files contain the same variables", func() {
+				BeforeEach(func() {
+					spPlan = &atc.SetPipelinePlan{
+						Name:     "some-pipeline",
+						File:     "some-resource/pipeline.yml",
+						Vars:     map[string]any{"foo": "from-vars"},
+						VarFiles: []string{"some-resource/first-vars.yml", "some-resource/second-vars.yml"},
+					}
+					fakeStreamer.StreamFileCalls(func(_ context.Context, _ runtime.Artifact, path string) (io.ReadCloser, error) {
+						switch path {
+						case "pipeline.yml":
+							return &fakeReadCloser{str: pipelineWithVarFiles}, nil
+						case "second-vars.yml":
+							return &fakeReadCloser{str: "foo: from-second-file\nbar: from-second-file\n"}, nil
+						case "first-vars.yml":
+							return &fakeReadCloser{str: "bar: from-first-file\n"}, nil
+						default:
+							return nil, errors.New("unexpected file: " + path)
+						}
+					})
+				})
+
+				It("should give vars precedence over var files and later var files precedence over earlier ones", func() {
+					Expect(stepErr).NotTo(HaveOccurred())
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+
+					_, _, path := fakeStreamer.StreamFileArgsForCall(1)
+					Expect(path).To(Equal("second-vars.yml"))
+					_, _, path = fakeStreamer.StreamFileArgsForCall(2)
+					Expect(path).To(Equal("first-vars.yml"))
+
+					_, _, savedConfig, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					taskConfig := savedConfig.Jobs[0].PlanSequence[0].Config.(*atc.TaskStep).Config
+					Expect(taskConfig.Run.Args).To(Equal([]string{"from-vars", "from-second-file"}))
 				})
 			})
 
