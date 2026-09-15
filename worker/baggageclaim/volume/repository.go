@@ -681,12 +681,10 @@ func (repo *repository) volumeFrom(liveVolume FilesystemLiveVolume) (Volume, err
 	}
 
 	return Volume{
-		Handle: liveVolume.Handle(),
-		Path:   liveVolume.DataPath(),
-		VolumeOpts: VolumeOpts{
-			Properties: properties,
-			Privileged: isPrivileged,
-		},
+		Handle:     liveVolume.Handle(),
+		Path:       liveVolume.DataPath(),
+		Properties: properties,
+		Privileged: isPrivileged,
 	}, nil
 }
 

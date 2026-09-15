@@ -212,7 +212,10 @@ macosSteps baseUrl arch =
                         ++ url
                         ++ """' -o fly
 chmod +x ./fly
-mv ./fly /usr/local/bin/"""
+mv ./fly /usr/local/bin/
+# Latest versions of macOS may prevent you from running unsigned binaries.
+# You can run the following as a workaround:
+xattr -d com.apple.quarantine /usr/local/bin/fly"""
                 ]
             ]
         , directDownloadLink url

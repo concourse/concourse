@@ -79,8 +79,34 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 		claims := jwt.Claims{}
 		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline))
+	})
+
+	It("sets a unique jti on every token", func() {
+		token, _, err := tokenGenerator.GenerateToken(params)
+		Expect(err).ToNot(HaveOccurred())
+
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+		Expect(err).ToNot(HaveOccurred())
+
+		claims := jwt.Claims{}
+		err = parsed.Claims(rsaVerificationKey, &claims)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(claims.ID).ToNot(BeEmpty())
+
+		otherToken, _, err := tokenGenerator.GenerateToken(params)
+		Expect(err).ToNot(HaveOccurred())
+
+		otherParsed, err := jwt.ParseSigned(otherToken, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+		Expect(err).ToNot(HaveOccurred())
+
+		otherClaims := jwt.Claims{}
+		err = otherParsed.Claims(rsaVerificationKey, &otherClaims)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(otherClaims.ID).ToNot(BeEmpty())
+
+		Expect(otherClaims.ID).ToNot(Equal(claims.ID))
 	})
 
 	It("respects subject scope team", func() {
@@ -93,7 +119,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 		claims := jwt.Claims{}
 		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(claims.Subject).To(Equal(params.Team))
 	})
@@ -108,7 +134,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 		claims := jwt.Claims{}
 		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline + "/" + params.InstanceVars.String()))
 	})
@@ -123,7 +149,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 		claims := jwt.Claims{}
 		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline + "/" + params.InstanceVars.String() + "/" + params.Job))
 	})
@@ -146,7 +172,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 		claims := jwt.Claims{}
 		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(claims.Subject).To(Equal("fake%2Fteam/fake%2Fpipeline/\"fake%2Ffoo\":\"fake%2Fbar\"/fake%2Fjob"))
 	})
@@ -161,7 +187,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 		claims := jwt.Claims{}
 		err = parsed.Claims(rsaVerificationKey, &claims)
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(claims.Audience).To(ContainElement("testaud"))
 	})
@@ -176,7 +202,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 
 		claims := jwt.Claims{}
 		err = parsed.Claims(ecVerificationKey, &claims)
-		Expect(err).To(Succeed())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(parsed.Headers[0].Algorithm).To(Equal("ES256"))
 	})
@@ -205,7 +231,7 @@ var _ = Describe("IDToken TokenGenerator", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			err = parsed.Claims(rsaVerificationKey, &claims)
-			Expect(err).To(Succeed())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("contains the correct subject", func() {

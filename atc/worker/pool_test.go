@@ -293,9 +293,9 @@ var _ = Describe("Pool", func() {
 
 			workerCh := make(chan runtime.Worker)
 
-			var callbackInvocations int32
+			var callbackInvocations atomic.Int32
 			callback := PoolCallback{
-				waitingForWorker: func() { atomic.AddInt32(&callbackInvocations, 1) },
+				waitingForWorker: func() { callbackInvocations.Add(1) },
 			}
 
 			By("selecting a worker when there are no satisfiable workers", func() {
@@ -319,7 +319,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			By("validating that the step is marked as waiting", func() {
-				callbackCount := func() int32 { return atomic.LoadInt32(&callbackInvocations) }
+				callbackCount := func() int32 { return callbackInvocations.Load() }
 				metricCount := func() float64 {
 					labels := metric.StepsWaitingLabels{
 						TeamId: "123",

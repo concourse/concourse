@@ -98,15 +98,13 @@ func (config JobConfig) Inputs() []JobInputParams {
 	_ = config.StepConfig().Visit(StepRecursor{
 		OnGet: func(step *GetStep) error {
 			inputs = append(inputs, JobInputParams{
-				JobInput: JobInput{
-					Name:     step.Name,
-					Resource: step.ResourceName(),
-					Passed:   step.Passed,
-					Version:  step.Version,
-					Trigger:  step.Trigger,
-				},
-				Params: step.Params,
-				Tags:   step.Tags,
+				Name:     step.Name,
+				Resource: step.ResourceName(),
+				Passed:   step.Passed,
+				Version:  step.Version,
+				Trigger:  step.Trigger,
+				Params:   step.Params,
+				Tags:     step.Tags,
 			})
 
 			return nil

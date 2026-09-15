@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 	"sort"
 	"time"
 
@@ -315,9 +316,9 @@ func (helper *migrator) Migrate(newKey, oldKey *encryption.Key, toVersion int) e
 			}
 		}
 	} else {
-		for i := len(migrations) - 1; i >= 0; i-- {
-			if currentVersion >= migrations[i].Version && migrations[i].Version > toVersion && migrations[i].Direction == "down" {
-				err = helper.runMigration(migrations[i], strategy)
+		for _, migration := range slices.Backward(migrations) {
+			if currentVersion >= migration.Version && migration.Version > toVersion && migration.Direction == "down" {
+				err = helper.runMigration(migration, strategy)
 				if err != nil {
 					return err
 				}

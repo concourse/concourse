@@ -277,14 +277,12 @@ func newRunningInMemoryCheckBuild(conn DbConn, lockFactory lock.LockFactory, che
 	timeNow := time.Now()
 
 	build := &inMemoryCheckBuild{
-		inMemoryCheckBuildForApi: inMemoryCheckBuildForApi{
-			id:        0,
-			conn:      conn,
-			checkable: checkable,
-			plan:      plan,
-			startTime: timeNow,
-			status:    BuildStatusPending,
-		},
+		id:          0,
+		conn:        conn,
+		checkable:   checkable,
+		plan:        plan,
+		startTime:   timeNow,
+		status:      BuildStatusPending,
 		lockFactory: lockFactory,
 		createTime:  timeNow,
 		spanContext: spanContext,

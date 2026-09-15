@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/google/uuid"
 )
 
 type SubjectScope string
@@ -56,7 +57,13 @@ func (g TokenGenerator) GenerateToken(params creds.SecretLookupParams) (token st
 		return "", time.Time{}, err
 	}
 
+	jti, err := uuid.NewRandom()
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("error generating UUID: %w", err)
+	}
+
 	claims := jwt.Claims{
+		ID:       jti.String(),
 		Issuer:   g.Issuer,
 		IssuedAt: jwt.NewNumericDate(now),
 		Audience: jwt.Audience(g.Audience),

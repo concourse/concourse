@@ -255,7 +255,11 @@ func (driver *OverlayDriver) workDir(vol volume.FilesystemVolume) string {
 	return filepath.Join(driver.OverlaysDir, "work", vol.Handle())
 }
 
-func (driver *OverlayDriver) RemoveOrphanedResources(knownHandles map[string]struct{}) error {
+func (driver *OverlayDriver) RemoveOrphanedResources(isKnown func(handle string) bool) error {
+	if isKnown == nil {
+		return errors.New("must pass in a function")
+	}
+
 	_, err := os.Stat(driver.OverlaysDir)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -279,7 +283,7 @@ func (driver *OverlayDriver) RemoveOrphanedResources(knownHandles map[string]str
 			continue
 		}
 
-		if _, known := knownHandles[name]; known {
+		if isKnown(name) {
 			continue
 		}
 
@@ -307,7 +311,7 @@ func (driver *OverlayDriver) RemoveOrphanedResources(knownHandles map[string]str
 
 	for _, entry := range workEntries {
 		name := entry.Name()
-		if _, known := knownHandles[name]; known {
+		if isKnown(name) {
 			continue
 		}
 

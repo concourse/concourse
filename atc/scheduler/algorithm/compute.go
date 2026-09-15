@@ -100,10 +100,8 @@ func (a *Algorithm) candidatesToInputMapping(ctx context.Context, mapping db.Inp
 
 			mapping[input.Name] = db.InputResult{
 				Input: &db.AlgorithmInput{
-					AlgorithmVersion: db.AlgorithmVersion{
-						ResourceID: input.ResourceID,
-						Version:    candidates[input.Name].Version,
-					},
+					ResourceID:      input.ResourceID,
+					Version:         candidates[input.Name].Version,
 					FirstOccurrence: firstOcc,
 				},
 				PassedBuildIDs: candidates[input.Name].SourceBuildIds,

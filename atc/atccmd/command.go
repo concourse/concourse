@@ -197,13 +197,13 @@ type RunCommand struct {
 	} `group:"Policy Checking"`
 
 	Server struct {
-		XFrameOptions             string `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
-		ContentSecurityPolicy     string `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
-		StrictTransportSecurity   string `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
-		CustomHTTPHeaders         flag.CustomHTTPHeaders `long:"custom-http-headers" description:"Path to a YAML or JSON file containing additional HTTP response headers to set on all responses. These headers override any previously set headers."`
-		ClusterName               string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-		ClientID                  string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
-		ClientSecret              string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
+		XFrameOptions           string                 `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
+		ContentSecurityPolicy   string                 `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
+		StrictTransportSecurity string                 `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
+		CustomHTTPHeaders       flag.CustomHTTPHeaders `long:"custom-http-headers" description:"Path to a YAML or JSON file containing additional HTTP response headers to set on all responses. These headers override any previously set headers."`
+		ClusterName             string                 `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+		ClientID                string                 `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
+		ClientSecret            string                 `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
 	} `group:"Web Server"`
 
 	Health struct {
@@ -1202,10 +1202,8 @@ func (cmd *RunCommand) backendComponents(
 
 	components := []RunnableComponent{
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentLidarScanner,
-				Interval: cmd.LidarScannerInterval,
-			},
+			Name:     atc.ComponentLidarScanner,
+			Interval: cmd.LidarScannerInterval,
 			Runnable: lidar.NewScanner(
 				dbCheckFactory,
 				atc.NewPlanFactory(time.Now().Unix()),
@@ -1213,20 +1211,16 @@ func (cmd *RunCommand) backendComponents(
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentPipelinePauser,
-				Interval: cmd.PipelinePauserInterval,
-			},
+			Name:     atc.ComponentPipelinePauser,
+			Interval: cmd.PipelinePauserInterval,
 			Runnable: pauser.NewPipelinePauser(
 				dbPipelinePauser,
 				cmd.PausePipelinesAfter,
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentScheduler,
-				Interval: 10 * time.Second,
-			},
+			Name:     atc.ComponentScheduler,
+			Interval: 10 * time.Second,
 			Runnable: scheduler.NewRunner(
 				logger.Session("scheduler"),
 				dbJobFactory,
@@ -1241,17 +1235,13 @@ func (cmd *RunCommand) backendComponents(
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentBuildTracker,
-				Interval: cmd.BuildTrackerInterval,
-			},
+			Name:     atc.ComponentBuildTracker,
+			Interval: cmd.BuildTrackerInterval,
 			Runnable: builds.NewTracker(logger, dbBuildFactory, engine, checkBuildsChan),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentBuildReaper,
-				Interval: 30 * time.Second,
-			},
+			Name:     atc.ComponentBuildReaper,
+			Interval: 30 * time.Second,
 			Runnable: gc.NewBuildLogCollector(
 				dbPipelineFactory,
 				dbPipelineLifecycle,
@@ -1266,17 +1256,13 @@ func (cmd *RunCommand) backendComponents(
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentBeingWatchedBuildMarker,
-				Interval: 10 * time.Minute,
-			},
+			Name:     atc.ComponentBeingWatchedBuildMarker,
+			Interval: 10 * time.Minute,
 			Runnable: buildEventWatcher,
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentSigningKeyLifecycler,
-				Interval: cmd.SigningKey.CheckInterval,
-			},
+			Name:     atc.ComponentSigningKeyLifecycler,
+			Interval: cmd.SigningKey.CheckInterval,
 			Runnable: &idtoken.SigningKeyLifecycler{
 				Logger:              logger.Session(atc.ComponentSigningKeyLifecycler),
 				DBSigningKeyFactory: dbSigningKeyFactory,
@@ -1292,10 +1278,8 @@ func (cmd *RunCommand) backendComponents(
 
 	if syslogDrainConfigured {
 		components = append(components, RunnableComponent{
-			Component: atc.Component{
-				Name:     atc.ComponentSyslogDrainer,
-				Interval: cmd.Syslog.DrainInterval,
-			},
+			Name:     atc.ComponentSyslogDrainer,
+			Interval: cmd.Syslog.DrainInterval,
 			Runnable: syslog.NewDrainer(
 				cmd.Syslog.Transport,
 				cmd.Syslog.Address,
@@ -1418,10 +1402,8 @@ func (cmd *RunCommand) gcComponents(
 	var components []RunnableComponent
 	for collectorName, collector := range collectors {
 		components = append(components, RunnableComponent{
-			Component: atc.Component{
-				Name:     collectorName,
-				Interval: cmd.GC.Interval,
-			},
+			Name:     collectorName,
+			Interval: cmd.GC.Interval,
 			Runnable: collector,
 		})
 	}
