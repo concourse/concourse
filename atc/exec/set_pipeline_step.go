@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"slices"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -297,7 +298,11 @@ func (s setPipelineSource) MarshalPipelineConfig(config []byte) (atc.Config, err
 	if len(s.step.plan.Vars) > 0 {
 		staticVars = append(staticVars, vars.StaticVariables(s.step.plan.Vars))
 	}
-	for _, lvf := range s.step.plan.VarFiles {
+
+	listVarFile := slices.Clone(s.step.plan.VarFiles)
+	slices.Reverse(listVarFile)
+
+	for _, lvf := range listVarFile {
 		bytes, err := s.fetchPipelineBits(lvf)
 		if err != nil {
 			return atc.Config{}, err
