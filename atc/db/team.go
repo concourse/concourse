@@ -667,12 +667,43 @@ func (t *team) SavePipeline(
 }
 
 func (t *team) RenamePipeline(oldName, newName string) (bool, error) {
-	result, err := psql.Update("pipelines").
-		Set("name", newName).
+	return t.renamePipeline(atc.PipelineRef{Name: oldName}, atc.PipelineRef{Name: newName})
+}
+
+func (t *team) renamePipeline(oldRef, newRef atc.PipelineRef) (bool, error) {
+	query := psql.Update("pipelines").
+		Set("name", newRef.Name).
 		Where(sq.Eq{
 			"team_id": t.id,
-			"name":    oldName,
-		}).
+			"name":    oldRef.Name,
+		})
+
+	if oldRef.InstanceVars != nil {
+		oldInstanceVarsBytes, err := json.Marshal(oldRef.InstanceVars)
+		if err != nil {
+			return false, err
+		}
+
+		query = query.Where(sq.Eq{
+			"instance_vars": sql.NullString{String: string(oldInstanceVarsBytes), Valid: true},
+		})
+	}
+
+	if oldRef.InstanceVars != nil || newRef.InstanceVars != nil {
+		newInstanceVars := sql.NullString{Valid: false}
+		if newRef.InstanceVars != nil {
+			newInstanceVarsBytes, err := json.Marshal(newRef.InstanceVars)
+			if err != nil {
+				return false, err
+			}
+
+			newInstanceVars = sql.NullString{String: string(newInstanceVarsBytes), Valid: true}
+		}
+
+		query = query.Set("instance_vars", newInstanceVars)
+	}
+
+	result, err := query.
 		RunWith(t.conn).
 		Exec()
 	if err != nil {
