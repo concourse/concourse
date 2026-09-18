@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.cloudfoundry.org/lager/v3"
+	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/atc/api/present"
 	"github.com/concourse/concourse/atc/db"
 )
 
-// IMPORTANT: This is not yet tested because it is not yet used
 func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 	logger := s.logger.Session("get-resource-version")
 
@@ -19,7 +21,20 @@ func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 			return
 		}
 
-		version, found, err := pipeline.ResourceVersion(versionID)
+		resourceName := r.FormValue(":resource_name")
+		resource, found, err := pipeline.Resource(resourceName)
+		if err != nil {
+			logger.Error("failed-to-get-resource", err, lager.Data{"resource-name": resourceName})
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !found {
+			logger.Info("resource-not-found", lager.Data{"resource-name": resourceName})
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		version, found, err := pipeline.ResourceVersion(resource.ID(), versionID)
 		if err != nil {
 			logger.Error("failed-to-get-resource-version", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -30,6 +45,12 @@ func (s *Server) GetResourceVersion(pipeline db.Pipeline) http.Handler {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
+		teamName := r.FormValue(":team_name")
+		acc := accessor.GetAccessor(r)
+		hideMetadata := !resource.Public() && !acc.IsAuthorized(teamName)
+
+		version = present.ResourceVersion(hideMetadata, version)
 
 		w.Header().Set("Content-Type", "application/json")
 
