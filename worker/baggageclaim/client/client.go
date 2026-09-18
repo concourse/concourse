@@ -316,8 +316,7 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, destHandle string, path 
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		err := fmt.Errorf("failed to get p2p url: %d", response.StatusCode)
-		return "", err
+		return "", getError(response)
 	}
 
 	respBytes := make([]byte, 1024)
@@ -435,9 +434,14 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 
 func getError(response *http.Response) error {
 	var errorResponse *api.ErrorResponse
-	err := json.NewDecoder(response.Body).Decode(&errorResponse)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("error reading response body: %w", err)
+	}
+
+	err = json.NewDecoder(bytes.NewReader(body)).Decode(&errorResponse)
+	if err != nil {
+		return fmt.Errorf("unexpected baggageclaim error response: %s: %s", response.Status, string(body))
 	}
 
 	if errorResponse.Message == api.ErrStreamOutNotFound.Error() {
