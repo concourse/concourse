@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
+	"github.com/moby/sys/mountinfo"
 )
 
 var mountOpts string
@@ -138,8 +139,7 @@ func (driver *OverlayDriver) Recover(fs volume.Filesystem) error {
 			continue
 		}
 
-		err = driver.bindMount(vol)
-		if err != nil {
+		if err := driver.bindMount(vol); err != nil {
 			return fmt.Errorf("recover bind mount: %w", err)
 		}
 	}
@@ -152,8 +152,7 @@ func (driver *OverlayDriver) Recover(fs volume.Filesystem) error {
 			return err
 		}
 
-		err = driver.overlayMount(cow.child, rootParent)
-		if err != nil {
+		if err := driver.overlayMount(cow.child, rootParent); err != nil {
 			return fmt.Errorf("recover overlay mount: %w", err)
 		}
 	}
@@ -205,17 +204,20 @@ func (driver *OverlayDriver) bindMount(vol volume.FilesystemVolume) error {
 	}
 
 	mountPath := vol.DataPath()
+
+	if mounted, err := mountinfo.Mounted(mountPath); err != nil {
+		return fmt.Errorf("check bind mount: %w", err)
+	} else if mounted {
+		driver.logger.Debug("bind-mount-already-present", lager.Data{"mount-path": mountPath})
+		return nil
+	}
+
 	driver.logger.Debug("creating-bind-mount", lager.Data{
 		"layer-path": layerDir,
 		"mount-path": mountPath,
 	})
 
-	err = syscall.Mount(layerDir, mountPath, "", syscall.MS_BIND, "")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return syscall.Mount(layerDir, mountPath, "", syscall.MS_BIND, "")
 }
 
 func (driver *OverlayDriver) overlayMount(child volume.FilesystemVolume, parent volume.FilesystemLiveVolume) error {
@@ -231,6 +233,15 @@ func (driver *OverlayDriver) overlayMount(child volume.FilesystemVolume, parent 
 		return err
 	}
 
+	mountPath := child.DataPath()
+
+	if mounted, err := mountinfo.Mounted(mountPath); err != nil {
+		return fmt.Errorf("check overlay mount: %w", err)
+	} else if mounted {
+		driver.logger.Debug("overlay-mount-already-present", lager.Data{"mount-path": mountPath})
+		return nil
+	}
+
 	opts := fmt.Sprintf(
 		mountOpts,
 		parent.DataPath(), //lowerdir
@@ -239,12 +250,7 @@ func (driver *OverlayDriver) overlayMount(child volume.FilesystemVolume, parent 
 	)
 
 	driver.logger.Debug("creating-overlay-mount", lager.Data{"opts": opts})
-	err = syscall.Mount("overlay", child.DataPath(), "overlay", 0, opts)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return syscall.Mount("overlay", child.DataPath(), "overlay", 0, opts)
 }
 
 func (driver *OverlayDriver) layerDir(vol volume.FilesystemVolume) string {

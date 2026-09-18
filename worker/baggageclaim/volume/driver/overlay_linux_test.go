@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
+	"github.com/moby/sys/mountinfo"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -22,6 +24,11 @@ func knownHandles(handles ...string) func(string) bool {
 		_, ok := set[handle]
 		return ok
 	}
+}
+
+func countMountsUnder(path string) int {
+	mounts, _ := mountinfo.GetMounts(mountinfo.PrefixFilter(path))
+	return len(mounts)
 }
 
 var _ = Describe("Overlay", func() {
@@ -193,6 +200,61 @@ var _ = Describe("Overlay", func() {
 				err := overlayDrv.RemoveOrphanedResources(knownHandles())
 				Expect(err).ToNot(HaveOccurred())
 			})
+		})
+	})
+
+	Context("Recover", func() {
+		var (
+			tmpdir     string
+			volumesDir string
+			drv        volume.Driver
+			realFS     volume.Filesystem
+		)
+
+		BeforeEach(func() {
+			var err error
+			tmpdir, err = os.MkdirTemp("", "overlay-recover-test")
+			Expect(err).ToNot(HaveOccurred())
+
+			logger := lagertest.NewTestLogger("recover")
+			overlaysDir := filepath.Join(tmpdir, "overlays")
+			volumesDir = filepath.Join(tmpdir, "volumes")
+
+			drv = driver.NewOverlayDriver(logger, overlaysDir)
+			realFS, err = volume.NewFilesystem(logger, drv, volumesDir)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			mounts, _ := mountinfo.GetMounts(mountinfo.PrefixFilter(tmpdir))
+			for _, m := range mounts {
+				_ = syscall.Unmount(m.Mountpoint, syscall.MNT_DETACH)
+			}
+			Expect(os.RemoveAll(tmpdir)).To(Succeed())
+		})
+
+		It("is idempotent: repeated Recover() calls do not stack mounts", func() {
+			vol1init, err := realFS.NewVolume("vol-1")
+			Expect(err).ToNot(HaveOccurred())
+			vol1, err := vol1init.Initialize()
+			Expect(err).ToNot(HaveOccurred())
+
+			vol2init, err := realFS.NewVolume("vol-2")
+			Expect(err).ToNot(HaveOccurred())
+			vol2, err := vol2init.Initialize()
+			Expect(err).ToNot(HaveOccurred())
+
+			baseline := countMountsUnder(volumesDir)
+			Expect(baseline).To(Equal(2))
+
+			for i := range 3 {
+				Expect(drv.Recover(realFS)).To(Succeed())
+				Expect(countMountsUnder(volumesDir)).To(Equal(baseline),
+					"Recover() pass %d stacked mounts", i+1)
+			}
+
+			Expect(vol1.Destroy()).To(Succeed())
+			Expect(vol2.Destroy()).To(Succeed())
 		})
 	})
 
