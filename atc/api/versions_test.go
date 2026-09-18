@@ -471,6 +471,249 @@ var _ = Describe("Versions API", func() {
 		})
 	})
 
+	Describe("GET /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id", func() {
+		var (
+			response     *http.Response
+			fakeResource *dbfakes.FakeResource
+			version      atc.ResourceVersion
+		)
+
+		BeforeEach(func() {
+			fakeResource = new(dbfakes.FakeResource)
+			fakeResource.IDReturns(12)
+			version = atc.ResourceVersion{
+				ID:      4,
+				Enabled: true,
+				Version: atc.Version{
+					"some": "version",
+					"ref":  "foo",
+				},
+				Metadata: atc.Metadata{
+					{
+						Name:  "some",
+						Value: "metadata",
+					},
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			var err error
+
+			request, err := http.NewRequest("GET", server.URL+"/api/v1/teams/a-team/pipelines/a-pipeline/resources/some-resource/versions/4", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			response, err = client.Do(request)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		Context("when not authorized", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthorizedReturns(false)
+			})
+
+			Context("and the pipeline is private", func() {
+				BeforeEach(func() {
+					fakePipeline.PublicReturns(false)
+				})
+
+				Context("user is not authenticated", func() {
+					BeforeEach(func() {
+						fakeAccess.IsAuthenticatedReturns(false)
+					})
+
+					It("returns 401", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+					})
+				})
+
+				Context("user is authenticated", func() {
+					BeforeEach(func() {
+						fakeAccess.IsAuthenticatedReturns(true)
+					})
+
+					It("returns 403", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					})
+				})
+			})
+
+			Context("and the pipeline is public", func() {
+				BeforeEach(func() {
+					fakePipeline.PublicReturns(true)
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
+					fakePipeline.ResourceVersionReturns(version, true, nil)
+				})
+
+				It("returns 200 OK", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("returns content type application/json", func() {
+					expectedHeaderEntries := map[string]string{
+						"Content-Type": "application/json",
+					}
+					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+				})
+
+				Context("when resource is public", func() {
+					BeforeEach(func() {
+						fakeResource.PublicReturns(true)
+					})
+
+					It("returns the json", func() {
+						body, err := io.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`
+							{
+								"id": 4,
+								"enabled": true,
+								"version": {"some":"version", "ref":"foo"},
+								"metadata": [
+									{
+										"name":"some",
+										"value":"metadata"
+									}
+								]
+							}`))
+					})
+				})
+
+				Context("when resource is not public", func() {
+					Context("when the user is not authenticated", func() {
+						It("returns the json without version metadata", func() {
+							body, err := io.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`
+								{
+									"id": 4,
+									"enabled": true,
+									"version": {"some":"version", "ref":"foo"}
+								}`))
+						})
+					})
+
+					Context("when the user is authenticated", func() {
+						BeforeEach(func() {
+							fakeAccess.IsAuthenticatedReturns(true)
+						})
+
+						It("returns the json without version metadata", func() {
+							body, err := io.ReadAll(response.Body)
+							Expect(err).NotTo(HaveOccurred())
+
+							Expect(body).To(MatchJSON(`
+								{
+									"id": 4,
+									"enabled": true,
+									"version": {"some":"version", "ref":"foo"}
+								}`))
+						})
+					})
+				})
+			})
+		})
+
+		Context("when authorized", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAuthorizedReturns(true)
+			})
+
+			It("finds the resource", func() {
+				Expect(fakePipeline.ResourceCallCount()).To(Equal(1))
+				Expect(fakePipeline.ResourceArgsForCall(0)).To(Equal("some-resource"))
+			})
+
+			Context("when finding the resource succeeds", func() {
+				BeforeEach(func() {
+					fakePipeline.ResourceReturns(fakeResource, true, nil)
+				})
+
+				Context("when getting the version succeeds", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceVersionCalls(func(resourceID, versionID int) (atc.ResourceVersion, bool, error) {
+							Expect(resourceID).To(Equal(fakeResource.ID()))
+							Expect(versionID).To(Equal(version.ID))
+							return version, true, nil
+						})
+					})
+
+					It("returns 200 OK", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns content type application/json", func() {
+						expectedHeaderEntries := map[string]string{
+							"Content-Type": "application/json",
+						}
+						Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+					})
+
+					It("returns the json", func() {
+						body, err := io.ReadAll(response.Body)
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(body).To(MatchJSON(`
+							{
+								"id": 4,
+								"enabled": true,
+								"version": {"some":"version", "ref":"foo"},
+								"metadata": [
+									{
+										"name":"some",
+										"value":"metadata"
+									}
+								]
+							}`))
+					})
+				})
+
+				Context("when the version can't be found", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceVersionReturns(atc.ResourceVersion{}, false, nil)
+					})
+
+					It("returns 404 not found", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("when getting the version fails", func() {
+					BeforeEach(func() {
+						fakePipeline.ResourceVersionReturns(atc.ResourceVersion{}, false, errors.New("oh no!"))
+					})
+
+					It("returns 500 Internal Server Error", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+			})
+
+			Context("when finding the resource fails", func() {
+				BeforeEach(func() {
+					fakePipeline.ResourceReturns(nil, false, errors.New("oh no!"))
+				})
+
+				It("returns 500 Internal Server Error", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+			})
+
+			Context("when the resource is not found", func() {
+				BeforeEach(func() {
+					fakePipeline.ResourceReturns(nil, false, nil)
+				})
+
+				It("returns 404 not found", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+		})
+	})
+
 	Describe("PUT /api/v1/teams/:team_name/pipelines/:pipeline_name/resources/:resource_name/versions/:resource_version_id/enable", func() {
 		var response *http.Response
 		var fakeResource *dbfakes.FakeResource
