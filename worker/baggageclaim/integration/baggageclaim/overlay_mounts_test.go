@@ -147,16 +147,18 @@ var _ = Describe("baggageclaim restart", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dataExistsInVolume(dataFile, cowVolume.Path())).To(BeTrue())
-
-			runner.Bounce()
 		})
 
 		AfterEach(func() {
-			_ = syscall.Unmount(rootVolume.Path(), 0)
-			_ = syscall.Unmount(cowVolume.Path(), 0)
+			err = syscall.Unmount(rootVolume.Path(), 0)
+			Expect(err).NotTo(HaveOccurred())
+			err = syscall.Unmount(cowVolume.Path(), 0)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("recovers volumes and does not stack mounts across repeated restarts", func() {
+			runner.Bounce()
+
 			Expect(runner.CurrentHandles()).To(ConsistOf(
 				rootVolume.Handle(),
 				cowVolume.Handle(),
