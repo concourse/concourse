@@ -1931,6 +1931,11 @@ var _ = Describe("Pipeline", func() {
 							Type:   "some-type",
 							Source: atc.Source{"some": "source"},
 						},
+						{
+							Name:   "other-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+						},
 					},
 				}),
 				builder.WithResourceVersions("some-resource",
@@ -1946,9 +1951,23 @@ var _ = Describe("Pipeline", func() {
 			var found bool
 			var err error
 
-			rv, found, err = pipeline.ResourceVersion(resourceConfigVersion.ID())
+			rv, found, err = scenario.Pipeline.ResourceVersion(scenario.Resource("some-resource").ID(), resourceConfigVersion.ID())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
+		})
+
+		It("does not return a version for another resource in the pipeline", func() {
+			version, found, err := scenario.Pipeline.ResourceVersion(scenario.Resource("other-resource").ID(), resourceConfigVersion.ID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+			Expect(version).To(Equal(atc.ResourceVersion{}))
+		})
+
+		It("does not return a version for a resource in another pipeline", func() {
+			version, found, err := pipeline.ResourceVersion(scenario.Resource("some-resource").ID(), resourceConfigVersion.ID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+			Expect(version).To(Equal(atc.ResourceVersion{}))
 		})
 
 		Context("when a resource is enabled", func() {

@@ -17,3 +17,11 @@ func ResourceVersions(hideMetadata bool, resourceVersions []atc.ResourceVersion)
 
 	return presented
 }
+
+func ResourceVersion(hideMetadata bool, resourceVersion atc.ResourceVersion) atc.ResourceVersion {
+	if hideMetadata {
+		resourceVersion.Metadata = nil
+	}
+
+	return resourceVersion
+}
