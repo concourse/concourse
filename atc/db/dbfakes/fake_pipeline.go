@@ -484,10 +484,11 @@ type FakePipeline struct {
 		result1 db.ResourceTypes
 		result2 error
 	}
-	ResourceVersionStub        func(int) (atc.ResourceVersion, bool, error)
+	ResourceVersionStub        func(int, int) (atc.ResourceVersion, bool, error)
 	resourceVersionMutex       sync.RWMutex
 	resourceVersionArgsForCall []struct {
 		arg1 int
+		arg2 int
 	}
 	resourceVersionReturns struct {
 		result1 atc.ResourceVersion
@@ -2944,18 +2945,19 @@ func (fake *FakePipeline) ResourceTypesReturnsOnCall(i int, result1 db.ResourceT
 	}{result1, result2}
 }
 
-func (fake *FakePipeline) ResourceVersion(arg1 int) (atc.ResourceVersion, bool, error) {
+func (fake *FakePipeline) ResourceVersion(arg1 int, arg2 int) (atc.ResourceVersion, bool, error) {
 	fake.resourceVersionMutex.Lock()
 	ret, specificReturn := fake.resourceVersionReturnsOnCall[len(fake.resourceVersionArgsForCall)]
 	fake.resourceVersionArgsForCall = append(fake.resourceVersionArgsForCall, struct {
 		arg1 int
-	}{arg1})
+		arg2 int
+	}{arg1, arg2})
 	stub := fake.ResourceVersionStub
 	fakeReturns := fake.resourceVersionReturns
-	fake.recordInvocation("ResourceVersion", []interface{}{arg1})
+	fake.recordInvocation("ResourceVersion", []interface{}{arg1, arg2})
 	fake.resourceVersionMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -2969,17 +2971,17 @@ func (fake *FakePipeline) ResourceVersionCallCount() int {
 	return len(fake.resourceVersionArgsForCall)
 }
 
-func (fake *FakePipeline) ResourceVersionCalls(stub func(int) (atc.ResourceVersion, bool, error)) {
+func (fake *FakePipeline) ResourceVersionCalls(stub func(int, int) (atc.ResourceVersion, bool, error)) {
 	fake.resourceVersionMutex.Lock()
 	defer fake.resourceVersionMutex.Unlock()
 	fake.ResourceVersionStub = stub
 }
 
-func (fake *FakePipeline) ResourceVersionArgsForCall(i int) int {
+func (fake *FakePipeline) ResourceVersionArgsForCall(i int) (int, int) {
 	fake.resourceVersionMutex.RLock()
 	defer fake.resourceVersionMutex.RUnlock()
 	argsForCall := fake.resourceVersionArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakePipeline) ResourceVersionReturns(result1 atc.ResourceVersion, result2 bool, result3 error) {
