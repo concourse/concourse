@@ -60,8 +60,7 @@ func (driver *OverlayDriver) CreateVolume(vol volume.FilesystemInitVolume) error
 		return err
 	}
 
-	err = driver.bindMount(vol)
-	return err
+	return driver.bindMount(vol)
 }
 
 func (driver *OverlayDriver) DestroyVolume(vol volume.FilesystemVolume) error {
@@ -111,8 +110,7 @@ func (driver *OverlayDriver) CreateCopyOnWriteLayer(
 		"parent-path": rootParent.DataPath(),
 	})
 
-	err = driver.overlayMount(child, rootParent)
-	return err
+	return driver.overlayMount(child, rootParent)
 }
 
 func (driver *OverlayDriver) Recover(fs volume.Filesystem) error {
