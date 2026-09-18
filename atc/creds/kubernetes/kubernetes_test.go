@@ -79,9 +79,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("team-scoped vars with a value field", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: secretName,
-					},
+					Name: secretName,
 					Data: map[string][]byte{
 						"value": []byte("some-value"),
 					},
@@ -95,9 +93,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("pipeline-scoped vars with a value field", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "some-pipeline." + secretName,
-					},
+					Name: "some-pipeline." + secretName,
 					Data: map[string][]byte{
 						"value": []byte("some-value"),
 					},
@@ -111,9 +107,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("pipeline-scoped vars with arbitrary fields", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "some-pipeline." + secretName,
-					},
+					Name: "some-pipeline." + secretName,
 					Data: map[string][]byte{
 						"some-field": []byte("some-field-value"),
 					},
@@ -133,9 +127,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("pipeline-scoped vars with arbitrary fields accessed via template", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "some-pipeline." + secretName,
-					},
+					Name: "some-pipeline." + secretName,
 					Data: map[string][]byte{
 						"some-field": []byte("some-field-value"),
 					},
@@ -167,9 +159,7 @@ var _ = Describe("Kubernetes", func() {
 			Entry("shared-namespace-suffix scoped vars with a value field", Example{
 				Setup: func() {
 					fakeClientset.CoreV1().Secrets("prefix-shared").Create(context.TODO(), &v1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name: secretName,
-						},
+						Name: secretName,
 						Data: map[string][]byte{
 							"value": []byte("some-shared-value"),
 						},

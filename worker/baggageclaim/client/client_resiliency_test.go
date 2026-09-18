@@ -46,12 +46,10 @@ var _ = Describe("baggageclaim http client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-volume"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							Handle: "some-volume",
-							Path:   "/some/path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: map[string]string{},
-								Privileged: false,
-							},
+							Handle:     "some-volume",
+							Path:       "/some/path",
+							Properties: map[string]string{},
+							Privileged: false,
 						}),
 					),
 					ghttp.CombineHandlers(

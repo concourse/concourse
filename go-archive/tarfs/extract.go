@@ -79,7 +79,7 @@ func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool
 	fileInfo := header.FileInfo()
 	fileMode := fileInfo.Mode()
 
-	err := RootMkdirAll(root, filepath.Dir(filePath), 0755)
+	err := root.MkdirAll(filepath.Dir(filePath), 0755)
 	if err != nil {
 		return err
 	}
@@ -128,16 +128,13 @@ func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool
 			}
 		}
 
-		// TODO: the filepath.FromSlash() is a workaround until the same fix
-		// lands in Go 1.27. It can be removed once we're on Go 1.27
-		// https://github.com/golang/go/issues/80073
-		err = root.Symlink(filepath.FromSlash(header.Linkname), filePath)
+		err = root.Symlink(header.Linkname, filePath)
 		if err != nil {
 			return err
 		}
 
 	case tar.TypeDir:
-		err := RootMkdirAll(root, filePath, fileMode.Perm())
+		err := root.MkdirAll(filePath, fileMode.Perm())
 		if err != nil {
 			return err
 		}
@@ -231,9 +228,4 @@ func stripRoot(p string) string {
 	// Removes all leading forward and backwards slashes
 	p = strings.TrimLeft(p, `/\`)
 	return p
-}
-
-// Workaround for https://github.com/golang/go/issues/80308
-func RootMkdirAll(r *os.Root, path string, perm os.FileMode) error {
-	return r.MkdirAll(strings.TrimSuffix(path, "/"), perm)
 }

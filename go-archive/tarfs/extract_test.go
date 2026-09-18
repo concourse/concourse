@@ -187,7 +187,7 @@ var _ = Describe("ExtractEntry", func() {
 			By("creating the target of the hard link", func() {
 				root, err := os.OpenRoot(dest)
 				Expect(err).ToNot(HaveOccurred())
-				err = tarfs.RootMkdirAll(root, "absolute/path/", 0755)
+				err = root.MkdirAll("absolute/path/", 0755)
 				Expect(err).ToNot(HaveOccurred())
 				f, err := root.Create("absolute/path/file")
 				Expect(err).ToNot(HaveOccurred())

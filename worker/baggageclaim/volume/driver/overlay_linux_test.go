@@ -4,14 +4,32 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
+	"github.com/moby/sys/mountinfo"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
+
+func knownHandles(handles ...string) func(string) bool {
+	set := make(map[string]struct{}, len(handles))
+	for _, h := range handles {
+		set[h] = struct{}{}
+	}
+	return func(handle string) bool {
+		_, ok := set[handle]
+		return ok
+	}
+}
+
+func countMountsUnder(path string) int {
+	mounts, _ := mountinfo.GetMounts(mountinfo.PrefixFilter(path))
+	return len(mounts)
+}
 
 var _ = Describe("Overlay", func() {
 	Context("Driver", func() {
@@ -135,12 +153,7 @@ var _ = Describe("Overlay", func() {
 			// orphan-vol-2 has no corresponding work dir
 			Expect(os.Mkdir(filepath.Join(overlaysDir, "orphan-vol-2"), 0755)).To(Succeed())
 
-			knownHandles := map[string]struct{}{
-				"known-vol-1": {},
-				"known-vol-2": {},
-			}
-
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles("known-vol-1", "known-vol-2"))
 			Expect(err).ToNot(HaveOccurred())
 
 			// Known handles should still exist
@@ -161,16 +174,19 @@ var _ = Describe("Overlay", func() {
 			// Create a work dir with no layer dir
 			Expect(os.Mkdir(filepath.Join(overlaysDir, "work", "work-only-orphan"), 0755)).To(Succeed())
 
-			knownHandles := map[string]struct{}{}
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles())
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(filepath.Join(overlaysDir, "work", "work-only-orphan")).ToNot(BeADirectory())
 		})
 
+		It("errors if nil is given instead of a func", func() {
+			err := overlayDrv.RemoveOrphanedResources(nil)
+			Expect(err).To(MatchError("must pass in a function"))
+		})
+
 		It("handles an empty overlays directory", func() {
-			knownHandles := map[string]struct{}{}
-			err := overlayDrv.RemoveOrphanedResources(knownHandles)
+			err := overlayDrv.RemoveOrphanedResources(knownHandles())
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -181,10 +197,64 @@ var _ = Describe("Overlay", func() {
 			})
 
 			It("does not error", func() {
-				knownHandles := map[string]struct{}{}
-				err := overlayDrv.RemoveOrphanedResources(knownHandles)
+				err := overlayDrv.RemoveOrphanedResources(knownHandles())
 				Expect(err).ToNot(HaveOccurred())
 			})
+		})
+	})
+
+	Context("Recover", func() {
+		var (
+			tmpdir     string
+			volumesDir string
+			drv        volume.Driver
+			realFS     volume.Filesystem
+		)
+
+		BeforeEach(func() {
+			var err error
+			tmpdir, err = os.MkdirTemp("", "overlay-recover-test")
+			Expect(err).ToNot(HaveOccurred())
+
+			logger := lagertest.NewTestLogger("recover")
+			overlaysDir := filepath.Join(tmpdir, "overlays")
+			volumesDir = filepath.Join(tmpdir, "volumes")
+
+			drv = driver.NewOverlayDriver(logger, overlaysDir)
+			realFS, err = volume.NewFilesystem(logger, drv, volumesDir)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			mounts, _ := mountinfo.GetMounts(mountinfo.PrefixFilter(tmpdir))
+			for _, m := range mounts {
+				_ = syscall.Unmount(m.Mountpoint, syscall.MNT_DETACH)
+			}
+			Expect(os.RemoveAll(tmpdir)).To(Succeed())
+		})
+
+		It("is idempotent: repeated Recover() calls do not stack mounts", func() {
+			vol1init, err := realFS.NewVolume("vol-1")
+			Expect(err).ToNot(HaveOccurred())
+			vol1, err := vol1init.Initialize()
+			Expect(err).ToNot(HaveOccurred())
+
+			vol2init, err := realFS.NewVolume("vol-2")
+			Expect(err).ToNot(HaveOccurred())
+			vol2, err := vol2init.Initialize()
+			Expect(err).ToNot(HaveOccurred())
+
+			baseline := countMountsUnder(volumesDir)
+			Expect(baseline).To(Equal(2))
+
+			for i := range 3 {
+				Expect(drv.Recover(realFS)).To(Succeed())
+				Expect(countMountsUnder(volumesDir)).To(Equal(baseline),
+					"Recover() pass %d stacked mounts", i+1)
+			}
+
+			Expect(vol1.Destroy()).To(Succeed())
+			Expect(vol2.Destroy()).To(Succeed())
 		})
 	})
 

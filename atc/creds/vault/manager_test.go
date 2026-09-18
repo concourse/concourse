@@ -82,6 +82,16 @@ var _ = Describe("VaultManager", func() {
 			manager.URL = "http:///foobar"
 			Expect(manager.Validate()).To(MatchError(`URL must specify a host`))
 		})
+
+		It("passes when URL is an unresolved variable reference", func() {
+			manager.URL = "((v.vault_addr))"
+			Expect(manager.Validate()).To(BeNil())
+		})
+
+		It("passes when URL contains an unresolved variable reference for the host portion", func() {
+			manager.URL = "https://((v.vault_addr))"
+			Expect(manager.Validate()).To(BeNil())
+		})
 	})
 
 	Describe("Config", func() {

@@ -543,36 +543,28 @@ var _ = Describe("Repository", func() {
 				It("returns all volumes", func() {
 					Expect(volumes).To(Equal(volume.Volumes{
 						{
-							Handle: "handle-1",
-							Path:   "handle-1-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a", "b": "b"},
-								Privileged: true,
-							},
+							Handle:     "handle-1",
+							Path:       "handle-1-data-path",
+							Properties: volume.Properties{"a": "a", "b": "b"},
+							Privileged: true,
 						},
 						{
-							Handle: "handle-2",
-							Path:   "handle-2-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a"},
-								Privileged: false,
-							},
+							Handle:     "handle-2",
+							Path:       "handle-2-data-path",
+							Properties: volume.Properties{"a": "a"},
+							Privileged: false,
 						},
 						{
-							Handle: "handle-3",
-							Path:   "handle-3-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"b": "b"},
-								Privileged: true,
-							},
+							Handle:     "handle-3",
+							Path:       "handle-3-data-path",
+							Properties: volume.Properties{"b": "b"},
+							Privileged: true,
 						},
 						{
-							Handle: "handle-4",
-							Path:   "handle-4-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{},
-								Privileged: false,
-							},
+							Handle:     "handle-4",
+							Path:       "handle-4-data-path",
+							Properties: volume.Properties{},
+							Privileged: false,
 						},
 					}))
 				})
@@ -586,28 +578,22 @@ var _ = Describe("Repository", func() {
 						It("is not included in the response", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-3",
-									Path:   "handle-3-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-3",
+									Path:       "handle-3-data-path",
+									Properties: volume.Properties{"b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-4",
-									Path:   "handle-4-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{},
-										Privileged: false,
-									},
+									Handle:     "handle-4",
+									Path:       "handle-4-data-path",
+									Properties: volume.Properties{},
+									Privileged: false,
 								},
 							}))
 						})
@@ -621,28 +607,22 @@ var _ = Describe("Repository", func() {
 						It("returns only working volumes", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-3",
-									Path:   "handle-3-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-3",
+									Path:       "handle-3-data-path",
+									Properties: volume.Properties{"b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-4",
-									Path:   "handle-4-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{},
-										Privileged: false,
-									},
+									Handle:     "handle-4",
+									Path:       "handle-4-data-path",
+									Properties: volume.Properties{},
+									Privileged: false,
 								},
 							}))
 						})
@@ -658,20 +638,16 @@ var _ = Describe("Repository", func() {
 				It("returns only volumes whose properties match", func() {
 					Expect(volumes).To(Equal(volume.Volumes{
 						{
-							Handle: "handle-1",
-							Path:   "handle-1-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a", "b": "b"},
-								Privileged: true,
-							},
+							Handle:     "handle-1",
+							Path:       "handle-1-data-path",
+							Properties: volume.Properties{"a": "a", "b": "b"},
+							Privileged: true,
 						},
 						{
-							Handle: "handle-2",
-							Path:   "handle-2-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a"},
-								Privileged: false,
-							},
+							Handle:     "handle-2",
+							Path:       "handle-2-data-path",
+							Properties: volume.Properties{"a": "a"},
+							Privileged: false,
 						},
 					}))
 				})
@@ -685,12 +661,10 @@ var _ = Describe("Repository", func() {
 						It("is not included in the response", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 							}))
 						})
@@ -704,12 +678,10 @@ var _ = Describe("Repository", func() {
 						It("returns only working volumes", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 							}))
 						})
@@ -767,12 +739,10 @@ var _ = Describe("Repository", func() {
 			It("returns the volume and true", func() {
 				Expect(found).To(BeTrue())
 				Expect(foundVolume).To(Equal(volume.Volume{
-					Handle: "some-volume",
-					Path:   "some-data-path",
-					VolumeOpts: volume.VolumeOpts{
-						Properties: volume.Properties{"a": "a", "b": "b"},
-						Privileged: true,
-					},
+					Handle:     "some-volume",
+					Path:       "some-data-path",
+					Properties: volume.Properties{"a": "a", "b": "b"},
+					Privileged: true,
 				}))
 			})
 
@@ -1108,12 +1078,10 @@ var _ = Describe("Repository", func() {
 				It("returns the parent volume and true", func() {
 					Expect(found).To(BeTrue())
 					Expect(parent).To(Equal(volume.Volume{
-						Handle: "parent-volume",
-						Path:   "parent-data-path",
-						VolumeOpts: volume.VolumeOpts{
-							Properties: volume.Properties{"parent": "property"},
-							Privileged: true,
-						},
+						Handle:     "parent-volume",
+						Path:       "parent-data-path",
+						Properties: volume.Properties{"parent": "property"},
+						Privileged: true,
 					}))
 				})
 
