@@ -16,6 +16,7 @@ import (
 
 type Garden struct {
 	ContainerList  []*Container
+	BeforeCreate   func(spec garden.ContainerSpec)
 	containersLock sync.Mutex
 }
 
@@ -55,14 +56,19 @@ func (g *Garden) Create(spec garden.ContainerSpec) (gclient.Container, error) {
 	if handle == "fail-to-create" {
 		return nil, errors.New("failed to create (because handle is fail-to-create)")
 	}
-	if _, _, ok := g.FindContainer(handle); ok {
-		return nil, fmt.Errorf("handle %s already exists", handle)
-	}
 
-	container := NewContainer(handle).WithSpec(spec)
+	if g.BeforeCreate != nil {
+		g.BeforeCreate(spec)
+	}
 
 	g.containersLock.Lock()
 	defer g.containersLock.Unlock()
+	for _, c := range g.ContainerList {
+		if c.handle == handle {
+			return nil, fmt.Errorf("handle %s already exists", handle)
+		}
+	}
+	container := NewContainer(handle).WithSpec(spec)
 	g.ContainerList = append(g.ContainerList, container)
 	return container, nil
 }
