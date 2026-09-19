@@ -1128,6 +1128,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.T
+                                , key = "T"
                                 }
                         )
                     |> Tuple.first
@@ -1138,6 +1139,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.T
+                                , key = "t"
                                 }
                         )
                     |> Tuple.first
@@ -1148,10 +1150,30 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.T
+                                , key = "T"
                                 }
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.DoTriggerBuild Data.shortJobId ]
+        , test "pressing 'j' uses the logical key instead of the physical key" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.K
+                                , key = "j"
+                                }
+                        )
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ Effects.Scroll ScrollDirection.Down "build-body" ]
         , test "pressing 'R' reruns build" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1175,6 +1197,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.R
+                                , key = "R"
                                 }
                         )
                     |> Tuple.second
@@ -1202,6 +1225,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.R
+                                , key = "R"
                                 }
                         )
                     |> Tuple.second
@@ -1219,6 +1243,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "g"
                                 }
                         )
                     |> Tuple.first
@@ -1229,6 +1254,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "g"
                                 }
                         )
                     |> Tuple.second
@@ -1246,6 +1272,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "G"
                                 }
                         )
                     |> Tuple.second
@@ -1263,6 +1290,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "g"
                                 }
                         )
                     |> Tuple.second
@@ -1280,6 +1308,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.Slash
+                                , key = "?"
                                 }
                         )
                     |> Tuple.first
@@ -1748,6 +1777,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second
@@ -1800,6 +1830,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second
@@ -1878,6 +1909,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = True
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second
@@ -1916,6 +1948,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second

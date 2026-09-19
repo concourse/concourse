@@ -286,6 +286,16 @@ all =
                                     , shiftKey = False
                                     , metaKey = False
                                     , code = key
+                                    , key =
+                                        case key of
+                                            Keyboard.ArrowDown ->
+                                                "ArrowDown"
+
+                                            Keyboard.ArrowUp ->
+                                                "ArrowUp"
+
+                                            _ ->
+                                                ""
                                     }
                                 )
 
@@ -497,6 +507,7 @@ all =
                             , shiftKey = False
                             , metaKey = False
                             , code = Keyboard.Slash
+                            , key = "/"
                             }
                         )
                     >> Tuple.second
@@ -509,6 +520,7 @@ all =
                             , shiftKey = True
                             , metaKey = False
                             , code = Keyboard.Slash
+                            , key = "?"
                             }
                         )
                     >> Tuple.second
@@ -521,6 +533,7 @@ all =
                             , shiftKey = True
                             , metaKey = False
                             , code = Keyboard.A
+                            , key = "A"
                             }
                         )
                     >> Tuple.second
@@ -533,6 +546,7 @@ all =
                             , shiftKey = False
                             , metaKey = False
                             , code = Keyboard.Escape
+                            , key = "Escape"
                             }
                         )
                     >> Tuple.second
