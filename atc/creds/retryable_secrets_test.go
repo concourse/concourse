@@ -14,7 +14,7 @@ import (
 func makeFlakySecretManager(numberOfFails int) creds.Secrets {
 	fakeSecretManager := new(credsfakes.FakeSecrets)
 	attempt := 0
-	fakeSecretManager.GetStub = func(string) (any, *time.Time, bool, error) {
+	fakeSecretManager.GetStub = func(string, creds.SecretLookupParams) (any, *time.Time, bool, error) {
 		attempt++
 		if attempt <= numberOfFails {
 			return nil, nil, false, fmt.Errorf("remote error: handshake failure")
@@ -25,10 +25,6 @@ func makeFlakySecretManager(numberOfFails int) creds.Secrets {
 }
 
 var _ = Describe("Re-retrieval of secrets on retryable errors", func() {
-
-	It("should implement the SecretsWithParams interface", func() {
-		var _ creds.SecretsWithParams = creds.RetryableSecrets{}
-	})
 
 	It("should retry receiving a parameter in case of retryable error", func() {
 		flakySecretManager := makeFlakySecretManager(3)

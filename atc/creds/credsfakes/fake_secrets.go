@@ -9,10 +9,11 @@ import (
 )
 
 type FakeSecrets struct {
-	GetStub        func(string) (any, *time.Time, bool, error)
+	GetStub        func(string, creds.SecretLookupParams) (any, *time.Time, bool, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
 		arg1 string
+		arg2 creds.SecretLookupParams
 	}
 	getReturns struct {
 		result1 any
@@ -26,12 +27,11 @@ type FakeSecrets struct {
 		result3 bool
 		result4 error
 	}
-	NewSecretLookupPathsStub        func(string, string, bool) []creds.SecretLookupPath
+	NewSecretLookupPathsStub        func(creds.SecretLookupParams, bool) []creds.SecretLookupPath
 	newSecretLookupPathsMutex       sync.RWMutex
 	newSecretLookupPathsArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 bool
+		arg1 creds.SecretLookupParams
+		arg2 bool
 	}
 	newSecretLookupPathsReturns struct {
 		result1 []creds.SecretLookupPath
@@ -43,18 +43,19 @@ type FakeSecrets struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSecrets) Get(arg1 string) (any, *time.Time, bool, error) {
+func (fake *FakeSecrets) Get(arg1 string, arg2 creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 creds.SecretLookupParams
+	}{arg1, arg2})
 	stub := fake.GetStub
 	fakeReturns := fake.getReturns
-	fake.recordInvocation("Get", []interface{}{arg1})
+	fake.recordInvocation("Get", []interface{}{arg1, arg2})
 	fake.getMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
@@ -68,17 +69,17 @@ func (fake *FakeSecrets) GetCallCount() int {
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeSecrets) GetCalls(stub func(string) (any, *time.Time, bool, error)) {
+func (fake *FakeSecrets) GetCalls(stub func(string, creds.SecretLookupParams) (any, *time.Time, bool, error)) {
 	fake.getMutex.Lock()
 	defer fake.getMutex.Unlock()
 	fake.GetStub = stub
 }
 
-func (fake *FakeSecrets) GetArgsForCall(i int) string {
+func (fake *FakeSecrets) GetArgsForCall(i int) (string, creds.SecretLookupParams) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	argsForCall := fake.getArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeSecrets) GetReturns(result1 any, result2 *time.Time, result3 bool, result4 error) {
@@ -113,20 +114,19 @@ func (fake *FakeSecrets) GetReturnsOnCall(i int, result1 any, result2 *time.Time
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeSecrets) NewSecretLookupPaths(arg1 string, arg2 string, arg3 bool) []creds.SecretLookupPath {
+func (fake *FakeSecrets) NewSecretLookupPaths(arg1 creds.SecretLookupParams, arg2 bool) []creds.SecretLookupPath {
 	fake.newSecretLookupPathsMutex.Lock()
 	ret, specificReturn := fake.newSecretLookupPathsReturnsOnCall[len(fake.newSecretLookupPathsArgsForCall)]
 	fake.newSecretLookupPathsArgsForCall = append(fake.newSecretLookupPathsArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 bool
-	}{arg1, arg2, arg3})
+		arg1 creds.SecretLookupParams
+		arg2 bool
+	}{arg1, arg2})
 	stub := fake.NewSecretLookupPathsStub
 	fakeReturns := fake.newSecretLookupPathsReturns
-	fake.recordInvocation("NewSecretLookupPaths", []interface{}{arg1, arg2, arg3})
+	fake.recordInvocation("NewSecretLookupPaths", []interface{}{arg1, arg2})
 	fake.newSecretLookupPathsMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
@@ -140,17 +140,17 @@ func (fake *FakeSecrets) NewSecretLookupPathsCallCount() int {
 	return len(fake.newSecretLookupPathsArgsForCall)
 }
 
-func (fake *FakeSecrets) NewSecretLookupPathsCalls(stub func(string, string, bool) []creds.SecretLookupPath) {
+func (fake *FakeSecrets) NewSecretLookupPathsCalls(stub func(creds.SecretLookupParams, bool) []creds.SecretLookupPath) {
 	fake.newSecretLookupPathsMutex.Lock()
 	defer fake.newSecretLookupPathsMutex.Unlock()
 	fake.NewSecretLookupPathsStub = stub
 }
 
-func (fake *FakeSecrets) NewSecretLookupPathsArgsForCall(i int) (string, string, bool) {
+func (fake *FakeSecrets) NewSecretLookupPathsArgsForCall(i int) (creds.SecretLookupParams, bool) {
 	fake.newSecretLookupPathsMutex.RLock()
 	defer fake.newSecretLookupPathsMutex.RUnlock()
 	argsForCall := fake.newSecretLookupPathsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeSecrets) NewSecretLookupPathsReturns(result1 []creds.SecretLookupPath) {

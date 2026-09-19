@@ -2,21 +2,30 @@ package idtoken
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/atc/creds"
 )
 
+var _ creds.Secrets = (*IDToken)(nil)
+
 type IDToken struct {
 	TokenGenerator *TokenGenerator
 }
 
-func (secrets *IDToken) NewSecretLookupPathsWithParams(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
-	// returning no paths will result in GetWithParams() being called directly with the secret-name
-	return []creds.SecretLookupPath{}
+func (secrets *IDToken) NewSecretLookupPaths(params creds.SecretLookupParams, _ bool) []creds.SecretLookupPath {
+	// Always use the Job scope to generate the lookup path to avoid cache
+	// collisions between jobs within and across pipelines/teams
+	return []creds.SecretLookupPath{creds.NewSecretLookupWithPrefix(generateSubject(SubjectScopeJob, params) + "/")}
 }
 
-func (secrets *IDToken) GetWithParams(secretPath string, params creds.SecretLookupParams) (any, *time.Time, bool, error) {
+func (secrets *IDToken) Get(secretPath string, params creds.SecretLookupParams) (any, *time.Time, bool, error) {
+	secretPath, found := strings.CutPrefix(secretPath, generateSubject(SubjectScopeJob, params)+"/")
+	if !found {
+		return nil, nil, false, fmt.Errorf("idtoken credential provider was called with different secret params")
+	}
+
 	if secretPath != "token" {
 		return nil, nil, false, fmt.Errorf("idtoken credential provider only supports the field 'token'")
 	}
@@ -25,18 +34,10 @@ func (secrets *IDToken) GetWithParams(secretPath string, params creds.SecretLook
 		return nil, nil, false, fmt.Errorf("idtoken credential provider was called with empty params")
 	}
 
-	token, _, err := secrets.TokenGenerator.GenerateToken(params)
+	token, validUntil, err := secrets.TokenGenerator.GenerateToken(params)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
-	return token, nil, true, nil
-}
-
-func (secrets *IDToken) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
-	return nil
-}
-
-func (secrets *IDToken) Get(secretPath string) (any, *time.Time, bool, error) {
-	return nil, nil, false, fmt.Errorf("IDToken provider can only be used with params")
+	return token, &validUntil, true, nil
 }

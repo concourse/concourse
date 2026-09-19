@@ -2142,7 +2142,7 @@ var _ = Describe("Pipeline", func() {
 
 		JustBeforeEach(func() {
 			fakeGlobalSecrets = new(credsfakes.FakeSecrets)
-			fakeGlobalSecrets.GetStub = func(key string) (any, *time.Time, bool, error) {
+			fakeGlobalSecrets.GetStub = func(key string, params creds.SecretLookupParams) (any, *time.Time, bool, error) {
 				if key == "gk" {
 					return "gv", nil, true, nil
 				}

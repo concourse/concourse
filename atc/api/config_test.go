@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/creds"
 	"github.com/concourse/concourse/atc/creds/noop"
 	"github.com/concourse/concourse/atc/db"
 	"github.com/concourse/concourse/atc/db/dbfakes"
@@ -995,8 +996,8 @@ jobs:
 
 								Context("when a credentials manager is not used", func() {
 									BeforeEach(func() {
-										fakeSecretManager.GetStub = func(secretPath string) (any, *time.Time, bool, error) {
-											return noop.Noop{}.Get(secretPath)
+										fakeSecretManager.GetStub = func(secretPath string, params creds.SecretLookupParams) (any, *time.Time, bool, error) {
+											return noop.Noop{}.Get(secretPath, params)
 										}
 									})
 

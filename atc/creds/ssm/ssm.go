@@ -22,6 +22,8 @@ type SsmAPI interface {
 	GetParametersByPath(ctx context.Context, params *ssm.GetParametersByPathInput, optFns ...func(*ssm.Options)) (*ssm.GetParametersByPathOutput, error)
 }
 
+var _ creds.Secrets = (*Ssm)(nil)
+
 type Ssm struct {
 	log             lager.Logger
 	api             SsmAPI
@@ -39,10 +41,10 @@ func NewSsm(log lager.Logger, api SsmAPI, secretTemplates []*creds.SecretTemplat
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
+func (s *Ssm) NewSecretLookupPaths(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
-		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, params.Team, params.Pipeline); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
@@ -53,7 +55,7 @@ func (s *Ssm) NewSecretLookupPaths(teamName string, pipelineName string, allowRo
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (s *Ssm) Get(secretPath string) (any, *time.Time, bool, error) {
+func (s *Ssm) Get(secretPath string, _ creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	// Try to get the parameter as string value, by name
 	value, expiration, found, err := s.getParameterByName(secretPath)
 	if err != nil {
