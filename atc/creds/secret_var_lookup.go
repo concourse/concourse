@@ -4,6 +4,8 @@ import (
 	"github.com/concourse/concourse/vars"
 )
 
+var _ vars.Variables = (*VariableLookupFromSecrets)(nil)
+
 type VariableLookupFromSecrets struct {
 	Secrets     Secrets
 	LookupPaths []SecretLookupPath
@@ -13,7 +15,7 @@ type VariableLookupFromSecrets struct {
 func NewVariables(secrets Secrets, secretsLookupParams SecretLookupParams, allowRootPath bool) vars.Variables {
 	return VariableLookupFromSecrets{
 		Secrets:     secrets,
-		LookupPaths: NewSecretLookupPathsWithParams(secrets, secretsLookupParams, allowRootPath),
+		LookupPaths: secrets.NewSecretLookupPaths(secretsLookupParams, allowRootPath),
 		Context:     secretsLookupParams,
 	}
 }
@@ -36,7 +38,7 @@ func (sl VariableLookupFromSecrets) Get(ref vars.Reference) (any, bool, error) {
 func (sl VariableLookupFromSecrets) get(path string) (any, bool, error) {
 	if len(sl.LookupPaths) == 0 {
 		// if no paths are specified (i.e. for fake & noop secret managers), then try 1-to-1 var->secret mapping
-		result, _, found, err := GetWithParams(sl.Secrets, path, sl.Context)
+		result, _, found, err := sl.Secrets.Get(path, sl.Context)
 		return result, found, err
 	}
 	// try to find a secret according to our var->secret lookup paths
@@ -46,7 +48,7 @@ func (sl VariableLookupFromSecrets) get(path string) (any, bool, error) {
 		if err != nil {
 			return nil, false, err
 		}
-		result, _, found, err := GetWithParams(sl.Secrets, secretPath, sl.Context)
+		result, _, found, err := sl.Secrets.Get(secretPath, sl.Context)
 		if err != nil {
 			return nil, false, err
 		}

@@ -10,6 +10,8 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 )
 
+var _ creds.Secrets = (*CredHubAtc)(nil)
+
 type CredHubAtc struct {
 	CredHub    *LazyCredhub
 	logger     lager.Logger
@@ -18,12 +20,12 @@ type CredHubAtc struct {
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
+func (c CredHubAtc) NewSecretLookupPaths(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
-	if len(pipelineName) > 0 {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName, pipelineName)+"/"))
+	if len(params.Pipeline) > 0 {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, params.Team, params.Pipeline)+"/"))
 	}
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, teamName)+"/"))
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(c.prefix, params.Team)+"/"))
 	if allowRootPath {
 		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(c.prefix+"/"))
 	}
@@ -34,7 +36,7 @@ func (c CredHubAtc) NewSecretLookupPaths(teamName string, pipelineName string, a
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (c CredHubAtc) Get(secretPath string) (any, *time.Time, bool, error) {
+func (c CredHubAtc) Get(secretPath string, _ creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	var cred credentials.Credential
 	var found bool
 	var err error

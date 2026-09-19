@@ -20,6 +20,8 @@ type SecretsManagerAPI interface {
 	GetSecretValue(ctx context.Context, params *secretsmanager.GetSecretValueInput, optFns ...func(*secretsmanager.Options)) (*secretsmanager.GetSecretValueOutput, error)
 }
 
+var _ creds.Secrets = (*SecretsManager)(nil)
+
 type SecretsManager struct {
 	log             lager.Logger
 	api             SecretsManagerAPI
@@ -35,10 +37,10 @@ func NewSecretsManager(log lager.Logger, api SecretsManagerAPI, secretTemplates 
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
-func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
+func (s *SecretsManager) NewSecretLookupPaths(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
-		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
+		if lPath := creds.NewSecretLookupWithTemplate(tmpl, params.Team, params.Pipeline); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
@@ -46,7 +48,7 @@ func (s *SecretsManager) NewSecretLookupPaths(teamName string, pipelineName stri
 }
 
 // Get retrieves the value and expiration of an individual secret
-func (s *SecretsManager) Get(secretPath string) (any, *time.Time, bool, error) {
+func (s *SecretsManager) Get(secretPath string, _ creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	value, expiration, found, err := s.getSecretById(secretPath)
 	if err != nil {
 		s.log.Error("failed-to-fetch-aws-secret", err, lager.Data{
