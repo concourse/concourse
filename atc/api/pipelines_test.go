@@ -1715,6 +1715,16 @@ var _ = Describe("Pipelines API", func() {
 					})
 				})
 
+				Context("when the rename would conflict with an existing pipeline ref", func() {
+					BeforeEach(func() {
+						fakeTeam.RenamePipelineReturns(false, db.ErrPipelineRefConflict)
+					})
+
+					It("returns a 400 bad request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+					})
+				})
+
 				Context("when the new name is an invalid identifier", func() {
 					Context("and is a string", func() {
 						BeforeEach(func() {

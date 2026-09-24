@@ -2,6 +2,7 @@ package pipelineserver
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
@@ -53,6 +54,10 @@ func (s *Server) RenamePipeline(team db.Team) http.Handler {
 
 		found, err := team.RenamePipeline(oldRef, newRef)
 		if err != nil {
+			if errors.Is(err, db.ErrPipelineRefConflict) {
+				HandleBadRequest(w, err.Error())
+				return
+			}
 			logger.Error("failed-to-update-name", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return

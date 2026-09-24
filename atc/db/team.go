@@ -14,16 +14,19 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gobwas/glob"
+	"github.com/jackc/pgerrcode"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
+var ErrPipelineRefConflict = errors.New("a pipeline with that name and instance vars already exists")
 
 type ErrPipelineNotFound atc.PipelineRef
 
@@ -686,7 +689,7 @@ func (t *team) RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, error) {
 	}
 
 	if oldRef.InstanceVars != nil || newRef.InstanceVars != nil {
-		newInstanceVars := sql.NullString{Valid: false}
+		var newInstanceVars sql.NullString
 		if newRef.InstanceVars != nil {
 			newInstanceVarsBytes, err := json.Marshal(newRef.InstanceVars)
 			if err != nil {
@@ -703,6 +706,9 @@ func (t *team) RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, error) {
 		RunWith(t.conn).
 		Exec()
 	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+			return false, ErrPipelineRefConflict
+		}
 		return false, err
 	}
 	rowsAffected, err := result.RowsAffected()

@@ -4057,9 +4057,9 @@ var _ = Describe("Team", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("returns an error", func() {
+			It("returns ErrPipelineRefConflict", func() {
 				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "release"}, atc.PipelineRef{Name: "new-pipeline"})
-				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(db.ErrPipelineRefConflict))
 				Expect(found).To(BeFalse())
 			})
 
