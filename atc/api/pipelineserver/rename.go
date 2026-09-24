@@ -42,15 +42,23 @@ func (s *Server) RenamePipeline(team db.Team) http.Handler {
 			warnings = append(warnings, *warning)
 		}
 
-		oldName := r.FormValue(":pipeline_name")
-		found, err := team.RenamePipeline(oldName, rename.NewName)
+		oldRef := atc.PipelineRef{Name: r.FormValue(":pipeline_name")}
+		oldRef.InstanceVars, err = atc.InstanceVarsFromQueryParams(r.URL.Query())
+		if err != nil {
+			HandleBadRequest(w, err.Error())
+			return
+		}
+
+		newRef := atc.PipelineRef{Name: rename.NewName, InstanceVars: rename.NewInstanceVars}
+
+		found, err := team.RenamePipeline(oldRef, newRef)
 		if err != nil {
 			logger.Error("failed-to-update-name", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		if !found {
-			logger.Info("pipeline-not-found", lager.Data{"pipeline_name": oldName})
+			logger.Info("pipeline-not-found", lager.Data{"pipeline_name": oldRef.Name})
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

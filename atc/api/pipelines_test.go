@@ -1686,9 +1686,9 @@ var _ = Describe("Pipelines API", func() {
 
 				It("renames the pipeline to the name provided", func() {
 					Expect(fakeTeam.RenamePipelineCallCount()).To(Equal(1))
-					oldName, newName := fakeTeam.RenamePipelineArgsForCall(0)
-					Expect(oldName).To(Equal("a-pipeline"))
-					Expect(newName).To(Equal("some-new-name"))
+					oldRef, newRef := fakeTeam.RenamePipelineArgsForCall(0)
+					Expect(oldRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
+					Expect(newRef).To(Equal(atc.PipelineRef{Name: "some-new-name"}))
 				})
 
 				It("returns 200", func() {

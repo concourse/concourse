@@ -704,11 +704,11 @@ type FakeTeam struct {
 		result3 bool
 		result4 error
 	}
-	RenamePipelineStub        func(string, string) (bool, []concourse.ConfigWarning, error)
+	RenamePipelineStub        func(atc.PipelineRef, atc.PipelineRef) (bool, []concourse.ConfigWarning, error)
 	renamePipelineMutex       sync.RWMutex
 	renamePipelineArgsForCall []struct {
-		arg1 string
-		arg2 string
+		arg1 atc.PipelineRef
+		arg2 atc.PipelineRef
 	}
 	renamePipelineReturns struct {
 		result1 bool
@@ -4028,12 +4028,12 @@ func (fake *FakeTeam) PipelineConfigReturnsOnCall(i int, result1 atc.Config, res
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeTeam) RenamePipeline(arg1 string, arg2 string) (bool, []concourse.ConfigWarning, error) {
+func (fake *FakeTeam) RenamePipeline(arg1 atc.PipelineRef, arg2 atc.PipelineRef) (bool, []concourse.ConfigWarning, error) {
 	fake.renamePipelineMutex.Lock()
 	ret, specificReturn := fake.renamePipelineReturnsOnCall[len(fake.renamePipelineArgsForCall)]
 	fake.renamePipelineArgsForCall = append(fake.renamePipelineArgsForCall, struct {
-		arg1 string
-		arg2 string
+		arg1 atc.PipelineRef
+		arg2 atc.PipelineRef
 	}{arg1, arg2})
 	stub := fake.RenamePipelineStub
 	fakeReturns := fake.renamePipelineReturns
@@ -4054,13 +4054,13 @@ func (fake *FakeTeam) RenamePipelineCallCount() int {
 	return len(fake.renamePipelineArgsForCall)
 }
 
-func (fake *FakeTeam) RenamePipelineCalls(stub func(string, string) (bool, []concourse.ConfigWarning, error)) {
+func (fake *FakeTeam) RenamePipelineCalls(stub func(atc.PipelineRef, atc.PipelineRef) (bool, []concourse.ConfigWarning, error)) {
 	fake.renamePipelineMutex.Lock()
 	defer fake.renamePipelineMutex.Unlock()
 	fake.RenamePipelineStub = stub
 }
 
-func (fake *FakeTeam) RenamePipelineArgsForCall(i int) (string, string) {
+func (fake *FakeTeam) RenamePipelineArgsForCall(i int) (atc.PipelineRef, atc.PipelineRef) {
 	fake.renamePipelineMutex.RLock()
 	defer fake.renamePipelineMutex.RUnlock()
 	argsForCall := fake.renamePipelineArgsForCall[i]

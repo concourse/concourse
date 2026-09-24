@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/fly/rc"
 )
 
 type RenamePipelineCommand struct {
@@ -50,7 +51,7 @@ func (command *RenamePipelineCommand) Execute([]string) error {
 		}
 	}
 
-	found, warnings, err := team.RenamePipeline(command.OldName, command.NewName)
+	found, warnings, err := team.RenamePipeline(atc.PipelineRef{Name: command.OldName}, atc.PipelineRef{Name: command.NewName})
 	if err != nil {
 		return err
 	}

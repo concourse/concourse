@@ -3841,7 +3841,7 @@ var _ = Describe("Team", func() {
 
 	Describe("RenamePipeline", func() {
 		It("renames individual pipelines", func() {
-			found, err := defaultTeam.RenamePipeline("default-pipeline", "new-pipeline")
+			found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "default-pipeline"}, atc.PipelineRef{Name: "new-pipeline"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
 
@@ -3879,7 +3879,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("renames every instance", func() {
-				found, err := defaultTeam.RenamePipeline("release", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "release"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -3897,7 +3897,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("keeps instance vars unchanged", func() {
-				found, err := defaultTeam.RenamePipeline("release", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "release"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -3911,7 +3911,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("finds pipelines under the new name", func() {
-				found, err := defaultTeam.RenamePipeline("release", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "release"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -3935,7 +3935,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("does not find old pipeline refs", func() {
-				found, err := defaultTeam.RenamePipeline("release", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "release"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -3950,9 +3950,82 @@ var _ = Describe("Team", func() {
 
 		Context("when there are no pipelines with the old name", func() {
 			It("returns not found", func() {
-				found, err := defaultTeam.RenamePipeline("blah-blah-blah", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "blah-blah-blah"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
+			})
+		})
+
+		Context("when the old ref specifies instance vars", func() {
+			var (
+				p1 db.Pipeline
+				p2 db.Pipeline
+			)
+
+			BeforeEach(func() {
+				var err error
+				p1, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "6.7.x"},
+				}, defaultPipelineConfig, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				p2, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "7.0.x"},
+				}, defaultPipelineConfig, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("renames only the matching instance", func() {
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "6.7.x"},
+				}, atc.PipelineRef{
+					Name:         "new-pipeline",
+					InstanceVars: atc.InstanceVars{"version": "6.7.x"},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, err = p1.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p1.Name()).To(Equal("new-pipeline"))
+
+				_, err = p2.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p2.Name()).To(Equal("release"))
+			})
+
+			It("supports transitioning to a new set of instance vars", func() {
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "6.7.x"},
+				}, atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "6.8.x"},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, err = p1.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p1.Name()).To(Equal("release"))
+				Expect(p1.InstanceVars()).To(Equal(atc.InstanceVars{"version": "6.8.x"}))
+			})
+
+			It("supports transitioning from an instanced pipeline to a non-instanced name", func() {
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "6.7.x"},
+				}, atc.PipelineRef{Name: "new-pipeline"})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, err = p1.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(p1.Name()).To(Equal("new-pipeline"))
+				Expect(p1.InstanceVars()).To(BeNil())
 			})
 		})
 
@@ -3985,13 +4058,13 @@ var _ = Describe("Team", func() {
 			})
 
 			It("returns an error", func() {
-				found, err := defaultTeam.RenamePipeline("release", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "release"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).To(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
 
 			It("does not rename any pipeline", func() {
-				found, err := defaultTeam.RenamePipeline("release", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "release"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).To(HaveOccurred())
 				Expect(found).To(BeFalse())
 
@@ -4021,7 +4094,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("renames pipelines only within the calling team", func() {
-				found, err := defaultTeam.RenamePipeline("default-pipeline", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "default-pipeline"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
@@ -4047,7 +4120,7 @@ var _ = Describe("Team", func() {
 			})
 
 			It("renames both pipelines", func() {
-				found, err := defaultTeam.RenamePipeline("default-pipeline", "new-pipeline")
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{Name: "default-pipeline"}, atc.PipelineRef{Name: "new-pipeline"})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 
