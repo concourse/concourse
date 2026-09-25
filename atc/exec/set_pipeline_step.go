@@ -331,13 +331,10 @@ func (s setPipelineSource) FetchPipelineBits() ([]byte, error) {
 }
 
 func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
-	segs := strings.SplitN(path, "/", 2)
-	if len(segs) != 2 {
-		return nil, UnspecifiedArtifactSourceError{path}
+	artifactName, filePath, err := parseArtifactPath(path)
+	if err != nil {
+		return nil, err
 	}
-
-	artifactName := segs[0]
-	filePath := segs[1]
 
 	stream, err := s.retrieveFromArtifact(artifactName, filePath)
 	if err != nil {

@@ -109,7 +109,7 @@ var _ = Describe("TaskConfigSource", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(fetchErr).To(Equal(UnspecifiedArtifactSourceError{"foo-bar.yml"}))
+				Expect(fetchErr).To(MatchError("path 'foo-bar.yml' does not specify the input volume where the file lives"))
 			})
 		})
 

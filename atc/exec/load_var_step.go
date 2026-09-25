@@ -46,15 +46,6 @@ func NewLoadVarStep(
 	}
 }
 
-type UnspecifiedLoadVarStepFileError struct {
-	File string
-}
-
-// Error returns a human-friendly error message.
-func (err UnspecifiedLoadVarStepFileError) Error() string {
-	return fmt.Sprintf("file '%s' does not specify where the file lives", err.File)
-}
-
 type InvalidLocalVarFile struct {
 	File   string
 	Format string
@@ -116,13 +107,10 @@ func (step *LoadVarStep) fetchVars(
 	state RunState,
 ) (any, error) {
 
-	segs := strings.SplitN(file, "/", 2)
-	if len(segs) != 2 {
-		return nil, UnspecifiedLoadVarStepFileError{file}
+	artifactName, filePath, err := parseArtifactPath(file)
+	if err != nil {
+		return nil, err
 	}
-
-	artifactName := segs[0]
-	filePath := segs[1]
 
 	format, err := step.fileFormat(file)
 	if err != nil {

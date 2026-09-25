@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
@@ -66,14 +65,12 @@ type FileConfigSource struct {
 // If the task config file is not found, or is invalid YAML, or is an invalid
 // task configuration, the respective errors will be bubbled up.
 func (configSource FileConfigSource) FetchConfig(ctx context.Context, logger lager.Logger, repo *build.Repository) (atc.TaskConfig, error) {
-	segs := strings.SplitN(configSource.ConfigPath, "/", 2)
-	if len(segs) != 2 {
-		return atc.TaskConfig{}, UnspecifiedArtifactSourceError{configSource.ConfigPath}
+	artifactName, filePath, err := parseArtifactPath(configSource.ConfigPath)
+	if err != nil {
+		return atc.TaskConfig{}, err
 	}
 
-	sourceName := build.ArtifactName(segs[0])
-	filePath := segs[1]
-
+	sourceName := build.ArtifactName(artifactName)
 	artifact, _, found := repo.ArtifactFor(sourceName)
 	if !found {
 		return atc.TaskConfig{}, UnknownArtifactSourceError{sourceName, configSource.ConfigPath}
@@ -270,15 +267,4 @@ type UnknownArtifactSourceError struct {
 // Error returns a human-friendly error message.
 func (err UnknownArtifactSourceError) Error() string {
 	return fmt.Sprintf("unknown artifact source: '%s' in file path '%s'", err.SourceName, err.ConfigPath)
-}
-
-// UnspecifiedArtifactSourceError is returned when the specified path is of a
-// file in the toplevel directory, and so it does not indicate a SourceName.
-type UnspecifiedArtifactSourceError struct {
-	Path string
-}
-
-// Error returns a human-friendly error message.
-func (err UnspecifiedArtifactSourceError) Error() string {
-	return fmt.Sprintf("config path '%s' does not specify where the file lives", err.Path)
 }
