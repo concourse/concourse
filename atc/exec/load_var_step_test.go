@@ -3,6 +3,7 @@ package exec_test
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
@@ -15,6 +16,7 @@ import (
 	"github.com/concourse/concourse/atc/exec"
 	"github.com/concourse/concourse/atc/exec/build"
 	"github.com/concourse/concourse/atc/exec/execfakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/tracing"
 )
@@ -149,7 +151,7 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "trim",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -170,7 +172,7 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "raw",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -191,7 +193,7 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "json",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: jsonString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(jsonString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -212,7 +214,7 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "yml",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(yamlString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -233,7 +235,7 @@ var _ = Describe("LoadVarStep", func() {
 					Format: "yaml",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(yamlString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -255,7 +257,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.diff",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -275,7 +277,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.json",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: jsonString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(jsonString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -295,7 +297,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.yml",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(yamlString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -315,7 +317,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.yaml",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: yamlString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(yamlString)), nil)
 			})
 
 			It("succeeds", func() {
@@ -337,7 +339,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.json",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: jsonString + "{}"}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(jsonString+"{}")), nil)
 			})
 
 			It("step should fail", func() {
@@ -353,7 +355,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource/a.yaml",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: "a:\nb"}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte("a:\nb")), nil)
 			})
 
 			It("step should fail", func() {
@@ -369,7 +371,7 @@ var _ = Describe("LoadVarStep", func() {
 					File: "some-resource-not-in-the-registry/a.json",
 				}
 
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
 			})
 
 			It("step should fail", func() {
@@ -385,7 +387,7 @@ var _ = Describe("LoadVarStep", func() {
 					Name: "some-var",
 					File: "some-resource/a.diff",
 				}
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
 			})
 
 			It("local var should be redacted", func() {
@@ -400,7 +402,7 @@ var _ = Describe("LoadVarStep", func() {
 					File:   "some-resource/a.diff",
 					Reveal: false,
 				}
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
 			})
 
 			It("local var should be redacted", func() {
@@ -415,11 +417,60 @@ var _ = Describe("LoadVarStep", func() {
 					File:   "some-resource/a.diff",
 					Reveal: true,
 				}
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: plainString}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
 			})
 
 			It("local var should not be redacted", func() {
 				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), false)
+			})
+		})
+	})
+
+	Context("when the file path", func() {
+		Context("is not specified", func() {
+			BeforeEach(func() {
+				loadVarPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+				}
+				fakeStreamer.StreamFileCalls(func(ctx context.Context, a runtime.Artifact, s string) (io.ReadCloser, error) {
+					Fail("StreamFile should not be called")
+					return nil, nil
+				})
+			})
+
+			It("returns an error", func() {
+				Expect(stepErr.Error()).To(Equal("path '' does not specify the input volume where the file lives"))
+			})
+		})
+
+		Context("includes parent-dir references", func() {
+			BeforeEach(func() {
+				loadVarPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "some-resource/../../../../other/path",
+				}
+				fakeStreamer.StreamFileCalls(func(_ context.Context, _ runtime.Artifact, path string) (io.ReadCloser, error) {
+					Expect(path).To(Equal("other/path"), "should not pass through the relative path traversal")
+					return gbytes.BufferWithBytes([]byte(plainString)), nil
+				})
+			})
+
+			It("does not pass through the parent-dir references and succeeds", func() {
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
+			})
+		})
+
+		Context("is an absolute path", func() {
+			BeforeEach(func() {
+				loadVarPlan = &atc.LoadVarPlan{
+					Name: "some-var",
+					File: "/some-resource/other/path",
+				}
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(plainString)), nil)
+			})
+
+			It("strips the absolute path and succeeds", func() {
+				expectLocalVarAdded("some-var", strings.TrimSpace(plainString), true)
 			})
 		})
 	})
