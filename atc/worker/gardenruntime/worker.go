@@ -238,6 +238,9 @@ func (worker *Worker) createGardenContainer(
 
 	gardenContainer, err := worker.gardenClient.Create(gdnSpec)
 	if err != nil {
+		if existing, lookupErr := worker.gardenClient.Lookup(creatingContainer.Handle()); lookupErr == nil {
+			return existing, nil
+		}
 		logger.Error("failed-to-create-container-in-garden", err)
 		markContainerAsFailed(logger, creatingContainer)
 		return nil, err
