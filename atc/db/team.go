@@ -1449,6 +1449,8 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		p.instanceVars = nil
 	}
 
 	if pausedBy.Valid {
