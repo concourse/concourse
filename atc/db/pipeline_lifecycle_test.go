@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/atc/db"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,12 +14,14 @@ import (
 
 var _ = Describe("PipelineLifecycle", func() {
 	var (
-		pl  db.PipelineLifecycle
-		err error
+		pl           db.PipelineLifecycle
+		err          error
+		fakeAuditor  *auditorfakes.FakeAuditor
 	)
 
 	BeforeEach(func() {
-		pl = db.NewPipelineLifecycle(dbConn, lockFactory)
+		fakeAuditor = new(auditorfakes.FakeAuditor)
+		pl = db.NewPipelineLifecycle(dbConn, lockFactory, fakeAuditor)
 	})
 
 	Describe("ArchiveAbandonedPipelines", func() {
@@ -46,6 +49,10 @@ var _ = Describe("PipelineLifecycle", func() {
 					Expect(childPipeline.Archived()).To(BeFalse())
 					Expect(defaultPipeline.Archived()).To(BeFalse())
 				})
+
+				It("should not emit any audit logs", func() {
+					Expect(fakeAuditor.AuditInternalCallCount()).To(Equal(0))
+				})
 			})
 
 			Context("parent pipeline is destroyed", func() {
@@ -57,6 +64,15 @@ var _ = Describe("PipelineLifecycle", func() {
 				It("should archive all child pipelines", func() {
 					childPipeline.Reload()
 					Expect(childPipeline.Archived()).To(BeTrue())
+				})
+
+				It("should emit an audit log for the archived pipeline", func() {
+					Expect(fakeAuditor.AuditInternalCallCount()).To(Equal(1))
+					action, params := fakeAuditor.AuditInternalArgsForCall(0)
+					Expect(action).To(Equal(atc.ArchivePipeline))
+					Expect(params[":pipeline_name"]).To(Equal([]string{"child-pipeline"}))
+					Expect(params[":team_name"]).To(Equal([]string{defaultTeam.Name()}))
+					Expect(params[":triggered_by"]).To(Equal([]string{"abandoned-pipeline-gc"}))
 				})
 			})
 
