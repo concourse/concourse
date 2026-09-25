@@ -56,6 +56,15 @@ type RunState interface {
 	Run(context.Context, atc.Plan) (bool, error)
 
 	Parent() RunState
+
+	// PinnedWorker returns the name of the worker that the build is pinned
+	// to. Returns an empty string if no worker is pinned.
+	PinnedWorker() string
+
+	// SetPinnedWorker records the worker that subsequent steps in the build
+	// should be pinned to. It is a no-op if a worker has already been
+	// pinned, returning the name of the existing pinned worker.
+	SetPinnedWorker(name string) string
 }
 
 // ExitStatus is the resulting exit code from the process that the step ran.
@@ -72,6 +81,7 @@ type OutputHandler func(io.Writer) error
 //counterfeiter:generate . Pool
 type Pool interface {
 	FindOrSelectWorker(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)
+	FindOrSelectWorkerOnPinned(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, string, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)
 	FindResourceCacheVolume(context.Context, int, db.ResourceCache, worker.Spec, time.Time) (runtime.Volume, bool, error)
 	FindResourceCacheVolumeOnWorker(context.Context, db.ResourceCache, worker.Spec, string, time.Time) (runtime.Volume, bool, error)
 	ReleaseWorker(lager.Logger, runtime.ContainerSpec, runtime.Worker, worker.PlacementStrategy)

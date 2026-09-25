@@ -92,6 +92,7 @@ type TaskStep struct {
 	metadata            StepMetadata
 	containerMetadata   db.ContainerMetadata
 	strategy            worker.PlacementStrategy
+	pinWorker           bool
 	workerPool          Pool
 	streamer            Streamer
 	delegateFactory     TaskDelegateFactory
@@ -106,6 +107,7 @@ func NewTaskStep(
 	metadata StepMetadata,
 	containerMetadata db.ContainerMetadata,
 	strategy worker.PlacementStrategy,
+	pinWorker bool,
 	workerPool Pool,
 	streamer Streamer,
 	delegateFactory TaskDelegateFactory,
@@ -119,6 +121,7 @@ func NewTaskStep(
 		metadata:            metadata,
 		containerMetadata:   containerMetadata,
 		strategy:            strategy,
+		pinWorker:           pinWorker,
 		workerPool:          workerPool,
 		streamer:            streamer,
 		delegateFactory:     delegateFactory,
@@ -268,14 +271,7 @@ func (step *TaskStep) run(ctx context.Context, state RunState, delegate TaskDele
 		return false, err
 	}
 
-	worker, err := step.workerPool.FindOrSelectWorker(
-		ctx,
-		owner,
-		containerSpec,
-		step.workerSpec(config),
-		step.strategy,
-		delegate,
-	)
+	worker, err := step.selectWorker(ctx, state, delegate, owner, containerSpec, config)
 	if err != nil {
 		return false, err
 	}
@@ -485,6 +481,31 @@ func (step *TaskStep) workerSpec(config atc.TaskConfig) worker.Spec {
 		Tags:     step.plan.Tags,
 		TeamID:   step.metadata.TeamID,
 	}
+}
+
+// selectWorker picks a worker for the task, honoring the build's pinned
+// worker (if the job has pin_worker: true). The first step to need a
+// worker sets the pinned worker; subsequent steps are forced to use the
+// same one. See selectStepWorker for the race-handling details.
+func (step *TaskStep) selectWorker(
+	ctx context.Context,
+	state RunState,
+	delegate TaskDelegate,
+	owner db.ContainerOwner,
+	containerSpec runtime.ContainerSpec,
+	config atc.TaskConfig,
+) (runtime.Worker, error) {
+	return selectStepWorker(
+		ctx,
+		step.workerPool,
+		step.strategy,
+		step.pinWorker,
+		state,
+		delegate,
+		owner,
+		containerSpec,
+		step.workerSpec(config),
+	)
 }
 
 func (step *TaskStep) registerOutputs(logger lager.Logger, repository *build.Repository, config atc.TaskConfig, volumeMounts []runtime.VolumeMount, metadata db.ContainerMetadata) {

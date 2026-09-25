@@ -167,6 +167,7 @@ var _ = Describe("GetStep", func() {
 			fakeLockFactory,
 			fakeResourceCacheFactory,
 			nil,
+			false,
 			fakeDelegateFactory,
 			fakePool,
 			defaultGetTimeout,

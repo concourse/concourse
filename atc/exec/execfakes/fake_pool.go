@@ -32,6 +32,25 @@ type FakePool struct {
 		result1 runtime.Worker
 		result2 error
 	}
+	FindOrSelectWorkerOnPinnedStub        func(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, string, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)
+	findOrSelectWorkerOnPinnedMutex       sync.RWMutex
+	findOrSelectWorkerOnPinnedArgsForCall []struct {
+		arg1 context.Context
+		arg2 db.ContainerOwner
+		arg3 runtime.ContainerSpec
+		arg4 worker.Spec
+		arg5 string
+		arg6 worker.PlacementStrategy
+		arg7 worker.PoolCallback
+	}
+	findOrSelectWorkerOnPinnedReturns struct {
+		result1 runtime.Worker
+		result2 error
+	}
+	findOrSelectWorkerOnPinnedReturnsOnCall map[int]struct {
+		result1 runtime.Worker
+		result2 error
+	}
 	FindResourceCacheVolumeStub        func(context.Context, int, db.ResourceCache, worker.Spec, time.Time) (runtime.Volume, bool, error)
 	findResourceCacheVolumeMutex       sync.RWMutex
 	findResourceCacheVolumeArgsForCall []struct {
@@ -165,6 +184,76 @@ func (fake *FakePool) FindOrSelectWorkerReturnsOnCall(i int, result1 runtime.Wor
 		})
 	}
 	fake.findOrSelectWorkerReturnsOnCall[i] = struct {
+		result1 runtime.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePool) FindOrSelectWorkerOnPinned(arg1 context.Context, arg2 db.ContainerOwner, arg3 runtime.ContainerSpec, arg4 worker.Spec, arg5 string, arg6 worker.PlacementStrategy, arg7 worker.PoolCallback) (runtime.Worker, error) {
+	fake.findOrSelectWorkerOnPinnedMutex.Lock()
+	ret, specificReturn := fake.findOrSelectWorkerOnPinnedReturnsOnCall[len(fake.findOrSelectWorkerOnPinnedArgsForCall)]
+	fake.findOrSelectWorkerOnPinnedArgsForCall = append(fake.findOrSelectWorkerOnPinnedArgsForCall, struct {
+		arg1 context.Context
+		arg2 db.ContainerOwner
+		arg3 runtime.ContainerSpec
+		arg4 worker.Spec
+		arg5 string
+		arg6 worker.PlacementStrategy
+		arg7 worker.PoolCallback
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	stub := fake.FindOrSelectWorkerOnPinnedStub
+	fakeReturns := fake.findOrSelectWorkerOnPinnedReturns
+	fake.recordInvocation("FindOrSelectWorkerOnPinned", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+	fake.findOrSelectWorkerOnPinnedMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakePool) FindOrSelectWorkerOnPinnedCallCount() int {
+	fake.findOrSelectWorkerOnPinnedMutex.RLock()
+	defer fake.findOrSelectWorkerOnPinnedMutex.RUnlock()
+	return len(fake.findOrSelectWorkerOnPinnedArgsForCall)
+}
+
+func (fake *FakePool) FindOrSelectWorkerOnPinnedCalls(stub func(context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, string, worker.PlacementStrategy, worker.PoolCallback) (runtime.Worker, error)) {
+	fake.findOrSelectWorkerOnPinnedMutex.Lock()
+	defer fake.findOrSelectWorkerOnPinnedMutex.Unlock()
+	fake.FindOrSelectWorkerOnPinnedStub = stub
+}
+
+func (fake *FakePool) FindOrSelectWorkerOnPinnedArgsForCall(i int) (context.Context, db.ContainerOwner, runtime.ContainerSpec, worker.Spec, string, worker.PlacementStrategy, worker.PoolCallback) {
+	fake.findOrSelectWorkerOnPinnedMutex.RLock()
+	defer fake.findOrSelectWorkerOnPinnedMutex.RUnlock()
+	argsForCall := fake.findOrSelectWorkerOnPinnedArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+}
+
+func (fake *FakePool) FindOrSelectWorkerOnPinnedReturns(result1 runtime.Worker, result2 error) {
+	fake.findOrSelectWorkerOnPinnedMutex.Lock()
+	defer fake.findOrSelectWorkerOnPinnedMutex.Unlock()
+	fake.FindOrSelectWorkerOnPinnedStub = nil
+	fake.findOrSelectWorkerOnPinnedReturns = struct {
+		result1 runtime.Worker
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakePool) FindOrSelectWorkerOnPinnedReturnsOnCall(i int, result1 runtime.Worker, result2 error) {
+	fake.findOrSelectWorkerOnPinnedMutex.Lock()
+	defer fake.findOrSelectWorkerOnPinnedMutex.Unlock()
+	fake.FindOrSelectWorkerOnPinnedStub = nil
+	if fake.findOrSelectWorkerOnPinnedReturnsOnCall == nil {
+		fake.findOrSelectWorkerOnPinnedReturnsOnCall = make(map[int]struct {
+			result1 runtime.Worker
+			result2 error
+		})
+	}
+	fake.findOrSelectWorkerOnPinnedReturnsOnCall[i] = struct {
 		result1 runtime.Worker
 		result2 error
 	}{result1, result2}

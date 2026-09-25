@@ -344,6 +344,95 @@ var _ = Describe("Pool", func() {
 		})
 	})
 
+	Describe("FindOrSelectWorkerOnPinned", func() {
+		Test("selects the pinned worker when it is compatible", func() {
+			concurrentId := GinkgoParallelProcess()
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+					grt.NewWorker(fmt.Sprintf("worker2-%d", concurrentId)),
+				),
+			)
+
+			worker, err := scenario.Pool.FindOrSelectWorkerOnPinned(
+				ctx,
+				db.NewFixedHandleContainerOwner("any"),
+				runtime.ContainerSpec{},
+				worker.Spec{},
+				fmt.Sprintf("worker2-%d", concurrentId),
+				nil,
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(worker).ToNot(BeNil())
+			Expect(worker.Name()).To(Equal(fmt.Sprintf("worker2-%d", concurrentId)))
+		})
+
+		Test("falls back to FindOrSelectWorker when pinned worker is empty", func() {
+			concurrentId := GinkgoParallelProcess()
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+				),
+			)
+
+			worker, err := scenario.Pool.FindOrSelectWorkerOnPinned(
+				ctx,
+				db.NewFixedHandleContainerOwner("any"),
+				runtime.ContainerSpec{},
+				worker.Spec{},
+				"",
+				nil,
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(worker.Name()).To(Equal(fmt.Sprintf("worker1-%d", concurrentId)))
+		})
+
+		Test("returns an error when the pinned worker has been removed", func() {
+			concurrentId := GinkgoParallelProcess()
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)),
+				),
+			)
+
+			_, err := scenario.Pool.FindOrSelectWorkerOnPinned(
+				ctx,
+				db.NewFixedHandleContainerOwner("any"),
+				runtime.ContainerSpec{},
+				worker.Spec{},
+				"does-not-exist",
+				nil,
+				nil,
+			)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("does-not-exist"))
+		})
+
+		Test("ignores the pinned worker when it is not in the compatible set (wrong tags)", func() {
+			concurrentId := GinkgoParallelProcess()
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).
+						WithTags("linux"),
+				),
+			)
+
+			worker, err := scenario.Pool.FindOrSelectWorkerOnPinned(
+				ctx,
+				db.NewFixedHandleContainerOwner("any"),
+				runtime.ContainerSpec{},
+				worker.Spec{Tags: []string{"windows"}},
+				fmt.Sprintf("worker1-%d", concurrentId),
+				nil,
+				nil,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(worker).To(BeNil())
+		})
+	})
+
 	Describe("FindResourceCacheVolume", func() {
 		Test("finds a resource cache volume among multiple workers", func() {
 			concurrentId := GinkgoParallelProcess()
