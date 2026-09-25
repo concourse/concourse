@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/atc/exec/execfakes"
 	"github.com/concourse/concourse/atc/policy"
 	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/atc/runtime"
 	"github.com/concourse/concourse/atc/runtime/runtimetest"
 	"github.com/concourse/concourse/tracing"
 	"github.com/concourse/concourse/vars"
@@ -273,9 +274,34 @@ jobs:
 			})
 		})
 
+		Context("pipeline file exists and file path contains parent-dir references", func() {
+			BeforeEach(func() {
+				spPlan.File = "some-resource/../../pipeline.yml"
+				fakeStreamer.StreamFileCalls(func(_ context.Context, _ runtime.Artifact, filePath string) (io.ReadCloser, error) {
+					Expect(filePath).To(Equal("pipeline.yml"), "should not contain parent-dir references")
+					return gbytes.BufferWithBytes([]byte(pipelineContent)), nil
+				})
+			})
+
+			It("succeeds", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("pipeline file exists and file path is absolute", func() {
+			BeforeEach(func() {
+				spPlan.File = "/some-resource/pipeline.yml"
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
+			})
+
+			It("succeeds", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+			})
+		})
+
 		Context("when pipeline file exists but has bad syntax", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(badPipelineContentWithInvalidSyntax)), nil)
 			})
 
 			It("should not return error", func() {
@@ -296,7 +322,7 @@ jobs:
 
 		Context("when pipeline file exists but has duplicate keys", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineWithDuplicateKeys}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(badPipelineWithDuplicateKeys)), nil)
 			})
 
 			It("should not return error", func() {
@@ -317,7 +343,7 @@ jobs:
 
 		Context("when pipeline file exists and has merge keys", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineWithMergeKeys}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineWithMergeKeys)), nil)
 			})
 
 			It("should not return error", func() {
@@ -333,7 +359,7 @@ jobs:
 
 		Context("when pipeline file exists but is empty", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(badPipelineContentWithEmptyContent)), nil)
 			})
 
 			It("should return an error", func() {
@@ -351,7 +377,7 @@ jobs:
 
 		Context("when pipeline file is good", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
 			})
 
 			Context("when get pipeline fails", func() {
@@ -617,7 +643,7 @@ jobs:
 	Context("when team name contains '/'", func() {
 		BeforeEach(func() {
 			spPlan.Team = "some/team"
-			fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+			fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
 		})
 
 		It("should fail with error", func() {
@@ -630,7 +656,7 @@ jobs:
 	Context("when pipeline name contains '/'", func() {
 		BeforeEach(func() {
 			spPlan.Name = "some/pipeline"
-			fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+			fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
 		})
 
 		It("should fail with error invalid identifier", func() {
@@ -640,21 +666,3 @@ jobs:
 		})
 	})
 })
-
-type fakeReadCloser struct {
-	str   string
-	index int
-}
-
-func (r *fakeReadCloser) Read(p []byte) (int, error) {
-	if r.index >= len(r.str) {
-		return 0, io.EOF
-	}
-	l := copy(p, []byte(r.str)[r.index:])
-	r.index += l
-	return l, nil
-}
-
-func (r *fakeReadCloser) Close() error {
-	return nil
-}
