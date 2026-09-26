@@ -495,7 +495,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			expectedURL         string
 			expectedRequestBody string
 			expectedResponse    atc.SaveConfigResponse
-			pipelineName        string
+			oldRef              atc.PipelineRef
+			newRef              atc.PipelineRef
 		)
 
 		BeforeEach(func() {
@@ -505,7 +506,8 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				Errors:   nil,
 				Warnings: []atc.ConfigWarning{},
 			}
-			pipelineName = "mypipeline"
+			oldRef = atc.PipelineRef{Name: "mypipeline"}
+			newRef = atc.PipelineRef{Name: "newpipelinename"}
 		})
 
 		Context("when the pipeline exists", func() {
@@ -520,13 +522,14 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("renames the pipeline when called", func() {
-				renamed, _, err := team.RenamePipeline(pipelineName, "newpipelinename")
+				renamed, _, err := team.RenamePipeline(oldRef, newRef)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(renamed).To(BeTrue())
 			})
 
 			Context("when the pipeline identifier is invalid", func() {
 				BeforeEach(func() {
+					newRef = atc.PipelineRef{Name: "_newpipelinename"}
 					expectedRequestBody = `{"name":"_newpipelinename"}`
 					expectedResponse = atc.SaveConfigResponse{
 						Errors: nil,
@@ -540,11 +543,36 @@ var _ = Describe("ATC Handler Pipelines", func() {
 				})
 
 				It("returns a warning", func() {
-					renamed, warnings, err := team.RenamePipeline(pipelineName, "_newpipelinename")
+					renamed, warnings, err := team.RenamePipeline(oldRef, newRef)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(renamed).To(BeTrue())
 					Expect(warnings).To(HaveLen(1))
 					Expect(warnings[0].Message).To(ContainSubstring("pipeline: '_newpipelinename' is not a valid identifier"))
+				})
+			})
+
+			Context("when instance vars are involved", func() {
+				var queryParams string
+
+				BeforeEach(func() {
+					queryParams = "vars.branch=%22master%22"
+					expectedRequestBody = `{"name":"newpipelinename","instance_vars":{"branch":"develop"}}`
+					oldRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{"branch": "master"}}
+					newRef = atc.PipelineRef{Name: "newpipelinename", InstanceVars: atc.InstanceVars{"branch": "develop"}}
+				})
+
+				JustBeforeEach(func() {
+					atcServer.SetHandler(0, ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL, queryParams),
+						ghttp.VerifyJSON(expectedRequestBody),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResponse),
+					))
+				})
+
+				It("sends the old ref as query params and the new ref in the request body", func() {
+					renamed, _, err := team.RenamePipeline(oldRef, newRef)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(renamed).To(BeTrue())
 				})
 			})
 		})
@@ -557,7 +585,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns false and no error", func() {
-				renamed, _, err := team.RenamePipeline(pipelineName, "newpipelinename")
+				renamed, _, err := team.RenamePipeline(oldRef, newRef)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(renamed).To(BeFalse())
 			})
@@ -571,7 +599,7 @@ var _ = Describe("ATC Handler Pipelines", func() {
 			})
 
 			It("returns an error", func() {
-				renamed, _, err := team.RenamePipeline(pipelineName, "newpipelinename")
+				renamed, _, err := team.RenamePipeline(oldRef, newRef)
 				Expect(err).To(MatchError(ContainSubstring("418 I'm a teapot")))
 				Expect(renamed).To(BeFalse())
 			})

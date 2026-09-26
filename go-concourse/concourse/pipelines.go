@@ -223,13 +223,13 @@ func (team *team) managePipeline(pipelineRef atc.PipelineRef, endpoint string) (
 	}
 }
 
-func (team *team) RenamePipeline(oldName string, newName string) (bool, []ConfigWarning, error) {
+func (team *team) RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, []ConfigWarning, error) {
 	params := rata.Params{
-		"pipeline_name": oldName,
+		"pipeline_name": oldRef.Name,
 		"team_name":     team.Name(),
 	}
 
-	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: newName})
+	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: newRef.Name, NewInstanceVars: newRef.InstanceVars})
 	if err != nil {
 		return false, []ConfigWarning{}, err
 	}
@@ -238,6 +238,7 @@ func (team *team) RenamePipeline(oldName string, newName string) (bool, []Config
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.RenamePipeline,
 		Params:      params,
+		Query:       oldRef.QueryParams(),
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
 	}, &internal.Response{
