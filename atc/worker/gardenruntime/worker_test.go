@@ -1765,6 +1765,56 @@ var _ = Describe("Garden Worker", func() {
 		})
 	})
 
+	Test("concurrent container creation for the same handle succeeds in HA mode", func() {
+		gardenDbl := &grt.Garden{}
+
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker").
+					WithGarden(gardenDbl).
+					WithDBContainersInState(grt.Creating, "race-handle"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		arrived := make(chan struct{}, 2)
+		proceed := make(chan struct{})
+		gardenDbl.BeforeCreate = func(_ garden.ContainerSpec) {
+			arrived <- struct{}{}
+			<-proceed
+		}
+
+		errs := make(chan error, 2)
+		for range 2 {
+			go func() {
+				_, _, err := worker.FindOrCreateContainer(
+					ctx,
+					db.NewFixedHandleContainerOwner("race-handle"),
+					db.ContainerMetadata{},
+					runtime.ContainerSpec{
+						ImageSpec: runtime.ImageSpec{ImageURL: "raw:///img/rootfs"},
+					},
+					delegate,
+				)
+				errs <- err
+			}()
+		}
+
+		Eventually(arrived, "10s").Should(HaveLen(2))
+		close(proceed)
+
+		var allErrs []error
+		for range 2 {
+			allErrs = append(allErrs, <-errs)
+		}
+
+		for _, err := range allErrs {
+			if err != nil {
+				Expect(err).ToNot(MatchError(ContainSubstring("already exists")))
+			}
+		}
+	})
+
 	Test("run/attach process context cancellation", func() {
 		scenario := Setup(
 			workertest.WithWorkers(
