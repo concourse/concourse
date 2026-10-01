@@ -150,4 +150,43 @@ var _ = Describe("InstanceVarsFlag", func() {
 			})
 		}
 	})
+
+	Describe("ApplyInstanceVars", func() {
+		It("leaves instance vars nil when no pairs are provided", func() {
+			instanceVars := flaghelpers.InstanceVarsFromPairs(nil)
+
+			Expect(instanceVars).To(BeNil())
+			Expect((atc.PipelineRef{Name: "some-pipeline", InstanceVars: instanceVars}).String()).To(Equal("some-pipeline"))
+		})
+
+		It("applies and expands YAML variable pairs", func() {
+			pipelineRef := atc.PipelineRef{Name: "some-pipeline"}
+			pairs := []flaghelpers.YAMLVariablePairFlag{}
+			for _, value := range []string{"branch=master", "env.region=eu", "replicas=3"} {
+				var pair flaghelpers.YAMLVariablePairFlag
+				Expect(pair.UnmarshalFlag(value)).To(Succeed())
+				pairs = append(pairs, pair)
+			}
+
+			Expect(flaghelpers.ApplyInstanceVars(&pipelineRef, pairs)).To(Succeed())
+			Expect(pipelineRef.InstanceVars).To(Equal(atc.InstanceVars{
+				"branch":   "master",
+				"env":      map[string]any{"region": "eu"},
+				"replicas": json.Number("3"),
+			}))
+		})
+
+		It("rejects vars specified in both the pipeline ref and the flag", func() {
+			pipelineRef := atc.PipelineRef{
+				Name:         "some-pipeline",
+				InstanceVars: atc.InstanceVars{"branch": "master"},
+			}
+			var pair flaghelpers.YAMLVariablePairFlag
+			Expect(pair.UnmarshalFlag("env=prod")).To(Succeed())
+
+			Expect(flaghelpers.ApplyInstanceVars(&pipelineRef, []flaghelpers.YAMLVariablePairFlag{pair})).To(MatchError(
+				"instance vars specified both in pipeline name and via --instance-var",
+			))
+		})
+	})
 })

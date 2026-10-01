@@ -15,14 +15,18 @@ import (
 )
 
 type TriggerJobCommand struct {
-	Job   flaghelpers.JobFlag  `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to trigger"`
-	Watch bool                 `short:"w" long:"watch" description:"Start watching the build output"`
-	Team  flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
+	Job          flaghelpers.JobFlag                `short:"j" long:"job" required:"true" value-name:"PIPELINE/JOB" description:"Name of a job to trigger"`
+	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i" long:"instance-var" unquote:"false" value-name:"[NAME=YAML]" description:"Specify a YAML value for an instance variable (can be specified multiple times)"`
+	Watch        bool                               `short:"w" long:"watch" description:"Start watching the build output"`
+	Team         flaghelpers.TeamFlag               `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
 }
 
 func (command *TriggerJobCommand) Execute(args []string) error {
 	jobName := command.Job.JobName
 	pipelineRef := command.Job.PipelineRef
+	if err := flaghelpers.ApplyInstanceVars(&pipelineRef, command.InstanceVars); err != nil {
+		return err
+	}
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
