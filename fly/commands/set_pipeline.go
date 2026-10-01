@@ -10,7 +10,6 @@ import (
 	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
 	"github.com/concourse/concourse/fly/rc"
 	"github.com/concourse/concourse/go-concourse/concourse"
-	"github.com/concourse/concourse/vars"
 
 	"github.com/mgutz/ansi"
 )
@@ -79,14 +78,7 @@ func (command *SetPipelineCommand) Execute(args []string) error {
 
 	ansi.DisableColors(command.DisableAnsiColor)
 
-	var instanceVars atc.InstanceVars
-	if len(command.InstanceVars) != 0 {
-		var kvPairs vars.KVPairs
-		for _, iv := range command.InstanceVars {
-			kvPairs = append(kvPairs, vars.KVPair(iv))
-		}
-		instanceVars = atc.InstanceVars(kvPairs.Expand())
-	}
+	instanceVars := flaghelpers.InstanceVarsFromPairs(command.InstanceVars)
 
 	atcConfig := setpipelinehelpers.ATCConfig{
 		Team: team,
