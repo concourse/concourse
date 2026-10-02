@@ -103,20 +103,22 @@ func rejoinQuotedGroups(values []string) []string {
 			continue
 		}
 
-		joined := value
-		last := i
-		for (len(joined) < 2 || !strings.HasSuffix(joined, `"`)) && last+1 < len(values) {
-			last++
-			joined += "," + values[last]
-		}
+		for last := i; last < len(values); last++ {
+			// A lone opening quote cannot also close the group.
+			if last == i && len(value) == 1 {
+				continue
+			}
+			if !strings.HasSuffix(values[last], `"`) {
+				continue
+			}
 
-		if len(joined) >= 2 && strings.HasSuffix(joined, `"`) {
-			groups = append(groups, joined[1:len(joined)-1])
+			joined := strings.Join(values[i:last+1], ",")
+			value = joined[1 : len(joined)-1]
 			i = last
-		} else {
-			// no closing quote; leave the value untouched
-			groups = append(groups, value)
+			break
 		}
+		// Without a closing quote, the original value is left untouched.
+		groups = append(groups, value)
 	}
 
 	return groups
