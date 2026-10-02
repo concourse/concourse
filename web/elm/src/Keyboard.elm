@@ -8,7 +8,6 @@ module Keyboard exposing
 
 import Concourse
 import Json.Decode
-import Json.Encode
 
 
 type alias KeyEvent =
@@ -45,6 +44,7 @@ type KeyCode
     | ArrowDown
     | Enter
     | Escape
+    | Unknown String
 
 
 decodeKeyCode : Json.Decode.Decoder KeyCode
@@ -95,9 +95,7 @@ decodeKeyCode =
                     Ok Escape
 
                 unknown ->
-                    Err <|
-                        Json.Decode.Failure "unknown keycode" <|
-                            Json.Encode.string unknown
+                    Ok (Unknown unknown)
 
 
 hasControlModifier : KeyEvent -> Bool

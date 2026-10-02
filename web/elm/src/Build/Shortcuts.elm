@@ -108,12 +108,11 @@ handleDelivery delivery ( model, effects ) =
             handleKeyPressed keyEvent ( model, effects )
 
         KeyUp keyEvent ->
-            case keyEvent.code of
-                Keyboard.T ->
-                    ( { model | isTriggerBuildKeyDown = False }, effects )
+            if keyEvent.key == "t" || keyEvent.key == "T" then
+                ( { model | isTriggerBuildKeyDown = False }, effects )
 
-                _ ->
-                    ( model, effects )
+            else
+                ( model, effects )
 
         _ ->
             ( model, effects )
