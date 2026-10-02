@@ -1682,9 +1682,9 @@ var _ = Describe("Pipelines API", func() {
 
 				It("renames the pipeline to the name provided", func() {
 					Expect(fakeTeam.RenamePipelineCallCount()).To(Equal(1))
-					oldName, newName := fakeTeam.RenamePipelineArgsForCall(0)
-					Expect(oldName).To(Equal("a-pipeline"))
-					Expect(newName).To(Equal("some-new-name"))
+					oldRef, newRef := fakeTeam.RenamePipelineArgsForCall(0)
+					Expect(oldRef).To(Equal(atc.PipelineRef{Name: "a-pipeline"}))
+					Expect(newRef).To(Equal(atc.PipelineRef{Name: "some-new-name"}))
 				})
 
 				It("returns 200", func() {
@@ -1708,6 +1708,16 @@ var _ = Describe("Pipelines API", func() {
 
 					It("returns a 500 internal server error", func() {
 						Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("when the rename would conflict with an existing pipeline ref", func() {
+					BeforeEach(func() {
+						fakeTeam.RenamePipelineReturns(false, db.ErrPipelineRefConflict)
+					})
+
+					It("returns a 400 bad request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 					})
 				})
 

@@ -14,16 +14,19 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/gobwas/glob"
+	"github.com/jackc/pgerrcode"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/atc/db/encryption"
 	"github.com/concourse/concourse/atc/db/lock"
 	"github.com/concourse/concourse/atc/event"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var ErrConfigComparisonFailed = errors.New("comparison with existing config failed during save")
+var ErrPipelineRefConflict = errors.New("a pipeline with that name and instance vars already exists")
 
 type ErrPipelineNotFound atc.PipelineRef
 
@@ -48,7 +51,7 @@ type Team interface {
 		from ConfigVersion,
 		initiallyPaused bool,
 	) (Pipeline, bool, error)
-	RenamePipeline(oldName string, newName string) (bool, error)
+	RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, error)
 
 	Pipeline(pipelineRef atc.PipelineRef) (Pipeline, bool, error)
 	Pipelines() ([]Pipeline, error)
@@ -666,16 +669,46 @@ func (t *team) SavePipeline(
 	return pipeline, isNewPipeline, nil
 }
 
-func (t *team) RenamePipeline(oldName, newName string) (bool, error) {
-	result, err := psql.Update("pipelines").
-		Set("name", newName).
+func (t *team) RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, error) {
+	query := psql.Update("pipelines").
+		Set("name", newRef.Name).
 		Where(sq.Eq{
 			"team_id": t.id,
-			"name":    oldName,
-		}).
+			"name":    oldRef.Name,
+		})
+
+	if oldRef.InstanceVars != nil {
+		oldInstanceVarsBytes, err := json.Marshal(oldRef.InstanceVars)
+		if err != nil {
+			return false, err
+		}
+
+		query = query.Where(sq.Eq{
+			"instance_vars": sql.NullString{String: string(oldInstanceVarsBytes), Valid: true},
+		})
+	}
+
+	if oldRef.InstanceVars != nil || newRef.InstanceVars != nil {
+		var newInstanceVars sql.NullString
+		if newRef.InstanceVars != nil {
+			newInstanceVarsBytes, err := json.Marshal(newRef.InstanceVars)
+			if err != nil {
+				return false, err
+			}
+
+			newInstanceVars = sql.NullString{String: string(newInstanceVarsBytes), Valid: true}
+		}
+
+		query = query.Set("instance_vars", newInstanceVars)
+	}
+
+	result, err := query.
 		RunWith(t.conn).
 		Exec()
 	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == pgerrcode.UniqueViolation {
+			return false, ErrPipelineRefConflict
+		}
 		return false, err
 	}
 	rowsAffected, err := result.RowsAffected()
@@ -1416,6 +1449,8 @@ func scanPipeline(p *pipeline, scan scannable) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		p.instanceVars = nil
 	}
 
 	if pausedBy.Valid {

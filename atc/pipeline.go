@@ -37,7 +37,8 @@ func (p Pipeline) Ref() PipelineRef {
 }
 
 type RenameRequest struct {
-	NewName string `json:"name"`
+	NewName         string       `json:"name"`
+	NewInstanceVars InstanceVars `json:"instance_vars,omitempty"`
 }
 
 type InstanceVars map[string]any
