@@ -6,6 +6,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/atc/auditor"
 	"github.com/concourse/concourse/atc/db/lock"
 )
 
@@ -20,10 +22,11 @@ type PipelineLifecycle interface {
 	DestroyArchivedPipelines(time.Duration) error
 }
 
-func NewPipelineLifecycle(conn DbConn, lockFactory lock.LockFactory) PipelineLifecycle {
+func NewPipelineLifecycle(conn DbConn, lockFactory lock.LockFactory, aud auditor.Auditor) PipelineLifecycle {
 	return &pipelineLifecycle{
 		conn:        conn,
 		lockFactory: lockFactory,
+		auditor:     aud,
 	}
 }
 
@@ -32,6 +35,7 @@ var _ PipelineLifecycle = (*pipelineLifecycle)(nil)
 type pipelineLifecycle struct {
 	conn        DbConn
 	lockFactory lock.LockFactory
+	auditor     auditor.Auditor
 }
 
 func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
@@ -82,7 +86,7 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	}
 	defer pipelinesToArchive.Close()
 
-	err = archivePipelines(tx, pl.conn, pl.lockFactory, pipelinesToArchive)
+	archived, err := archivePipelines(tx, pl.conn, pl.lockFactory, pipelinesToArchive)
 	if err != nil {
 		return err
 	}
@@ -92,15 +96,23 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 		return err
 	}
 
+	for _, p := range archived {
+		pl.auditor.AuditInternal(atc.ArchivePipeline, map[string][]string{
+			":pipeline_name": {p.name},
+			":team_name":     {p.teamName},
+			":triggered_by":  {"abandoned-pipeline-gc"},
+		})
+	}
+
 	return nil
 }
 
-func archivePipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) error {
+func archivePipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) ([]pipeline, error) {
 	var toArchive []pipeline
 	for rows.Next() {
 		p := newPipeline(conn, lockFactory)
 		if err := scanPipeline(p, rows); err != nil {
-			return err
+			return nil, err
 		}
 
 		toArchive = append(toArchive, *p)
@@ -109,11 +121,11 @@ func archivePipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sq
 	for _, pipeline := range toArchive {
 		err := pipeline.archive(tx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return toArchive, nil
 }
 
 func (p *pipelineLifecycle) RemoveBuildEventsForDeletedPipelines() error {
