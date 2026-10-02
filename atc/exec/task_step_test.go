@@ -1084,6 +1084,21 @@ var _ = Describe("TaskStep", func() {
 				Expect(chosenContainer.Spec.ImageSpec).To(Equal(fetchedImageSpec))
 			})
 
+			Context("when fetching the image fails", func() {
+				var fetchErr error
+
+				BeforeEach(func() {
+					fetchErr = errors.New("image fetch failed")
+					fakeDelegate.FetchImageReturns(runtime.ImageSpec{}, fetchErr)
+				})
+
+				It("adds context and preserves the fetch error", func() {
+					Expect(stepOk).To(BeFalse())
+					Expect(stepErr).To(MatchError("failed to fetch task image_resource: image fetch failed"))
+					Expect(errors.Is(stepErr, fetchErr)).To(BeTrue())
+				})
+			})
+
 			Context("when privileged", func() {
 				BeforeEach(func() {
 					taskPlan.Privileged = true
