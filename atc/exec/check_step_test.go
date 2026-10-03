@@ -841,8 +841,26 @@ var _ = Describe("CheckStep", func() {
 		})
 
 		Context("having cred evaluation failing", func() {
-			It("errors", func() {
-				Expect(stepErr).To(HaveOccurred())
+			It("names the resource and the missing var", func() {
+				Expect(stepErr).To(MatchError(ContainSubstring(`evaluating source for resource "some-name" (type "some-base-type")`)))
+				Expect(stepErr).To(MatchError(ContainSubstring("undefined vars: missing-cred")))
+			})
+		})
+
+		Context("when the check is for a task image", func() {
+			BeforeEach(func() {
+				checkPlan.Resource = ""
+				checkPlan.Type = "registry-image"
+				checkPlan.Source = atc.Source{
+					"repository": "((unresolved_variable))",
+					"password":   "secret-token",
+				}
+			})
+
+			It("names the image instead of a pipeline resource", func() {
+				Expect(stepErr).To(MatchError(ContainSubstring(`evaluating source for image "((unresolved_variable))" (type "registry-image")`)))
+				Expect(stepErr).To(MatchError(ContainSubstring("undefined vars: unresolved_variable")))
+				Expect(stepErr.Error()).NotTo(ContainSubstring("secret-token"))
 			})
 		})
 	})
