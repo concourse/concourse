@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
@@ -442,6 +443,11 @@ func (repo *repository) StreamIn(ctx context.Context,
 	}
 
 	destinationPath := filepath.Join(volume.DataPath(), filepath.Clean("/"+path))
+	if !strings.HasPrefix(destinationPath, volume.DataPath()) {
+		err = fmt.Errorf("path '%s' is outside the volume data path '%s'", destinationPath, volume.DataPath())
+		logger.Error("path-outside-volume", err)
+		return false, err
+	}
 
 	logger = logger.WithData(lager.Data{
 		"full-path": destinationPath,
@@ -531,6 +537,11 @@ func (repo *repository) StreamOut(ctx context.Context,
 	}
 
 	srcPath := filepath.Join(volume.DataPath(), filepath.Clean("/"+path))
+	if !strings.HasPrefix(srcPath, volume.DataPath()) {
+		err = fmt.Errorf("path '%s' is outside the volume data path '%s'", srcPath, volume.DataPath())
+		logger.Error("path-outside-volume", err)
+		return err
+	}
 
 	logger = logger.WithData(lager.Data{
 		"full-path": srcPath,
@@ -590,6 +601,11 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	}
 
 	srcPath := filepath.Join(volume.DataPath(), filepath.Clean("/"+path))
+	if !strings.HasPrefix(srcPath, volume.DataPath()) {
+		err = fmt.Errorf("path '%s' is outside the volume data path '%s'", srcPath, volume.DataPath())
+		logger.Error("path-outside-volume", err)
+		return err
+	}
 
 	logger = logger.WithData(lager.Data{
 		"full-path": srcPath,
