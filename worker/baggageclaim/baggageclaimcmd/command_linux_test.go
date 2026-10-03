@@ -6,9 +6,9 @@ import (
 	"os/exec"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/worker/baggageclaim/baggageclaimcmd"
-	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
-	bespec "github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/baggageclaimcmd"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
+	bespec "github.com/concourse/concourse/v8/worker/runtime/spec"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

@@ -19,8 +19,8 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
 	"sigs.k8s.io/yaml"
 
-	. "github.com/concourse/concourse/topgun"
-	. "github.com/concourse/concourse/topgun/common"
+	. "github.com/concourse/concourse/v8/topgun"
+	. "github.com/concourse/concourse/v8/topgun/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

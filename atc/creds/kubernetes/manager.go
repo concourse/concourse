@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"

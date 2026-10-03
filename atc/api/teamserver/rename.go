@@ -5,9 +5,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/concourse/concourse/atc"
-	. "github.com/concourse/concourse/atc/api/helpers"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	. "github.com/concourse/concourse/v8/atc/api/helpers"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 func (s *Server) RenameTeam(team db.Team) http.Handler {

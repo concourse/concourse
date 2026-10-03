@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/flag"
 	"github.com/concourse/dex/connector/saml"
 	multierror "github.com/hashicorp/go-multierror"
 )

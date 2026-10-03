@@ -12,9 +12,9 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/tedsuo/rata"
 )
 

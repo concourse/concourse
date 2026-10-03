@@ -11,12 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/concourse/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/v8/go-archive/tgzfs"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/uidgid/uidgidfakes"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/concourse/worker/baggageclaim/volume/volumefakes"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid/uidgidfakes"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/volumefakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

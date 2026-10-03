@@ -4,7 +4,7 @@ package dbfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 

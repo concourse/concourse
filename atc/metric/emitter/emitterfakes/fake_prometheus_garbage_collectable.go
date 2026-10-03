@@ -4,7 +4,7 @@ package emitterfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/metric/emitter"
+	"github.com/concourse/concourse/v8/atc/metric/emitter"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

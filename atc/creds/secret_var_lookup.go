@@ -1,7 +1,7 @@
 package creds
 
 import (
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/vars"
 )
 
 var _ vars.Variables = (*VariableLookupFromSecrets)(nil)

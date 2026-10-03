@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"text/template"
 
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 var (

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/vault"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/vault"
+	"github.com/concourse/concourse/v8/vars"
 	vaultapi "github.com/hashicorp/vault/api"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

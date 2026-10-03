@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 
 	v1 "k8s.io/api/core/v1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"

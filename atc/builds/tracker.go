@@ -8,9 +8,9 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/util"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/metric"
+	"github.com/concourse/concourse/v8/atc/util"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate

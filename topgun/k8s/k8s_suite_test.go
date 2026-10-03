@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/v8/topgun"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 

@@ -3,8 +3,8 @@ package worker_test
 import (
 	"testing"
 
-	"github.com/concourse/concourse/integration/internal/dctest"
-	"github.com/concourse/concourse/integration/internal/flytest"
+	"github.com/concourse/concourse/v8/integration/internal/dctest"
+	"github.com/concourse/concourse/v8/integration/internal/flytest"
 )
 
 func TestTags_EmptyString(t *testing.T) {

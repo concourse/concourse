@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/concourse/concourse"
+	"github.com/concourse/concourse/v8"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/vito/twentythousandtonnesofcrudeoil"
 )

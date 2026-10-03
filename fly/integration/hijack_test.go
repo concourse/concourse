@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 	"github.com/gorilla/websocket"
 	"github.com/mgutz/ansi"
 	. "github.com/onsi/ginkgo/v2"

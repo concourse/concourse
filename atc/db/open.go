@@ -10,9 +10,9 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc/db/encryption"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/migration"
+	"github.com/concourse/concourse/v8/atc/db/encryption"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/db/migration"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"

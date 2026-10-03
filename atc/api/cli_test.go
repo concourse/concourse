@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	. "github.com/concourse/concourse/atc/testhelpers"
-	"github.com/concourse/concourse/go-archive/archivetest"
+	. "github.com/concourse/concourse/v8/atc/testhelpers"
+	"github.com/concourse/concourse/v8/go-archive/archivetest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

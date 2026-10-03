@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/concourse/concourse/v8/worker/runtime/spec"
 	"github.com/opencontainers/cgroups"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"

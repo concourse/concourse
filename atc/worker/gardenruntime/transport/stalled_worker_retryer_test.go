@@ -3,7 +3,7 @@ package transport_test
 import (
 	"errors"
 
-	"github.com/concourse/concourse/atc/worker/gardenruntime/transport"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/transport"
 	"github.com/concourse/retryhttp"
 	"github.com/concourse/retryhttp/retryhttpfakes"
 

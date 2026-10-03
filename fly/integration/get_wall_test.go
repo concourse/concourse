@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

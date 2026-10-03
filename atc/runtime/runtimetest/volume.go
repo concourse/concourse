@@ -14,10 +14,10 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/concourse/concourse/atc/compression"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc/compression"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 )
 
 type VolumeContent fstest.MapFS

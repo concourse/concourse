@@ -4,14 +4,14 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/compression"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbtest"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/worker/gardenruntime"
-	"github.com/concourse/concourse/atc/worker/workertest"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/compression"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbtest"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/worker"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime"
+	"github.com/concourse/concourse/v8/atc/worker/workertest"
 
 	. "github.com/onsi/gomega"
 )

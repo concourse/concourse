@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/concourse/atc/engine"
+	"github.com/concourse/concourse/v8/atc/engine"
 )
 
 type FakeRateLimiter struct {

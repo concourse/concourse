@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd"
-	"github.com/concourse/concourse/worker/workercmd"
+	"github.com/concourse/concourse/v8/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd"
+	"github.com/concourse/concourse/v8/worker/workercmd"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/jackpal/gateway"
 	"github.com/opencontainers/runtime-spec/specs-go"

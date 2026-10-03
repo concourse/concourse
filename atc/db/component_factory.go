@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 )
 
 //counterfeiter:generate . ComponentFactory

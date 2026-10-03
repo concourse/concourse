@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/v8/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd/libcontainerdfakes"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

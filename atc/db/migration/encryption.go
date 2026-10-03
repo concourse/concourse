@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/db/encryption"
+	"github.com/concourse/concourse/v8/atc/db/encryption"
 )
 
 var encryptedColumns = []encryptedColumn{

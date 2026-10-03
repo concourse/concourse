@@ -7,8 +7,8 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/transport/transportfakes"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/transport/transportfakes"
 	"github.com/concourse/retryhttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

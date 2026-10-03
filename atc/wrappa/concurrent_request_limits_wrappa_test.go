@@ -6,10 +6,10 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/concourse/atc/wrappa/wrappafakes"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/metric"
+	"github.com/concourse/concourse/v8/atc/wrappa"
+	"github.com/concourse/concourse/v8/atc/wrappa/wrappafakes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

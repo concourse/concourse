@@ -4,8 +4,8 @@ package accessorfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/api/accessor"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 type FakeTeamFetcher struct {

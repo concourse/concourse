@@ -3,8 +3,8 @@ package wrappa
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/auth"
 	"github.com/tedsuo/rata"
 )
 

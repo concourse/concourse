@@ -4,7 +4,7 @@ package iptablesfakes
 import (
 	"sync"
 
-	"github.com/concourse/concourse/worker/runtime/iptables"
+	"github.com/concourse/concourse/v8/worker/runtime/iptables"
 )
 
 type FakeIptables struct {

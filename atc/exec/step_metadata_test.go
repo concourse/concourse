@@ -3,7 +3,7 @@ package exec_test
 import (
 	"net/url"
 
-	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/v8/atc/exec"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

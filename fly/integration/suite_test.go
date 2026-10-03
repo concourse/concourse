@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/fly/rc"
+	"github.com/concourse/concourse/v8/skymarshal/token"
 	"github.com/go-jose/go-jose/v4/jwt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -42,7 +42,7 @@ const workerVersion = "4.5.6"
 const bytesSeparator = "BYTES_SEPARATOR"
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	binPath, err := gexec.Build("github.com/concourse/concourse/fly", "-buildvcs=false")
+	binPath, err := gexec.Build("github.com/concourse/concourse/v8/fly", "-buildvcs=false")
 	Expect(err).NotTo(HaveOccurred())
 
 	key, err := pkix.CreateRSAKey(1024)

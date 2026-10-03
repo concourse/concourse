@@ -1,7 +1,7 @@
 package flag_test
 
 import (
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/flag"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

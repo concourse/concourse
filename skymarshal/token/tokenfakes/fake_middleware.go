@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/v8/skymarshal/token"
 )
 
 type FakeMiddleware struct {

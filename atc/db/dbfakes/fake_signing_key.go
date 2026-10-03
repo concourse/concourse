@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 	jose "github.com/go-jose/go-jose/v4"
 )
 

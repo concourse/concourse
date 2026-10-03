@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	. "github.com/concourse/concourse/topgun/common"
+	. "github.com/concourse/concourse/v8/topgun/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"

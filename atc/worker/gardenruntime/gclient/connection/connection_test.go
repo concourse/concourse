@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	. "github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/connection/connectionfakes"
+	. "github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient/connection"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient/connection/connectionfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
