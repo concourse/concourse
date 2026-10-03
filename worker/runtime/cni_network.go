@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/concourse/concourse/v8/worker/runtime/iptables"
+	"github.com/concourse/concourse/v8/worker/runtime/nftables"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/go-cni"
 	"github.com/containernetworking/cni/pkg/types"
@@ -75,6 +76,21 @@ const (
 	networkMountsDir = "networkmounts"
 
 	ipTablesAdminChainName = "CONCOURSE-OPERATOR"
+
+	// FirewallBackendAuto uses nftables when the worker can create its table,
+	// and otherwise keeps the iptables rules.
+	FirewallBackendAuto = "auto"
+
+	// FirewallBackendIPTables is the CNI firewall plugin plus the worker's
+	// iptables admin chain.
+	FirewallBackendIPTables = "iptables"
+
+	// FirewallBackendNFTables writes the worker policy with nftables and leaves
+	// the CNI firewall plugin out of the network config. The bridge plugin
+	// masquerades through nftables on CNI plugins >= v1.6.0.
+	FirewallBackendNFTables = "nftables"
+
+	ipMasqBackendNFTables = "nftables"
 )
 
 var (
@@ -121,11 +137,12 @@ type Plugin struct {
 
 type BridgePlugin struct {
 	Plugin
-	Bridge    string `json:"bridge"`
-	IsGateway bool   `json:"isGateway"`
-	IPMasq    bool   `json:"ipMasq"`
-	IPAM      IPAM   `json:"ipam"`
-	MTU       int    `json:"mtu,omitempty"`
+	Bridge        string `json:"bridge"`
+	IsGateway     bool   `json:"isGateway"`
+	IPMasq        bool   `json:"ipMasq"`
+	IPMasqBackend string `json:"ipMasqBackend,omitempty"`
+	IPAM          IPAM   `json:"ipam"`
+	MTU           int    `json:"mtu,omitempty"`
 }
 
 type FirewallPlugin struct {
@@ -144,86 +161,73 @@ type Range struct {
 }
 
 func (c CNINetworkConfig) ToJSONv4() string {
-	_, subnet, err := net.ParseCIDR(c.IPv4.Subnet)
-	if err != nil {
-		_, subnet, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv4.Subnet)
-	}
-
-	ranges := [][]Range{
-		{{Subnet: types.IPNet(*subnet)}},
-	}
-
-	routes := []types.Route{
-		{Dst: *subnet},
-		{Dst: *defaultRouteV4},
-	}
-
-	bridgePlugin := BridgePlugin{
-		Plugin:    Plugin{"bridge"},
-		Bridge:    c.BridgeName,
-		IsGateway: true,
-		IPMasq:    true,
-		MTU:       c.MTU,
-		IPAM: IPAM{
-			Type:   "host-local",
-			Ranges: ranges,
-			Routes: routes,
-		},
-	}
-
-	netConfig := CNINetworkConfiguration{
-		Name:       c.NetworkName,
-		CNIVersion: "0.4.0",
-		Plugins: []any{
-			bridgePlugin,
-			defaultFirewallPlugin,
-		},
-	}
-
-	config, _ := json.Marshal(netConfig)
-
-	return string(config)
+	return c.CNIConfigList(FirewallBackendIPTables, false)
 }
 
 func (c CNINetworkConfig) ToJSONv6() string {
-	_, subnet, err := net.ParseCIDR(c.IPv6.Subnet)
-	if err != nil {
-		_, subnet, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv6.Subnet)
-	}
+	return c.CNIConfigList(FirewallBackendIPTables, true)
+}
 
-	ranges := [][]Range{
-		{{Subnet: types.IPNet(*subnet)}},
-	}
+// CNIConfigList is the CNI conflist for one address family. backend is
+// FirewallBackendIPTables or FirewallBackendNFTables.
+func (c CNINetworkConfig) CNIConfigList(backend string, ipv6 bool) string {
+	var subnet *net.IPNet
+	var routes []types.Route
+	var ipMasq bool
+	var err error
 
-	routes := []types.Route{
-		{Dst: *subnet},
-		{Dst: *defaultRouteV6},
+	if ipv6 {
+		_, subnet, err = net.ParseCIDR(c.IPv6.Subnet)
+		if err != nil {
+			_, subnet, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv6.Subnet)
+		}
+		routes = []types.Route{
+			{Dst: *subnet},
+			{Dst: *defaultRouteV6},
+		}
+		ipMasq = c.IPv6.IPMasq
+	} else {
+		_, subnet, err = net.ParseCIDR(c.IPv4.Subnet)
+		if err != nil {
+			_, subnet, _ = net.ParseCIDR(DefaultCNINetworkConfig.IPv4.Subnet)
+		}
+		routes = []types.Route{
+			{Dst: *subnet},
+			{Dst: *defaultRouteV4},
+		}
+		ipMasq = true
 	}
 
 	bridgePlugin := BridgePlugin{
 		Plugin:    Plugin{"bridge"},
 		Bridge:    c.BridgeName,
 		IsGateway: true,
-		IPMasq:    c.IPv6.IPMasq,
+		IPMasq:    ipMasq,
 		MTU:       c.MTU,
 		IPAM: IPAM{
-			Type:   "host-local",
-			Ranges: ranges,
+			Type: "host-local",
+			Ranges: [][]Range{
+				{{Subnet: types.IPNet(*subnet)}},
+			},
 			Routes: routes,
 		},
+	}
+	if backend == FirewallBackendNFTables && ipMasq {
+		bridgePlugin.IPMasqBackend = ipMasqBackendNFTables
+	}
+
+	plugins := []any{bridgePlugin}
+	if backend != FirewallBackendNFTables {
+		plugins = append(plugins, defaultFirewallPlugin)
 	}
 
 	netConfig := CNINetworkConfiguration{
 		Name:       c.NetworkName,
 		CNIVersion: "0.4.0",
-		Plugins: []any{
-			bridgePlugin,
-			defaultFirewallPlugin,
-		},
+		Plugins:    plugins,
 	}
 
 	config, _ := json.Marshal(netConfig)
-
 	return string(config)
 }
 
@@ -306,6 +310,44 @@ func WithAllowHostAccess() CNINetworkOpt {
 func WithIptables(ipt iptables.Iptables) CNINetworkOpt {
 	return func(n *cniNetwork) {
 		n.ipt = ipt
+		// Tests pass a fake and expect the iptables rules. An empty backend
+		// would probe nftables and skip those calls on a host where nft works.
+		if n.firewallBackend == "" {
+			n.firewallBackend = FirewallBackendIPTables
+		}
+	}
+}
+
+// WithFirewallBackend selects auto, iptables, or nftables. An empty value is auto.
+func WithFirewallBackend(backend string) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.firewallBackend = backend
+	}
+}
+
+// WithNFTables uses an already constructed nftables client and selects the nftables backend
+// unless a backend was set explicitly.
+func WithNFTables(fw nftables.Firewall) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.nft = fw
+		if n.firewallBackend == "" || n.firewallBackend == FirewallBackendAuto {
+			n.firewallBackend = FirewallBackendNFTables
+		}
+	}
+}
+
+// WithNFTFactory replaces nftables.New. Tests use it to force a probe result.
+func WithNFTFactory(factory func() (nftables.Firewall, error)) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.nftFactory = factory
+	}
+}
+
+// WithFirewallFallback is called when auto mode cannot initialize nftables and
+// the worker continues with iptables.
+func WithFirewallFallback(fn func(error)) CNINetworkOpt {
+	return func(n *cniNetwork) {
+		n.onFirewallFallback = fn
 	}
 }
 
@@ -330,7 +372,11 @@ type cniNetwork struct {
 	binariesDir        string
 	restrictedNetworks []string
 	allowHostAccess    bool
+	firewallBackend    string
 	ipt                iptables.Iptables
+	nft                nftables.Firewall
+	nftFactory         func() (nftables.Firewall, error)
+	onFirewallFallback func(error)
 }
 
 var _ Network = (*cniNetwork)(nil)
@@ -354,38 +400,98 @@ func NewCNINetwork(opts ...CNINetworkOpt) (*cniNetwork, error) {
 		return nil, fmt.Errorf("no file store initialized")
 	}
 
+	if err = n.selectFirewallBackend(); err != nil {
+		return nil, err
+	}
+
 	if n.client == nil {
 		n.client, err = cni.New(cni.WithPluginDir([]string{n.binariesDir}))
 		if err != nil {
 			return nil, fmt.Errorf("cni init: %w", err)
 		}
 
-		opts := []cni.Opt{
-			cni.WithConfListBytes([]byte(n.config.ToJSONv4())),
+		cniOpts := []cni.Opt{
+			cni.WithConfListBytes([]byte(n.config.CNIConfigList(n.firewallBackend, false))),
 			cni.WithLoNetwork,
 		}
 		if n.config.IPv6.Enabled {
-			opts = append(opts, cni.WithConfListBytes([]byte(n.config.ToJSONv6())))
+			cniOpts = append(cniOpts, cni.WithConfListBytes([]byte(n.config.CNIConfigList(n.firewallBackend, true))))
 		}
 
-		err = n.client.Load(opts...)
+		err = n.client.Load(cniOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("cni configuration loading: %w", err)
-		}
-	}
-
-	if n.ipt == nil {
-		n.ipt, err = iptables.New()
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize iptables: %w", err)
 		}
 	}
 
 	return n, nil
 }
 
+func (n *cniNetwork) selectFirewallBackend() error {
+	switch n.firewallBackend {
+	case "", FirewallBackendAuto:
+		factory := n.nftFactory
+		if factory == nil {
+			factory = nftables.New
+		}
+
+		fw, err := factory()
+		if err != nil {
+			if n.onFirewallFallback != nil {
+				n.onFirewallFallback(err)
+			}
+			n.firewallBackend = FirewallBackendIPTables
+			return n.ensureIptables()
+		}
+
+		n.nft = fw
+		n.firewallBackend = FirewallBackendNFTables
+		return nil
+	case FirewallBackendNFTables:
+		if n.nft != nil {
+			return nil
+		}
+
+		factory := n.nftFactory
+		if factory == nil {
+			factory = nftables.New
+		}
+
+		fw, err := factory()
+		if err != nil {
+			return fmt.Errorf("nftables firewall backend: %w", err)
+		}
+		n.nft = fw
+		return nil
+	case FirewallBackendIPTables:
+		return n.ensureIptables()
+	default:
+		return fmt.Errorf("unknown firewall backend %q", n.firewallBackend)
+	}
+}
+
+func (n *cniNetwork) ensureIptables() error {
+	if n.ipt != nil {
+		return nil
+	}
+
+	ipt, err := iptables.New()
+	if err != nil {
+		return fmt.Errorf("failed to initialize iptables: %w", err)
+	}
+	n.ipt = ipt
+	return nil
+}
+
 func (n cniNetwork) SetupHostNetwork() error {
+	if n.firewallBackend == FirewallBackendNFTables {
+		err := n.nft.Setup(n.config.BridgeName, n.restrictedNetworks, n.allowHostAccess)
+		if err != nil {
+			return fmt.Errorf("setup nftables host network: %w", err)
+		}
+		return nil
+	}
+
 	err := n.setupRestrictedNetworks()
 	if err != nil {
 		return err
@@ -540,6 +646,13 @@ func (n cniNetwork) DropContainerTraffic(containerHandle string) error {
 		return errors.Join(ErrGettingContainerIP, err)
 	}
 
+	if n.firewallBackend == FirewallBackendNFTables {
+		if err := n.nft.DropSource(containerIp); err != nil {
+			return fmt.Errorf("error dropping container traffic: %w", err)
+		}
+		return nil
+	}
+
 	err = n.ipt.InsertRule(filterTable, "INPUT", 1, "-s", containerIp, "-j", "DROP")
 	if err != nil {
 		return fmt.Errorf("error inserting iptables rule to INPUT: %w", err)
@@ -557,6 +670,13 @@ func (n cniNetwork) ResumeContainerTraffic(containerHandle string) error {
 	containerIp, err := n.store.ContainerIpLookup(containerHandle)
 	if err != nil {
 		return errors.Join(ErrGettingContainerIP, err)
+	}
+
+	if n.firewallBackend == FirewallBackendNFTables {
+		if err := n.nft.DeleteDropSource(containerIp); err != nil {
+			return fmt.Errorf("error resuming container traffic: %w", err)
+		}
+		return nil
 	}
 
 	err = n.ipt.DeleteRule(filterTable, "INPUT", "-s", containerIp, "-j", "DROP")
@@ -591,6 +711,17 @@ func (n cniNetwork) Add(ctx context.Context, task containerd.Task, containerHand
 		return fmt.Errorf("cni net setup: no eth0 interface found")
 	}
 
+	if n.firewallBackend == FirewallBackendNFTables {
+		for _, ipCfg := range config.IPConfigs {
+			if ipCfg == nil || ipCfg.IP == nil {
+				continue
+			}
+			if err := n.nft.AcceptContainer(containerHandle, ipCfg.IP.String()); err != nil {
+				return fmt.Errorf("cni nftables setup: %w", err)
+			}
+		}
+	}
+
 	// Update /etc/hosts on container
 	// This could not be done earlier because we only have the container IP after the network has been setup
 	return n.store.Append(
@@ -610,6 +741,12 @@ func (n cniNetwork) Remove(ctx context.Context, task containerd.Task, handle str
 	err = n.store.Delete(handle)
 	if err != nil {
 		return fmt.Errorf("cni network mounts teardown: %w", err)
+	}
+
+	if n.firewallBackend == FirewallBackendNFTables {
+		if err := n.nft.ForgetContainer(handle); err != nil {
+			return fmt.Errorf("cni nftables teardown: %w", err)
+		}
 	}
 
 	err = n.client.Remove(ctx, id, netns)

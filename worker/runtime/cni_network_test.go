@@ -14,6 +14,7 @@ import (
 	"github.com/concourse/concourse/v8/worker/runtime"
 	"github.com/concourse/concourse/v8/worker/runtime/iptables/iptablesfakes"
 	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/v8/worker/runtime/nftables"
 	"github.com/concourse/concourse/v8/worker/runtime/runtimefakes"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
@@ -540,4 +541,180 @@ func (s *CNINetworkSuite) TestResumeContainerTrafficErrors() {
 	err = network.ResumeContainerTraffic("some-handle")
 	s.ErrorIs(err, runtime.ErrGettingContainerIP)
 
+}
+
+func (s *CNINetworkSuite) TestCNIConfigListIPTablesKeepsFirewallPlugin() {
+	got := runtime.DefaultCNINetworkConfig.CNIConfigList(runtime.FirewallBackendIPTables, false)
+
+	s.Contains(got, `"type":"firewall"`)
+	s.Contains(got, `"iptablesAdminChainName":"CONCOURSE-OPERATOR"`)
+	s.NotContains(got, "ipMasqBackend")
+}
+
+func (s *CNINetworkSuite) TestCNIConfigListNFTablesOmitsFirewallPlugin() {
+	v4 := runtime.DefaultCNINetworkConfig.CNIConfigList(runtime.FirewallBackendNFTables, false)
+	s.NotContains(v4, "firewall")
+	s.Contains(v4, `"ipMasqBackend":"nftables"`)
+	s.Contains(v4, `"ipMasq":true`)
+
+	withoutMasq := runtime.DefaultCNINetworkConfig
+	withoutMasq.IPv6.IPMasq = false
+	v6 := withoutMasq.CNIConfigList(runtime.FirewallBackendNFTables, true)
+	s.NotContains(v6, "firewall")
+	s.NotContains(v6, "ipMasqBackend")
+
+	withMasq := runtime.DefaultCNINetworkConfig
+	withMasq.IPv6.IPMasq = true
+	v6 = withMasq.CNIConfigList(runtime.FirewallBackendNFTables, true)
+	s.Contains(v6, `"ipMasqBackend":"nftables"`)
+}
+
+func (s *CNINetworkSuite) TestAutoUsesNFTablesWhenProbeSucceeds() {
+	fw := &fakeFirewall{}
+	var fallback error
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIClient(s.cni),
+		runtime.WithFirewallBackend(runtime.FirewallBackendAuto),
+		runtime.WithNFTFactory(func() (nftables.Firewall, error) {
+			return fw, nil
+		}),
+		runtime.WithFirewallFallback(func(err error) {
+			fallback = err
+		}),
+	)
+	s.NoError(err)
+	s.NoError(network.SetupHostNetwork())
+	s.Nil(fallback)
+	s.Equal(1, fw.setups)
+	s.Equal("concourse0", fw.bridge)
+	s.False(fw.allowHost)
+	s.Equal(0, s.iptables.CreateChainOrFlushIfExistsCallCount())
+}
+
+func (s *CNINetworkSuite) TestAutoFallsBackToIPTables() {
+	fw := &fakeFirewall{}
+	var fallback error
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIClient(s.cni),
+		runtime.WithFirewallBackend(runtime.FirewallBackendAuto),
+		runtime.WithIptables(s.iptables),
+		runtime.WithNFTFactory(func() (nftables.Firewall, error) {
+			return nil, errors.New("nft missing")
+		}),
+		runtime.WithFirewallFallback(func(err error) {
+			fallback = err
+		}),
+	)
+	s.NoError(err)
+	s.NoError(network.SetupHostNetwork())
+	s.EqualError(fallback, "nft missing")
+	s.Equal(0, fw.setups)
+	s.Greater(s.iptables.CreateChainOrFlushIfExistsCallCount(), 0)
+}
+
+func (s *CNINetworkSuite) TestNFTablesBackendFailsClosed() {
+	_, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIClient(s.cni),
+		runtime.WithFirewallBackend(runtime.FirewallBackendNFTables),
+		runtime.WithNFTFactory(func() (nftables.Firewall, error) {
+			return nil, errors.New("nft missing")
+		}),
+	)
+	s.Error(err)
+	s.ErrorContains(err, "nftables firewall backend")
+}
+
+func (s *CNINetworkSuite) TestUnknownFirewallBackend() {
+	_, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIClient(s.cni),
+		runtime.WithFirewallBackend("ipchains"),
+	)
+	s.EqualError(err, `unknown firewall backend "ipchains"`)
+}
+
+func (s *CNINetworkSuite) TestNFTablesHostNetworkAndContainerLifecycle() {
+	fw := &fakeFirewall{}
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIClient(s.cni),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithRestrictedNetworks([]string{"1.1.1.1"}),
+		runtime.WithNFTables(fw),
+	)
+	s.NoError(err)
+
+	s.NoError(network.SetupHostNetwork())
+	s.Equal("concourse0", fw.bridge)
+	s.Equal([]string{"1.1.1.1"}, fw.restricted)
+	s.False(fw.allowHost)
+
+	task := new(libcontainerdfakes.FakeTask)
+	task.PidReturns(123)
+	task.IDReturns("id")
+	result := &cni.Result{Interfaces: map[string]*cni.Config{
+		"eth0": {
+			IPConfigs: []*cni.IPConfig{
+				{IP: net.IPv4(10, 80, 0, 8)},
+				{IP: net.ParseIP("fd9c:31a6:c759::8")},
+			},
+		},
+	}}
+	s.cni.SetupReturns(result, nil)
+
+	s.NoError(network.Add(context.Background(), task, "some-handle"))
+	s.Equal([]string{"some-handle 10.80.0.8", "some-handle fd9c:31a6:c759::8"}, fw.accepted)
+
+	s.store.ContainerIpLookupReturns("10.80.0.8", nil)
+	s.NoError(network.DropContainerTraffic("some-handle"))
+	s.Equal([]string{"10.80.0.8"}, fw.dropped)
+
+	s.NoError(network.ResumeContainerTraffic("some-handle"))
+	s.Equal([]string{"10.80.0.8"}, fw.resumed)
+
+	s.NoError(network.Remove(context.Background(), task, "some-handle"))
+	s.Equal([]string{"some-handle"}, fw.forgotten)
+	s.Equal(0, s.iptables.InsertRuleCallCount())
+}
+
+type fakeFirewall struct {
+	setups     int
+	bridge     string
+	restricted []string
+	allowHost  bool
+	accepted   []string
+	forgotten  []string
+	dropped    []string
+	resumed    []string
+}
+
+func (f *fakeFirewall) Setup(bridge string, restricted []string, allowHostAccess bool) error {
+	f.setups++
+	f.bridge = bridge
+	f.restricted = restricted
+	f.allowHost = allowHostAccess
+	return nil
+}
+
+func (f *fakeFirewall) AcceptContainer(handle, ip string) error {
+	f.accepted = append(f.accepted, handle+" "+ip)
+	return nil
+}
+
+func (f *fakeFirewall) ForgetContainer(handle string) error {
+	f.forgotten = append(f.forgotten, handle)
+	return nil
+}
+
+func (f *fakeFirewall) DropSource(ip string) error {
+	f.dropped = append(f.dropped, ip)
+	return nil
+}
+
+func (f *fakeFirewall) DeleteDropSource(ip string) error {
+	f.resumed = append(f.resumed, ip)
+	return nil
 }

@@ -142,6 +142,16 @@ func (cmd *WorkerCommand) buildUpNetworkOpts(logger lager.Logger, dnsServers []s
 		networkOpts = append(networkOpts, runtime.WithAllowHostAccess())
 	}
 
+	networkOpts = append(networkOpts,
+		runtime.WithFirewallBackend(cmd.Containerd.Network.FirewallBackend),
+		runtime.WithFirewallFallback(func(err error) {
+			logger.Info("nftables-unavailable", lager.Data{
+				"error":    err.Error(),
+				"fallback": runtime.FirewallBackendIPTables,
+			})
+		}),
+	)
+
 	networkConfig := runtime.DefaultCNINetworkConfig
 	if cmd.Containerd.Network.Pool != "" {
 		networkConfig.IPv4.Subnet = cmd.Containerd.Network.Pool

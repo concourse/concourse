@@ -22,6 +22,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"github.com/concourse/concourse/v8/worker/runtime"
 	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd"
+	"github.com/concourse/concourse/v8/worker/runtime/nftables"
 	"github.com/concourse/concourse/v8/worker/workercmd"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/jackpal/gateway"
@@ -165,6 +166,7 @@ func (s *IntegrationSuite) cleanupIptables() {
 	exec.Command("iptables", "-F").Run()
 	//Delete all user-defined chains
 	exec.Command("iptables", "-X").Run()
+	exec.Command("nft", "delete", "table", "inet", nftables.TableName).Run()
 }
 
 func (s *IntegrationSuite) TestPing() {
