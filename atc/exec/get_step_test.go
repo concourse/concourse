@@ -208,9 +208,77 @@ var _ = Describe("GetStep", func() {
 		})
 
 		Context("when the version does not exist in the build results", func() {
-			It("can't resolve version and errors", func() {
-				Expect(stepErr).To(Equal(exec.ErrResultMissing))
+			It("names the resource the version was supposed to come from", func() {
+				Expect(errors.Is(stepErr, exec.ErrResultMissing)).To(BeTrue())
+				Expect(stepErr).To(MatchError(ContainSubstring(`resource "some-resource"`)))
+				Expect(stepErr.Error()).NotTo(ContainSubstring("version is missing from previous step"))
 			})
+		})
+
+		Context("when the get is an image fetch and the check produced no version", func() {
+			BeforeEach(func() {
+				getPlan.Resource = ""
+				getPlan.Type = "registry-image"
+				getPlan.Source = atc.Source{
+					"repository":      "invalid/image/path",
+					"tag":             "no-such-tag",
+					"password":        "secret-token",
+					"registry_mirror": map[string]any{"password": "mirror-secret"},
+				}
+			})
+
+			It("names the image and omits credentials", func() {
+				Expect(errors.Is(stepErr, exec.ErrResultMissing)).To(BeTrue())
+				Expect(stepErr).To(MatchError(`unable to fetch image "invalid/image/path" (type "registry-image", tag: no-such-tag): no versions found. The image may not exist, or the repository or tag may be invalid`))
+			})
+
+			Context("when the repository value is an interpolated credential", func() {
+				BeforeEach(func() {
+					runState.AddLocalVar("repo", "super-secret-repo", true)
+					getPlan.Source = atc.Source{
+						"repository": "super-secret-repo",
+						"tag":        "v1",
+					}
+				})
+
+				It("redacts the credential", func() {
+					Expect(stepErr.Error()).NotTo(ContainSubstring("super-secret-repo"))
+					Expect(stepErr).To(MatchError(ContainSubstring("((redacted))")))
+					Expect(stepErr).To(MatchError(ContainSubstring("tag: v1")))
+				})
+			})
+		})
+
+		Context("when the image source has only a tag", func() {
+			BeforeEach(func() {
+				getPlan.Resource = ""
+				getPlan.Type = "registry-image"
+				getPlan.Source = atc.Source{
+					"tag":      "invalid-tag",
+					"password": "secret-token",
+				}
+			})
+
+			It("says the image source is incomplete", func() {
+				Expect(stepErr).To(MatchError(ContainSubstring(`image (type "registry-image", tag: invalid-tag)`)))
+				Expect(stepErr.Error()).NotTo(ContainSubstring("secret-token"))
+				Expect(stepErr.Error()).NotTo(ContainSubstring("version is missing from previous step"))
+			})
+		})
+	})
+
+	Context("when image source credentials cannot be evaluated", func() {
+		BeforeEach(func() {
+			getPlan.Resource = ""
+			getPlan.Version = nil
+			getPlan.Type = "registry-image"
+			getPlan.Source = atc.Source{"repository": "((missing-cred))", "password": "secret-token"}
+		})
+
+		It("names the image and the missing var", func() {
+			Expect(stepErr).To(MatchError(ContainSubstring(`evaluating source for image "((missing-cred))"`)))
+			Expect(stepErr).To(MatchError(ContainSubstring("undefined vars: missing-cred")))
+			Expect(stepErr.Error()).NotTo(ContainSubstring("secret-token"))
 		})
 	})
 

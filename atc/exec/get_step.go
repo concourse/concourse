@@ -145,12 +145,12 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return false, err
+		return false, wrapEvalError(state, "source", GetSubject(step.plan), err)
 	}
 
 	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return false, err
+		return false, wrapEvalError(state, "params", GetSubject(step.plan), err)
 	}
 
 	workerSpec := worker.Spec{
@@ -178,6 +178,12 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 
 	version, err := NewVersionSourceFromPlan(&step.plan).Version(state)
 	if err != nil {
+		// An image get has no pipeline resource. Its version comes from the
+		// image check, which exits 0 with no versions when the repository or
+		// tag does not exist. Say that, instead of blaming a previous step.
+		if errors.Is(err, ErrResultMissing) {
+			return false, withRedaction(state, missingVersionErrorFor(step.plan))
+		}
 		return false, err
 	}
 

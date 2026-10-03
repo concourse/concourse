@@ -114,12 +114,12 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return false, err
+		return false, wrapEvalError(state, "source", PutSubject(step.plan), err)
 	}
 
 	params, err := creds.NewParams(state, step.plan.Params).Evaluate()
 	if err != nil {
-		return false, err
+		return false, wrapEvalError(state, "params", PutSubject(step.plan), err)
 	}
 
 	var putInputs PutInputs

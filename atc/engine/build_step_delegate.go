@@ -264,7 +264,7 @@ func (delegate *buildStepDelegate) FetchImage(
 		}
 
 		if !ok {
-			return runtime.ImageSpec{}, nil, fmt.Errorf("image check failed")
+			return runtime.ImageSpec{}, nil, delegate.displayedError(exec.ImageCheckFailed(getPlan.Get.Type, getPlan.Get.Source))
 		}
 	}
 
@@ -274,7 +274,7 @@ func (delegate *buildStepDelegate) FetchImage(
 	}
 
 	if !ok {
-		return runtime.ImageSpec{}, nil, fmt.Errorf("image fetching failed")
+		return runtime.ImageSpec{}, nil, delegate.displayedError(exec.ImageFetchFailed(getPlan.Get.Type, getPlan.Get.Source))
 	}
 
 	var result exec.GetResult
@@ -403,6 +403,19 @@ func (delegate *buildStepDelegate) checkPolicy(input policy.PolicyCheckInput) er
 	}
 
 	return nil
+}
+
+func (delegate *buildStepDelegate) displayedError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	msg := delegate.buildOutputFilter(err.Error())
+	if msg == err.Error() {
+		return err
+	}
+
+	return fmt.Errorf("%s", msg)
 }
 
 func (delegate *buildStepDelegate) buildOutputFilter(str string) string {

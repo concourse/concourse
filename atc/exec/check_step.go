@@ -108,7 +108,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 
 	source, err := creds.NewSource(state, step.plan.Source).Evaluate()
 	if err != nil {
-		return false, fmt.Errorf("resource config creds evaluation: %w", err)
+		return false, wrapEvalError(state, "source", CheckSubject(step.plan), err)
 	}
 
 	var imageSpec runtime.ImageSpec

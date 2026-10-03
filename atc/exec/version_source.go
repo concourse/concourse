@@ -6,6 +6,11 @@ import (
 	"github.com/concourse/concourse/atc"
 )
 
+// ErrResultMissing is returned when a get's version_from step did not produce
+// a version. The get step replaces this text with one that names the image or
+// resource; the sentinel is kept for errors.Is.
+var ErrResultMissing = errors.New("version is missing from previous step")
+
 func NewVersionSourceFromPlan(getPlan *atc.GetPlan) VersionSource {
 	if getPlan.Version != nil {
 		return &StaticVersionSource{
@@ -31,8 +36,6 @@ type StaticVersionSource struct {
 func (p *StaticVersionSource) Version(RunState) (atc.Version, error) {
 	return p.version, nil
 }
-
-var ErrResultMissing = errors.New("version is missing from previous step")
 
 type DynamicVersionSource struct {
 	planID atc.PlanID

@@ -391,6 +391,55 @@ var _ = Describe("BuildStepDelegate", func() {
 			})
 		})
 
+		Context("when the image check fails", func() {
+			BeforeEach(func() {
+				expectedGetPlan.Get.Type = "registry-image"
+				expectedGetPlan.Get.Source = atc.Source{
+					"repository": "invalid/image/path",
+					"tag":        "no-such-tag",
+					"password":   "secret-token",
+				}
+
+				parentRunState = exec.NewRunState(func(plan atc.Plan) exec.Step {
+					step := new(execfakes.FakeStep)
+					if plan.Check != nil {
+						step.RunReturns(false, nil)
+					} else {
+						step.RunReturns(true, nil)
+					}
+					return step
+				}, nil)
+			})
+
+			It("names the image and points at the check output", func() {
+				Expect(fetchErr).To(MatchError(`image check failed for image "invalid/image/path" (type "registry-image", tag: no-such-tag). See the image check output for details`))
+			})
+		})
+
+		Context("when fetching the image fails", func() {
+			BeforeEach(func() {
+				expectedGetPlan.Get.Type = "registry-image"
+				expectedGetPlan.Get.Source = atc.Source{
+					"repository": "ghcr.io/example/app",
+					"password":   "secret-token",
+				}
+
+				parentRunState = exec.NewRunState(func(plan atc.Plan) exec.Step {
+					step := new(execfakes.FakeStep)
+					if plan.Get != nil {
+						step.RunReturns(false, nil)
+					} else {
+						step.RunReturns(true, nil)
+					}
+					return step
+				}, nil)
+			})
+
+			It("names the image and points at the get output", func() {
+				Expect(fetchErr).To(MatchError(`fetching image "ghcr.io/example/app" (type "registry-image") failed. See the image get output for details`))
+			})
+		})
+
 		Context("when there is no check plan", func() {
 			BeforeEach(func() {
 				expectedCheckPlan = nil
