@@ -538,11 +538,11 @@ jobs:
 					fakeStreamer.StreamFileCalls(func(_ context.Context, _ runtime.Artifact, path string) (io.ReadCloser, error) {
 						switch path {
 						case "pipeline.yml":
-							return &fakeReadCloser{str: pipelineWithVarFiles}, nil
+							return gbytes.BufferWithBytes([]byte(pipelineWithVarFiles)), nil
 						case "second-vars.yml":
-							return &fakeReadCloser{str: "foo: from-second-file\nbar: from-second-file\n"}, nil
+							return gbytes.BufferWithBytes([]byte("foo: from-second-file\nbar: from-second-file\n")), nil
 						case "first-vars.yml":
-							return &fakeReadCloser{str: "bar: from-first-file\n"}, nil
+							return gbytes.BufferWithBytes([]byte("bar: from-first-file\n")), nil
 						default:
 							return nil, errors.New("unexpected file: " + path)
 						}
