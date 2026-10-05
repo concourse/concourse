@@ -1185,4 +1185,34 @@ var _ = Describe("TaskStep", func() {
 			})
 		})
 	})
+
+	Context("when the plan has a config path whose container_limits use vars", func() {
+		BeforeEach(func() {
+			state = exec.NewRunState(noopStepper, vars.StaticVariables{
+				"cpu-limit": 512,
+				"mem-limit": "5gb",
+			})
+			repo = state.ArtifactRepository()
+			repo.RegisterArtifact("some-artifact", runtimetest.NewVolume("some-volume"), false)
+
+			fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(`
+platform: some-platform
+
+container_limits:
+  cpu: ((cpu-limit))
+  memory: ((mem-limit))
+
+run: {path: ls}
+`)), nil)
+
+			taskPlan.ConfigPath = "some-artifact/task.yml"
+
+			fakePool = new(execfakes.FakePool)
+			fakePool.FindOrSelectWorkerReturns(nil, errors.New("no worker for you"))
+		})
+
+		It("interpolates the file before it is parsed, so the step gets as far as picking a worker", func() {
+			Expect(stepErr).To(MatchError(ContainSubstring("no worker for you")))
+		})
+	})
 })
