@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/runtime"
 )
 
 const resourceProcessID = "resource"
@@ -36,7 +37,7 @@ func (resource Resource) Check(ctx context.Context, container runtime.Container,
 		Path: "/opt/resource/check",
 	}
 
-	var versions []atc.Version
+	versions := []atc.Version{}
 	processResult, err := resource.run(ctx, container, spec, stderr, false, &versions)
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
@@ -68,6 +69,14 @@ func (resource Resource) Get(ctx context.Context, container runtime.Container, s
 	processResult, err := resource.run(ctx, container, spec, stderr, true, &versionResult)
 	if err != nil {
 		return VersionResult{}, runtime.ProcessResult{}, err
+	}
+
+	if processResult.ExitStatus != 0 {
+		return VersionResult{}, processResult, nil
+	}
+
+	if versionResult.Version == nil {
+		return VersionResult{}, runtime.ProcessResult{}, fmt.Errorf("resource script (%s %s) output a null version", spec.Path, strings.Join(spec.Args, " "))
 	}
 
 	if err := resource.cacheResult(container, versionResult); err != nil {
@@ -102,7 +111,12 @@ func (resource Resource) Put(ctx context.Context, container runtime.Container, s
 	if err != nil {
 		return VersionResult{}, runtime.ProcessResult{}, err
 	}
-	if processResult.ExitStatus == 0 && versionResult.Version == nil {
+
+	if processResult.ExitStatus != 0 {
+		return VersionResult{}, processResult, nil
+	}
+
+	if versionResult.Version == nil {
 		return VersionResult{}, runtime.ProcessResult{}, fmt.Errorf("resource script (%s %s) output a null version", spec.Path, strings.Join(spec.Args, " "))
 	}
 
@@ -129,7 +143,7 @@ func (resource Resource) run(ctx context.Context, container runtime.Container, s
 	}
 
 	buf := new(bytes.Buffer)
-	io := runtime.ProcessIO{
+	runtimeIO := runtime.ProcessIO{
 		Stdin:  bytes.NewBuffer(input),
 		Stdout: buf,
 		Stderr: stderr,
@@ -137,9 +151,9 @@ func (resource Resource) run(ctx context.Context, container runtime.Container, s
 
 	var process runtime.Process
 	if attach {
-		process, err = attachOrRun(ctx, container, spec, io)
+		process, err = attachOrRun(ctx, container, spec, runtimeIO)
 	} else {
-		process, err = container.Run(ctx, spec, io)
+		process, err = container.Run(ctx, spec, runtimeIO)
 	}
 	if err != nil {
 		return runtime.ProcessResult{}, err
@@ -154,6 +168,11 @@ func (resource Resource) run(ctx context.Context, container runtime.Container, s
 	}
 
 	if err := json.NewDecoder(buf).Decode(output); err != nil {
+		if errors.Is(err, io.EOF) {
+			// Getting EOF means there was no data from stdout to parse. Let
+			// callers determine if this result is valid or not.
+			return result, nil
+		}
 		return runtime.ProcessResult{}, err
 	}
 	return result, nil

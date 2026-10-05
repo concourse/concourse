@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/vault"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/vault"
+	"github.com/concourse/concourse/v8/vars"
 	vaultapi "github.com/hashicorp/vault/api"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -119,7 +119,7 @@ var _ = Describe("Vault", func() {
 						},
 					}},
 				}
-				value, expiration, found, err := v.Get("/concourse/team/pipeline/foo")
+				value, expiration, found, err := v.Get("/concourse/team/pipeline/foo", creds.SecretLookupParams{})
 				Expect(value).To(BeEquivalentTo("bar"))
 				Expect(expiration).ToNot(BeNil())
 				Expect(found).To(BeTrue())
@@ -384,7 +384,7 @@ var _ = Describe("Vault KV2", func() {
 					ghttp.RespondWithJSONEncodedPtr(&statusCodeOK, createMockV2Secret("bar")),
 				),
 			)
-			value, expiration, found, err := v.Get("team/pipeline/foo")
+			value, expiration, found, err := v.Get("team/pipeline/foo", creds.SecretLookupParams{})
 			Expect(value).To(BeEquivalentTo("bar"))
 			Expect(expiration).To(BeNil())
 			Expect(found).To(BeTrue())

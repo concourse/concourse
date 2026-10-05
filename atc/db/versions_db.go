@@ -12,8 +12,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/tracing"
 	gocache "github.com/patrickmn/go-cache"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"

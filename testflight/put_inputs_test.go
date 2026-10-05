@@ -13,8 +13,7 @@ var _ = Describe("A put step with inputs", func() {
 
 	Context("when specific inputs are specified", func() {
 		It("attaches only the specified inputs to the put container", func(ctx SpecContext) {
-			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-specified-inputs"), "-w")
-			<-watch.Exited
+			flyUnsafe("trigger-job", "-j", inPipeline("job-using-specified-inputs"), "-w")
 
 			interceptS := fly("intercept", "-j", inPipeline("job-using-specified-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 			Expect(interceptS).To(gbytes.Say("specified-input"))
@@ -24,8 +23,7 @@ var _ = Describe("A put step with inputs", func() {
 
 	Context("when it uses all inputs", func() {
 		It("attached all inputs to the put container", func(ctx SpecContext) {
-			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-all-inputs"), "-w")
-			<-watch.Exited
+			flyUnsafe("trigger-job", "-j", inPipeline("job-using-all-inputs"), "-w")
 
 			interceptS := fly("intercept", "-j", inPipeline("job-using-all-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 			Expect(string(interceptS.Out.Contents())).To(ContainSubstring("all-input"))
@@ -35,8 +33,7 @@ var _ = Describe("A put step with inputs", func() {
 
 	Context("when an empty slice of inputs are specified", func() {
 		It("no inputs are attached to the put container", func(ctx SpecContext) {
-			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-empty-inputs"), "-w")
-			<-watch.Exited
+			flyUnsafe("trigger-job", "-j", inPipeline("job-using-empty-inputs"), "-w")
 
 			interceptS := fly("intercept", "-j", inPipeline("job-using-empty-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 			Expect(string(interceptS.Out.Contents())).ToNot(ContainSubstring("all-input"))
@@ -46,8 +43,7 @@ var _ = Describe("A put step with inputs", func() {
 
 	Context("when no inputs are specified", func() {
 		It("attaches only the detected inputs to the put container", func(ctx SpecContext) {
-			watch := spawnFly("trigger-job", "-j", inPipeline("job-using-no-inputs"), "-w")
-			<-watch.Exited
+			flyUnsafe("trigger-job", "-j", inPipeline("job-using-no-inputs"), "-w")
 
 			interceptS := fly("intercept", "-j", inPipeline("job-using-no-inputs"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 			logs := string(interceptS.Out.Contents())
@@ -59,8 +55,7 @@ var _ = Describe("A put step with inputs", func() {
 	Context("when inputs are detected", func() {
 		Context("when params are only strings", func() {
 			It("attaches only the detected inputs to the put container", func(ctx SpecContext) {
-				watch := spawnFly("trigger-job", "-j", inPipeline("job-using-detect-inputs-simple"), "-w")
-				<-watch.Exited
+				flyUnsafe("trigger-job", "-j", inPipeline("job-using-detect-inputs-simple"), "-w")
 
 				interceptS := fly("intercept", "-j", inPipeline("job-using-detect-inputs-simple"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 				Expect(string(interceptS.Out.Contents())).To(ContainSubstring("specified-input"))
@@ -70,8 +65,7 @@ var _ = Describe("A put step with inputs", func() {
 
 		Context("when params have slices and maps", func() {
 			It("attaches the inputs detected in the slices", func(ctx SpecContext) {
-				watch := spawnFly("trigger-job", "-j", inPipeline("job-using-detect-inputs-complex"), "-w")
-				<-watch.Exited
+				flyUnsafe("trigger-job", "-j", inPipeline("job-using-detect-inputs-complex"), "-w")
 
 				interceptS := fly("intercept", "-j", inPipeline("job-using-detect-inputs-complex"), "-s", "some-resource", "--step-type", "put", "--", "ls")
 				Expect(string(interceptS.Out.Contents())).To(ContainSubstring("specified-input"))

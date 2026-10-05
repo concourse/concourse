@@ -7,10 +7,10 @@ import (
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/util"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/util"
 )
 
 //counterfeiter:generate . Checkable
@@ -197,6 +197,17 @@ func (c *checkFactory) Resources() ([]Resource, error) {
 				sq.Expr(`NOT EXISTS (SELECT 1
 				          FROM resource_config_versions rcv
 				          WHERE rcv.resource_config_scope_id = r.resource_config_scope_id
+				        )`),
+			},
+			sq.And{
+				// find non-triggering, pinned resources whose pinned version
+				// has not yet been discovered by a check
+				sq.Eq{"ji.trigger": false},
+				sq.NotEq{"rp.version": nil},
+				sq.Expr(`NOT EXISTS (SELECT 1
+				          FROM resource_config_versions rcv
+				          WHERE rcv.resource_config_scope_id = r.resource_config_scope_id
+				          AND rcv.version @> rp.version
 				        )`),
 			},
 		}).

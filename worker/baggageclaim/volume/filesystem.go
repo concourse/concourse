@@ -68,15 +68,18 @@ const (
 var _ Filesystem = (*filesystem)(nil)
 
 type filesystem struct {
-	log    lager.Logger
-	driver Driver
+	log       lager.Logger
+	driver    Driver
+	pathKnown func(string) bool
 
 	initDir string
 	liveDir string
 	deadDir string
 }
 
-func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesystem, error) {
+type FSOption func(*filesystem) error
+
+func NewFilesystem(logger lager.Logger, driver Driver, parentDir string, opts ...FSOption) (Filesystem, error) {
 	initDir := filepath.Join(parentDir, initDirname)
 	liveDir := filepath.Join(parentDir, liveDirname)
 	deadDir := filepath.Join(parentDir, deadDirname)
@@ -96,14 +99,31 @@ func NewFilesystem(logger lager.Logger, driver Driver, parentDir string) (Filesy
 		return nil, err
 	}
 
-	return &filesystem{
-		log:    logger.Session("filesystem"),
-		driver: driver,
+	fs := &filesystem{
+		log:       logger.Session("filesystem"),
+		driver:    driver,
+		pathKnown: pathKnown,
 
 		initDir: initDir,
 		liveDir: liveDir,
 		deadDir: deadDir,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		err = opt(fs)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return fs, nil
+}
+
+func WithPathKnownFunc(p func(string) bool) FSOption {
+	return func(f *filesystem) error {
+		f.pathKnown = p
+		return nil
+	}
 }
 
 func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
@@ -142,12 +162,10 @@ func (fs *filesystem) LookupVolume(handle string) (FilesystemLiveVolume, bool, e
 	}
 
 	return &liveVolume{
-		baseVolume: baseVolume{
-			fs: fs,
+		fs: fs,
 
-			handle: handle,
-			dir:    volumePath,
-		},
+		handle: handle,
+		dir:    volumePath,
 	}, true, nil
 }
 
@@ -163,12 +181,10 @@ func (fs *filesystem) ListVolumes() ([]FilesystemLiveVolume, error) {
 		handle := liveDir.Name()
 
 		response = append(response, &liveVolume{
-			baseVolume: baseVolume{
-				fs: fs,
+			fs: fs,
 
-				handle: handle,
-				dir:    fs.liveVolumePath(handle),
-			},
+			handle: handle,
+			dir:    fs.liveVolumePath(handle),
 		})
 	}
 
@@ -189,11 +205,9 @@ func (fs *filesystem) CleanupOrphanedEntries() error {
 		fs.log.Debug("cleaning-up-dead-volume", lager.Data{"handle": handle})
 
 		deadVol := &deadVolume{
-			baseVolume: baseVolume{
-				fs:     fs,
-				handle: handle,
-				dir:    fs.deadVolumePath(handle),
-			},
+			fs:     fs,
+			handle: handle,
+			dir:    fs.deadVolumePath(handle),
 		}
 
 		if err := deadVol.Destroy(); err != nil {
@@ -201,33 +215,20 @@ func (fs *filesystem) CleanupOrphanedEntries() error {
 		}
 	}
 
-	// Collect live and init handles, then ask the driver to remove
-	// any orphaned driver-specific resources.
-	knownHandles := map[string]struct{}{}
-	liveDirs, err := os.ReadDir(fs.liveDir)
-	if err != nil {
-		return fmt.Errorf("read live dir: %w", err)
-	}
-
-	for _, entry := range liveDirs {
-		knownHandles[entry.Name()] = struct{}{}
-	}
-
-	initDirs, err := os.ReadDir(fs.initDir)
-	if err != nil {
-		return fmt.Errorf("read init dir: %w", err)
-	}
-
-	for _, entry := range initDirs {
-		knownHandles[entry.Name()] = struct{}{}
-	}
-
-	err = fs.driver.RemoveOrphanedResources(knownHandles)
+	err = fs.driver.RemoveOrphanedResources(fs.volumeExists)
 	if err != nil {
 		fs.log.Error("failed-to-remove-orphaned-driver-resources", err)
 	}
 
 	return nil
+}
+
+func (fs *filesystem) volumeExists(handle string) bool {
+	// init/ first, then live/: a rename from init to live cannot miss both.
+	if fs.pathKnown(fs.initVolumePath(handle)) {
+		return true
+	}
+	return fs.pathKnown(fs.liveVolumePath(handle))
 }
 
 func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {
@@ -239,12 +240,10 @@ func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {
 	}
 
 	volume := &initVolume{
-		baseVolume: baseVolume{
-			fs: fs,
+		fs: fs,
 
-			handle: handle,
-			dir:    volumePath,
-		},
+		handle: handle,
+		dir:    volumePath,
 	}
 
 	err = volume.StoreProperties(Properties{})
@@ -311,12 +310,10 @@ func (base *baseVolume) Parent() (FilesystemLiveVolume, bool, error) {
 	}
 
 	return &liveVolume{
-		baseVolume: baseVolume{
-			fs: base.fs,
+		fs: base.fs,
 
-			handle: filepath.Base(parentDir),
-			dir:    parentDir,
-		},
+		handle: filepath.Base(parentDir),
+		dir:    parentDir,
 	}, true, nil
 }
 
@@ -330,12 +327,10 @@ func (base *baseVolume) Destroy() error {
 	}
 
 	deadVol := &deadVolume{
-		baseVolume: baseVolume{
-			fs: base.fs,
+		fs: base.fs,
 
-			handle: base.handle,
-			dir:    deadDir,
-		},
+		handle: base.handle,
+		dir:    deadDir,
 	}
 
 	return deadVol.Destroy()
@@ -373,12 +368,10 @@ func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
 	}
 
 	return &liveVolume{
-		baseVolume: baseVolume{
-			fs: vol.fs,
+		fs: vol.fs,
 
-			handle: vol.handle,
-			dir:    liveDir,
-		},
+		handle: vol.handle,
+		dir:    liveDir,
 	}, nil
 }
 

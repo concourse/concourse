@@ -3,7 +3,7 @@ package volume
 import (
 	"io"
 
-	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate

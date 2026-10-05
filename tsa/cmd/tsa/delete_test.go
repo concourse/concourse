@@ -21,7 +21,7 @@ var _ = Describe("Delete", func() {
 			tsaClient.Worker.Team = ""
 		})
 
-		Context("when retiring with a global key", func() {
+		Context("when deleting with a global key", func() {
 			BeforeEach(func() {
 				tsaClient.PrivateKey = globalKey
 			})
@@ -30,6 +30,7 @@ var _ = Describe("Delete", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -71,7 +72,7 @@ var _ = Describe("Delete", func() {
 			})
 		})
 
-		Context("when retiring with some team's key", func() {
+		Context("when deleting with some team's key", func() {
 			BeforeEach(func() {
 				tsaClient.PrivateKey = teamKey
 			})
@@ -97,7 +98,7 @@ var _ = Describe("Delete", func() {
 			tsaClient.Worker.Team = "some-team"
 		})
 
-		Context("when retiring with the team key", func() {
+		Context("when deleting with the team key", func() {
 			BeforeEach(func() {
 				tsaClient.PrivateKey = teamKey
 			})
@@ -106,6 +107,7 @@ var _ = Describe("Delete", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -117,7 +119,7 @@ var _ = Describe("Delete", func() {
 			})
 		})
 
-		Context("when retiring with some other team's key", func() {
+		Context("when deleting with some other team's key", func() {
 			BeforeEach(func() {
 				tsaClient.PrivateKey = otherTeamKey
 			})
@@ -137,7 +139,7 @@ var _ = Describe("Delete", func() {
 			})
 		})
 
-		Context("when retiring with a global key", func() {
+		Context("when deleting with a global key", func() {
 			BeforeEach(func() {
 				tsaClient.PrivateKey = globalKey
 			})
@@ -146,6 +148,7 @@ var _ = Describe("Delete", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})

@@ -4,9 +4,11 @@ import (
 	"path"
 	"time"
 
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/vars"
 )
+
+var _ creds.Secrets = (*Secrets)(nil)
 
 type Secrets struct {
 	vars.StaticVariables
@@ -15,20 +17,20 @@ type Secrets struct {
 	PipelineName string
 }
 
-func (secrets *Secrets) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
+func (secrets *Secrets) NewSecretLookupPaths(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 
-	if len(pipelineName) > 0 {
-		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(teamName, pipelineName)+"/"))
+	if len(params.Pipeline) > 0 {
+		lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(path.Join(params.Team, params.Pipeline)+"/"))
 	}
 
-	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(teamName+"/"))
+	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(params.Team+"/"))
 	lookupPaths = append(lookupPaths, creds.NewSecretLookupWithPrefix(""))
 
 	return lookupPaths
 }
 
-func (secrets *Secrets) Get(secretPath string) (any, *time.Time, bool, error) {
+func (secrets *Secrets) Get(secretPath string, _ creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	v, found, err := secrets.StaticVariables.Get(vars.Reference{Path: secretPath})
 	if err != nil {
 		return nil, nil, false, err

@@ -7,31 +7,32 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/artifactserver"
-	"github.com/concourse/concourse/atc/api/buildserver"
-	"github.com/concourse/concourse/atc/api/ccserver"
-	"github.com/concourse/concourse/atc/api/componentsserver"
-	"github.com/concourse/concourse/atc/api/cliserver"
-	"github.com/concourse/concourse/atc/api/configserver"
-	"github.com/concourse/concourse/atc/api/containerserver"
-	"github.com/concourse/concourse/atc/api/idtokenserver"
-	"github.com/concourse/concourse/atc/api/infoserver"
-	"github.com/concourse/concourse/atc/api/jobserver"
-	"github.com/concourse/concourse/atc/api/loglevelserver"
-	"github.com/concourse/concourse/atc/api/pipelineserver"
-	"github.com/concourse/concourse/atc/api/resourceserver"
-	"github.com/concourse/concourse/atc/api/resourceserver/versionserver"
-	"github.com/concourse/concourse/atc/api/teamserver"
-	"github.com/concourse/concourse/atc/api/usersserver"
-	"github.com/concourse/concourse/atc/api/volumeserver"
-	"github.com/concourse/concourse/atc/api/wallserver"
-	"github.com/concourse/concourse/atc/api/workerserver"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/gc"
-	"github.com/concourse/concourse/atc/mainredirect"
-	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/artifactserver"
+	"github.com/concourse/concourse/v8/atc/api/buildserver"
+	"github.com/concourse/concourse/v8/atc/api/ccserver"
+	"github.com/concourse/concourse/v8/atc/api/cliserver"
+	"github.com/concourse/concourse/v8/atc/api/componentsserver"
+	"github.com/concourse/concourse/v8/atc/api/configserver"
+	"github.com/concourse/concourse/v8/atc/api/containerserver"
+	"github.com/concourse/concourse/v8/atc/api/healthserver"
+	"github.com/concourse/concourse/v8/atc/api/idtokenserver"
+	"github.com/concourse/concourse/v8/atc/api/infoserver"
+	"github.com/concourse/concourse/v8/atc/api/jobserver"
+	"github.com/concourse/concourse/v8/atc/api/loglevelserver"
+	"github.com/concourse/concourse/v8/atc/api/pipelineserver"
+	"github.com/concourse/concourse/v8/atc/api/resourceserver"
+	"github.com/concourse/concourse/v8/atc/api/resourceserver/versionserver"
+	"github.com/concourse/concourse/v8/atc/api/teamserver"
+	"github.com/concourse/concourse/v8/atc/api/usersserver"
+	"github.com/concourse/concourse/v8/atc/api/volumeserver"
+	"github.com/concourse/concourse/v8/atc/api/wallserver"
+	"github.com/concourse/concourse/v8/atc/api/workerserver"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/gc"
+	"github.com/concourse/concourse/v8/atc/mainredirect"
+	"github.com/concourse/concourse/v8/atc/wrappa"
 	"github.com/tedsuo/rata"
 )
 
@@ -66,6 +67,9 @@ func NewHandler(
 	dbResourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
 	dbComponentFactory db.ComponentFactory,
+	dbConn db.DbConn,
+	minWorkerCount int,
+	componentStaleMultiplier float64,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
 
@@ -112,6 +116,7 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
+	healthServer := healthserver.NewServer(logger, dbConn, dbWorkerFactory, dbComponentFactory, minWorkerCount, componentStaleMultiplier)
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
@@ -214,6 +219,7 @@ func NewHandler(
 		atc.DownloadCLI:  http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:      http.HandlerFunc(infoServer.Info),
 		atc.GetInfoCreds: http.HandlerFunc(infoServer.Creds),
+		atc.GetHealth: http.HandlerFunc(healthServer.GetHealth),
 
 		atc.GetUser:              http.HandlerFunc(usersServer.GetUser),
 		atc.ListActiveUsersSince: http.HandlerFunc(usersServer.GetUsersSince),

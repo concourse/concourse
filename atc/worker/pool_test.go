@@ -7,12 +7,12 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
-	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
-	"github.com/concourse/concourse/atc/worker/workertest"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/metric"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/worker"
+	grt "github.com/concourse/concourse/v8/atc/worker/gardenruntime/gardenruntimetest"
+	"github.com/concourse/concourse/v8/atc/worker/workertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -293,9 +293,9 @@ var _ = Describe("Pool", func() {
 
 			workerCh := make(chan runtime.Worker)
 
-			var callbackInvocations int32
+			var callbackInvocations atomic.Int32
 			callback := PoolCallback{
-				waitingForWorker: func() { atomic.AddInt32(&callbackInvocations, 1) },
+				waitingForWorker: func() { callbackInvocations.Add(1) },
 			}
 
 			By("selecting a worker when there are no satisfiable workers", func() {
@@ -319,7 +319,7 @@ var _ = Describe("Pool", func() {
 			})
 
 			By("validating that the step is marked as waiting", func() {
-				callbackCount := func() int32 { return atomic.LoadInt32(&callbackInvocations) }
+				callbackCount := func() int32 { return callbackInvocations.Load() }
 				metricCount := func() float64 {
 					labels := metric.StepsWaitingLabels{
 						TeamId: "123",

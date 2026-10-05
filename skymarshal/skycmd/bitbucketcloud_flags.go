@@ -53,8 +53,8 @@ func (flag *BitbucketCloudFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type BitbucketCloudTeamFlags struct {
-	Users []string `long:"user" description:"A whitelisted Bitbucket Cloud user" value-name:"USERNAME"`
-	Teams []string `long:"team" description:"A whitelisted Bitbucket Cloud team" value-name:"TEAM_NAME"`
+	Users []string `long:"user" description:"An allowlisted Bitbucket Cloud user" value-name:"USERNAME"`
+	Teams []string `long:"team" description:"An allowlisted Bitbucket Cloud team" value-name:"TEAM_NAME"`
 }
 
 func (flag *BitbucketCloudTeamFlags) GetUsers() []string {

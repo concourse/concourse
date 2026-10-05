@@ -8,10 +8,10 @@ import (
 	"time"
 
 	lager "code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/tracing"
 	"go.opentelemetry.io/otel/trace"
 )
 

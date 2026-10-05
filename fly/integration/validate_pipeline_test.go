@@ -23,8 +23,7 @@ var _ = Describe("validate-pipeline", func() {
 
 		Eventually(sess).Should(gbytes.Say("looks good"))
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 
 	It("returns valid on valid configuration to stdout", func() {
@@ -42,8 +41,7 @@ var _ = Describe("validate-pipeline", func() {
 		Eventually(sess).Should(gbytes.Say("jobs:"))
 		Eventually(sess).Should(gbytes.Say("resources:"))
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 
 	It("returns valid on templated configuration with variables", func() {
@@ -59,8 +57,7 @@ var _ = Describe("validate-pipeline", func() {
 
 		Eventually(sess).Should(gbytes.Say("looks good"))
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 
 	It("returns invalid on validation error", func() {
@@ -76,8 +73,7 @@ var _ = Describe("validate-pipeline", func() {
 		Eventually(sess.Err).Should(gbytes.Say("WARNING:"))
 		Eventually(sess.Err).Should(gbytes.Say("  - invalid resources:"))
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(1))
+		Eventually(sess).Should(gexec.Exit(1))
 
 		Expect(sess.Err).To(gbytes.Say("configuration invalid"))
 	})
@@ -95,8 +91,7 @@ var _ = Describe("validate-pipeline", func() {
 		Eventually(sess.Err).Should(gbytes.Say("error parsing yaml before applying templates"))
 		Eventually(sess.Err).Should(gbytes.Say(`mapping key "resources" already defined`))
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(1))
+		Eventually(sess).Should(gexec.Exit(1))
 	})
 
 	It("returns valid when there are merge keys", func() {
@@ -110,8 +105,7 @@ var _ = Describe("validate-pipeline", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess).Should(gbytes.Say("looks good"))
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 
 	It("returns valid on a pipeline with unknown keys", func() {
@@ -125,8 +119,7 @@ var _ = Describe("validate-pipeline", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(sess).Should(gbytes.Say("looks good"))
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 
 	When("strict", func() {
@@ -144,8 +137,7 @@ var _ = Describe("validate-pipeline", func() {
 			Eventually(sess.Err).Should(gbytes.Say("DEPRECATION WARNING:"))
 			Eventually(sess.Err).Should(gbytes.Say("  - jobs.some-job.plan"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say("configuration invalid"))
 		})
@@ -163,8 +155,7 @@ var _ = Describe("validate-pipeline", func() {
 
 			Eventually(sess.Err).Should(gbytes.Say("json: unknown field \"user_key\""))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 		})
 	})
 
@@ -178,7 +169,6 @@ var _ = Describe("validate-pipeline", func() {
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 })

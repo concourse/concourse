@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/syslog"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/atc/syslog"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

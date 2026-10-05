@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"os/exec"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/fly/ui"
 	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,8 +37,7 @@ var _ = Describe("get-team", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 			Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("n", "team-name") + "' was not specified"))
 		})
 	})
@@ -67,8 +66,7 @@ var _ = Describe("get-team", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 

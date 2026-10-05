@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd"
-	bespec "github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd"
+	bespec "github.com/concourse/concourse/v8/worker/runtime/spec"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/errdefs"
@@ -309,12 +309,14 @@ func (b *GardenBackend) Ping() (err error) {
 func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error) {
 	ctx := context.Background()
 
-	cont, err := b.createContainer(ctx, gdnSpec)
+	hermetic := b.isHermetic(gdnSpec)
+
+	cont, err := b.createContainer(ctx, gdnSpec, hermetic)
 	if err != nil {
 		return nil, fmt.Errorf("new container: %w", err)
 	}
 
-	err = b.startTask(ctx, cont, b.isHermetic(gdnSpec))
+	err = b.startTask(ctx, cont, hermetic)
 	if err != nil {
 		return nil, fmt.Errorf("starting task: %w", err)
 	}
@@ -335,7 +337,7 @@ func (b *GardenBackend) isHermetic(gdnSpec garden.ContainerSpec) bool {
 	return true
 }
 
-func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.ContainerSpec) (containerd.Container, error) {
+func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.ContainerSpec, hermetic bool) (containerd.Container, error) {
 	err := b.createLock.Acquire(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("acquiring create container lock: %w", err)
@@ -358,7 +360,7 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}
 
-	netMounts, err := b.network.SetupMounts(gdnSpec.Handle)
+	netMounts, err := b.network.SetupMounts(gdnSpec.Handle, hermetic)
 	if err != nil {
 		return nil, fmt.Errorf("network setup mounts: %w", err)
 	}

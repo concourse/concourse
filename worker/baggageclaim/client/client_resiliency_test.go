@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/client"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/client"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -46,12 +46,10 @@ var _ = Describe("baggageclaim http client", func() {
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/volumes-async/some-volume"),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, volume.Volume{
-							Handle: "some-volume",
-							Path:   "/some/path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: map[string]string{},
-								Privileged: false,
-							},
+							Handle:     "some-volume",
+							Path:       "/some/path",
+							Properties: map[string]string{},
+							Privileged: false,
 						}),
 					),
 					ghttp.CombineHandlers(

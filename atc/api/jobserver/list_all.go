@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/accessor"
 )
 
 func (s *Server) ListAllJobs(w http.ResponseWriter, r *http.Request) {

@@ -14,9 +14,8 @@ var _ = Describe("A job with a task that always fails", func() {
 
 	It("causes the build to fail", func(ctx SpecContext) {
 		watch := spawnFly("trigger-job", "-j", inPipeline("failing-job"), "-w")
-		<-watch.Exited
+		Eventually(watch).Should(gexec.Exit(1))
 		Expect(watch).To(gbytes.Say("initializing"))
 		Expect(watch).To(gbytes.Say("failed"))
-		Expect(watch).To(gexec.Exit(1))
 	}, DefaultSpecTimeout)
 })

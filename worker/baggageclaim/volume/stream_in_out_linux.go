@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
 	"github.com/klauspost/compress/s2"
 	"github.com/klauspost/compress/zstd"
 )
@@ -235,7 +235,7 @@ func tarCmd(namespacer uidgid.Namespacer, privileged bool, dir string, args ...s
 		return nil, nil, err
 	}
 
-	tarCommand := exec.Command("tar", append([]string{"-C", "/dev/fd/3"}, args...)...)
+	tarCommand := exec.Command("tar", append([]string{"-C", "/dev/fd/3", "--numeric-owner"}, args...)...)
 	tarCommand.ExtraFiles = []*os.File{dirFd}
 
 	if !privileged {

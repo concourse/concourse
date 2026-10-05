@@ -3,8 +3,8 @@ package gardenruntimetest
 import (
 	"errors"
 
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
 )

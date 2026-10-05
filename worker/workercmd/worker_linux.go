@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	concourseCmd "github.com/concourse/concourse/cmd"
-	"github.com/concourse/concourse/flag"
-	"github.com/concourse/concourse/worker/network"
-	bespec "github.com/concourse/concourse/worker/runtime/spec"
+	"github.com/concourse/concourse/v8/atc"
+	concourseCmd "github.com/concourse/concourse/v8/cmd"
+	"github.com/concourse/concourse/v8/flag"
+	"github.com/concourse/concourse/v8/worker/network"
+	bespec "github.com/concourse/concourse/v8/worker/runtime/spec"
 	"github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 )

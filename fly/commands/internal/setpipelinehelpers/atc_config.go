@@ -9,14 +9,14 @@ import (
 
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/configvalidate"
-	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/commands/internal/interaction"
-	"github.com/concourse/concourse/fly/commands/internal/templatehelpers"
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/fly/ui"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/configvalidate"
+	"github.com/concourse/concourse/v8/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/interaction"
+	"github.com/concourse/concourse/v8/fly/commands/internal/templatehelpers"
+	"github.com/concourse/concourse/v8/fly/rc"
+	"github.com/concourse/concourse/v8/fly/ui"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 )
 
 type ATCConfig struct {

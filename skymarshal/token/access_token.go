@@ -12,10 +12,10 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 )
@@ -70,11 +70,12 @@ func StoreAccessToken(
 			return
 		}
 		var resp struct {
-			AccessToken  string `json:"access_token"`
-			TokenType    string `json:"token_type"`
-			ExpiresIn    int    `json:"expires_in"`
-			RefreshToken string `json:"refresh_token,omitempty"`
-			IDToken      string `json:"id_token"`
+			AccessToken     string `json:"access_token"`
+			TokenType       string `json:"token_type"`
+			ExpiresIn       int    `json:"expires_in"`
+			RefreshToken    string `json:"refresh_token,omitempty"`
+			IDToken         string `json:"id_token,omitempty"`
+			IssuedTokenType string `json:"issued_token_type,omitempty"`
 		}
 		err := json.Unmarshal(rec.Body.Bytes(), &resp)
 		if err != nil {
@@ -82,7 +83,11 @@ func StoreAccessToken(
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		claims, err := claimsParser.ParseClaims(resp.IDToken)
+		rawIDToken := resp.IDToken
+		if rawIDToken == "" {
+			rawIDToken = resp.AccessToken
+		}
+		claims, err := claimsParser.ParseClaims(rawIDToken)
 		if err != nil {
 			logger.Error("parse-id-token", err)
 			w.WriteHeader(http.StatusInternalServerError)

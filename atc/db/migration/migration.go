@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"slices"
 	"sort"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/db/encryption"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/migration/migrations"
+	"github.com/concourse/concourse/v8/atc/db/encryption"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/db/migration/migrations"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
@@ -315,9 +316,9 @@ func (helper *migrator) Migrate(newKey, oldKey *encryption.Key, toVersion int) e
 			}
 		}
 	} else {
-		for i := len(migrations) - 1; i >= 0; i-- {
-			if currentVersion >= migrations[i].Version && migrations[i].Version > toVersion && migrations[i].Direction == "down" {
-				err = helper.runMigration(migrations[i], strategy)
+		for _, migration := range slices.Backward(migrations) {
+			if currentVersion >= migration.Version && migration.Version > toVersion && migration.Direction == "down" {
+				err = helper.runMigration(migration, strategy)
 				if err != nil {
 					return err
 				}

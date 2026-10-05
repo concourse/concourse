@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 type FakeWorker struct {
@@ -185,6 +185,16 @@ type FakeWorker struct {
 	}
 	landReturnsOnCall map[int]struct {
 		result1 error
+	}
+	MaxActiveTasksStub        func() int
+	maxActiveTasksMutex       sync.RWMutex
+	maxActiveTasksArgsForCall []struct {
+	}
+	maxActiveTasksReturns struct {
+		result1 int
+	}
+	maxActiveTasksReturnsOnCall map[int]struct {
+		result1 int
 	}
 	NameStub        func() string
 	nameMutex       sync.RWMutex
@@ -1224,6 +1234,59 @@ func (fake *FakeWorker) LandReturnsOnCall(i int, result1 error) {
 	}
 	fake.landReturnsOnCall[i] = struct {
 		result1 error
+	}{result1}
+}
+
+func (fake *FakeWorker) MaxActiveTasks() int {
+	fake.maxActiveTasksMutex.Lock()
+	ret, specificReturn := fake.maxActiveTasksReturnsOnCall[len(fake.maxActiveTasksArgsForCall)]
+	fake.maxActiveTasksArgsForCall = append(fake.maxActiveTasksArgsForCall, struct {
+	}{})
+	stub := fake.MaxActiveTasksStub
+	fakeReturns := fake.maxActiveTasksReturns
+	fake.recordInvocation("MaxActiveTasks", []interface{}{})
+	fake.maxActiveTasksMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) MaxActiveTasksCallCount() int {
+	fake.maxActiveTasksMutex.RLock()
+	defer fake.maxActiveTasksMutex.RUnlock()
+	return len(fake.maxActiveTasksArgsForCall)
+}
+
+func (fake *FakeWorker) MaxActiveTasksCalls(stub func() int) {
+	fake.maxActiveTasksMutex.Lock()
+	defer fake.maxActiveTasksMutex.Unlock()
+	fake.MaxActiveTasksStub = stub
+}
+
+func (fake *FakeWorker) MaxActiveTasksReturns(result1 int) {
+	fake.maxActiveTasksMutex.Lock()
+	defer fake.maxActiveTasksMutex.Unlock()
+	fake.MaxActiveTasksStub = nil
+	fake.maxActiveTasksReturns = struct {
+		result1 int
+	}{result1}
+}
+
+func (fake *FakeWorker) MaxActiveTasksReturnsOnCall(i int, result1 int) {
+	fake.maxActiveTasksMutex.Lock()
+	defer fake.maxActiveTasksMutex.Unlock()
+	fake.MaxActiveTasksStub = nil
+	if fake.maxActiveTasksReturnsOnCall == nil {
+		fake.maxActiveTasksReturnsOnCall = make(map[int]struct {
+			result1 int
+		})
+	}
+	fake.maxActiveTasksReturnsOnCall[i] = struct {
+		result1 int
 	}{result1}
 }
 

@@ -7,7 +7,7 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 	"github.com/tedsuo/rata"
 )
 

@@ -17,7 +17,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -159,7 +159,7 @@ func (client *Client) Register(ctx context.Context, opts RegisterOptions) error 
 	err = client.run(
 		ctx,
 		sshClient,
-		"forward-worker --garden "+gardenForwardAddr+" --baggageclaim "+baggageclaimForwardAddr,
+		ForwardWorker+" --garden "+gardenForwardAddr+" --baggageclaim "+baggageclaimForwardAddr,
 		eventsW,
 	)
 	if err != nil {
@@ -190,7 +190,7 @@ func (client *Client) Land(ctx context.Context) error {
 
 	defer sshClient.Close()
 
-	return client.run(ctx, sshClient, "land-worker", os.Stdout)
+	return client.run(ctx, sshClient, LandWorker, os.Stdout)
 }
 
 // Retire invokes the 'retire-worker' command, which will initiate the retiring
@@ -208,7 +208,7 @@ func (client *Client) Retire(ctx context.Context) error {
 
 	defer sshClient.Close()
 
-	return client.run(ctx, sshClient, "retire-worker", os.Stdout)
+	return client.run(ctx, sshClient, RetireWorker, os.Stdout)
 }
 
 // Delete invokes the 'delete-worker' command, which will immediately
@@ -225,7 +225,7 @@ func (client *Client) Delete(ctx context.Context) error {
 
 	defer sshClient.Close()
 
-	return client.run(ctx, sshClient, "delete-worker", os.Stdout)
+	return client.run(ctx, sshClient, DeleteWorker, os.Stdout)
 }
 
 // ContainersToDestroy invokes the 'sweep-containers' command, returning a list
@@ -242,7 +242,7 @@ func (client *Client) ContainersToDestroy(ctx context.Context) ([]string, error)
 	defer sshClient.Close()
 
 	out := new(bytes.Buffer)
-	err = client.run(ctx, sshClient, "sweep-containers", out)
+	err = client.run(ctx, sshClient, SweepContainers, out)
 	if err != nil {
 		return nil, err
 	}
@@ -270,7 +270,7 @@ func (client *Client) ReportContainers(ctx context.Context, handles []string) er
 
 	defer sshClient.Close()
 
-	command := append([]string{"report-containers"}, handles...)
+	command := append([]string{ReportContainers}, handles...)
 
 	return client.run(ctx, sshClient, strings.Join(command, " "), os.Stdout)
 }
@@ -289,7 +289,7 @@ func (client *Client) VolumesToDestroy(ctx context.Context) ([]string, error) {
 	defer sshClient.Close()
 
 	out := new(bytes.Buffer)
-	err = client.run(ctx, sshClient, "sweep-volumes", out)
+	err = client.run(ctx, sshClient, SweepVolumes, out)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func (client *Client) ReportVolumes(ctx context.Context, handles []string) error
 
 	defer sshClient.Close()
 
-	command := append([]string{"report-volumes"}, handles...)
+	command := append([]string{ReportVolumes}, handles...)
 
 	return client.run(ctx, sshClient, strings.Join(command, " "), os.Stdout)
 }

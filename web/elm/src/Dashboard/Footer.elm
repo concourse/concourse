@@ -14,7 +14,6 @@ import Keyboard
 import Message.Effects as Effects
 import Message.Message exposing (DomID(..), Message(..))
 import Message.Subscription exposing (Delivery(..), Interval(..))
-import Routes
 import ScreenSize
 import Views.Icon as Icon
 import Views.SearchBar exposing (Dropdown(..))
@@ -174,13 +173,8 @@ legend session model =
                     , PipelineStatusAborted PipelineStatus.Running
                     , PipelineStatusSucceeded PipelineStatus.Running
                     ]
-                ++ (if Filter.isViewingInstanceGroups model.query then
-                        []
-
-                    else
-                        legendSeparator session.screenSize
-                            ++ [ toggleView model ]
-                   )
+                ++ legendSeparator session.screenSize
+                ++ toggleView model
 
 
 concourseInfo :
@@ -242,25 +236,34 @@ legendItem status =
         ]
 
 
-toggleView : FooterModel r -> Html Message
-toggleView { highDensity, dashboardView } =
-    Toggle.toggleSwitch
-        { ariaLabel = "Toggle high-density view"
-        , hrefRoute =
-            Routes.Dashboard
-                { searchType =
-                    if highDensity then
-                        Routes.Normal ""
-
-                    else
-                        Routes.HighDensity
-                , dashboardView = dashboardView
+toggleView : FooterModel r -> List (Html Message)
+toggleView { highDensity, groupListView, query } =
+    let
+        hdToggle =
+            Toggle.toggleSwitch
+                { ariaLabel = "Toggle high-density view"
+                , hrefRoute = Nothing
+                , onToggle = ToggleHighDensity
+                , text = "high-density"
+                , textDirection = Toggle.Right
+                , on = highDensity
+                , styles = Styles.highDensityToggle
                 }
-        , text = "high-density"
-        , textDirection = Toggle.Right
-        , on = highDensity
-        , styles = Styles.highDensityToggle
-        }
+    in
+    if Filter.isViewingInstanceGroups query then
+        [ Toggle.toggleSwitch
+            { ariaLabel = "Toggle group list view"
+            , hrefRoute = Nothing
+            , onToggle = ToggleGroupListView
+            , text = "list view"
+            , textDirection = Toggle.Right
+            , on = groupListView
+            , styles = Styles.highDensityToggle
+            }
+        ]
+
+    else
+        [ hdToggle ]
 
 
 legendSeparator : ScreenSize.ScreenSize -> List (Html Message)

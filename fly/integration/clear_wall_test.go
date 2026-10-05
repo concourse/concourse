@@ -23,8 +23,7 @@ var _ = Describe("clear-wall", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "clear-wall")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(sess.Out).To(gbytes.Say("Wall message cleared successfully"))
 		})
 	})
@@ -40,8 +39,7 @@ var _ = Describe("clear-wall", func() {
 			flyCmd := exec.Command(flyPath, "-t", targetName, "clear-wall")
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 			Expect(sess.Err).To(gbytes.Say("failed to clear wall message"))
 		})
 	})

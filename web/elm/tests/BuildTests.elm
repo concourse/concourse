@@ -2319,7 +2319,6 @@ all =
                         >> Tuple.first
                         >> expectTooltip TriggerBuildButton "manual triggering disabled in job config"
                 ]
-
             , describe "when history and details fetched with reruns disabled" <|
                 let
                     givenHistoryAndDetailsFetched =

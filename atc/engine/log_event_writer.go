@@ -7,9 +7,9 @@ import (
 	"unicode/utf8"
 
 	"code.cloudfoundry.org/clock"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/exec"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/atc/exec"
 )
 
 func newDBEventWriter(build db.Build, origin event.Origin, clock clock.Clock, filter exec.BuildOutputFilter, disableSecretRedaction bool) io.WriteCloser {

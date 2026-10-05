@@ -64,6 +64,7 @@ module Data exposing
     , withShortPipelineId
     , withShortResourceId
     , withTeamName
+    , withUserData
     )
 
 import Application.Application as Application
@@ -73,6 +74,7 @@ import Concourse.BuildStatus as BuildStatus
 import Dashboard.Group.Models
 import Dict exposing (Dict)
 import Http
+import Json.Decode
 import Json.Encode
 import Test.Html.Event as Event
 import Time
@@ -193,6 +195,7 @@ pipeline team id =
     , lastUpdatedAt = Time.millisToPosix 0
     , backgroundImage = Maybe.Nothing
     , backgroundFilter = Maybe.Nothing
+    , userData = Maybe.Nothing
     }
 
 
@@ -245,6 +248,11 @@ withLastUpdatedAt time p =
 withBackgroundImage : String -> { r | backgroundImage : Maybe String } -> { r | backgroundImage : Maybe String }
 withBackgroundImage bg p =
     { p | backgroundImage = Just bg }
+
+
+withUserData : Json.Decode.Value -> { r | userData : Maybe Json.Decode.Value } -> { r | userData : Maybe Json.Decode.Value }
+withUserData userData p =
+    { p | userData = Just userData }
 
 
 withInstanceVars : Dict String Concourse.JsonValue -> { r | instanceVars : Dict String Concourse.JsonValue } -> { r | instanceVars : Dict String Concourse.JsonValue }

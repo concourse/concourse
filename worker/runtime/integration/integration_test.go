@@ -20,9 +20,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden"
-	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd"
-	"github.com/concourse/concourse/worker/workercmd"
+	"github.com/concourse/concourse/v8/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd"
+	"github.com/concourse/concourse/v8/worker/workercmd"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/jackpal/gateway"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -152,8 +152,6 @@ func (s *IntegrationSuite) setupRootfs() {
 
 	err = cmd.Run()
 	s.NoError(err)
-
-	return
 }
 
 func (s *IntegrationSuite) AfterTest(suiteName, testName string) {
@@ -282,7 +280,7 @@ func (s *IntegrationSuite) TestHermeticContainerNetworkEgress() {
 	s.NoError(err)
 
 	s.Equal(exitCode, 1, "Process in container should not be able to connect to external network")
-	s.Contains(buf.String(), "failed performing http getGet \"http://example.com\": context deadline exceeded")
+	s.Contains(buf.String(), "failed performing http getGet \"http://example.com\": dial tcp: lookup example.com")
 }
 
 // TestContainerNetworkEgressWithRestrictedNetworks verifies that a process that we run in a
@@ -909,6 +907,7 @@ func (s *IntegrationSuite) TestCustomDNS() {
 		Handle:     handle,
 		RootFSPath: "raw://" + s.rootfs,
 		Privileged: true,
+		NetOut:     []garden.NetOutRule{{}},
 	})
 	s.NoError(err)
 
@@ -1283,6 +1282,21 @@ func (s *IntegrationSuite) TestNewContainerEnforcesTimeoutOnTask() {
 	s.Error(err, "Task via GetContainer should also return 'not found'")
 
 	s.NoError(s.containerdProcess.Process.Signal(syscall.SIGSTOP))
+
+	s.Eventually(func() bool {
+		procStat, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", s.containerdProcess.Process.Pid))
+		if err != nil {
+			s.T().Log("failed to read containerd /proc/%/stat:", err)
+			return false
+		}
+
+		i := bytes.LastIndexByte(procStat, ')')
+		if i < 0 || i+2 >= len(procStat) {
+			s.T().Log("malformed stat")
+			return false
+		}
+		return procStat[i+2] == 'T'
+	}, 3*time.Second, 50*time.Millisecond, "wait for containerd process to be frozen")
 
 	start := time.Now()
 	_, err = contViaNew.Task(context.Background(), nil)

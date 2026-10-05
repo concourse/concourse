@@ -9,7 +9,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 )
 
 //counterfeiter:generate . WorkerFactory
@@ -55,7 +55,8 @@ var workersQuery = psql.Select(`
 		w.team_id,
 		w.start_time,
 		w.expires,
-		w.ephemeral
+		w.ephemeral,
+		w.max_active_tasks
 	`).
 	From("workers w").
 	LeftJoin("teams t ON w.team_id = t.id")
@@ -183,6 +184,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&startTime,
 		&expiresAt,
 		&ephemeral,
+		&worker.maxActiveTasks,
 	)
 	if err != nil {
 		return err
@@ -410,6 +412,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		string(workerState),
 		teamID,
 		atcWorker.Ephemeral,
+		atcWorker.MaxActiveTasks,
 	}
 
 	conflictValues := values
@@ -441,6 +444,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"state",
 			"team_id",
 			"ephemeral",
+			"max_active_tasks",
 		).
 		Values(append([]any{
 			sq.Expr(expires),
@@ -465,7 +469,8 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				version = ?,
 				state = ?,
 				team_id = ?,
-				ephemeral = ?
+				ephemeral = ?,
+				max_active_tasks = ?
 			WHERE `+matchTeamUpsert,
 			conflictValues...,
 		).
@@ -508,6 +513,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		teamID:           workerTeamID,
 		startTime:        time.Unix(atcWorker.StartTime, 0),
 		ephemeral:        atcWorker.Ephemeral,
+		maxActiveTasks:   atcWorker.MaxActiveTasks,
 		conn:             conn,
 	}
 

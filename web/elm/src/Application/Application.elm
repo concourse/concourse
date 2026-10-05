@@ -82,6 +82,9 @@ init flags url =
                         }
                     )
 
+        hideUI =
+            Routes.parseHideUI url
+
         session =
             { userState = UserStateUnknown
             , hovered = HoverState.NoHover
@@ -106,6 +109,7 @@ init flags url =
             , favoritedPipelines = Set.empty
             , favoritedInstanceGroups = Set.empty
             , route = route
+            , hideUI = hideUI
             }
 
         ( subModel, subEffects ) =
@@ -129,7 +133,7 @@ init flags url =
 
             else
                 [ SaveToken flags.csrfToken
-                , Effects.ModifyUrl <| Routes.toString route
+                , Effects.ModifyUrl <| Routes.withHideUIParam hideUI <| Routes.toString route
                 ]
     in
     ( model
@@ -485,7 +489,12 @@ handleDeliveryForApplication delivery model =
                 Browser.Internal url ->
                     case Routes.parsePath url of
                         Just route ->
-                            ( model, [ NavigateTo <| Routes.toString route ] )
+                            ( model
+                            , [ NavigateTo <|
+                                    Routes.withHideUIParam model.session.hideUI <|
+                                        Routes.toString route
+                              ]
+                            )
 
                         Nothing ->
                             ( model, [ LoadExternal <| Url.toString url ] )
@@ -582,24 +591,12 @@ view model =
             , SideBar.tooltip model.session
                 |> Maybe.map (Tooltip.view model.session)
                 |> Maybe.withDefault (Html.text "")
-            , case model.wallMessage of
-                Just msg ->
-                    if model.wallEditor.isOpen then
-                        Html.text ""
-
-                    else
-                        Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
-                            wallLinks msg
-
-                Nothing ->
-                    Html.text ""
-            , if model.wallEditor.isOpen then
-                wallEditorView model.wallEditor model.wallMessage model.session.hovered
-
-              else
-                Html.text ""
             , Html.div
-                ([ id "page-wrapper", style "height" "100%" ]
+                ([ id "page-wrapper"
+                 , style "height" "100%"
+                 , style "display" "flex"
+                 , style "flex-direction" "column"
+                 ]
                     ++ (if model.session.draggingSideBar then
                             Styles.disableInteraction
 
@@ -607,7 +604,24 @@ view model =
                             []
                        )
                 )
-                [ body ]
+                [ case model.wallMessage of
+                    Just msg ->
+                        if model.wallEditor.isOpen then
+                            Html.text ""
+
+                        else
+                            Html.div [ id "wall-banner", style "white-space" "pre-wrap" ] <|
+                                wallLinks msg
+
+                    Nothing ->
+                        Html.text ""
+                , if model.wallEditor.isOpen then
+                    wallEditorView model.wallEditor model.wallMessage model.session.hovered
+
+                  else
+                    Html.text ""
+                , body
+                ]
             ]
     }
 
@@ -650,6 +664,9 @@ routeMatchesModel route model =
             True
 
         ( Routes.Dashboard _, SubPage.DashboardModel _ ) ->
+            True
+
+        ( Routes.PipelineInfo _, SubPage.PipelineInfoModel _ ) ->
             True
 
         _ ->

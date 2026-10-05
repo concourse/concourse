@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/kubernetes"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/kubernetes"
+	"github.com/concourse/concourse/v8/vars"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -61,6 +61,7 @@ var _ = Describe("Kubernetes", func() {
 			lagertest.NewTestLogger("test"),
 			fakeClientset,
 			"prefix-",
+			"",
 		)
 
 		vs = creds.NewVariables(factory.NewSecrets(), creds.SecretLookupParams{Team: "some-team", Pipeline: "some-pipeline"}, false)
@@ -78,9 +79,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("team-scoped vars with a value field", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: secretName,
-					},
+					Name: secretName,
 					Data: map[string][]byte{
 						"value": []byte("some-value"),
 					},
@@ -94,9 +93,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("pipeline-scoped vars with a value field", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "some-pipeline." + secretName,
-					},
+					Name: "some-pipeline." + secretName,
 					Data: map[string][]byte{
 						"value": []byte("some-value"),
 					},
@@ -110,9 +107,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("pipeline-scoped vars with arbitrary fields", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "some-pipeline." + secretName,
-					},
+					Name: "some-pipeline." + secretName,
 					Data: map[string][]byte{
 						"some-field": []byte("some-field-value"),
 					},
@@ -132,9 +127,7 @@ var _ = Describe("Kubernetes", func() {
 		Entry("pipeline-scoped vars with arbitrary fields accessed via template", Example{
 			Setup: func() {
 				fakeClientset.CoreV1().Secrets("prefix-some-team").Create(context.TODO(), &v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "some-pipeline." + secretName,
-					},
+					Name: "some-pipeline." + secretName,
 					Data: map[string][]byte{
 						"some-field": []byte("some-field-value"),
 					},
@@ -145,4 +138,37 @@ var _ = Describe("Kubernetes", func() {
 			Result:   "some-field-value",
 		}),
 	)
+
+	Context("with a shared namespace suffix", func() {
+		BeforeEach(func() {
+			fakeClientset = fake.NewSimpleClientset()
+
+			factory := kubernetes.NewKubernetesFactory(
+				lagertest.NewTestLogger("test"),
+				fakeClientset,
+				"prefix-",
+				"shared",
+			)
+
+			vs = creds.NewVariables(factory.NewSecrets(), creds.SecretLookupParams{Team: "some-team", Pipeline: "some-pipeline"}, false)
+		})
+
+		DescribeTable("var lookup", func(ex Example) {
+			ex.Assert(vs)
+		},
+			Entry("shared-namespace-suffix scoped vars with a value field", Example{
+				Setup: func() {
+					fakeClientset.CoreV1().Secrets("prefix-shared").Create(context.TODO(), &v1.Secret{
+						Name: secretName,
+						Data: map[string][]byte{
+							"value": []byte("some-shared-value"),
+						},
+					}, metav1.CreateOptions{})
+				},
+
+				Template: "((" + secretName + "))",
+				Result:   "some-shared-value",
+			}),
+		)
+	})
 })

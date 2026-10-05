@@ -1,9 +1,12 @@
 module Dashboard.Pipeline exposing
     ( hdPipelineView
     , headerRows
+    , jobStatus
     , pipelineNotSetView
     , pipelineStatus
     , pipelineView
+    , sinceTransitionText
+    , visibilityView
     )
 
 import Application.Models exposing (Session)
@@ -14,7 +17,7 @@ import Concourse.BuildStatus exposing (BuildStatus(..))
 import Concourse.PipelineStatus as PipelineStatus
 import Dashboard.DashboardPreview as DashboardPreview
 import Dashboard.Grid.Constants as GridConstants
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Styles as Styles
 import Dict
 import Duration

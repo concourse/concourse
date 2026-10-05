@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v8/fly/rc"
 )
 
 type FlyCommand struct {
@@ -21,6 +21,7 @@ type FlyCommand struct {
 	Login  LoginCommand  `command:"login" alias:"l" description:"Authenticate with the target"`
 	Logout LogoutCommand `command:"logout" alias:"o" description:"Release authentication with the target"`
 	Status StatusCommand `command:"status" description:"Login status"`
+	Health HealthCommand `command:"health" description:"Check cluster health"`
 	Sync   SyncCommand   `command:"sync"  alias:"s" description:"Download and replace the current fly from the target"`
 
 	ActiveUsers ActiveUsersCommand `command:"active-users" alias:"au" description:"List the active users since a date or for the past 2 months"`

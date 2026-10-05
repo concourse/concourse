@@ -3,6 +3,7 @@ module Dashboard.Group.Models exposing
     , Pipeline
     , cardIdentifier
     , cardName
+    , cardPipeline
     , cardTeamName
     , groupCardsWithinTeam
     , ungroupCards
@@ -71,6 +72,19 @@ cardName c =
 
         InstanceGroupCard p _ ->
             p.name
+
+
+cardPipeline : Card -> Pipeline
+cardPipeline c =
+    case c of
+        PipelineCard p ->
+            p
+
+        InstancedPipelineCard p ->
+            p
+
+        InstanceGroupCard p _ ->
+            p
 
 
 cardTeamName : Card -> String

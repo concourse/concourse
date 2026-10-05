@@ -6,12 +6,12 @@ import (
 
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/resource"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/resource"
 )
 
 func NewPutDelegate(
@@ -84,7 +84,7 @@ func (d *putDelegate) Finished(logger lager.Logger, exitStatus exec.ExitStatus, 
 	logger.Info("finished", lager.Data{"exit-status": exitStatus, "version-info": info})
 }
 
-func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, imageResourceCache db.ResourceCache, info resource.VersionResult) {
+func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.Source, imageResourceCache db.ResourceCache, info resource.VersionResult) error {
 	logger := log.WithData(lager.Data{
 		"step":          plan.Name,
 		"resource":      plan.Resource,
@@ -103,6 +103,7 @@ func (d *putDelegate) SaveOutput(log lager.Logger, plan atc.PutPlan, source atc.
 	)
 	if err != nil {
 		logger.Error("failed-to-save-output", err)
-		return
 	}
+
+	return err
 }

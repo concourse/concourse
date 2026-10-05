@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -141,6 +141,7 @@ func (a *auditor) ValidateAction(action string) bool {
 		atc.DownloadCLI,
 		atc.GetInfo,
 		atc.GetInfoCreds,
+		atc.GetHealth,
 		atc.ListActiveUsersSince,
 		atc.GetUser,
 		atc.GetWall,

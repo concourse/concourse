@@ -6,12 +6,12 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	. "github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/schedulerfakes"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	. "github.com/concourse/concourse/v8/atc/scheduler"
+	"github.com/concourse/concourse/v8/atc/scheduler/schedulerfakes"
+	"github.com/concourse/concourse/v8/tracing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -99,10 +99,8 @@ var _ = Describe("Scheduler", func() {
 					expectedInputMapping = map[string]db.InputResult{
 						"input-1": db.InputResult{
 							Input: &db.AlgorithmInput{
-								AlgorithmVersion: db.AlgorithmVersion{
-									ResourceID: 1,
-									Version:    db.ResourceVersion("1"),
-								},
+								ResourceID:      1,
+								Version:         db.ResourceVersion("1"),
 								FirstOccurrence: true,
 							},
 						},

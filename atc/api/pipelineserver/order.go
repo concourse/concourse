@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 func (s *Server) OrderPipelines(team db.Team) http.Handler {
@@ -26,8 +26,7 @@ func (s *Server) OrderPipelines(team db.Team) http.Handler {
 			logger.Error("failed-to-order-pipelines", err, lager.Data{
 				"pipeline_names": pipelinesNames,
 			})
-			var errNotFound db.ErrPipelineNotFound
-			if errors.As(err, &errNotFound) {
+			if _, ok := errors.AsType[db.ErrPipelineNotFound](err); ok {
 				w.WriteHeader(http.StatusBadRequest)
 				fmt.Fprintln(w, err.Error())
 			} else {

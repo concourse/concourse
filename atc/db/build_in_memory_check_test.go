@@ -7,12 +7,12 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/util"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/atc/util"
+	"github.com/concourse/concourse/v8/tracing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

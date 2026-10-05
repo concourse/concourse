@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -160,6 +160,97 @@ var _ = Describe("PipelineLifecycle", func() {
 		})
 	})
 
+	Describe("DestroyArchivedPipelines", func() {
+		var (
+			olderThan  time.Duration
+			p1, p2, p3 db.Pipeline
+		)
+
+		BeforeEach(func() {
+			olderThan = 48 * time.Hour
+
+			p1, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "p1"}, defaultPipelineConfig, db.ConfigVersion(0), false)
+			Expect(err).ToNot(HaveOccurred())
+			p2, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "p2"}, defaultPipelineConfig, db.ConfigVersion(0), false)
+			Expect(err).ToNot(HaveOccurred())
+			p3, _, err = defaultTeam.SavePipeline(atc.PipelineRef{Name: "p3"}, defaultPipelineConfig, db.ConfigVersion(0), false)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func() {
+			err = pl.DestroyArchivedPipelines(olderThan)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("no pipelines are archived", func() {
+			It("destroys no pipelines", func() {
+				found, err := p1.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = p2.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = p3.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+		})
+
+		Context("there are some archived pipelines", func() {
+			BeforeEach(func() {
+				By("archiving 2/3 pipelines")
+				err = p1.Archive()
+				Expect(err).ToNot(HaveOccurred())
+				_, err = dbConn.Exec(`UPDATE pipelines SET paused_at = NOW() - INTERVAL '3' DAY WHERE id = $1`, p1.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				err = p3.Archive()
+				Expect(err).ToNot(HaveOccurred())
+				_, err = dbConn.Exec(`UPDATE pipelines SET paused_at = NOW() - INTERVAL '1' DAY WHERE id = $1`, p3.ID())
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("destroys archived pipelines older than duration specified", func() {
+				found, err := p1.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse(), "should be destroyed")
+
+				found, err = p2.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				found, err = p3.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+			})
+
+			Context("told to destroy archived pipelines with an age of zero", func() {
+				BeforeEach(func() {
+					olderThan = 0
+				})
+
+				It("destroys no pipelines", func() {
+					found, err := p1.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(p1.Archived()).To(BeTrue())
+
+					found, err = p2.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(p2.Archived()).To(BeFalse())
+
+					found, err = p3.Reload()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(p3.Archived()).To(BeTrue())
+				})
+			})
+		})
+
+	})
 	Describe("RemoveBuildEventsForDeletedPipelines", func() {
 		var (
 			pipeline1 db.Pipeline

@@ -13,7 +13,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/localip"
-	concourseCmd "github.com/concourse/concourse/cmd"
+	concourseCmd "github.com/concourse/concourse/v8/cmd"
 	flags "github.com/jessevdk/go-flags"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"

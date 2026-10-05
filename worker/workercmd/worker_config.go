@@ -3,7 +3,7 @@ package workercmd
 import (
 	"time"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 )
 
 type WorkerConfig struct {
@@ -17,19 +17,22 @@ type WorkerConfig struct {
 
 	Ephemeral bool `long:"ephemeral" description:"If set, the worker will be immediately removed upon stalling."`
 
+	MaxActiveTasks int `long:"max-active-tasks" description:"If set, when the worker registers with the web node(s) it will specify this value as the max number of active tasks that can be assigned to it, overriding the web's --max-active-tasks-per-worker for THIS worker. Web nodes must be using the limit-active-tasks placement strategy for this to have any effect."`
+
 	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
 func (c WorkerConfig) Worker() atc.Worker {
 	return atc.Worker{
-		Tags:          c.Tags,
-		Team:          c.TeamName,
-		Name:          c.Name,
-		StartTime:     time.Now().Unix(),
-		Version:       c.Version,
-		HTTPProxyURL:  c.HTTPProxy,
-		HTTPSProxyURL: c.HTTPSProxy,
-		NoProxy:       c.NoProxy,
-		Ephemeral:     c.Ephemeral,
+		Tags:           c.Tags,
+		Team:           c.TeamName,
+		Name:           c.Name,
+		StartTime:      time.Now().Unix(),
+		Version:        c.Version,
+		HTTPProxyURL:   c.HTTPProxy,
+		HTTPSProxyURL:  c.HTTPSProxy,
+		NoProxy:        c.NoProxy,
+		Ephemeral:      c.Ephemeral,
+		MaxActiveTasks: c.MaxActiveTasks,
 	}
 }

@@ -21,7 +21,7 @@ vault write auth/cert/certs/concourse \
   certificate=@hack/vault/certs/vault-ca.crt ttl=1h
 
 vault token create --policy=concourse --format=json > hack/vault/token.json
-jq -r .token < hack/vault/token.json > hack/vault/token
+jq -r .root_token < hack/vault/init.json > hack/vault/token
 
 echo
 echo 'to use the vault CLI, set:'

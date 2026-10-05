@@ -18,4 +18,5 @@ type alias Session =
         , authToken : String
         , pipelineRunningKeyframes : String
         , timeZone : Time.Zone
+        , hideUI : Bool
         }

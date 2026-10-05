@@ -11,11 +11,11 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/vars"
 )
 
 // pipelineObjectTables contains a list of tables that are objects within a
@@ -72,7 +72,7 @@ type Pipeline interface {
 	CheckPaused() (bool, error)
 	Reload() (bool, error)
 
-	ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error)
+	ResourceVersion(resourceID, resourceConfigVersionID int) (atc.ResourceVersion, bool, error)
 
 	GetBuildsWithVersionAsInput(int, int) ([]Build, error)
 	GetBuildsWithVersionAsOutput(int, int) ([]Build, error)
@@ -127,6 +127,8 @@ type Pipeline interface {
 
 	SetParentIDs(jobID, buildID int) error
 }
+
+var _ Pipeline = (*pipeline)(nil)
 
 type pipeline struct {
 	id            int
@@ -320,11 +322,11 @@ func (p *pipeline) CreateJobBuild(jobName string) (Build, error) {
 	return build, nil
 }
 
-// ResourceVersion is given a resource config version id and returns the
+// ResourceVersion is given a resource id and resource config version id and returns the
 // resource version struct. This method is used by the API call
 // GetResourceVersion to get all the attributes for that version of the
 // resource.
-func (p *pipeline) ResourceVersion(resourceConfigVersionID int) (atc.ResourceVersion, bool, error) {
+func (p *pipeline) ResourceVersion(resourceID, resourceConfigVersionID int) (atc.ResourceVersion, bool, error) {
 	rv := atc.ResourceVersion{}
 	var (
 		versionBytes  string
@@ -334,16 +336,18 @@ func (p *pipeline) ResourceVersion(resourceConfigVersionID int) (atc.ResourceVer
 	enabled := `
 		NOT EXISTS (
 			SELECT 1
-			FROM resource_disabled_versions d, resources r
+			FROM resource_disabled_versions d
 			WHERE d.version_digest IN (v.version_md5, v.version_sha256)
-			AND r.resource_config_scope_id = v.resource_config_scope_id
 			AND r.id = d.resource_id
 		)`
 
 	err := psql.Select("v.id", "v.version", "v.metadata", enabled).
 		From("resource_config_versions v").
+		Join("resources r ON r.resource_config_scope_id = v.resource_config_scope_id").
 		Where(sq.Eq{
-			"v.id": resourceConfigVersionID,
+			"v.id":          resourceConfigVersionID,
+			"r.id":          resourceID,
+			"r.pipeline_id": p.id,
 		}).
 		RunWith(p.conn).
 		QueryRow().
@@ -772,11 +776,26 @@ func (p *pipeline) Expose() error {
 }
 
 func (p *pipeline) Destroy() error {
+	tx, err := p.conn.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer Rollback(tx)
+	err = p.destroy(tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+func (p *pipeline) destroy(tx Tx) error {
 	_, err := psql.Delete("pipelines").
 		Where(sq.Eq{
 			"id": p.id,
 		}).
-		RunWith(p.conn).
+		RunWith(tx).
 		Exec()
 
 	return err

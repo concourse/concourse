@@ -2,6 +2,7 @@ package vault
 
 import (
 	"errors"
+	"fmt"
 	"path"
 	"strings"
 
@@ -42,17 +43,27 @@ func kvPreflightVersionRequest(client *api.Client, path string) (string, int, er
 	}
 	var mountPath string
 	if mountPathRaw, ok := secret.Data["path"]; ok {
-		mountPath = mountPathRaw.(string)
+		mountPath, ok = mountPathRaw.(string)
+		if !ok {
+			return "", 0, fmt.Errorf("unexpected type %T for mount path in vault pre-flight response", mountPathRaw)
+		}
 	}
 	options := secret.Data["options"]
 	if options == nil {
 		return mountPath, 1, nil
 	}
-	versionRaw := options.(map[string]any)["version"]
+	optionsMap, ok := options.(map[string]any)
+	if !ok {
+		return "", 0, fmt.Errorf("unexpected type %T for options in vault pre-flight response", options)
+	}
+	versionRaw := optionsMap["version"]
 	if versionRaw == nil {
 		return mountPath, 1, nil
 	}
-	version := versionRaw.(string)
+	version, ok := versionRaw.(string)
+	if !ok {
+		return "", 0, fmt.Errorf("unexpected type %T for version in vault pre-flight response", versionRaw)
+	}
 	switch version {
 	case "", "1":
 		return mountPath, 1, nil

@@ -3,15 +3,21 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/db/lock"
 )
 
 //counterfeiter:generate . PipelineLifecycle
 type PipelineLifecycle interface {
+	// Finds any pipelines no longer being set by their parent pipeline via the
+	// set_pipeline step and archives them
 	ArchiveAbandonedPipelines() error
 	RemoveBuildEventsForDeletedPipelines() error
+	// Destroys any pipelines that have been archived for longer than the given
+	// duration. The duration must be > 0. A duration of zero is a no-op.
+	DestroyArchivedPipelines(time.Duration) error
 }
 
 func NewPipelineLifecycle(conn DbConn, lockFactory lock.LockFactory) PipelineLifecycle {
@@ -20,6 +26,8 @@ func NewPipelineLifecycle(conn DbConn, lockFactory lock.LockFactory) PipelineLif
 		lockFactory: lockFactory,
 	}
 }
+
+var _ PipelineLifecycle = (*pipelineLifecycle)(nil)
 
 type pipelineLifecycle struct {
 	conn        DbConn
@@ -145,6 +153,64 @@ func (p *pipelineLifecycle) RemoveBuildEventsForDeletedPipelines() error {
 		Exec()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (pl *pipelineLifecycle) DestroyArchivedPipelines(olderThan time.Duration) error {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	tx, err := pl.conn.Begin()
+	if err != nil {
+		return err
+	}
+	defer Rollback(tx)
+
+	archivedPipelinesToDestroy, err := pipelinesQuery.
+		Where(sq.And{
+			sq.Eq{"p.archived": true},
+			sq.Expr(fmt.Sprintf("paused_at < NOW() - '%d seconds'::INTERVAL", int(olderThan.Seconds()))),
+		}).
+		RunWith(tx).
+		Query()
+
+	if err != nil {
+		return err
+	}
+	defer archivedPipelinesToDestroy.Close()
+
+	err = destroyArchivedPipelines(tx, pl.conn, pl.lockFactory, archivedPipelinesToDestroy)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func destroyArchivedPipelines(tx Tx, conn DbConn, lockFactory lock.LockFactory, rows *sql.Rows) error {
+	var toDestroy []pipeline
+	for rows.Next() {
+		p := newPipeline(conn, lockFactory)
+		if err := scanPipeline(p, rows); err != nil {
+			return err
+		}
+
+		toDestroy = append(toDestroy, *p)
+	}
+
+	for _, pipeline := range toDestroy {
+		err := pipeline.destroy(tx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

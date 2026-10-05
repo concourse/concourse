@@ -65,7 +65,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/core@npm:^7.29.6":
+"@babel/core@npm:^7.29.0":
   version: 7.29.7
   resolution: "@babel/core@npm:7.29.7"
   dependencies:
@@ -1228,6 +1228,41 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@elm_binaries/darwin_arm64@npm:0.19.2-0":
+  version: 0.19.2-0
+  resolution: "@elm_binaries/darwin_arm64@npm:0.19.2-0"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@elm_binaries/darwin_x64@npm:0.19.2-0":
+  version: 0.19.2-0
+  resolution: "@elm_binaries/darwin_x64@npm:0.19.2-0"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@elm_binaries/linux_arm64@npm:0.19.2-0":
+  version: 0.19.2-0
+  resolution: "@elm_binaries/linux_arm64@npm:0.19.2-0"
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@elm_binaries/linux_x64@npm:0.19.2-0":
+  version: 0.19.2-0
+  resolution: "@elm_binaries/linux_x64@npm:0.19.2-0"
+  conditions: os=linux & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@elm_binaries/win32_x64@npm:0.19.2-0":
+  version: 0.19.2-0
+  resolution: "@elm_binaries/win32_x64@npm:0.19.2-0"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@isaacs/fs-minipass@npm:^4.0.0":
   version: 4.0.1
   resolution: "@isaacs/fs-minipass@npm:4.0.1"
@@ -1288,48 +1323,6 @@ __metadata:
     "@jridgewell/resolve-uri": "npm:^3.1.0"
     "@jridgewell/sourcemap-codec": "npm:^1.4.14"
   checksum: 10c0/fb547ba31658c4d74eb17e7389f4908bf7c44cef47acb4c5baa57289daf68e6fe53c639f41f751b3923aca67010501264f70e7b49978ad1f040294b22c37b333
-  languageName: node
-  linkType: hard
-
-"@lydell/elm_darwin_arm64@npm:0.19.1-3":
-  version: 0.19.1-3
-  resolution: "@lydell/elm_darwin_arm64@npm:0.19.1-3"
-  conditions: os=darwin & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@lydell/elm_darwin_x64@npm:0.19.1-2":
-  version: 0.19.1-2
-  resolution: "@lydell/elm_darwin_x64@npm:0.19.1-2"
-  conditions: os=darwin & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@lydell/elm_linux_arm64@npm:0.19.1-4":
-  version: 0.19.1-4
-  resolution: "@lydell/elm_linux_arm64@npm:0.19.1-4"
-  conditions: os=linux & cpu=arm64
-  languageName: node
-  linkType: hard
-
-"@lydell/elm_linux_arm@npm:0.19.1-0":
-  version: 0.19.1-0
-  resolution: "@lydell/elm_linux_arm@npm:0.19.1-0"
-  conditions: os=linux & cpu=arm
-  languageName: node
-  linkType: hard
-
-"@lydell/elm_linux_x64@npm:0.19.1-1":
-  version: 0.19.1-1
-  resolution: "@lydell/elm_linux_x64@npm:0.19.1-1"
-  conditions: os=linux & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@lydell/elm_win32_x64@npm:0.19.1-1":
-  version: 0.19.1-1
-  resolution: "@lydell/elm_win32_x64@npm:0.19.1-1"
-  conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
@@ -1688,7 +1681,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ansi-styles@npm:^4.0.0, ansi-styles@npm:^4.1.0":
+"ansi-styles@npm:^4.0.0":
   version: 4.3.0
   resolution: "ansi-styles@npm:4.3.0"
   dependencies:
@@ -2117,16 +2110,6 @@ __metadata:
     escape-string-regexp: "npm:^1.0.5"
     supports-color: "npm:^5.3.0"
   checksum: 10c0/e6543f02ec877732e3a2d1c3c3323ddb4d39fbab687c23f526e25bd4c6a9bf3b83a696e8c769d078e04e5754921648f7821b2a2acfd16c550435fd630026e073
-  languageName: node
-  linkType: hard
-
-"chalk@npm:^4.1.2":
-  version: 4.1.2
-  resolution: "chalk@npm:4.1.2"
-  dependencies:
-    ansi-styles: "npm:^4.1.0"
-    supports-color: "npm:^7.1.0"
-  checksum: 10c0/4a3fef5cc34975c898ffe77141450f679721df9dde00f6c304353fa9c8b571929123b26a0e4617bde5018977eb655b31970c297b91b63ee83bb82aeb04666880
   languageName: node
   linkType: hard
 
@@ -2593,11 +2576,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"elm-test@npm:0.19.1-revision17":
-  version: 0.19.1-revision17
-  resolution: "elm-test@npm:0.19.1-revision17"
+"elm-test@npm:0.19.2-0":
+  version: 0.19.2-0
+  resolution: "elm-test@npm:0.19.2-0"
   dependencies:
-    chalk: "npm:^4.1.2"
     chokidar: "npm:^3.5.3"
     commander: "npm:^9.4.1"
     cross-spawn: "npm:^7.0.6"
@@ -2609,36 +2591,33 @@ __metadata:
     xmlbuilder: "npm:^15.1.1"
   bin:
     elm-test: bin/elm-test
-  checksum: 10c0/4932fd7baecba563424cc1779032f4d10e951a2f1a4a8abc8d395e178f4840bda441851a77a18404a8fc5c5980588263b450236f8653cf81bfc3f17f9ff4f349
+  checksum: 10c0/9f3e9b73caa93dc084ae45685545365fac4351d9407547ec898c5c5a222bdde5fd6a61e348de6ec7425cc5850fc1136b93f681c3e3ca687e210fec24dd27a66a
   languageName: node
   linkType: hard
 
-"elm@npm:@lydell/elm@0.19.1-14":
-  version: 0.19.1-14
-  resolution: "@lydell/elm@npm:0.19.1-14"
+"elm@npm:0.19.2-0":
+  version: 0.19.2-0
+  resolution: "elm@npm:0.19.2-0"
   dependencies:
-    "@lydell/elm_darwin_arm64": "npm:0.19.1-3"
-    "@lydell/elm_darwin_x64": "npm:0.19.1-2"
-    "@lydell/elm_linux_arm": "npm:0.19.1-0"
-    "@lydell/elm_linux_arm64": "npm:0.19.1-4"
-    "@lydell/elm_linux_x64": "npm:0.19.1-1"
-    "@lydell/elm_win32_x64": "npm:0.19.1-1"
+    "@elm_binaries/darwin_arm64": "npm:0.19.2-0"
+    "@elm_binaries/darwin_x64": "npm:0.19.2-0"
+    "@elm_binaries/linux_arm64": "npm:0.19.2-0"
+    "@elm_binaries/linux_x64": "npm:0.19.2-0"
+    "@elm_binaries/win32_x64": "npm:0.19.2-0"
   dependenciesMeta:
-    "@lydell/elm_darwin_arm64":
+    "@elm_binaries/darwin_arm64":
       optional: true
-    "@lydell/elm_darwin_x64":
+    "@elm_binaries/darwin_x64":
       optional: true
-    "@lydell/elm_linux_arm":
+    "@elm_binaries/linux_arm64":
       optional: true
-    "@lydell/elm_linux_arm64":
+    "@elm_binaries/linux_x64":
       optional: true
-    "@lydell/elm_linux_x64":
-      optional: true
-    "@lydell/elm_win32_x64":
+    "@elm_binaries/win32_x64":
       optional: true
   bin:
     elm: bin/elm
-  checksum: 10c0/d812e3b4f539ddd53827155ef78030c20dc09dd0383745732ae3d1e2449c2f2791f4572d91325a7cc2486d6fd96ac9d2c3b6b3b8561229fd28f70abb5fdbc089
+  checksum: 10c0/1c0a901085b9fcdd109b66913f9a71103b0465ca152caab624ac1ef27c803b7b15dc819489101a3eea03c8cd9881354caf0808b9d9fa8824ca5a5e10b26529bb
   languageName: node
   linkType: hard
 
@@ -4999,15 +4978,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"supports-color@npm:^7.1.0":
-  version: 7.2.0
-  resolution: "supports-color@npm:7.2.0"
-  dependencies:
-    has-flag: "npm:^4.0.0"
-  checksum: 10c0/afb4c88521b8b136b5f5f95160c98dee7243dc79d5432db7efc27efb219385bbc7d9427398e43dd6cc730a0f87d5085ce1652af7efbe391327bc0a7d0f7fc124
-  languageName: node
-  linkType: hard
-
 "supports-color@npm:^8.0.0":
   version: 8.1.1
   resolution: "supports-color@npm:8.1.1"
@@ -5114,6 +5084,20 @@ __metadata:
   bin:
     terser: bin/terser
   checksum: 10c0/93ad468f13187c4f66b609bbfc00a6aee752007779ca3157f2c1ee063697815748d6010fd449a16c30be33213748431d5f54cc0224ba6a3fbbf5acd3582a4356
+  languageName: node
+  linkType: hard
+
+"terser@npm:^5.50.0":
+  version: 5.50.0
+  resolution: "terser@npm:5.50.0"
+  dependencies:
+    "@jridgewell/source-map": "npm:^0.3.3"
+    acorn: "npm:^8.15.0"
+    commander: "npm:^2.20.0"
+    source-map-support: "npm:~0.5.20"
+  bin:
+    terser: bin/terser
+  checksum: 10c0/d932282186239fcdc53ffb67568c7e9f2a2c58e21618d71500fc855f7f6bb2efdf061d383313880ae8bb45c7ba7c089e50978a689e1a6e2bbd5307fb639f1113
   languageName: node
   linkType: hard
 
@@ -5259,15 +5243,6 @@ __metadata:
   version: 0.0.7
   resolution: "typedarray@npm:0.0.7"
   checksum: 10c0/4cf120c698e86cf7960e4805b6695f783b1ef3a4ab8e2aadc4244802db1469b66f88bff340527c74896225f025fe14f80b4893573f0397738fd4fd3a52032c47
-  languageName: node
-  linkType: hard
-
-"uglify-js@npm:^3.19.3":
-  version: 3.19.3
-  resolution: "uglify-js@npm:3.19.3"
-  bin:
-    uglifyjs: bin/uglifyjs
-  checksum: 10c0/83b0a90eca35f778e07cad9622b80c448b6aad457c9ff8e568afed978212b42930a95f9e1be943a1ffa4258a3340fbb899f41461131c05bb1d0a9c303aed8479
   languageName: node
   linkType: hard
 
@@ -5424,23 +5399,23 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "web@workspace:."
   dependencies:
-    "@babel/core": "npm:^7.29.6"
+    "@babel/core": "npm:^7.29.0"
     "@babel/plugin-syntax-dynamic-import": "npm:7.8.3"
     "@babel/preset-env": "npm:^7.29.0"
     "@mdi/svg": "npm:7.4.47"
     babel-loader: "npm:^10.0.0"
     child-process-promise: "npm:2.2.1"
     clean-css-cli: "npm:5.6.3"
-    elm: "npm:0.19.1-6"
+    elm: "npm:0.19.2-0"
     elm-analyse: "npm:0.16.5"
     elm-format: "npm:0.8.8"
-    elm-test: "npm:0.19.1-revision17"
+    elm-test: "npm:0.19.2-0"
     less: "npm:4.6.4"
     less-plugin-autoprefix: "npm:2.0.0"
     puppeteer: "npm:^24.37.3"
     request: "npm:^2.88.2"
     simple-icons: "npm:^16.18.1"
-    uglify-js: "npm:^3.19.3"
+    terser: "npm:^5.50.0"
     uuid: "npm:^14.0.0"
     webpack: "npm:^5.105.2"
     webpack-cli: "npm:7.0.2"

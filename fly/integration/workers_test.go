@@ -4,8 +4,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/fly/ui"
 	"github.com/fatih/color"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -199,6 +199,7 @@ var _ = Describe("workers", func() {
                 "active_containers": 0,
 				"active_volumes": 0,
 				"active_tasks": 1,
+				"max_active_tasks": 0,
                 "resource_types": [
                   {
                     "type": "resource-1",
@@ -226,6 +227,7 @@ var _ = Describe("workers", func() {
                 "active_containers": 0,
 				"active_volumes": 0,
 				"active_tasks": 1,
+				"max_active_tasks": 0,
                 "resource_types": null,
                 "platform": "platform2",
                 "tags": [
@@ -244,6 +246,7 @@ var _ = Describe("workers", func() {
                 "active_containers": 0,
 				"active_volumes": 0,
 				"active_tasks": 0,
+				"max_active_tasks": 0,
                 "resource_types": null,
                 "platform": "platform2",
                 "tags": [
@@ -262,6 +265,7 @@ var _ = Describe("workers", func() {
                 "active_containers": 1,
 				"active_volumes": 0,
 				"active_tasks": 1,
+				"max_active_tasks": 0,
                 "resource_types": [
                   {
                     "type": "resource-1",
@@ -295,6 +299,7 @@ var _ = Describe("workers", func() {
                 "active_containers": 10,
 				"active_volumes": 0,
 				"active_tasks": 1,
+				"max_active_tasks": 0,
                 "resource_types": null,
                 "platform": "platform3",
                 "tags": [],
@@ -311,6 +316,7 @@ var _ = Describe("workers", func() {
                 "active_containers": 7,
 				"active_volumes": 0,
 				"active_tasks": 1,
+				"max_active_tasks": 0,
                 "resource_types": null,
                 "platform": "platform4",
                 "tags": [
@@ -329,6 +335,7 @@ var _ = Describe("workers", func() {
                 "active_containers": 5,
 				"active_volumes": 0,
 				"active_tasks": 1,
+				"max_active_tasks": 0,
                 "resource_types": null,
                 "platform": "platform5",
                 "tags": [],

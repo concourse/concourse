@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/concourse/atc/api/accessor/accessorfakes"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/api/accessor/accessorfakes"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/go-jose/go-jose/v4/jwt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/atc/api/accessor"
+	"github.com/concourse/concourse/v8/atc/api/accessor"
 )
 
 var _ = Describe("Verifier", func() {
@@ -98,9 +98,7 @@ var _ = Describe("Verifier", func() {
 			BeforeEach(func() {
 				oneHourAgo := jwt.NewNumericDate(time.Now().Add(-1 * time.Hour))
 				accessToken.Claims = db.Claims{
-					Claims: jwt.Claims{
-						Expiry: oneHourAgo,
-					},
+					Expiry: oneHourAgo,
 				}
 			})
 
@@ -113,10 +111,8 @@ var _ = Describe("Verifier", func() {
 			BeforeEach(func() {
 				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
 				accessToken.Claims = db.Claims{
-					Claims: jwt.Claims{
-						Expiry:   oneHourFromNow,
-						Audience: []string{"invalid"},
-					},
+					Expiry:   oneHourFromNow,
+					Audience: []string{"invalid"},
 				}
 			})
 
@@ -129,10 +125,8 @@ var _ = Describe("Verifier", func() {
 			BeforeEach(func() {
 				oneHourFromNow := jwt.NewNumericDate(time.Now().Add(1 * time.Hour))
 				accessToken.Claims = db.Claims{
-					Claims: jwt.Claims{
-						Expiry:   oneHourFromNow,
-						Audience: []string{"some-aud"},
-					},
+					Expiry:   oneHourFromNow,
+					Audience: []string{"some-aud"},
 				}
 			})
 

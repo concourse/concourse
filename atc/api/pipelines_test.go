@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	. "github.com/concourse/concourse/atc/testhelpers"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	. "github.com/concourse/concourse/v8/atc/testhelpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -1483,27 +1483,23 @@ var _ = Describe("Pipelines API", func() {
 							},
 							BuildOutputs: []atc.DebugBuildOutput{
 								{
-									DebugResourceVersion: atc.DebugResourceVersion{
-										VersionID:  73,
-										ResourceID: 127,
-										CheckOrder: 123,
-										ScopeID:    111,
-									},
-									BuildID: 66,
-									JobID:   13,
+									VersionID:  73,
+									ResourceID: 127,
+									CheckOrder: 123,
+									ScopeID:    111,
+									BuildID:    66,
+									JobID:      13,
 								},
 							},
 							BuildInputs: []atc.DebugBuildInput{
 								{
-									DebugResourceVersion: atc.DebugResourceVersion{
-										VersionID:  66,
-										ResourceID: 77,
-										CheckOrder: 88,
-										ScopeID:    222,
-									},
-									BuildID:   66,
-									JobID:     13,
-									InputName: "some-input-name",
+									VersionID:  66,
+									ResourceID: 77,
+									CheckOrder: 88,
+									ScopeID:    222,
+									BuildID:    66,
+									JobID:      13,
+									InputName:  "some-input-name",
 								},
 							},
 							BuildReruns: []atc.DebugBuildRerun{

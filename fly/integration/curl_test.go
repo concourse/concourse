@@ -20,8 +20,7 @@ var _ = Describe("curl", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(string(sess.Out.Contents())).To(ContainSubstring("some-path?some-query-param=value"))
 		})
@@ -34,8 +33,7 @@ var _ = Describe("curl", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(string(sess.Out.Contents())).To(ContainSubstring("-X PUT"))
 		})

@@ -50,8 +50,7 @@ var _ = Describe("format-pipeline", func() {
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 
 		Expect(sess.Out.Contents()).To(MatchYAML(expectedYaml))
 	})
@@ -69,8 +68,7 @@ var _ = Describe("format-pipeline", func() {
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 
 		newFileInfo, err := os.Stat(configFile.Name())
 		Expect(err).NotTo(HaveOccurred())
@@ -93,8 +91,7 @@ var _ = Describe("format-pipeline", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			newYaml, err := os.ReadFile(configFile.Name())
 			Expect(err).NotTo(HaveOccurred())
@@ -112,8 +109,7 @@ var _ = Describe("format-pipeline", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			firstPassYaml, err := os.ReadFile(configFile.Name())
 			Expect(err).NotTo(HaveOccurred())
@@ -128,8 +124,7 @@ var _ = Describe("format-pipeline", func() {
 			sess2, err := gexec.Start(flyCmd2, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess2.Exited
-			Expect(sess2.ExitCode()).To(Equal(0))
+			Eventually(sess2).Should(gexec.Exit(0))
 
 			secondPassYaml, err := os.ReadFile(configFile.Name())
 			Expect(err).NotTo(HaveOccurred())

@@ -4,10 +4,10 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/db/dbtest"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -29,6 +29,7 @@ var _ = Describe("WorkerFactory", func() {
 			Ephemeral:        true,
 			ActiveContainers: 140,
 			ActiveVolumes:    550,
+			MaxActiveTasks:   6,
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:       "some-resource-type",
@@ -228,6 +229,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.Ephemeral()).To(Equal(true))
 				Expect(foundWorker.ActiveContainers()).To(Equal(140))
 				Expect(foundWorker.ActiveVolumes()).To(Equal(550))
+				Expect(foundWorker.MaxActiveTasks()).To(Equal(6))
 				Expect(foundWorker.ResourceTypes()).To(Equal([]atc.WorkerResourceType{
 					{
 						Type:       "some-resource-type",

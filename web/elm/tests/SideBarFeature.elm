@@ -1554,14 +1554,7 @@ iSeeALinkToThePipelineInstance =
 
 iToggledToHighDensity =
     Tuple.first
-        >> Application.update
-            (TopLevelMessage.DeliveryReceived <|
-                Subscription.RouteChanged <|
-                    Routes.Dashboard
-                        { searchType = Routes.HighDensity
-                        , dashboardView = Routes.ViewNonArchivedPipelines
-                        }
-            )
+        >> Application.handleDelivery (Subscription.HighDensityReceived (Ok True))
 
 
 iNavigateToTheInstanceGroup =

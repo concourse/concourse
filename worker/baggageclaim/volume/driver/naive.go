@@ -3,8 +3,8 @@ package driver
 import (
 	"os"
 
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/concourse/worker/baggageclaim/volume/copy"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/copy"
 )
 
 var _ volume.Driver = (*NaiveDriver)(nil)
@@ -31,7 +31,7 @@ func (driver *NaiveDriver) Recover(volume.Filesystem) error {
 	return nil
 }
 
-func (driver *NaiveDriver) RemoveOrphanedResources(_ map[string]struct{}) error {
+func (driver *NaiveDriver) RemoveOrphanedResources(_ func(string) bool) error {
 	// nothing to do. naive volumes live under the managed volume/ directory
 	return nil
 }

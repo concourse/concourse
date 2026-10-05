@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/skymarshal/token"
+	"github.com/concourse/concourse/v8/atc/api/accessor"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/skymarshal/token"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"golang.org/x/oauth2"
 )

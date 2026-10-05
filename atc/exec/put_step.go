@@ -8,13 +8,13 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/resource"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/worker"
+	"github.com/concourse/concourse/v8/tracing"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -44,7 +44,7 @@ type PutDelegate interface {
 	WaitingForStreamedVolume(lager.Logger, string, string)
 	BuildStartTime() time.Time
 
-	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult)
+	SaveOutput(lager.Logger, atc.PutPlan, atc.Source, db.ResourceCache, resource.VersionResult) error
 }
 
 // PutStep produces a resource version using preconfigured params and any data
@@ -238,7 +238,9 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	// step.plan.Resource maps to an actual resource that may have been used outside of a pipeline context.
 	// Hence, if it was used outside the pipeline context, we don't want to save the output.
 	if step.plan.Resource != "" {
-		delegate.SaveOutput(logger, step.plan, source, imageResourceCache, versionResult)
+		if err := delegate.SaveOutput(logger, step.plan, source, imageResourceCache, versionResult); err != nil {
+			return false, err
+		}
 	}
 
 	state.StoreResult(step.planID, versionResult.Version)

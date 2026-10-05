@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/flag"
 	"github.com/concourse/dex/connector/github"
 	multierror "github.com/hashicorp/go-multierror"
 )
@@ -59,9 +59,9 @@ func (flag *GithubFlags) Serialize(redirectURI string) ([]byte, error) {
 }
 
 type GithubTeamFlags struct {
-	Users []string `long:"user" description:"A whitelisted GitHub user" value-name:"USERNAME"`
-	Orgs  []string `long:"org" description:"A whitelisted GitHub org" value-name:"ORG_NAME"`
-	Teams []string `long:"team" description:"A whitelisted GitHub team" value-name:"ORG_NAME:TEAM_NAME"`
+	Users []string `long:"user" description:"An allowlisted GitHub user" value-name:"USERNAME"`
+	Orgs  []string `long:"org" description:"An allowlisted GitHub org" value-name:"ORG_NAME"`
+	Teams []string `long:"team" description:"An allowlisted GitHub team" value-name:"ORG_NAME:TEAM_NAME"`
 }
 
 func (flag *GithubTeamFlags) GetUsers() []string {

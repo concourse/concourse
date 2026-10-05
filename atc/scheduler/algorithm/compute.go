@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/tracing"
 )
 
 type Resolver interface {
@@ -100,10 +100,8 @@ func (a *Algorithm) candidatesToInputMapping(ctx context.Context, mapping db.Inp
 
 			mapping[input.Name] = db.InputResult{
 				Input: &db.AlgorithmInput{
-					AlgorithmVersion: db.AlgorithmVersion{
-						ResourceID: input.ResourceID,
-						Version:    candidates[input.Name].Version,
-					},
+					ResourceID:      input.ResourceID,
+					Version:         candidates[input.Name].Version,
 					FirstOccurrence: firstOcc,
 				},
 				PassedBuildIDs: candidates[input.Name].SourceBuildIds,

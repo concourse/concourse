@@ -12,8 +12,8 @@ import (
 	flags "github.com/jessevdk/go-flags"
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/flag"
 )
 
 var connectors []*Connector
@@ -52,7 +52,7 @@ type AuthFlags struct {
 }
 
 type AuthTeamFlags struct {
-	LocalUsers []string  `long:"local-user" description:"A whitelisted local concourse user. These are the users you've added at web startup with the --add-local-user flag." value-name:"USERNAME"`
+	LocalUsers []string  `long:"local-user" description:"An allowlisted local concourse user. These are the users you've added at web startup with the --add-local-user flag." value-name:"USERNAME"`
 	Config     flag.File `short:"c" long:"config" description:"Configuration file for specifying team params"`
 }
 

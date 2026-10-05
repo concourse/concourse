@@ -11,11 +11,11 @@ import (
 	"runtime"
 	"time"
 
-	conc "github.com/concourse/concourse"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/ui"
-	"github.com/concourse/concourse/fly/version"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	conc "github.com/concourse/concourse/v8"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/fly/ui"
+	"github.com/concourse/concourse/v8/fly/version"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 	semisemanticversion "github.com/cppforlife/go-semi-semantic/version"
 	"golang.org/x/oauth2"
 )
@@ -135,12 +135,24 @@ func LoadTargetFromURL(url, team string, tracing bool) (Target, TargetName, erro
 }
 
 func LoadTarget(selectedTarget TargetName, tracing bool) (Target, error) {
-	var clientCertificate []tls.Certificate
-
 	targetProps, err := selectTarget(selectedTarget)
 	if err != nil {
 		return nil, err
 	}
+	return buildTarget(selectedTarget, targetProps, true, tracing)
+}
+
+// Use for unauthenticated endpoints of targets, like (health, info, etc.).
+func LoadTargetWithoutAuth(selectedTarget TargetName, tracing bool) (Target, error) {
+	targetProps, err := selectTarget(selectedTarget)
+	if err != nil {
+		return nil, err
+	}
+	return buildTarget(selectedTarget, targetProps, false, tracing)
+}
+
+func buildTarget(selectedTarget TargetName, targetProps TargetProps, withAuth bool, tracing bool) (Target, error) {
+	var clientCertificate []tls.Certificate
 
 	caCertPool, err := loadCACertPool(targetProps.CACert)
 	if err != nil {
@@ -152,7 +164,12 @@ func LoadTarget(selectedTarget TargetName, tracing bool) (Target, error) {
 		return nil, err
 	}
 
-	httpClient := defaultHttpClient(targetProps.Token, targetProps.Insecure, caCertPool, clientCertificate)
+	var httpToken *TargetToken
+	if withAuth {
+		httpToken = targetProps.Token
+	}
+
+	httpClient := defaultHttpClient(httpToken, targetProps.Insecure, caCertPool, clientCertificate)
 	client := concourse.NewClient(targetProps.API, httpClient, tracing)
 
 	return NewTarget(

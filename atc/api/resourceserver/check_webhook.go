@@ -7,9 +7,9 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc/api/present"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/api/present"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/tedsuo/rata"
 )
 
@@ -78,9 +78,9 @@ func (s *Server) CheckResourceWebHook(dbPipeline db.Pipeline) http.Handler {
 			dbResource,
 			dbResourceTypes,
 			nil,
-			true,
-			false,
-			true,
+			true,  // manually triggered
+			false, // skip interval recursively
+			true,  // to database
 		)
 		if err != nil {
 			logger.Error("failed-to-create-check", err)

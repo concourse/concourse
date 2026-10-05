@@ -91,8 +91,7 @@ run:
 		Context("when not all required vars are passed from the pipeline", func() {
 			It("fails pipeline job with external task due to an uninterpolated variable", func(ctx SpecContext) {
 				execS := spawnFly("trigger-job", "-w", "-j", pipelineName+"/external-task-failure")
-				<-execS.Exited
-				Expect(execS).To(gexec.Exit(2))
+				Eventually(execS).Should(gexec.Exit(2))
 				Expect(execS.Out).To(gbytes.Say("undefined vars: echo_text"))
 			}, DefaultSpecTimeout)
 		})
@@ -124,8 +123,7 @@ echo_text: Hello World From Command Line
 		Context("when not all required vars are passed from command line", func() {
 			It("fails external task via fly execute due to an uninterpolated variable", func(ctx SpecContext) {
 				execS := spawnFlyIn(fixture, "execute", "-c", "task.yml", "-v", "image_resource_type=mock")
-				<-execS.Exited
-				Expect(execS).To(gexec.Exit(2))
+				Eventually(execS).Should(gexec.Exit(2))
 				Expect(execS.Out).To(gbytes.Say("undefined vars: echo_text"))
 			}, DefaultSpecTimeout)
 		})

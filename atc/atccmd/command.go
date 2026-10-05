@@ -21,47 +21,47 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api"
-	"github.com/concourse/concourse/atc/api/accessor"
-	"github.com/concourse/concourse/atc/api/auth"
-	"github.com/concourse/concourse/atc/api/buildserver"
-	"github.com/concourse/concourse/atc/api/containerserver"
-	"github.com/concourse/concourse/atc/api/pipelineserver"
-	"github.com/concourse/concourse/atc/api/policychecker"
-	"github.com/concourse/concourse/atc/auditor"
-	"github.com/concourse/concourse/atc/builds"
-	"github.com/concourse/concourse/atc/component"
-	"github.com/concourse/concourse/atc/compression"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/noop"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/encryption"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/db/migration"
-	"github.com/concourse/concourse/atc/engine"
-	"github.com/concourse/concourse/atc/gc"
-	"github.com/concourse/concourse/atc/lidar"
-	"github.com/concourse/concourse/atc/metric"
-	"github.com/concourse/concourse/atc/pauser"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/scheduler"
-	"github.com/concourse/concourse/atc/scheduler/algorithm"
-	"github.com/concourse/concourse/atc/syslog"
-	atctls "github.com/concourse/concourse/atc/tls"
-	"github.com/concourse/concourse/atc/util"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/atc/wrappa"
-	"github.com/concourse/concourse/flag"
-	"github.com/concourse/concourse/skymarshal/dexserver"
-	"github.com/concourse/concourse/skymarshal/legacyserver"
-	"github.com/concourse/concourse/skymarshal/skycmd"
-	"github.com/concourse/concourse/skymarshal/skyserver"
-	"github.com/concourse/concourse/skymarshal/storage"
-	"github.com/concourse/concourse/skymarshal/token"
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/web"
+	"github.com/concourse/concourse/v8"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api"
+	"github.com/concourse/concourse/v8/atc/api/accessor"
+	"github.com/concourse/concourse/v8/atc/api/auth"
+	"github.com/concourse/concourse/v8/atc/api/buildserver"
+	"github.com/concourse/concourse/v8/atc/api/containerserver"
+	"github.com/concourse/concourse/v8/atc/api/pipelineserver"
+	"github.com/concourse/concourse/v8/atc/api/policychecker"
+	"github.com/concourse/concourse/v8/atc/auditor"
+	"github.com/concourse/concourse/v8/atc/builds"
+	"github.com/concourse/concourse/v8/atc/component"
+	"github.com/concourse/concourse/v8/atc/compression"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/noop"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/encryption"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/db/migration"
+	"github.com/concourse/concourse/v8/atc/engine"
+	"github.com/concourse/concourse/v8/atc/gc"
+	"github.com/concourse/concourse/v8/atc/lidar"
+	"github.com/concourse/concourse/v8/atc/metric"
+	"github.com/concourse/concourse/v8/atc/pauser"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/scheduler"
+	"github.com/concourse/concourse/v8/atc/scheduler/algorithm"
+	"github.com/concourse/concourse/v8/atc/syslog"
+	atctls "github.com/concourse/concourse/v8/atc/tls"
+	"github.com/concourse/concourse/v8/atc/util"
+	"github.com/concourse/concourse/v8/atc/worker"
+	"github.com/concourse/concourse/v8/atc/wrappa"
+	"github.com/concourse/concourse/v8/flag"
+	"github.com/concourse/concourse/v8/skymarshal/dexserver"
+	"github.com/concourse/concourse/v8/skymarshal/legacyserver"
+	"github.com/concourse/concourse/v8/skymarshal/skycmd"
+	"github.com/concourse/concourse/v8/skymarshal/skyserver"
+	"github.com/concourse/concourse/v8/skymarshal/storage"
+	"github.com/concourse/concourse/v8/skymarshal/token"
+	"github.com/concourse/concourse/v8/tracing"
+	"github.com/concourse/concourse/v8/web"
 	"github.com/cppforlife/go-semi-semantic/version"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/hashicorp/go-multierror"
@@ -78,20 +78,20 @@ import (
 	"golang.org/x/time/rate"
 
 	// dynamically registered metric emitters
-	_ "github.com/concourse/concourse/atc/metric/emitter"
+	_ "github.com/concourse/concourse/v8/atc/metric/emitter"
 
 	// dynamically registered policy checkers
-	_ "github.com/concourse/concourse/atc/policy/opa"
+	_ "github.com/concourse/concourse/v8/atc/policy/opa"
 
 	// dynamically registered credential managers
-	_ "github.com/concourse/concourse/atc/creds/conjur"
-	_ "github.com/concourse/concourse/atc/creds/credhub"
-	_ "github.com/concourse/concourse/atc/creds/dummy"
-	"github.com/concourse/concourse/atc/creds/idtoken"
-	_ "github.com/concourse/concourse/atc/creds/kubernetes"
-	_ "github.com/concourse/concourse/atc/creds/secretsmanager"
-	_ "github.com/concourse/concourse/atc/creds/ssm"
-	_ "github.com/concourse/concourse/atc/creds/vault"
+	_ "github.com/concourse/concourse/v8/atc/creds/conjur"
+	_ "github.com/concourse/concourse/v8/atc/creds/credhub"
+	_ "github.com/concourse/concourse/v8/atc/creds/dummy"
+	"github.com/concourse/concourse/v8/atc/creds/idtoken"
+	_ "github.com/concourse/concourse/v8/atc/creds/kubernetes"
+	_ "github.com/concourse/concourse/v8/atc/creds/secretsmanager"
+	_ "github.com/concourse/concourse/v8/atc/creds/ssm"
+	_ "github.com/concourse/concourse/v8/atc/creds/vault"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -168,6 +168,7 @@ type RunCommand struct {
 	ResourceTypeCheckingInterval        time.Duration `long:"resource-type-checking-interval" default:"1m" description:"Interval on which to check for new versions of resource types."`
 	ResourceWithWebhookCheckingInterval time.Duration `long:"resource-with-webhook-checking-interval" default:"1m" description:"Interval on which to check for new versions of resources that has webhook defined."`
 	MaxChecksPerSecond                  int           `long:"max-checks-per-second" description:"Maximum number of checks that can be started per second. If not specified, this will be calculated as (# of resources)/(resource checking interval). -1 value will remove this maximum limit of checks per second."`
+	DestroyArchivedPipelinesAfter       time.Duration `long:"destroy-archived-pipelines-after" default:"0s" description:"The duration in Go's time.Duration format, after which an archived pipeline will be automatically destroyed. A value of zero means archived pipelines are never destroyed."`
 	PausePipelinesAfter                 int           `long:"pause-pipelines-after" default:"0" description:"The number of days after which a pipeline will be automatically paused if none of its jobs have run in more than the given number of days. A value of zero disables this component."`
 	PipelinePauserInterval              time.Duration `long:"pipeline-pauser-interval" default:"24h" hidden:"true" description:"The frequency on which the Pipeline Pauser component will be run to check if any pipelines need to be paused."`
 
@@ -196,13 +197,19 @@ type RunCommand struct {
 	} `group:"Policy Checking"`
 
 	Server struct {
-		XFrameOptions           string `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
-		ContentSecurityPolicy   string `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
-		StrictTransportSecurity string `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
-		ClusterName             string `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
-		ClientID                string `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
-		ClientSecret            string `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
+		XFrameOptions           string                 `long:"x-frame-options" default:"deny" description:"The value to set for the X-Frame-Options header."`
+		ContentSecurityPolicy   string                 `long:"content-security-policy" default:"frame-ancestors 'none'" description:"The value to set for the Content-Security-Policy header."`
+		StrictTransportSecurity string                 `long:"strict-transport-security" description:"The value to set for the Strict-Transport-Security header."`
+		CustomHTTPHeaders       flag.CustomHTTPHeaders `long:"custom-http-headers" description:"Path to a YAML or JSON file containing additional HTTP response headers to set on all responses. These headers override any previously set headers."`
+		ClusterName             string                 `long:"cluster-name" description:"A name for this Concourse cluster, to be displayed on the dashboard page."`
+		ClientID                string                 `long:"client-id" default:"concourse-web" description:"Client ID to use for login flow"`
+		ClientSecret            string                 `long:"client-secret" required:"true" description:"Client secret to use for login flow"`
 	} `group:"Web Server"`
+
+	Health struct {
+		MinWorkerCount           int     `long:"health-min-worker-count" default:"1" description:"Minimum number of running workers before the health endpoint reports degraded. Setting this to 0 means the endpoint will only report healthy or failing — never degraded."`
+		ComponentStaleMultiplier float64 `long:"health-component-stale-multiplier" default:"2.0" description:"A component is considered stale when it has not run for more than this multiplier times its interval. Stale runtime components (scheduler, tracker, scanner) cause degraded status."`
+	} `group:"Health Endpoint"`
 
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
 	LogClusterName bool `long:"log-cluster-name" description:"Log cluster name."`
@@ -954,6 +961,7 @@ func (cmd *RunCommand) constructAPIMembers(
 		dbResourceConfigFactory,
 		userFactory,
 		dbComponentFactory,
+		dbConn,
 		pool,
 		secretManager,
 		credsManagers,
@@ -1194,10 +1202,8 @@ func (cmd *RunCommand) backendComponents(
 
 	components := []RunnableComponent{
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentLidarScanner,
-				Interval: cmd.LidarScannerInterval,
-			},
+			Name:     atc.ComponentLidarScanner,
+			Interval: cmd.LidarScannerInterval,
 			Runnable: lidar.NewScanner(
 				dbCheckFactory,
 				atc.NewPlanFactory(time.Now().Unix()),
@@ -1205,20 +1211,16 @@ func (cmd *RunCommand) backendComponents(
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentPipelinePauser,
-				Interval: cmd.PipelinePauserInterval,
-			},
+			Name:     atc.ComponentPipelinePauser,
+			Interval: cmd.PipelinePauserInterval,
 			Runnable: pauser.NewPipelinePauser(
 				dbPipelinePauser,
 				cmd.PausePipelinesAfter,
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentScheduler,
-				Interval: 10 * time.Second,
-			},
+			Name:     atc.ComponentScheduler,
+			Interval: 10 * time.Second,
 			Runnable: scheduler.NewRunner(
 				logger.Session("scheduler"),
 				dbJobFactory,
@@ -1233,17 +1235,13 @@ func (cmd *RunCommand) backendComponents(
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentBuildTracker,
-				Interval: cmd.BuildTrackerInterval,
-			},
+			Name:     atc.ComponentBuildTracker,
+			Interval: cmd.BuildTrackerInterval,
 			Runnable: builds.NewTracker(logger, dbBuildFactory, engine, checkBuildsChan),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentBuildReaper,
-				Interval: 30 * time.Second,
-			},
+			Name:     atc.ComponentBuildReaper,
+			Interval: 30 * time.Second,
 			Runnable: gc.NewBuildLogCollector(
 				dbPipelineFactory,
 				dbPipelineLifecycle,
@@ -1258,17 +1256,13 @@ func (cmd *RunCommand) backendComponents(
 			),
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentBeingWatchedBuildMarker,
-				Interval: 10 * time.Minute,
-			},
+			Name:     atc.ComponentBeingWatchedBuildMarker,
+			Interval: 10 * time.Minute,
 			Runnable: buildEventWatcher,
 		},
 		{
-			Component: atc.Component{
-				Name:     atc.ComponentSigningKeyLifecycler,
-				Interval: cmd.SigningKey.CheckInterval,
-			},
+			Name:     atc.ComponentSigningKeyLifecycler,
+			Interval: cmd.SigningKey.CheckInterval,
 			Runnable: &idtoken.SigningKeyLifecycler{
 				Logger:              logger.Session(atc.ComponentSigningKeyLifecycler),
 				DBSigningKeyFactory: dbSigningKeyFactory,
@@ -1284,10 +1278,8 @@ func (cmd *RunCommand) backendComponents(
 
 	if syslogDrainConfigured {
 		components = append(components, RunnableComponent{
-			Component: atc.Component{
-				Name:     atc.ComponentSyslogDrainer,
-				Interval: cmd.Syslog.DrainInterval,
-			},
+			Name:     atc.ComponentSyslogDrainer,
+			Interval: cmd.Syslog.DrainInterval,
 			Runnable: syslog.NewDrainer(
 				cmd.Syslog.Transport,
 				cmd.Syslog.Address,
@@ -1402,7 +1394,7 @@ func (cmd *RunCommand) gcComponents(
 		atc.ComponentCollectorVolumes:           gc.NewVolumeCollector(dbVolumeRepository, cmd.GC.MissingGracePeriod),
 		atc.ComponentCollectorContainers:        gc.NewContainerCollector(dbContainerRepository, cmd.GC.MissingGracePeriod, cmd.GC.HijackGracePeriod),
 		atc.ComponentCollectorCheckSessions:     gc.NewResourceConfigCheckSessionCollector(resourceConfigCheckSessionLifecycle),
-		atc.ComponentCollectorPipelines:         gc.NewPipelineCollector(dbPipelineLifecycle),
+		atc.ComponentCollectorPipelines:         gc.NewPipelineCollector(dbPipelineLifecycle, cmd.DestroyArchivedPipelinesAfter),
 		atc.ComponentCollectorAccessTokens:      gc.NewAccessTokensCollector(dbAccessTokenLifecycle, jwt.DefaultLeeway),
 		atc.ComponentCollectorChecks:            gc.NewChecksCollector(dbCheckLifecycle),
 	}
@@ -1410,10 +1402,8 @@ func (cmd *RunCommand) gcComponents(
 	var components []RunnableComponent
 	for collectorName, collector := range collectors {
 		components = append(components, RunnableComponent{
-			Component: atc.Component{
-				Name:     collectorName,
-				Interval: cmd.GC.Interval,
-			},
+			Name:     collectorName,
+			Interval: cmd.GC.Interval,
 			Runnable: collector,
 		})
 	}
@@ -1928,6 +1918,7 @@ func (cmd *RunCommand) constructHTTPHandler(
 			XFrameOptions:           cmd.Server.XFrameOptions,
 			ContentSecurityPolicy:   cmd.Server.ContentSecurityPolicy,
 			StrictTransportSecurity: cmd.Server.StrictTransportSecurity,
+			CustomHTTPHeaders:       cmd.Server.CustomHTTPHeaders.Headers,
 
 			// proxy Authorization header to/from auth cookie,
 			// to support auth from JS (EventSource) and custom JWT auth
@@ -2075,6 +2066,7 @@ func (cmd *RunCommand) constructAPIHandler(
 	resourceConfigFactory db.ResourceConfigFactory,
 	dbUserFactory db.UserFactory,
 	dbComponentFactory db.ComponentFactory,
+	dbConn db.DbConn,
 	workerPool worker.Pool,
 	secretManager creds.Secrets,
 	credsManagers creds.Managers,
@@ -2154,6 +2146,9 @@ func (cmd *RunCommand) constructAPIHandler(
 		resourceConfigFactory,
 		dbUserFactory,
 		dbComponentFactory,
+		dbConn,
+		cmd.Health.MinWorkerCount,
+		cmd.Health.ComponentStaleMultiplier,
 
 		buildserver.NewEventHandler,
 

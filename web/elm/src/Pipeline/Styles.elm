@@ -4,6 +4,7 @@ module Pipeline.Styles exposing
     , favoritedIcon
     , groupItem
     , groupsBar
+    , infoIcon
     , pauseToggle
     , pipelineBackground
     )
@@ -117,4 +118,15 @@ pipelineBackground { image, filter } =
     , style "width" "100%"
     , style "height" "100%"
     , style "position" "absolute"
+    ]
+
+
+infoIcon : List (Html.Attribute msg)
+infoIcon =
+    [ style "border-left" <|
+        "1px solid "
+            ++ Colors.background
+    , style "background-color" Colors.topBarBackground
+    , style "display" "flex"
+    , style "cursor" "pointer"
     ]

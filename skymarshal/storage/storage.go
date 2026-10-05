@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/flag"
+	"github.com/concourse/concourse/v8/flag"
 	"github.com/concourse/dex/storage"
 	"github.com/concourse/dex/storage/sql"
 )
@@ -23,14 +23,12 @@ func NewPostgresStorage(log lager.Logger, postgres flag.PostgresConfig) (Storage
 	}
 
 	store := sql.Postgres{
-		NetworkDB: sql.NetworkDB{
-			Database:          postgres.Database,
-			User:              postgres.User,
-			Password:          postgres.Password,
-			Host:              host,
-			Port:              postgres.Port,
-			ConnectionTimeout: int(postgres.ConnectTimeout.Seconds()),
-		},
+		Database:          postgres.Database,
+		User:              postgres.User,
+		Password:          postgres.Password,
+		Host:              host,
+		Port:              postgres.Port,
+		ConnectionTimeout: int(postgres.ConnectTimeout.Seconds()),
 		SSL: sql.SSL{
 			Mode:     postgres.SSLMode,
 			CAFile:   string(postgres.CACert),

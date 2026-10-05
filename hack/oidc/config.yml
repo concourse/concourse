@@ -1,0 +1,28 @@
+port: 9000
+issuer: http://oidc:9000
+base_url: http://oidc:9000
+users:
+  - id: "1"
+    username: "user1"
+    password: "password1"
+    # User attributes are arbitrary
+    attributes:
+      preferred_username: UserOne
+      email: "user1@example.com"
+      username: "user1"
+      email_verified: true
+      # groups: []
+  - id: "2"
+    username: "user2"
+    password: "password2"
+    attributes:
+      preferred_username: UserTwo
+      email: "user2@example.com"
+      username: "user2"
+      email_verified: true
+      groups: ["group1"]
+clients:
+  - id: "client1"
+    audience: "client1"
+    secret: "super_secret"
+    redirect_uri: "http://localhost:8080/sky/issuer/callback"

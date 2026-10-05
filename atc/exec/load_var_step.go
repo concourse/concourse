@@ -14,11 +14,11 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/exec/build"
+	"github.com/concourse/concourse/v8/tracing"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 )
 
 // LoadVarStep loads a value from a file and sets it as a build-local var.
@@ -44,15 +44,6 @@ func NewLoadVarStep(
 		delegateFactory: delegateFactory,
 		streamer:        streamer,
 	}
-}
-
-type UnspecifiedLoadVarStepFileError struct {
-	File string
-}
-
-// Error returns a human-friendly error message.
-func (err UnspecifiedLoadVarStepFileError) Error() string {
-	return fmt.Sprintf("file '%s' does not specify where the file lives", err.File)
 }
 
 type InvalidLocalVarFile struct {
@@ -116,13 +107,10 @@ func (step *LoadVarStep) fetchVars(
 	state RunState,
 ) (any, error) {
 
-	segs := strings.SplitN(file, "/", 2)
-	if len(segs) != 2 {
-		return nil, UnspecifiedLoadVarStepFileError{file}
+	artifactName, filePath, err := parseArtifactPath(file)
+	if err != nil {
+		return nil, err
 	}
-
-	artifactName := segs[0]
-	filePath := segs[1]
 
 	format, err := step.fileFormat(file)
 	if err != nil {

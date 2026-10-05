@@ -17,9 +17,10 @@ type Network interface {
 	SetupHostNetwork() (err error)
 
 	// SetupMounts prepares mounts that might be necessary for proper
-	// networking functionality.
+	// networking functionality. When hermetic is true, an empty resolv.conf
+	// is written so DNS lookups fail immediately rather than timing out.
 	//
-	SetupMounts(handle string) (mounts []specs.Mount, err error)
+	SetupMounts(handle string, hermetic bool) (mounts []specs.Mount, err error)
 
 	// Add adds a task to the network.
 	//

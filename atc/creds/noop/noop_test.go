@@ -3,7 +3,8 @@ package noop_test
 import (
 	"time"
 
-	. "github.com/concourse/concourse/atc/creds/noop"
+	"github.com/concourse/concourse/v8/atc/creds"
+	. "github.com/concourse/concourse/v8/atc/creds/noop"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -19,7 +20,7 @@ var _ = Describe("Noop", func() {
 		var getErr error
 
 		JustBeforeEach(func() {
-			val, expiration, found, getErr = noop.Get("foo")
+			val, expiration, found, getErr = noop.Get("foo", creds.SecretLookupParams{})
 		})
 
 		It("never locates the variable", func() {

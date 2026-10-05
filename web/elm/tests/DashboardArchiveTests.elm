@@ -146,19 +146,6 @@ all =
                                         }
                                 ]
                 ]
-            , describe "on the HD view" <|
-                [ test "stays in the HD view" <|
-                    \_ ->
-                        setup "/hd"
-                            |> Query.find toggleSwitch
-                            |> Query.has
-                                [ Common.routeHref <|
-                                    Routes.Dashboard
-                                        { searchType = Routes.HighDensity
-                                        , dashboardView = Routes.ViewAllPipelines
-                                        }
-                                ]
-                ]
             ]
         , describe "when viewing only non-archived pipelines"
             [ test "archived pipelines are not rendered in all pipelines section" <|

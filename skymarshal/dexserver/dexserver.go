@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/skymarshal/skycmd"
-	s "github.com/concourse/concourse/skymarshal/storage"
+	"github.com/concourse/concourse/v8/skymarshal/skycmd"
+	s "github.com/concourse/concourse/v8/skymarshal/storage"
 	"github.com/concourse/dex/server"
 	"github.com/concourse/dex/server/signer"
 	"github.com/concourse/dex/storage"

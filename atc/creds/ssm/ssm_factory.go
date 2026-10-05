@@ -4,7 +4,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 )
 
 type ssmFactory struct {

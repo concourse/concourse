@@ -129,7 +129,7 @@ func deployWithDriverAndSelectors(driver string, selectorFlags ...string) {
 func createPVC(name string, scName string) {
 	_, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).
 		Create(context.TODO(), &corev1.PersistentVolumeClaim{
-			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+			Name: name, Namespace: namespace,
 			Spec: corev1.PersistentVolumeClaimSpec{
 				StorageClassName: &scName,
 				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},

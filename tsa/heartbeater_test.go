@@ -10,13 +10,13 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/gclientfakes"
-	. "github.com/concourse/concourse/tsa"
-	"github.com/concourse/concourse/tsa/tsafakes"
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/baggageclaimfakes"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient/gclientfakes"
+	. "github.com/concourse/concourse/v8/tsa"
+	"github.com/concourse/concourse/v8/tsa/tsafakes"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/baggageclaimfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -98,9 +98,9 @@ var _ = Describe("Heartbeater", func() {
 
 		verifyRegister = ghttp.CombineHandlers(
 			ghttp.VerifyRequest(registerRoute.Method, registerRoute.Path),
+			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 			func(w http.ResponseWriter, r *http.Request) {
 				var worker atc.Worker
-				Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
 
 				err := json.NewDecoder(r.Body).Decode(&worker)
 				Expect(err).NotTo(HaveOccurred())
@@ -114,9 +114,9 @@ var _ = Describe("Heartbeater", func() {
 
 		verifyHeartbeat = ghttp.CombineHandlers(
 			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
+			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 			func(w http.ResponseWriter, r *http.Request) {
 				var worker atc.Worker
-				Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
 
 				err := json.NewDecoder(r.Body).Decode(&worker)
 				Expect(err).NotTo(HaveOccurred())
@@ -148,7 +148,7 @@ var _ = Describe("Heartbeater", func() {
 		}
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
-		httpClient = oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+		httpClient = oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
 	})
 
 	JustBeforeEach(func() {
@@ -280,9 +280,9 @@ var _ = Describe("Heartbeater", func() {
 				fakeATC1.AppendHandlers(verifyRegister)
 				fakeATC2.AppendHandlers(ghttp.CombineHandlers(
 					ghttp.VerifyRequest("PUT", "/api/v1/workers/some-name/heartbeat"),
+					ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
 					func(w http.ResponseWriter, r *http.Request) {
 						var worker atc.Worker
-						Expect(r.Header.Get("Authorization")).To(Equal("Bearer yo"))
 
 						err := json.NewDecoder(r.Body).Decode(&worker)
 						Expect(err).NotTo(HaveOccurred())

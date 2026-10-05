@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/concourse/concourse/topgun/common"
+	. "github.com/concourse/concourse/v8/topgun/common"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbtest"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -348,10 +348,8 @@ var _ = Describe("ResourceCacheLifecycle", func() {
 				err = defaultJob.SaveNextInputMapping(db.InputMapping{
 					"some-resource": db.InputResult{
 						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToSHA256(atc.Version(resourceConfigVersion.Version()))),
-								ResourceID: scenario.Resource("some-resource").ID(),
-							},
+							Version:    db.ResourceVersion(convertToSHA256(atc.Version(resourceConfigVersion.Version()))),
+							ResourceID: scenario.Resource("some-resource").ID(),
 						},
 						PassedBuildIDs: []int{},
 					},

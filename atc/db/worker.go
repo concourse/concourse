@@ -9,7 +9,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 	"github.com/google/uuid"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -82,10 +82,13 @@ type Worker interface {
 	ActiveTasks() (int, error)
 	IncreaseActiveTasks(int) (int, error)
 	DecreaseActiveTasks() (int, error)
+	MaxActiveTasks() int
 
 	FindContainer(owner ContainerOwner) (CreatingContainer, CreatedContainer, error)
 	CreateContainer(owner ContainerOwner, meta ContainerMetadata) (CreatingContainer, error)
 }
+
+var _ Worker = (*worker)(nil)
 
 type worker struct {
 	conn DbConn
@@ -101,6 +104,7 @@ type worker struct {
 	activeContainers int
 	activeVolumes    int
 	activeTasks      int
+	maxActiveTasks   int
 	resourceTypes    []atc.WorkerResourceType
 	platform         string
 	tags             []string
@@ -130,6 +134,7 @@ func (worker *worker) Tags() []string                          { return worker.t
 func (worker *worker) TeamID() int                             { return worker.teamID }
 func (worker *worker) TeamName() string                        { return worker.teamName }
 func (worker *worker) Ephemeral() bool                         { return worker.ephemeral }
+func (worker *worker) MaxActiveTasks() int                     { return worker.maxActiveTasks }
 
 func (worker *worker) StartTime() time.Time { return worker.startTime }
 func (worker *worker) ExpiresAt() time.Time { return worker.expiresAt }

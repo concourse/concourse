@@ -466,6 +466,7 @@ session =
     , favoritedPipelines = Set.empty
     , favoritedInstanceGroups = Set.empty
     , route = Routes.Build { id = Data.jobBuildId, highlight = Routes.HighlightNothing, groups = [] }
+    , hideUI = False
     }
 
 

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/go-archive/archivetest"
-	"github.com/concourse/concourse/go-archive/tarfs"
+	"github.com/concourse/concourse/v8/go-archive/archivetest"
+	"github.com/concourse/concourse/v8/go-archive/tarfs"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -62,6 +62,12 @@ var _ = Describe("Extract", func() {
 		{
 			Name: "./symlink-dir/absolute-symlink",
 			Link: "/some-file",
+			Mode: 0755,
+		},
+		{
+			// Relative dir symlink: forward-slash targets were unreadable and broke robocopy on Windows (#9609).
+			Name: "./symlink-dir/relative-dir-symlink",
+			Link: "../nonempty-dir",
 			Mode: 0755,
 		},
 	}
@@ -118,16 +124,18 @@ var _ = Describe("Extract", func() {
 
 		Expect(emptyDirInfo.IsDir()).To(BeTrue())
 
-		target, err := os.Readlink(filepath.Join(extractionDest, "some-symlink"))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(target).To(Equal("some-file"))
-
-		symlinkInfo, err := os.Lstat(filepath.Join(extractionDest, "some-symlink"))
-		Expect(err).NotTo(HaveOccurred())
-
-		if runtime.GOOS != "windows" {
-			Expect(symlinkInfo.Mode() & 0755).To(Equal(os.FileMode(0755)))
+		// Regression test for https://github.com/golang/go/issues/80073:
+		// symlink targets must use platform-specific path separators.
+		verifySymlink := func(linkName, wantedTarget string) {
+			gotTarget, err := os.Readlink(linkName)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(gotTarget).To(Equal(filepath.FromSlash(wantedTarget)))
 		}
+
+		verifySymlink(filepath.Join(extractionDest, "some-symlink"), "some-file")
+		verifySymlink(filepath.Join(extractionDest, "symlink-dir", "relative-symlink"), "../some-file")
+		verifySymlink(filepath.Join(extractionDest, "symlink-dir", "absolute-symlink"), "/some-file")
+		verifySymlink(filepath.Join(extractionDest, "symlink-dir", "relative-dir-symlink"), "../nonempty-dir")
 	}
 
 	Context("when 'tar' is on the PATH", func() {
@@ -143,18 +151,12 @@ var _ = Describe("Extract", func() {
 	})
 
 	Context("when 'tar' is not in the PATH", func() {
-		var oldPATH string
-
 		BeforeEach(func() {
-			oldPATH = os.Getenv("PATH")
-			Expect(os.Setenv("PATH", "/dev/null")).To(Succeed())
-
-			_, err := exec.LookPath("tar")
-			Expect(err).To(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			Expect(os.Setenv("PATH", oldPATH)).To(Succeed())
+			// Set PATH to a temporary directory to ensure that the tar executable
+			// will not be found. The directory must exist, so that the lookup fails
+			// identically on every platform. GinkgoT().Setenv will restore PATH after
+			// the spec.
+			GinkgoT().Setenv("PATH", GinkgoT().TempDir())
 		})
 
 		It("extracts the TGZ's files, generating directories, and honoring file permissions and symlinks", extractionTest)
@@ -219,10 +221,15 @@ var _ = Describe("ExtractEntry", func() {
 
 	Context("symlinks", func() {
 		It("does not modify absolute paths", func() {
+			linkname := "/absolute/path/file"
+			if runtime.GOOS == "windows" {
+				linkname = `C:\absolute\path\file`
+			}
+
 			header := &tar.Header{
 				Typeflag: tar.TypeSymlink,
 				Name:     "abs",
-				Linkname: "/absolute/path/file",
+				Linkname: linkname,
 			}
 
 			err := tarfs.ExtractEntry(header, dest, strings.NewReader(""), false)
@@ -230,7 +237,7 @@ var _ = Describe("ExtractEntry", func() {
 
 			l, err := os.Readlink(filepath.Join(dest, "abs"))
 			Expect(err).ToNot(HaveOccurred())
-			Expect(l).To(Equal(header.Linkname))
+			Expect(l).To(Equal(linkname))
 		})
 
 		It("returns a BreakoutErr when a symlink points outside the destination", func() {
@@ -249,6 +256,138 @@ var _ = Describe("ExtractEntry", func() {
 			breakoutErr = err.(tarfs.BreakoutError)
 			Expect(breakoutErr.HeaderName).To(Equal("malicious-link"))
 			Expect(breakoutErr.LinkName).To(Equal("../outside-path"))
+		})
+	})
+})
+
+var _ = Describe("Extract will not create paths outside the specified directory", func() {
+	var (
+		extractionDest string
+		outside        string
+
+		archive archivetest.Archive
+	)
+
+	BeforeEach(func() {
+		var err error
+
+		extractionDest, err = os.MkdirTemp("", "extract-dest")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Stands in for a location outside the extraction root, e.g.
+		// the user's home directory on Unix or C:\Users\... on Windows. Because
+		// it comes from the OS temp dir it is always an absolute, platform-native
+		// path, so these specs exercise the attack on Unix and Windows alike.
+		outside, err = os.MkdirTemp("", "extract-outside")
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set PATH to a temporary directory to ensure that the tar executable
+		// will not be found. The directory must exist, so that the lookup fails
+		// identically on every platform. GinkgoT().Setenv will restore PATH after
+		// the spec.
+		GinkgoT().Setenv("PATH", GinkgoT().TempDir())
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(extractionDest)
+		os.RemoveAll(outside)
+	})
+
+	Context("when a directory symlink escapes via an absolute path", func() {
+		BeforeEach(func() {
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(outside)},
+				{Name: "escape/evil.txt", Body: "pwned"},
+			}
+		})
+
+		It("refuses to create the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			escapedFile := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(escapedFile)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", escapedFile)
+		})
+	})
+
+	Context("when a directory symlink escapes via a relative .. path", func() {
+		BeforeEach(func() {
+			escapeLink, err := filepath.Rel(extractionDest, outside)
+			Expect(err).NotTo(HaveOccurred())
+
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(escapeLink)},
+				{Name: "escape/evil.txt", Body: "pwned"},
+			}
+		})
+
+		It("refuses to create the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			escapedFile := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(escapedFile)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", escapedFile)
+		})
+	})
+
+	Context("when a file symlink escapes via an absolute path", func() {
+		BeforeEach(func() {
+			target := filepath.Join(outside, "evil.txt")
+
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(target)},
+				{Name: "escape", Body: "pwned"},
+			}
+		})
+
+		It("refuses to write the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			target := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(target)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", target)
+		})
+	})
+
+	Context("when a file symlink escapes via a relative .. path", func() {
+		BeforeEach(func() {
+			target := filepath.Join(outside, "evil.txt")
+
+			escapeLink, err := filepath.Rel(extractionDest, target)
+			Expect(err).NotTo(HaveOccurred())
+
+			archive = archivetest.Archive{
+				{Name: "escape", Link: filepath.ToSlash(escapeLink)},
+				{Name: "escape", Body: "pwned"},
+			}
+		})
+
+		It("refuses to write the file outside the destination", func() {
+			src, err := archive.TarStream()
+			Expect(err).NotTo(HaveOccurred())
+
+			extractionErr := tarfs.Extract(src, extractionDest)
+			Expect(extractionErr).To(HaveOccurred())
+
+			target := filepath.Join(outside, "evil.txt")
+			_, statErr := os.Stat(target)
+			Expect(os.IsNotExist(statErr)).To(BeTrue(),
+				"extraction escaped and wrote %q outside the destination", target)
 		})
 	})
 })

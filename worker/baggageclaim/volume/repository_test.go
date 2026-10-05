@@ -9,13 +9,14 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/concourse/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/v8/go-archive/tgzfs"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/uidgid/uidgidfakes"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/concourse/worker/baggageclaim/volume/volumefakes"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid/uidgidfakes"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/volumefakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -543,36 +544,28 @@ var _ = Describe("Repository", func() {
 				It("returns all volumes", func() {
 					Expect(volumes).To(Equal(volume.Volumes{
 						{
-							Handle: "handle-1",
-							Path:   "handle-1-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a", "b": "b"},
-								Privileged: true,
-							},
+							Handle:     "handle-1",
+							Path:       "handle-1-data-path",
+							Properties: volume.Properties{"a": "a", "b": "b"},
+							Privileged: true,
 						},
 						{
-							Handle: "handle-2",
-							Path:   "handle-2-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a"},
-								Privileged: false,
-							},
+							Handle:     "handle-2",
+							Path:       "handle-2-data-path",
+							Properties: volume.Properties{"a": "a"},
+							Privileged: false,
 						},
 						{
-							Handle: "handle-3",
-							Path:   "handle-3-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"b": "b"},
-								Privileged: true,
-							},
+							Handle:     "handle-3",
+							Path:       "handle-3-data-path",
+							Properties: volume.Properties{"b": "b"},
+							Privileged: true,
 						},
 						{
-							Handle: "handle-4",
-							Path:   "handle-4-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{},
-								Privileged: false,
-							},
+							Handle:     "handle-4",
+							Path:       "handle-4-data-path",
+							Properties: volume.Properties{},
+							Privileged: false,
 						},
 					}))
 				})
@@ -586,28 +579,22 @@ var _ = Describe("Repository", func() {
 						It("is not included in the response", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-3",
-									Path:   "handle-3-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-3",
+									Path:       "handle-3-data-path",
+									Properties: volume.Properties{"b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-4",
-									Path:   "handle-4-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{},
-										Privileged: false,
-									},
+									Handle:     "handle-4",
+									Path:       "handle-4-data-path",
+									Properties: volume.Properties{},
+									Privileged: false,
 								},
 							}))
 						})
@@ -621,28 +608,22 @@ var _ = Describe("Repository", func() {
 						It("returns only working volumes", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-3",
-									Path:   "handle-3-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-3",
+									Path:       "handle-3-data-path",
+									Properties: volume.Properties{"b": "b"},
+									Privileged: true,
 								},
 								{
-									Handle: "handle-4",
-									Path:   "handle-4-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{},
-										Privileged: false,
-									},
+									Handle:     "handle-4",
+									Path:       "handle-4-data-path",
+									Properties: volume.Properties{},
+									Privileged: false,
 								},
 							}))
 						})
@@ -658,20 +639,16 @@ var _ = Describe("Repository", func() {
 				It("returns only volumes whose properties match", func() {
 					Expect(volumes).To(Equal(volume.Volumes{
 						{
-							Handle: "handle-1",
-							Path:   "handle-1-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a", "b": "b"},
-								Privileged: true,
-							},
+							Handle:     "handle-1",
+							Path:       "handle-1-data-path",
+							Properties: volume.Properties{"a": "a", "b": "b"},
+							Privileged: true,
 						},
 						{
-							Handle: "handle-2",
-							Path:   "handle-2-data-path",
-							VolumeOpts: volume.VolumeOpts{
-								Properties: volume.Properties{"a": "a"},
-								Privileged: false,
-							},
+							Handle:     "handle-2",
+							Path:       "handle-2-data-path",
+							Properties: volume.Properties{"a": "a"},
+							Privileged: false,
 						},
 					}))
 				})
@@ -685,12 +662,10 @@ var _ = Describe("Repository", func() {
 						It("is not included in the response", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 							}))
 						})
@@ -704,12 +679,10 @@ var _ = Describe("Repository", func() {
 						It("returns only working volumes", func() {
 							Expect(volumes).To(Equal(volume.Volumes{
 								{
-									Handle: "handle-1",
-									Path:   "handle-1-data-path",
-									VolumeOpts: volume.VolumeOpts{
-										Properties: volume.Properties{"a": "a", "b": "b"},
-										Privileged: true,
-									},
+									Handle:     "handle-1",
+									Path:       "handle-1-data-path",
+									Properties: volume.Properties{"a": "a", "b": "b"},
+									Privileged: true,
 								},
 							}))
 						})
@@ -767,12 +740,10 @@ var _ = Describe("Repository", func() {
 			It("returns the volume and true", func() {
 				Expect(found).To(BeTrue())
 				Expect(foundVolume).To(Equal(volume.Volume{
-					Handle: "some-volume",
-					Path:   "some-data-path",
-					VolumeOpts: volume.VolumeOpts{
-						Properties: volume.Properties{"a": "a", "b": "b"},
-						Privileged: true,
-					},
+					Handle:     "some-volume",
+					Path:       "some-data-path",
+					Properties: volume.Properties{"a": "a", "b": "b"},
+					Privileged: true,
 				}))
 			})
 
@@ -1108,12 +1079,10 @@ var _ = Describe("Repository", func() {
 				It("returns the parent volume and true", func() {
 					Expect(found).To(BeTrue())
 					Expect(parent).To(Equal(volume.Volume{
-						Handle: "parent-volume",
-						Path:   "parent-data-path",
-						VolumeOpts: volume.VolumeOpts{
-							Properties: volume.Properties{"parent": "property"},
-							Privileged: true,
-						},
+						Handle:     "parent-volume",
+						Path:       "parent-data-path",
+						Properties: volume.Properties{"parent": "property"},
+						Privileged: true,
 					}))
 				})
 
@@ -1292,15 +1261,16 @@ var _ = Describe("Repository", func() {
 					BeforeEach(func() {
 						serverResponseCode = http.StatusNoContent
 					})
-					It("should fail", func() {
+					It("should not fail", func() {
 						Expect(streamErr).ToNot(HaveOccurred())
 					})
-					It("should http request", func() {
+					It("should receive the http request", func() {
 						Expect(serverCalled).To(BeTrue())
 					})
 					It("remote should receive bytes", func() {
 						b := new(bytes.Buffer)
-						tgzfs.Compress(b, filepath.Dir(tempFile.Name()), filepath.Base(tempFile.Name()))
+						err := tgzfs.Compress(b, filepath.Dir(tempFile.Name()), filepath.Base(tempFile.Name()))
+						Expect(err).ToNot(HaveOccurred())
 						Expect(len(serverReadBytes)).To(Equal(len(b.Bytes())))
 						n := len(serverReadBytes)
 						Expect(serverReadBytes[:n]).To(Equal(b.Bytes()[:n]))
@@ -1308,6 +1278,154 @@ var _ = Describe("Repository", func() {
 				})
 			})
 		})
+	})
+
+	Describe("StreamIn path traversal prevention", func() {
+		var (
+			fakeGzipStreamer *volumefakes.FakeStreamer
+			fakeVolume       *volumefakes.FakeFilesystemLiveVolume
+			traversalRepo    volume.Repository
+			volumeDataDir    string
+		)
+
+		BeforeEach(func() {
+			var err error
+			volumeDataDir, err = os.MkdirTemp("", "stream-in-vol-*")
+			Expect(err).NotTo(HaveOccurred())
+
+			fakeGzipStreamer = new(volumefakes.FakeStreamer)
+			traversalRepo = volume.NewRepositoryWithStreamers(
+				fakeFilesystem, fakeLocker,
+				fakePrivilegedNamespacer, fakeUnprivilegedNamespacer,
+				fakeGzipStreamer,
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+			)
+
+			fakeVolume = new(volumefakes.FakeFilesystemLiveVolume)
+			fakeVolume.DataPathReturns(volumeDataDir)
+			fakeVolume.LoadPrivilegedReturns(false, nil)
+			fakeFilesystem.LookupVolumeReturns(fakeVolume, true, nil)
+		})
+
+		AfterEach(func() {
+			os.RemoveAll(volumeDataDir)
+		})
+
+		DescribeTable("destination path stays within the volume",
+			func(inputPath string) {
+				_, _ = traversalRepo.StreamIn(context.Background(), "some-handle", inputPath,
+					baggageclaim.GzipEncoding, 0, strings.NewReader(""))
+
+				Expect(fakeGzipStreamer.InCallCount()).To(Equal(1))
+				_, destPath, _ := fakeGzipStreamer.InArgsForCall(0)
+				Expect(destPath).To(HavePrefix(volumeDataDir),
+					"streamer must not receive a path outside the volume directory")
+			},
+			Entry("single parent-dir traversal", "../outside"),
+			Entry("multi-level parent-dir traversal", "a/../../outside"),
+			Entry("embedded parent-dir component", "foo/../bar"),
+			Entry("quadruple-dot escape attempt", "....//escape"),
+			Entry("absolute path component", "//absolute"),
+		)
+	})
+
+	Describe("StreamOut path traversal prevention", func() {
+		var (
+			fakeGzipStreamer *volumefakes.FakeStreamer
+			fakeVolume       *volumefakes.FakeFilesystemLiveVolume
+			traversalRepo    volume.Repository
+		)
+
+		const volumeDataPath = "/data/volume-root"
+
+		BeforeEach(func() {
+			fakeGzipStreamer = new(volumefakes.FakeStreamer)
+			traversalRepo = volume.NewRepositoryWithStreamers(
+				fakeFilesystem, fakeLocker,
+				fakePrivilegedNamespacer, fakeUnprivilegedNamespacer,
+				fakeGzipStreamer,
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+			)
+
+			fakeVolume = new(volumefakes.FakeFilesystemLiveVolume)
+			fakeVolume.DataPathReturns(volumeDataPath)
+			fakeVolume.LoadPrivilegedReturns(false, nil)
+			fakeFilesystem.LookupVolumeReturns(fakeVolume, true, nil)
+		})
+
+		DescribeTable("source path stays within the volume",
+			func(inputPath string) {
+				_ = traversalRepo.StreamOut(context.Background(), "some-handle", inputPath,
+					baggageclaim.GzipEncoding, new(bytes.Buffer))
+
+				Expect(fakeGzipStreamer.OutCallCount()).To(Equal(1))
+				_, srcPath, _ := fakeGzipStreamer.OutArgsForCall(0)
+				Expect(srcPath).To(HavePrefix(volumeDataPath),
+					"streamer must not receive a path outside the volume directory")
+			},
+			Entry("single parent-dir traversal", "../outside"),
+			Entry("multi-level parent-dir traversal", "a/../../outside"),
+			Entry("embedded parent-dir component", "foo/../bar"),
+			Entry("quadruple-dot escape attempt", "....//escape"),
+			Entry("absolute path component", "//absolute"),
+		)
+	})
+
+	Describe("StreamP2pOut path traversal prevention", func() {
+		var (
+			fakeGzipStreamer *volumefakes.FakeStreamer
+			fakeVolume       *volumefakes.FakeFilesystemLiveVolume
+			traversalRepo    volume.Repository
+			streamInServer   *httptest.Server
+		)
+
+		const volumeDataPath = "/data/volume-root"
+
+		BeforeEach(func() {
+			streamInServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+			}))
+
+			fakeGzipStreamer = new(volumefakes.FakeStreamer)
+			traversalRepo = volume.NewRepositoryWithStreamers(
+				fakeFilesystem, fakeLocker,
+				fakePrivilegedNamespacer, fakeUnprivilegedNamespacer,
+				fakeGzipStreamer,
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+			)
+
+			fakeVolume = new(volumefakes.FakeFilesystemLiveVolume)
+			fakeVolume.DataPathReturns(volumeDataPath)
+			fakeVolume.LoadPrivilegedReturns(false, nil)
+			fakeFilesystem.LookupVolumeReturns(fakeVolume, true, nil)
+		})
+
+		AfterEach(func() {
+			streamInServer.Close()
+		})
+
+		DescribeTable("source path stays within the volume",
+			func(inputPath string) {
+				_ = traversalRepo.StreamP2pOut(context.Background(), "some-handle", inputPath,
+					baggageclaim.GzipEncoding, streamInServer.URL)
+
+				Expect(fakeGzipStreamer.OutCallCount()).To(Equal(1))
+				_, srcPath, _ := fakeGzipStreamer.OutArgsForCall(0)
+				Expect(srcPath).To(HavePrefix(volumeDataPath),
+					"streamer must not receive a path outside the volume directory")
+			},
+			Entry("single parent-dir traversal", "../outside"),
+			Entry("multi-level parent-dir traversal", "a/../../outside"),
+			Entry("embedded parent-dir component", "foo/../bar"),
+			Entry("quadruple-dot escape attempt", "....//escape"),
+			Entry("absolute path component", "//absolute"),
+		)
 	})
 
 	Describe("CleanupOrphanedVolumes", func() {

@@ -8,12 +8,12 @@ import (
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
 
-	"github.com/concourse/concourse/atc/builds"
-	"github.com/concourse/concourse/atc/builds/buildsfakes"
-	"github.com/concourse/concourse/atc/component"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/util"
+	"github.com/concourse/concourse/v8/atc/builds"
+	"github.com/concourse/concourse/v8/atc/builds/buildsfakes"
+	"github.com/concourse/concourse/v8/atc/component"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/util"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )

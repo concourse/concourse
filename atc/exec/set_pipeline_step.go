@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"slices"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -13,14 +14,14 @@ import (
 	yamlv3 "go.yaml.in/yaml/v3"
 	"sigs.k8s.io/yaml"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/configvalidate"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/configvalidate"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/exec/build"
+	"github.com/concourse/concourse/v8/tracing"
+	"github.com/concourse/concourse/v8/vars"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 )
 
 // SetPipelineStep sets a pipeline to current team. This step takes pipeline
@@ -297,7 +298,11 @@ func (s setPipelineSource) MarshalPipelineConfig(config []byte) (atc.Config, err
 	if len(s.step.plan.Vars) > 0 {
 		staticVars = append(staticVars, vars.StaticVariables(s.step.plan.Vars))
 	}
-	for _, lvf := range s.step.plan.VarFiles {
+
+	listVarFile := slices.Clone(s.step.plan.VarFiles)
+	slices.Reverse(listVarFile)
+
+	for _, lvf := range listVarFile {
 		bytes, err := s.fetchPipelineBits(lvf)
 		if err != nil {
 			return atc.Config{}, err
@@ -331,13 +336,10 @@ func (s setPipelineSource) FetchPipelineBits() ([]byte, error) {
 }
 
 func (s setPipelineSource) fetchPipelineBits(path string) ([]byte, error) {
-	segs := strings.SplitN(path, "/", 2)
-	if len(segs) != 2 {
-		return nil, UnspecifiedArtifactSourceError{path}
+	artifactName, filePath, err := parseArtifactPath(path)
+	if err != nil {
+		return nil, err
 	}
-
-	artifactName := segs[0]
-	filePath := segs[1]
 
 	stream, err := s.retrieveFromArtifact(artifactName, filePath)
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/garden/gardenfakes"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient/gclientfakes"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient/gclientfakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

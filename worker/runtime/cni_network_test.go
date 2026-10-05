@@ -11,10 +11,10 @@ import (
 
 	"github.com/containerd/go-cni"
 
-	"github.com/concourse/concourse/worker/runtime"
-	"github.com/concourse/concourse/worker/runtime/iptables/iptablesfakes"
-	"github.com/concourse/concourse/worker/runtime/libcontainerd/libcontainerdfakes"
-	"github.com/concourse/concourse/worker/runtime/runtimefakes"
+	"github.com/concourse/concourse/v8/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime/iptables/iptablesfakes"
+	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd/libcontainerdfakes"
+	"github.com/concourse/concourse/v8/worker/runtime/runtimefakes"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -69,14 +69,14 @@ func (s *CNINetworkSuite) TestNewCNINetworkWithInvalidIPv6ConfigDoesntFail() {
 }
 
 func (s *CNINetworkSuite) TestSetupMountsEmptyHandle() {
-	_, err := s.network.SetupMounts("")
+	_, err := s.network.SetupMounts("", false)
 	s.EqualError(err, "empty handle")
 }
 
 func (s *CNINetworkSuite) TestSetupMountsFailToCreateHosts() {
 	s.store.CreateReturnsOnCall(0, "", errors.New("create-hosts-err"))
 
-	_, err := s.network.SetupMounts("handle")
+	_, err := s.network.SetupMounts("handle", false)
 	s.EqualError(errors.Unwrap(err), "create-hosts-err")
 
 	s.Equal(1, s.store.CreateCallCount())
@@ -88,7 +88,7 @@ func (s *CNINetworkSuite) TestSetupMountsFailToCreateHosts() {
 func (s *CNINetworkSuite) TestSetupMountsFailToCreateHostname() {
 	s.store.CreateReturnsOnCall(1, "", errors.New("create-hostname-err"))
 
-	_, err := s.network.SetupMounts("handle")
+	_, err := s.network.SetupMounts("handle", false)
 	s.EqualError(errors.Unwrap(err), "create-hostname-err")
 
 	s.Equal(2, s.store.CreateCallCount())
@@ -100,7 +100,7 @@ func (s *CNINetworkSuite) TestSetupMountsFailToCreateHostname() {
 func (s *CNINetworkSuite) TestSetupMountsFailToCreateResolvConf() {
 	s.store.CreateReturnsOnCall(2, "", errors.New("create-resolvconf-err"))
 
-	_, err := s.network.SetupMounts("handle")
+	_, err := s.network.SetupMounts("handle", false)
 	s.EqualError(errors.Unwrap(err), "create-resolvconf-err")
 
 	s.Equal(3, s.store.CreateCallCount())
@@ -114,7 +114,7 @@ func (s *CNINetworkSuite) TestSetupMountsReturnsMountpoints() {
 	s.store.CreateReturnsOnCall(1, "/worker-state/handle/etc/hostname", nil)
 	s.store.CreateReturnsOnCall(2, "/worker-state/handle/etc/resolv.conf", nil)
 
-	mounts, err := s.network.SetupMounts("some-handle")
+	mounts, err := s.network.SetupMounts("some-handle", false)
 	s.NoError(err)
 
 	s.Len(mounts, 3)
@@ -149,7 +149,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithNameServers() {
 	)
 	s.NoError(err)
 
-	_, err = network.SetupMounts("some-handle")
+	_, err = network.SetupMounts("some-handle", false)
 	s.NoError(err)
 
 	_, resolvConfContents := s.store.CreateArgsForCall(2)
@@ -164,7 +164,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	)
 	s.NoError(err)
 
-	_, err = network.SetupMounts("some-handle")
+	_, err = network.SetupMounts("some-handle", false)
 	s.NoError(err)
 
 	actualResolvContents, err := runtime.ParseHostResolveConf("/etc/resolv.conf")
@@ -176,6 +176,22 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutNameServers() {
 	s.Equal(resolvConfContents, []byte(contents))
 }
 
+func (s *CNINetworkSuite) TestSetupMountsHermeticWritesEmptyResolvConf() {
+	network, err := runtime.NewCNINetwork(
+		runtime.WithDefaultsForTesting(),
+		runtime.WithCNIFileStore(s.store),
+		runtime.WithNameServers([]string{"1.2.3.4"}),
+		runtime.WithIptables(s.iptables),
+	)
+	s.NoError(err)
+
+	_, err = network.SetupMounts("some-handle", true)
+	s.NoError(err)
+
+	_, resolvConfContents := s.store.CreateArgsForCall(2)
+	s.Equal([]byte{}, resolvConfContents)
+}
+
 func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithAdditionalHosts() {
 	network, err := runtime.NewCNINetwork(
 		runtime.WithDefaultsForTesting(),
@@ -185,7 +201,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithAdditionalHosts() {
 	)
 	s.NoError(err)
 
-	_, err = network.SetupMounts("some-handle")
+	_, err = network.SetupMounts("some-handle", false)
 	s.NoError(err)
 
 	_, firstHost := s.store.AppendArgsForCall(0)
@@ -203,7 +219,7 @@ func (s *CNINetworkSuite) TestSetupMountsCallsStoreWithoutAdditionalHosts() {
 	)
 	s.NoError(err)
 
-	_, err = network.SetupMounts("some-handle")
+	_, err = network.SetupMounts("some-handle", false)
 	s.NoError(err)
 
 	s.Equal(0, s.store.AppendCallCount())
@@ -222,7 +238,7 @@ func (s *CNINetworkSuite) TestSetupMountsFailsToAppendAdditionalHost() {
 	s.store.AppendReturns(errors.New("append-error"))
 
 	// Act
-	_, err = network.SetupMounts("some-handle")
+	_, err = network.SetupMounts("some-handle", false)
 
 	// Assert
 	s.Error(err)
@@ -239,7 +255,7 @@ func (s *CNINetworkSuite) TestSetupMountsFailsWithInvalidIP() {
 	s.NoError(err)
 
 	// Act
-	_, err = network.SetupMounts("some-handle")
+	_, err = network.SetupMounts("some-handle", false)
 
 	// Assert
 	s.Error(err)

@@ -9,8 +9,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/fly/ui"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
@@ -60,8 +60,7 @@ var _ = Describe("get-components", func() {
 				Eventually(sess).Should(gbytes.Say("scheduler"))
 				Eventually(sess).Should(gbytes.Say("tracker"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			}).To(Change(func() int {
 				return len(atcServer.ReceivedRequests())
 			}).By(2))

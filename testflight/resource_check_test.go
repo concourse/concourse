@@ -43,8 +43,7 @@ var _ = Describe("Checking a resource", func() {
 
 		It("shows the check status failed", func(ctx SpecContext) {
 			check := spawnFly("check-resource", "-r", inPipeline("my-resource"))
-			<-check.Exited
-			Expect(check).To(gexec.Exit(1))
+			Eventually(check).Should(gexec.Exit(1))
 			Expect(check).To(gbytes.Say("super broken"))
 			Expect(check).To(gbytes.Say("failed"))
 

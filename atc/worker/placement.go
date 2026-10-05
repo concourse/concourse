@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"sort"
 	"strings"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/runtime"
 )
 
 type PlacementOptions struct {
@@ -126,9 +127,9 @@ func (strategy PlacementStrategy) Order(logger lager.Logger, pool Pool, workers 
 	// they should expect candidates to be sorted by those with the fewest build containers,
 	// and ties with the number of build containers are broken by the number of volumes
 	// which already exists on the worker.
-	for i := len(strategy) - 1; i >= 0; i-- {
+	for _, s := range slices.Backward(strategy) {
 		var err error
-		candidates, err = strategy[i].Order(logger, pool, candidates, spec)
+		candidates, err = s.Order(logger, pool, candidates, spec)
 		if err != nil {
 			return nil, err
 		}
@@ -153,8 +154,8 @@ func (strategy PlacementStrategy) Approve(logger lager.Logger, worker db.Worker,
 }
 
 func (strategy PlacementStrategy) Release(logger lager.Logger, worker db.Worker, spec runtime.ContainerSpec) {
-	for i := len(strategy) - 1; i >= 0; i-- {
-		strategy[i].Release(logger, worker, spec)
+	for _, s := range slices.Backward(strategy) {
+		s.Release(logger, worker, spec)
 	}
 }
 
@@ -339,7 +340,12 @@ func (strategy limitActiveTasksStrategy) Approve(logger lager.Logger, worker db.
 		return nil
 	}
 
-	_, err := worker.IncreaseActiveTasks(strategy.MaxTasks)
+	maxTasks := strategy.MaxTasks
+	if workersMax := worker.MaxActiveTasks(); workersMax > 0 {
+		maxTasks = workersMax
+	}
+
+	_, err := worker.IncreaseActiveTasks(maxTasks)
 
 	return err
 }

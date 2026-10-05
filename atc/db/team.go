@@ -16,10 +16,10 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/jackc/pgerrcode"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/encryption"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/encryption"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/event"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"

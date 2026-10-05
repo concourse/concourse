@@ -3,8 +3,8 @@ package wrappa
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/auth"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/auth"
 	"github.com/tedsuo/rata"
 )
 
@@ -50,7 +50,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListBuildArtifacts:
 			newHandler = wrappa.checkBuildReadAccessHandlerFactory.CheckIfPrivateJobHandler(handler, rejector)
 
-			// resource belongs to authorized team
+		// resource belongs to authorized team
 		case atc.AbortBuild,
 			atc.SetBuildComment:
 			newHandler = wrappa.checkBuildWriteAccessHandlerFactory.HandlerFor(handler, rejector)
@@ -85,19 +85,25 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 			atc.ListResourceVersions:
 			newHandler = wrappa.checkPipelineAccessHandlerFactory.HandlerFor(handler, rejector)
 
-		// authenticated
-		case atc.ListWorkers,
-			atc.RegisterWorker,
+		// system only access, usually through TSA
+		case atc.RegisterWorker,
 			atc.HeartbeatWorker,
-			atc.DeleteWorker,
-			atc.ListTeamBuilds,
-			atc.GetUser:
+			atc.DeleteWorker:
+			newHandler = auth.CheckSystemAccessHandler(handler, rejector)
+
+		// authenticated and has a role on at least one team
+		case atc.ListWorkers:
+			newHandler = auth.CheckAnyTeamAccessHandler(handler, rejector)
+
+		// authenticated
+		case atc.GetUser:
 			newHandler = auth.CheckAuthenticationHandler(handler, rejector)
 
 		// unauthenticated / delegating to handler (validate token if provided)
 		case atc.DownloadCLI,
 			atc.CheckResourceWebHook,
 			atc.GetInfo,
+			atc.GetHealth,
 			atc.GetCC,
 			atc.ListTeams,
 			atc.ListAllPipelines,
@@ -134,6 +140,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		case atc.GetTeam,
 			atc.SetTeam,
 			atc.RenameTeam,
+			atc.ListTeamBuilds,
 			atc.ListContainers,
 			atc.GetContainer,
 			atc.HijackContainer,

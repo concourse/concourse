@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/concourse/concourse/worker/network"
+	"github.com/concourse/concourse/v8/worker/network"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +30,7 @@ func TestMTU(t *testing.T) {
 
 	addrs, err := iface.Addrs()
 	require.NoError(t, err)
-	ipAddr := strings.Split(addrs[0].String(), "/")[0]
+	ipAddr, _, _ := strings.Cut(addrs[0].String(), "/")
 
 	mtu, err := network.MTU(ipAddr)
 	require.NoError(t, err)

@@ -1,7 +1,7 @@
 package db_test
 
 import (
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/go-jose/go-jose/v4/jwt"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -44,19 +44,15 @@ var _ = Describe("Access Token Factory", func() {
 		Expect(ok).To(BeTrue())
 		Expect(token.Token).To(Equal("my-awesome-token"))
 		Expect(token.Claims).To(Equal(db.Claims{
-			Claims: jwt.Claims{
-				Issuer:    "issuer",
-				Subject:   "subject",
-				Audience:  []string{"audience"},
-				Expiry:    &date,
-				NotBefore: &date,
-				IssuedAt:  &date,
-				ID:        "id",
-			},
-			FederatedClaims: db.FederatedClaims{
-				UserID:    "userid",
-				Connector: "github",
-			},
+			Issuer:    "issuer",
+			Subject:   "subject",
+			Audience:  []string{"audience"},
+			Expiry:    &date,
+			NotBefore: &date,
+			IssuedAt:  &date,
+			ID:        "id",
+			UserID:    "userid",
+			Connector: "github",
 			RawClaims: map[string]any{
 				"iss": "issuer",
 				"sub": "subject",

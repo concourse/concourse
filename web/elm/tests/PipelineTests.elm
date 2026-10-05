@@ -843,6 +843,75 @@ all =
                             |> Common.queryView
                             |> iSeeStarUnfilled
                 ]
+            , describe "top bar info icon" <|
+                let
+                    setup maybeUserData =
+                        Common.init "/teams/team/pipelines/pipeline"
+                            |> pipelineFetched
+                                (Data.pipeline "team" 0
+                                    |> Data.withName "pipeline"
+                                    |> (case maybeUserData of
+                                            Just value ->
+                                                Data.withUserData value
+
+                                            Nothing ->
+                                                identity
+                                       )
+                                )
+
+                    withUserData =
+                        setup (Just <| Json.Encode.string "some notes")
+                in
+                [ test "is shown when the pipeline has user_data" <|
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.has [ id "top-bar-info-icon" ]
+                , test "is hidden when the pipeline has no user_data" <|
+                    \_ ->
+                        setup Nothing
+                            |> Common.queryView
+                            |> Query.hasNot [ id "top-bar-info-icon" ]
+                , test "links to the pipeline's info page" <|
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.find [ id "top-bar-info-icon" ]
+                            |> Query.has
+                                [ attribute <|
+                                    Attr.href "/teams/team/pipelines/pipeline/info"
+                                ]
+                , test "icon has the same 17px margin as its neighbours" <|
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.find [ id "top-bar-info-icon" ]
+                            |> Query.children []
+                            |> Query.first
+                            |> Query.has
+                                (style "margin" "17px"
+                                    :: iconSelector
+                                        { size = "20px"
+                                        , image = Assets.InformationOutlineIcon
+                                        }
+                                )
+                , test "renders under the DOM id that hovering looks up" <|
+                    \_ ->
+                        withUserData
+                            |> Common.queryView
+                            |> Query.has [ id <| Effects.toHtmlID TopBarInfoIcon ]
+                , test "hovering it asks for the viewport of that element" <|
+                    \_ ->
+                        withUserData
+                            |> Application.update
+                                (Msgs.Update <| Hover <| Just TopBarInfoIcon)
+                            |> Tuple.second
+                            |> Common.contains (Effects.GetViewportOf TopBarInfoIcon)
+                , test "hovering it shows the pipeline info tooltip" <|
+                    \_ ->
+                        withUserData
+                            |> Common.expectTooltip TopBarInfoIcon "pipeline info"
+                ]
             , describe "pipeline name tooltip" <|
                 let
                     setupPipeline time =
@@ -930,14 +999,16 @@ givenMultiplePinnedResources =
 testTopBarPositioning : String -> String -> Test
 testTopBarPositioning pageName url =
     describe pageName
-        [ test "whole page fills the whole screen" <|
+        [ test "top section fills the whole screen" <|
             \_ ->
                 Common.init url
                     |> Common.queryView
-                    |> Query.has
+                    |> Query.findAll
                         [ id "page-including-top-bar"
-                        , style "height" "100%"
+                        , style "flex" "1"
+                        , style "min-height" "0"
                         ]
+                    |> Query.count (Expect.equal 1)
         , test "lower section fills the whole screen as well" <|
             \_ ->
                 Common.init url

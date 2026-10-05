@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	. "github.com/concourse/concourse/atc/testhelpers"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	. "github.com/concourse/concourse/v8/atc/testhelpers"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -144,6 +144,18 @@ var _ = Describe("Workers API", func() {
 				It("returns 500", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
+			})
+		})
+
+		Context("when the user has no role on any team", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+				fakeAccess.IsAdminReturns(false)
+				fakeAccess.TeamNamesReturns([]string{})
+			})
+
+			It("returns 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 
@@ -489,11 +501,19 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			worker     atc.Worker
+			reqBody    io.Reader
 			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/land", nil)
+			if reqBody == nil {
+				payload, err := json.Marshal(worker)
+				Expect(err).NotTo(HaveOccurred())
+				reqBody = bytes.NewReader(payload)
+			}
+
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/land", reqBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -506,6 +526,12 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.TeamNameReturns("some-team")
 			fakeWorker.LandReturns(nil)
+
+			worker = atc.Worker{
+				Name: workerName,
+				Team: "some-team",
+			}
+			reqBody = nil
 
 			fakeAccess.IsAuthenticatedReturns(true)
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
@@ -548,6 +574,34 @@ var _ = Describe("Workers API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
+
+			Context("when the request body cannot be decoded", func() {
+				BeforeEach(func() {
+					reqBody = bytes.NewBufferString("{not-valid-json")
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to land the worker", func() {
+					Expect(fakeWorker.LandCallCount()).To(BeZero())
+				})
+			})
+
+			Context("when the given worker belongs to a different team", func() {
+				BeforeEach(func() {
+					worker.Team = "other-team"
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to land the worker", func() {
+					Expect(fakeWorker.LandCallCount()).To(BeZero())
+				})
+			})
 		})
 
 		Context("when the request is authorized as the worker's owner", func() {
@@ -557,6 +611,20 @@ var _ = Describe("Workers API", func() {
 
 			It("returns 200", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when the given worker belongs to a different team", func() {
+				BeforeEach(func() {
+					worker.Team = "other-team"
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to land the worker", func() {
+					Expect(fakeWorker.LandCallCount()).To(BeZero())
+				})
 			})
 		})
 
@@ -589,11 +657,19 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			worker     atc.Worker
+			reqBody    io.Reader
 			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/retire", nil)
+			if reqBody == nil {
+				payload, err := json.Marshal(worker)
+				Expect(err).NotTo(HaveOccurred())
+				reqBody = bytes.NewReader(payload)
+			}
+
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/retire", reqBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -606,6 +682,12 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.NameReturns(workerName)
 			fakeWorker.TeamNameReturns("some-team")
 			fakeAccess.IsAuthenticatedReturns(true)
+
+			worker = atc.Worker{
+				Name: workerName,
+				Team: "some-team",
+			}
+			reqBody = nil
 
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			fakeWorker.RetireReturns(nil)
@@ -649,6 +731,34 @@ var _ = Describe("Workers API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 				})
 			})
+
+			Context("when the request body cannot be decoded", func() {
+				BeforeEach(func() {
+					reqBody = bytes.NewBufferString("{not-valid-json")
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to retire the worker", func() {
+					Expect(fakeWorker.RetireCallCount()).To(BeZero())
+				})
+			})
+
+			Context("when the given worker belongs to a different team", func() {
+				BeforeEach(func() {
+					worker.Team = "other-team"
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to retire the worker", func() {
+					Expect(fakeWorker.RetireCallCount()).To(BeZero())
+				})
+			})
 		})
 
 		Context("when authorized as as the worker's owner", func() {
@@ -658,6 +768,20 @@ var _ = Describe("Workers API", func() {
 
 			It("returns 200", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
+
+			Context("when the given worker belongs to a different team", func() {
+				BeforeEach(func() {
+					worker.Team = "other-team"
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to retire the worker", func() {
+					Expect(fakeWorker.RetireCallCount()).To(BeZero())
+				})
 			})
 		})
 
@@ -804,7 +928,8 @@ var _ = Describe("Workers API", func() {
 				Name:             workerName,
 				ActiveContainers: 2,
 			}
-			fakeAccess.IsAuthenticatedReturns(true)
+			fakeAccess.IsAuthorizedReturns(true)
+			fakeAccess.IsSystemReturns(true)
 			dbWorkerFactory.HeartbeatWorkerReturns(fakeWorker, nil)
 		})
 
@@ -818,23 +943,27 @@ var _ = Describe("Workers API", func() {
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
 		})
+		Context("when authenticated", func() {
+			BeforeEach(func() {
+				fakeAccess.IsAuthenticatedReturns(true)
+			})
 
-		It("returns 200", func() {
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-		})
+			It("returns 200", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			})
 
-		It("returns Content-Type 'application/json'", func() {
-			expectedHeaderEntries := map[string]string{
-				"Content-Type": "application/json",
-			}
-			Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
-		})
+			It("returns Content-Type 'application/json'", func() {
+				expectedHeaderEntries := map[string]string{
+					"Content-Type": "application/json",
+				}
+				Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+			})
 
-		It("returns saved worker", func() {
-			contents, err := io.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
+			It("returns saved worker", func() {
+				contents, err := io.ReadAll(response.Body)
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(contents).To(MatchJSON(`{
+				Expect(contents).To(MatchJSON(`{
 				"name": "some-name",
 				"state": "running",
 				"addr": "",
@@ -842,6 +971,7 @@ var _ = Describe("Workers API", func() {
 				"active_containers": 2,
 				"active_volumes": 10,
 				"active_tasks": 42,
+				"max_active_tasks": 0,
 				"resource_types": null,
 				"platform": "penguin",
 				"ephemeral": true,
@@ -850,54 +980,70 @@ var _ = Describe("Workers API", func() {
 				"start_time": 0,
 				"version": ""
 			}`))
-		})
-
-		It("sees if the worker exists and attempts to heartbeat with provided ttl", func() {
-			Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(Equal(1))
-
-			w, t := dbWorkerFactory.HeartbeatWorkerArgsForCall(0)
-			Expect(w).To(Equal(worker))
-			Expect(t).To(Equal(ttl))
-		})
-
-		Context("when the TTL is invalid", func() {
-			BeforeEach(func() {
-				ttlStr = "invalid-duration"
 			})
 
-			It("returns 400", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			It("sees if the worker exists and attempts to heartbeat with provided ttl", func() {
+				Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(Equal(1))
+
+				w, t := dbWorkerFactory.HeartbeatWorkerArgsForCall(0)
+				Expect(w).To(Equal(worker))
+				Expect(t).To(Equal(ttl))
 			})
 
-			It("returns the validation error in the response body", func() {
-				Expect(io.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
+			Context("when the TTL is invalid", func() {
+				BeforeEach(func() {
+					ttlStr = "invalid-duration"
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("returns the validation error in the response body", func() {
+					Expect(io.ReadAll(response.Body)).To(Equal([]byte("malformed ttl")))
+				})
+
+				It("does not heartbeat worker", func() {
+					Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(BeZero())
+				})
 			})
 
-			It("does not heartbeat worker", func() {
-				Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(BeZero())
-			})
-		})
+			Context("when heartbeating the worker fails", func() {
+				var returnedErr error
 
-		Context("when heartbeating the worker fails", func() {
-			var returnedErr error
+				BeforeEach(func() {
+					returnedErr = errors.New("some-error")
+					dbWorkerFactory.HeartbeatWorkerReturns(nil, returnedErr)
+				})
 
-			BeforeEach(func() {
-				returnedErr = errors.New("some-error")
-				dbWorkerFactory.HeartbeatWorkerReturns(nil, returnedErr)
-			})
-
-			It("returns 500", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-		})
-
-		Context("when the worker does not exist", func() {
-			BeforeEach(func() {
-				dbWorkerFactory.HeartbeatWorkerReturns(nil, db.ErrWorkerNotPresent)
+				It("returns 500", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
 			})
 
-			It("returns 404", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			Context("when the worker does not exist", func() {
+				BeforeEach(func() {
+					dbWorkerFactory.HeartbeatWorkerReturns(nil, db.ErrWorkerNotPresent)
+				})
+
+				It("returns 404", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+				})
+			})
+
+			Context("when authenticated but not system", func() {
+				BeforeEach(func() {
+					fakeAccess.IsAuthenticatedReturns(true)
+					fakeAccess.IsSystemReturns(false)
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+
+				It("does not heartbeat the worker", func() {
+					Expect(dbWorkerFactory.HeartbeatWorkerCallCount()).To(BeZero())
+				})
 			})
 		})
 
@@ -920,11 +1066,19 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			worker     atc.Worker
+			reqBody    io.Reader
 			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
-			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/workers/"+workerName, nil)
+			if reqBody == nil {
+				payload, err := json.Marshal(worker)
+				Expect(err).NotTo(HaveOccurred())
+				reqBody = bytes.NewReader(payload)
+			}
+
+			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/workers/"+workerName, reqBody)
 			Expect(err).NotTo(HaveOccurred())
 
 			response, err = client.Do(req)
@@ -935,6 +1089,11 @@ var _ = Describe("Workers API", func() {
 			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-worker"
 			fakeWorker.NameReturns(workerName)
+
+			worker = atc.Worker{
+				Name: workerName,
+			}
+			reqBody = nil
 
 			fakeAccess.IsAuthenticatedReturns(true)
 			fakeWorker.DeleteReturns(nil)
@@ -977,36 +1136,74 @@ var _ = Describe("Workers API", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
 			})
+
+			Context("when the request body cannot be decoded", func() {
+				BeforeEach(func() {
+					reqBody = bytes.NewBufferString("{not-valid-json")
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to delete the worker", func() {
+					Expect(fakeWorker.DeleteCallCount()).To(BeZero())
+				})
+			})
+
+			Context("when the given worker belongs to a different team", func() {
+				BeforeEach(func() {
+					fakeWorker.TeamNameReturns("some-team")
+					worker.Team = "other-team"
+				})
+
+				It("returns 400", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				})
+
+				It("does not attempt to delete the worker", func() {
+					Expect(fakeWorker.DeleteCallCount()).To(BeZero())
+				})
+			})
 		})
 
 		Context("when user is admin user", func() {
 			BeforeEach(func() {
 				fakeAccess.IsAdminReturns(true)
 			})
-			It("deletes the worker from the DB", func() {
-				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
-				Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
-
-				Expect(fakeWorker.DeleteCallCount()).To(Equal(1))
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
 			})
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			It("returns 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 			})
 		})
 
 		Context("when user is authorized for team", func() {
 			BeforeEach(func() {
 				fakeWorker.TeamNameReturns("some-team")
+				worker.Team = "some-team"
 				fakeAccess.IsAuthorizedReturns(true)
 			})
-			It("deletes the worker from the DB", func() {
-				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
-				Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
-
-				Expect(fakeWorker.DeleteCallCount()).To(Equal(1))
+			It("does not attempt to find the worker", func() {
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(BeZero())
 			})
-			It("returns 200", func() {
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
+			It("returns 403", func() {
+				Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+			})
+
+			Context("when the given worker belongs to a different team", func() {
+				BeforeEach(func() {
+					worker.Team = "other-team"
+				})
+
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+				})
+
+				It("does not attempt to delete the worker", func() {
+					Expect(fakeWorker.DeleteCallCount()).To(BeZero())
+				})
 			})
 		})
 

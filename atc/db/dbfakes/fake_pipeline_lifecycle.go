@@ -3,8 +3,9 @@ package dbfakes
 
 import (
 	"sync"
+	"time"
 
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 type FakePipelineLifecycle struct {
@@ -16,6 +17,17 @@ type FakePipelineLifecycle struct {
 		result1 error
 	}
 	archiveAbandonedPipelinesReturnsOnCall map[int]struct {
+		result1 error
+	}
+	DestroyArchivedPipelinesStub        func(time.Duration) error
+	destroyArchivedPipelinesMutex       sync.RWMutex
+	destroyArchivedPipelinesArgsForCall []struct {
+		arg1 time.Duration
+	}
+	destroyArchivedPipelinesReturns struct {
+		result1 error
+	}
+	destroyArchivedPipelinesReturnsOnCall map[int]struct {
 		result1 error
 	}
 	RemoveBuildEventsForDeletedPipelinesStub        func() error
@@ -81,6 +93,67 @@ func (fake *FakePipelineLifecycle) ArchiveAbandonedPipelinesReturnsOnCall(i int,
 		})
 	}
 	fake.archiveAbandonedPipelinesReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineLifecycle) DestroyArchivedPipelines(arg1 time.Duration) error {
+	fake.destroyArchivedPipelinesMutex.Lock()
+	ret, specificReturn := fake.destroyArchivedPipelinesReturnsOnCall[len(fake.destroyArchivedPipelinesArgsForCall)]
+	fake.destroyArchivedPipelinesArgsForCall = append(fake.destroyArchivedPipelinesArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	stub := fake.DestroyArchivedPipelinesStub
+	fakeReturns := fake.destroyArchivedPipelinesReturns
+	fake.recordInvocation("DestroyArchivedPipelines", []interface{}{arg1})
+	fake.destroyArchivedPipelinesMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakePipelineLifecycle) DestroyArchivedPipelinesCallCount() int {
+	fake.destroyArchivedPipelinesMutex.RLock()
+	defer fake.destroyArchivedPipelinesMutex.RUnlock()
+	return len(fake.destroyArchivedPipelinesArgsForCall)
+}
+
+func (fake *FakePipelineLifecycle) DestroyArchivedPipelinesCalls(stub func(time.Duration) error) {
+	fake.destroyArchivedPipelinesMutex.Lock()
+	defer fake.destroyArchivedPipelinesMutex.Unlock()
+	fake.DestroyArchivedPipelinesStub = stub
+}
+
+func (fake *FakePipelineLifecycle) DestroyArchivedPipelinesArgsForCall(i int) time.Duration {
+	fake.destroyArchivedPipelinesMutex.RLock()
+	defer fake.destroyArchivedPipelinesMutex.RUnlock()
+	argsForCall := fake.destroyArchivedPipelinesArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakePipelineLifecycle) DestroyArchivedPipelinesReturns(result1 error) {
+	fake.destroyArchivedPipelinesMutex.Lock()
+	defer fake.destroyArchivedPipelinesMutex.Unlock()
+	fake.DestroyArchivedPipelinesStub = nil
+	fake.destroyArchivedPipelinesReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakePipelineLifecycle) DestroyArchivedPipelinesReturnsOnCall(i int, result1 error) {
+	fake.destroyArchivedPipelinesMutex.Lock()
+	defer fake.destroyArchivedPipelinesMutex.Unlock()
+	fake.DestroyArchivedPipelinesStub = nil
+	if fake.destroyArchivedPipelinesReturnsOnCall == nil {
+		fake.destroyArchivedPipelinesReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.destroyArchivedPipelinesReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }

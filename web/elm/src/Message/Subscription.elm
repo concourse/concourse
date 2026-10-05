@@ -114,6 +114,8 @@ type Delivery
     | CachedTeamsReceived (Result Json.Decode.Error (List Concourse.Team))
     | FavoritedPipelinesReceived (Result Json.Decode.Error (Set DatabaseID))
     | FavoritedInstanceGroupsReceived (Result Json.Decode.Error (Set ( Concourse.TeamName, Concourse.PipelineName )))
+    | HighDensityReceived (Result Json.Decode.Error Bool)
+    | GroupListViewReceived (Result Json.Decode.Error Bool)
     | ScrolledToId ( String, String )
     | GotHostname String
     | Noop
@@ -241,6 +243,12 @@ decodeStorageResponse ( key, value ) =
                             )
                     )
                     FavoritedInstanceGroupsReceived
+
+            else if key == Storage.highDensityKey then
+                decodeValue Json.Decode.bool HighDensityReceived
+
+            else if key == Storage.groupListViewKey then
+                decodeValue Json.Decode.bool GroupListViewReceived
 
             else
                 always Noop

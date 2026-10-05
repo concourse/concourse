@@ -10,5 +10,5 @@ type Driver interface {
 	CreateCopyOnWriteLayer(FilesystemInitVolume, FilesystemLiveVolume) error
 
 	Recover(Filesystem) error
-	RemoveOrphanedResources(knownHandles map[string]struct{}) error
+	RemoveOrphanedResources(isKnown func(handle string) bool) error
 }

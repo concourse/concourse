@@ -54,15 +54,16 @@ view : Session -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ Html.div
+        [ Views.Styles.hideIf session.hideUI (Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             (SideBar.sideBarIcon session
                 :: TopBar.breadcrumbs session model.route
                 ++ [ Login.view session.userState model ]
             )
+          )
         , Html.div
-            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar model.route)
-            [ SideBar.view session Nothing
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.hideUI model.route)
+            [ Views.Styles.hideIf session.hideUI (SideBar.view session Nothing)
             , Html.div [ class "notfound" ]
                 [ Html.div [ class "title" ] [ Html.text "404" ]
                 , Html.div [ class "reason" ] [ Html.text "this page was not found" ]

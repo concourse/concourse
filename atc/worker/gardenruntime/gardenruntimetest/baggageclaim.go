@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 )
 
 var _ baggageclaim.Client = (*Baggageclaim)(nil)

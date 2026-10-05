@@ -1,7 +1,7 @@
 package accessor
 
 import (
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 )
 
 const (

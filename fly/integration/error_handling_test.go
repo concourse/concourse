@@ -36,8 +36,7 @@ var _ = Describe("Fly CLI", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).ToNot(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 
 				Expect(sess.Err).To(gbytes.Say("not authorized\\. run the following to log in:\n\n    "))
 				Expect(sess.Err).To(gbytes.Say(`fly.* -t ` + targetName + ` login`))
@@ -58,8 +57,7 @@ var _ = Describe("Fly CLI", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say("no target specified\\. specify the target with -t or log in like so:"))
 			Expect(sess.Err).To(gbytes.Say(`fly.* -t \(alias\) login -c \(concourse url\)`))
@@ -81,8 +79,7 @@ var _ = Describe("Fly CLI", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).ToNot(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say("could not reach the Concourse server called " + targetName))
 			Expect(sess.Err).To(gbytes.Say("lol"))

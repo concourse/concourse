@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Intercepting containers", func() {
@@ -29,8 +30,7 @@ var _ = Describe("Intercepting containers", func() {
 		for _, handle := range handles {
 			withFlyTarget(testflightGuestFlyTarget, func() {
 				intercept := spawnFly("intercept", "--handle", handle, "hostname")
-				<-intercept.Exited
-				Expect(intercept.ExitCode()).ToNot(Equal(0))
+				Eventually(intercept).Should(gexec.Exit(1))
 				Expect(intercept.Err).To(gbytes.Say("no containers matched the given handle id"))
 			})
 		}
@@ -38,7 +38,7 @@ var _ = Describe("Intercepting containers", func() {
 		By("stopping the build")
 		fly("intercept", "-j", inPipeline("wait"), "-s", "wait-for-intercept", "touch", "/tmp/stop-waiting")
 
-		<-wait.Exited
+		Eventually(wait).Should(gexec.Exit(0))
 		Expect(wait).To(gbytes.Say("done"))
 	}, DefaultSpecTimeout)
 })

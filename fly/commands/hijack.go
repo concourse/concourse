@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -13,15 +14,15 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/list"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/commands/internal/hijacker"
-	"github.com/concourse/concourse/fly/commands/internal/hijackhelpers"
-	"github.com/concourse/concourse/fly/commands/internal/interaction"
-	"github.com/concourse/concourse/fly/pty"
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/hijacker"
+	"github.com/concourse/concourse/v8/fly/commands/internal/hijackhelpers"
+	"github.com/concourse/concourse/v8/fly/commands/internal/interaction"
+	"github.com/concourse/concourse/v8/fly/pty"
+	"github.com/concourse/concourse/v8/fly/rc"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 	"github.com/tedsuo/rata"
 )
 
@@ -470,7 +471,7 @@ type stdinWriter struct {
 
 func (w *stdinWriter) Write(d []byte) (int, error) {
 	w.inputs <- atc.HijackInput{
-		Stdin: d,
+		Stdin: bytes.Clone(d),
 	}
 
 	return len(d), nil

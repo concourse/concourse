@@ -33,6 +33,7 @@
       "enabled": false
     }
   ],
+  "postUpdateOptions": ["gomodTidy"],
   "ignoreDeps": ["elm", "client-go"],
   "labels": ["dependencies", "misc", "release/undocumented"]
 }

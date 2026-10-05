@@ -16,19 +16,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/go-archive/tarfs"
+	"github.com/concourse/concourse/v8/go-archive/tarfs"
 	"github.com/klauspost/compress/zstd"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/go-archive/tgzfs"
+	"github.com/concourse/concourse/v8/go-archive/tgzfs"
 
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/api"
-	"github.com/concourse/concourse/worker/baggageclaim/uidgid"
-	"github.com/concourse/concourse/worker/baggageclaim/volume"
-	"github.com/concourse/concourse/worker/baggageclaim/volume/driver"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/api"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/driver"
 )
 
 var _ = Describe("Volume Server", func() {
@@ -102,7 +102,8 @@ var _ = Describe("Volume Server", func() {
 
 		JustBeforeEach(func() {
 			recorder = httptest.NewRecorder()
-			request, _ := http.NewRequest("GET", "/volumes", nil)
+			request, err := http.NewRequest("GET", "/volumes", nil)
+			Expect(err).NotTo(HaveOccurred())
 
 			handler.ServeHTTP(recorder, request)
 		})
@@ -132,7 +133,8 @@ var _ = Describe("Volume Server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			recorder := httptest.NewRecorder()
-			request, _ := http.NewRequest("POST", "/volumes", body)
+			request, err := http.NewRequest("POST", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(201))
 
@@ -146,12 +148,14 @@ var _ = Describe("Volume Server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("POST", "/volumes", body)
+			request, err = http.NewRequest("POST", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(201))
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("GET", "/volumes?property-query=value", nil)
+			request, err = http.NewRequest("GET", "/volumes?property-query=value", nil)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(200))
 
@@ -164,7 +168,8 @@ var _ = Describe("Volume Server", func() {
 
 		It("returns an error if an invalid set of properties are specified", func() {
 			recorder := httptest.NewRecorder()
-			request, _ := http.NewRequest("GET", "/volumes?property-query=value&property-query=another-value", nil)
+			request, err := http.NewRequest("GET", "/volumes?property-query=value&property-query=another-value", nil)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 
 			Expect(recorder.Code).To(Equal(422))
@@ -185,7 +190,8 @@ var _ = Describe("Volume Server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			recorder := httptest.NewRecorder()
-			request, _ := http.NewRequest("POST", "/volumes", body)
+			request, err := http.NewRequest("POST", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(201))
 
@@ -249,7 +255,8 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("extracts the tar stream into the volume's DataPath", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.GzipEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -263,7 +270,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
 					// Set streaming limit to 9-byte
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.GzipEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -297,7 +305,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("extracts the tar stream into the volume's DataPath", func() {
 					// Set streaming limit to 9-byte
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.ZstdEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -310,7 +319,8 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tgzBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.ZstdEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -340,7 +350,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("extracts the tar stream into the volume's DataPath", func() {
 					// Set streaming limit to 9-byte
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.RawEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -353,7 +364,8 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("fails to extract the tar stream into the volume's DataPath if hit streaming limit", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?limit=0.000009&path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.RawEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -373,7 +385,8 @@ var _ = Describe("Volume Server", func() {
 
 			Context("when using gzip encoding", func() {
 				It("returns 400 when err is exitError", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", myVolume.Handle), tgzBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", myVolume.Handle), tgzBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.GzipEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -383,7 +396,8 @@ var _ = Describe("Volume Server", func() {
 			})
 			Context("when using zstd encoding", func() {
 				It("returns 400 when err is exitError", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", myVolume.Handle), tgzBuffer)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", myVolume.Handle), tgzBuffer)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Content-Encoding", string(baggageclaim.ZstdEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
@@ -398,7 +412,8 @@ var _ = Describe("Volume Server", func() {
 			})
 
 			It("returns 400 when err is UnsupportedEncodingError", func() {
-				request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", myVolume.Handle), tgzBuffer)
+				request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", myVolume.Handle), tgzBuffer)
+				Expect(err).NotTo(HaveOccurred())
 				request.Header.Set("Content-Encoding", "unsupported")
 				recorder := httptest.NewRecorder()
 				handler.ServeHTTP(recorder, request)
@@ -408,7 +423,8 @@ var _ = Describe("Volume Server", func() {
 
 		It("returns 404 when volume is not found", func() {
 			tgzBuffer = new(bytes.Buffer)
-			request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", "invalid-handle"), tgzBuffer)
+			request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in", "invalid-handle"), tgzBuffer)
+			Expect(err).NotTo(HaveOccurred())
 			recorder := httptest.NewRecorder()
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(404))
@@ -449,14 +465,15 @@ var _ = Describe("Volume Server", func() {
 		})
 
 		It("returns 404 when source path is invalid", func() {
-			request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "bogus-path"), nil)
+			request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "bogus-path"), nil)
+			Expect(err).NotTo(HaveOccurred())
 			request.Header.Set("Accept-Encoding", string(baggageclaim.GzipEncoding))
 			recorder := httptest.NewRecorder()
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(404))
 
 			var responseError *api.ErrorResponse
-			err := json.NewDecoder(recorder.Body).Decode(&responseError)
+			err = json.NewDecoder(recorder.Body).Decode(&responseError)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(responseError.Message).To(Equal("no such file or directory"))
 		})
@@ -464,7 +481,8 @@ var _ = Describe("Volume Server", func() {
 		Context("when streaming a file", func() {
 
 			JustBeforeEach(func() {
-				streamInRequest, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+				streamInRequest, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+				Expect(err).NotTo(HaveOccurred())
 				streamInRequest.Header.Set("Content-Encoding", encoding)
 				streamInRecorder := httptest.NewRecorder()
 				handler.ServeHTTP(streamInRecorder, streamInRequest)
@@ -496,14 +514,15 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("creates a tar", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Accept-Encoding", string(baggageclaim.GzipEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
 					Expect(recorder.Code).To(Equal(200))
 
 					unpackedDir := filepath.Join(tempDir, "unpacked-dir")
-					err := os.MkdirAll(unpackedDir, os.ModePerm)
+					err = os.MkdirAll(unpackedDir, os.ModePerm)
 					Expect(err).NotTo(HaveOccurred())
 					defer os.RemoveAll(unpackedDir)
 
@@ -542,14 +561,15 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("creates a tar", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Accept-Encoding", string(baggageclaim.ZstdEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
 					Expect(recorder.Code).To(Equal(200))
 
 					unpackedDir := filepath.Join(tempDir, "unpacked-dir")
-					err := os.MkdirAll(unpackedDir, os.ModePerm)
+					err = os.MkdirAll(unpackedDir, os.ModePerm)
 					Expect(err).NotTo(HaveOccurred())
 					defer os.RemoveAll(unpackedDir)
 
@@ -590,7 +610,8 @@ var _ = Describe("Volume Server", func() {
 			})
 
 			JustBeforeEach(func() {
-				streamInRequest, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+				streamInRequest, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-in?path=%s", myVolume.Handle, "dest-path"), tarBuffer)
+				Expect(err).NotTo(HaveOccurred())
 				streamInRequest.Header.Set("Content-Encoding", encoding)
 				streamInRecorder := httptest.NewRecorder()
 				handler.ServeHTTP(streamInRecorder, streamInRequest)
@@ -608,14 +629,15 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("creates a tar", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Accept-Encoding", string(baggageclaim.GzipEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
 					Expect(recorder.Code).To(Equal(200))
 
 					unpackedDir := filepath.Join(tempDir, "unpacked-dir")
-					err := os.MkdirAll(unpackedDir, os.ModePerm)
+					err = os.MkdirAll(unpackedDir, os.ModePerm)
 					Expect(err).NotTo(HaveOccurred())
 					defer os.RemoveAll(unpackedDir)
 
@@ -657,14 +679,15 @@ var _ = Describe("Volume Server", func() {
 				})
 
 				It("creates a tar", func() {
-					request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+					Expect(err).NotTo(HaveOccurred())
 					request.Header.Set("Accept-Encoding", string(baggageclaim.ZstdEncoding))
 					recorder := httptest.NewRecorder()
 					handler.ServeHTTP(recorder, request)
 					Expect(recorder.Code).To(Equal(200))
 
 					unpackedDir := filepath.Join(tempDir, "unpacked-dir")
-					err := os.MkdirAll(unpackedDir, os.ModePerm)
+					err = os.MkdirAll(unpackedDir, os.ModePerm)
 					Expect(err).NotTo(HaveOccurred())
 					defer os.RemoveAll(unpackedDir)
 
@@ -700,7 +723,8 @@ var _ = Describe("Volume Server", func() {
 
 		Context("when using an unsupported encoding", func() {
 			It("returns 400 when err is UnsupportedEncodingError", func() {
-				request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+				request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out?path=%s", myVolume.Handle, "dest-path"), nil)
+				Expect(err).NotTo(HaveOccurred())
 				request.Header.Set("Accept-Encoding", "unsupported")
 				recorder := httptest.NewRecorder()
 				handler.ServeHTTP(recorder, request)
@@ -709,7 +733,8 @@ var _ = Describe("Volume Server", func() {
 		})
 
 		It("returns 404 when volume is not found", func() {
-			request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out", "invalid-handle"), nil)
+			request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-out", "invalid-handle"), nil)
+			Expect(err).NotTo(HaveOccurred())
 			recorder := httptest.NewRecorder()
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(404))
@@ -732,12 +757,14 @@ var _ = Describe("Volume Server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			recorder := httptest.NewRecorder()
-			request, _ := http.NewRequest("POST", "/volumes", body)
+			request, err := http.NewRequest("POST", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(201))
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("GET", "/volumes?property-name=property-val", nil)
+			request, err = http.NewRequest("GET", "/volumes?property-name=property-val", nil)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(200))
 
@@ -752,13 +779,15 @@ var _ = Describe("Volume Server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/properties/property-name", volumes[0].Handle), body)
+			request, err = http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/properties/property-name", volumes[0].Handle), body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(http.StatusNoContent))
 			Expect(recorder.Body.String()).To(BeEmpty())
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("GET", "/volumes?property-name=other-val", nil)
+			request, err = http.NewRequest("GET", "/volumes?property-name=other-val", nil)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(200))
 
@@ -783,7 +812,8 @@ var _ = Describe("Volume Server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			recorder := httptest.NewRecorder()
-			request, _ := http.NewRequest("POST", "/volumes", body)
+			request, err := http.NewRequest("POST", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(201))
 
@@ -799,7 +829,8 @@ var _ = Describe("Volume Server", func() {
 			Expect(recorder.Body.String()).To(BeEmpty())
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("GET", "/volumes", body)
+			request, err = http.NewRequest("GET", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(200))
 
@@ -830,12 +861,13 @@ var _ = Describe("Volume Server", func() {
 			}
 
 			recorder := httptest.NewRecorder()
-			request, _ := http.NewRequest("GET", "/volumes", nil)
+			request, err := http.NewRequest("GET", "/volumes", nil)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(200))
 
 			var volumes volume.Volumes
-			err := json.NewDecoder(recorder.Body).Decode(&volumes)
+			err = json.NewDecoder(recorder.Body).Decode(&volumes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(volumes).To(HaveLen(2))
 
@@ -844,12 +876,14 @@ var _ = Describe("Volume Server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("DELETE", "/volumes/destroy", body)
+			request, err = http.NewRequest("DELETE", "/volumes/destroy", body)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(204))
 
 			recorder = httptest.NewRecorder()
-			request, _ = http.NewRequest("GET", "/volumes", nil)
+			request, err = http.NewRequest("GET", "/volumes", nil)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 			Expect(recorder.Code).To(Equal(200))
 
@@ -868,7 +902,8 @@ var _ = Describe("Volume Server", func() {
 
 		JustBeforeEach(func() {
 			recorder = httptest.NewRecorder()
-			request, _ := http.NewRequest("POST", "/volumes", body)
+			request, err := http.NewRequest("POST", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
 
 			handler.ServeHTTP(recorder, request)
 		})
@@ -964,7 +999,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("does not create a volume", func() {
 					getRecorder := httptest.NewRecorder()
-					getReq, _ := http.NewRequest("GET", "/volumes", nil)
+					getReq, err := http.NewRequest("GET", "/volumes", nil)
+					Expect(err).NotTo(HaveOccurred())
 					handler.ServeHTTP(getRecorder, getReq)
 					Expect(getRecorder.Body).To(MatchJSON("[]"))
 				})
@@ -985,7 +1021,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("does not create a volume", func() {
 					getRecorder := httptest.NewRecorder()
-					getReq, _ := http.NewRequest("GET", "/volumes", nil)
+					getReq, err := http.NewRequest("GET", "/volumes", nil)
+					Expect(err).NotTo(HaveOccurred())
 					handler.ServeHTTP(getRecorder, getReq)
 					Expect(getRecorder.Body).To(MatchJSON("[]"))
 				})
@@ -1012,7 +1049,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("does not create a volume", func() {
 					getRecorder := httptest.NewRecorder()
-					getReq, _ := http.NewRequest("GET", "/volumes", nil)
+					getReq, err := http.NewRequest("GET", "/volumes", nil)
+					Expect(err).NotTo(HaveOccurred())
 					handler.ServeHTTP(getRecorder, getReq)
 					Expect(getRecorder.Body).To(MatchJSON("[]"))
 				})
@@ -1039,7 +1077,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("does not create a volume", func() {
 					getRecorder := httptest.NewRecorder()
-					getReq, _ := http.NewRequest("GET", "/volumes", nil)
+					getReq, err := http.NewRequest("GET", "/volumes", nil)
+					Expect(err).NotTo(HaveOccurred())
 					handler.ServeHTTP(getRecorder, getReq)
 					Expect(getRecorder.Body).To(MatchJSON("[]"))
 				})
@@ -1066,7 +1105,8 @@ var _ = Describe("Volume Server", func() {
 
 				It("does not create a volume", func() {
 					getRecorder := httptest.NewRecorder()
-					getReq, _ := http.NewRequest("GET", "/volumes", nil)
+					getReq, err := http.NewRequest("GET", "/volumes", nil)
+					Expect(err).NotTo(HaveOccurred())
 					handler.ServeHTTP(getRecorder, getReq)
 					Expect(getRecorder.Body).To(MatchJSON("[]"))
 				})
@@ -1225,7 +1265,8 @@ var _ = Describe("Volume Server", func() {
 
 		It("returns an error when source path is invalid", func() {
 			streamInP2pURL := fmt.Sprintf("%s/volumes/%s/stream-in?path=dest-path", otherWorker.URL, myVolume.Handle)
-			request, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=%s&encoding=gzip", myVolume.Handle, "bogus-path", streamInP2pURL), nil)
+			request, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=%s&encoding=gzip", myVolume.Handle, "bogus-path", streamInP2pURL), nil)
+			Expect(err).NotTo(HaveOccurred())
 			request.Header.Set("Accept-Encoding", string(baggageclaim.GzipEncoding))
 			recorder := httptest.NewRecorder()
 			handler.ServeHTTP(recorder, request)
@@ -1242,11 +1283,12 @@ var _ = Describe("Volume Server", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				streamInP2pURL := fmt.Sprintf("%s/volumes/%s/stream-in?path=dest-path", otherWorker.URL, myVolume.Handle)
-				streamP2pOutRequest, _ := http.NewRequest(
+				streamP2pOutRequest, err := http.NewRequest(
 					"PUT",
 					fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=%s&encoding=%s",
 						myVolume.Handle, "some-file", streamInP2pURL, encoding),
 					nil)
+				Expect(err).NotTo(HaveOccurred())
 				streamP2pOutRecorder := httptest.NewRecorder()
 				handler.ServeHTTP(streamP2pOutRecorder, streamP2pOutRequest)
 				Expect(streamP2pOutRecorder.Code).To(Equal(200))
@@ -1290,7 +1332,8 @@ var _ = Describe("Volume Server", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				streamInP2pURL := fmt.Sprintf("%s/volumes/%s/stream-in?path=dest-path", otherWorker.URL, myVolume.Handle)
-				streamP2pOutRequest, _ := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=%s&encoding=%s", myVolume.Handle, "some-dir", streamInP2pURL, encoding), nil)
+				streamP2pOutRequest, err := http.NewRequest("PUT", fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=%s&encoding=%s", myVolume.Handle, "some-dir", streamInP2pURL, encoding), nil)
+				Expect(err).NotTo(HaveOccurred())
 				streamP2pOutRecorder := httptest.NewRecorder()
 				handler.ServeHTTP(streamP2pOutRecorder, streamP2pOutRequest)
 				Expect(streamP2pOutRecorder.Code).To(Equal(200))
@@ -1329,7 +1372,8 @@ var _ = Describe("Volume Server", func() {
 		It("returns 204 on success", func() {
 			recorder := httptest.NewRecorder()
 
-			request, _ := http.NewRequest("POST", "/volumes/cleanup-orphans", nil)
+			request, err := http.NewRequest("POST", "/volumes/cleanup-orphans", nil)
+			Expect(err).NotTo(HaveOccurred())
 			handler.ServeHTTP(recorder, request)
 
 			Expect(recorder.Code).To(Equal(http.StatusNoContent))

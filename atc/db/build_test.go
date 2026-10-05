@@ -14,14 +14,14 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/dummy"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbtest"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/dummy"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbtest"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/tracing"
+	"github.com/concourse/concourse/v8/vars"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gocache "github.com/patrickmn/go-cache"
@@ -2413,6 +2413,11 @@ var _ = Describe("Build", func() {
 								},
 							},
 							{
+								Config: &atc.GetStep{
+									Name: "some-pinned-resource",
+								},
+							},
+							{
 								Config: &atc.PutStep{
 									Name: "some-put-resource",
 								},
@@ -2467,6 +2472,13 @@ var _ = Describe("Build", func() {
 						Source: atc.Source{"some": "other-source"},
 					},
 					{
+						Name:   "some-pinned-resource",
+						Type:   dbtest.BaseResourceType,
+						Source: atc.Source{"some": "other-source"},
+					},
+					{
+						// Is un-used which verifies that put-only resources
+						// don't block build scheduling
 						Name:   "some-put-resource",
 						Type:   dbtest.BaseResourceType,
 						Source: atc.Source{"some": "put-source"},
@@ -2476,9 +2488,6 @@ var _ = Describe("Build", func() {
 
 			scenario = dbtest.Setup(
 				builder.WithPipeline(pipelineConfig),
-				builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"some": "version"}),
-				builder.WithResourceVersions("some-other-resource", time.Minute, atc.Version{"some": "other-version"}),
-				builder.WithResourceVersions("some-put-resource", time.Minute),
 				builder.WithPendingJobBuild(&build, "some-job"),
 				builder.WithPendingJobBuild(&downstreamBuild, "some-job-downstream"),
 				builder.WithPendingJobBuild(&mixedBuild, "some-job-mixed"),
@@ -2490,6 +2499,7 @@ var _ = Describe("Build", func() {
 				scenario.Run(
 					builder.WithResourceVersions("some-resource", time.Minute),
 					builder.WithResourceVersions("some-other-resource", time.Minute),
+					builder.WithResourceVersions("some-pinned-resource", time.Minute),
 				)
 			})
 
@@ -2503,7 +2513,9 @@ var _ = Describe("Build", func() {
 		Context("when the triggering resources in the build have NOT been checked", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-other-resource", time.Minute), //non-triggering resource
+					// checking non-triggering resources
+					builder.WithResourceVersions("some-other-resource", time.Minute),
+					builder.WithResourceVersions("some-pinned-resource", time.Minute),
 				)
 			})
 
@@ -2537,14 +2549,8 @@ var _ = Describe("Build", func() {
 		Context("when a pinned resource in the build has not been checked", func() {
 			BeforeEach(func() {
 				scenario.Run(
-					builder.WithResourceVersions("some-resource", time.Minute),
+					builder.WithResourceVersions("some-other-resource", time.Minute),
 				)
-
-				rcv := scenario.ResourceVersion("some-other-resource", atc.Version{"some": "other-version"})
-
-				found, err := scenario.Resource("some-other-resource").PinVersion(rcv.ID())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(found).To(BeTrue())
 			})
 
 			It("returns true", func() {

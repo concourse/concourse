@@ -3,14 +3,15 @@ package engine
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/policy"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/policy"
 )
 
 const supportedSchema = "exec.v2"
@@ -204,7 +205,7 @@ func (pb *planBuilder) buildAcrossStep(plan atc.Plan) exec.Step {
 func (pb *planBuilder) buildDoStep(plan atc.Plan) exec.Step {
 	var step exec.Step = exec.IdentityStep{}
 
-	for i := len(*plan.Do) - 1; i >= 0; i-- {
+	for i := range slices.Backward(*plan.Do) {
 		innerPlan := (*plan.Do)[i]
 		innerPlan.Attempts = plan.Attempts
 		previous := pb.buildStep(innerPlan)

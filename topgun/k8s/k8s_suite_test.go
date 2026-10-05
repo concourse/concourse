@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	. "github.com/concourse/concourse/topgun"
+	. "github.com/concourse/concourse/v8/topgun"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -30,6 +30,9 @@ import (
 )
 
 func TestK8s(t *testing.T) {
+	SetDefaultEventuallyTimeout(90 * time.Second)
+	SetDefaultConsistentlyDuration(30 * time.Second)
+
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "K8s Suite")
 }
@@ -82,9 +85,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(90 * time.Second)
-	SetDefaultConsistentlyDuration(30 * time.Second)
-
 	tmp, err := os.MkdirTemp("", "topgun-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
@@ -337,7 +337,7 @@ func getPods(namespace string, listOptions metav1.ListOptions) []corev1.Pod {
 }
 
 func getNotRunningPodLogs() {
-	events, _ := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "status.phase!=Running", TypeMeta: metav1.TypeMeta{Kind: "Pod"}})
+	events, _ := kubeClient.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "status.phase!=Running", Kind: "Pod"})
 	for _, item := range events.Items {
 		fmt.Println(item)
 	}

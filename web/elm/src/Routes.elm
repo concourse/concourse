@@ -10,6 +10,7 @@ module Routes exposing
     , extractQuery
     , getGroups
     , jobRoute
+    , parseHideUI
     , parsePath
     , pipelineRoute
     , resourceRoute
@@ -19,6 +20,7 @@ module Routes exposing
     , tokenToFlyRoute
     , versionQueryParams
     , withGroups
+    , withHideUIParam
     )
 
 import Api.Pagination
@@ -53,6 +55,7 @@ type Route
     | Job { id : Concourse.JobIdentifier, page : Maybe Pagination.Page, groups : List String }
     | OneOffBuild { id : Concourse.BuildId, highlight : Highlight }
     | Pipeline { id : Concourse.PipelineIdentifier, groups : List String }
+    | PipelineInfo Concourse.PipelineIdentifier
     | Dashboard { searchType : SearchType, dashboardView : DashboardView }
     | FlySuccess Bool (Maybe Int)
       -- the version field is really only used as a hack to populate the breadcrumbs, it's not actually used by anyhting else
@@ -61,8 +64,7 @@ type Route
 
 
 type SearchType
-    = HighDensity
-    | Normal String
+    = Normal String
 
 
 type DashboardView
@@ -267,6 +269,20 @@ pipeline =
         (pipelineIdentifier <?> Query.custom "group" identity)
 
 
+pipelineInfo : Parser ((InstanceVars -> Route) -> a) a
+pipelineInfo =
+    map
+        (\{ teamName, pipelineName } ->
+            \iv ->
+                PipelineInfo
+                    { teamName = teamName
+                    , pipelineName = pipelineName
+                    , pipelineInstanceVars = iv
+                    }
+        )
+        (pipelineIdentifier </> s "info")
+
+
 dashboard : Parser ((b -> Route) -> a) a
 dashboard =
     map (\st view -> always <| Dashboard { searchType = st, dashboardView = view }) <|
@@ -275,7 +291,6 @@ dashboard =
                 <?> (stringWithSpaces "search" |> Query.map (Maybe.withDefault ""))
               )
                 |> map Normal
-            , s "hd" |> map HighDensity
             ]
             <?> dashboardViewQuery
 
@@ -476,6 +491,7 @@ sitemap =
         [ resource
         , job
         , dashboard
+        , pipelineInfo
         , pipeline
         , build
         , oneOffBuild
@@ -519,16 +535,13 @@ toString route =
                 |> appendQuery (groups |> List.map (Builder.string "group"))
                 |> RouteBuilder.build
 
+        PipelineInfo id ->
+            pipelineIdBuilder id
+                |> appendPath [ "info" ]
+                |> RouteBuilder.build
+
         Dashboard { searchType, dashboardView } ->
             ( [], [] )
-                |> appendPath
-                    (case searchType of
-                        Normal _ ->
-                            []
-
-                        HighDensity ->
-                            [ "hd" ]
-                    )
                 |> appendQuery
                     (case searchType of
                         Normal "" ->
@@ -536,9 +549,6 @@ toString route =
 
                         Normal query ->
                             searchQueryParams query
-
-                        _ ->
-                            []
                     )
                 |> appendQuery
                     (case dashboardView of
@@ -633,6 +643,9 @@ extractPid route =
         Pipeline { id } ->
             Just id
 
+        PipelineInfo id ->
+            Just id
+
         _ ->
             Nothing
 
@@ -642,9 +655,6 @@ extractQuery route =
     case route of
         Normal q ->
             q
-
-        _ ->
-            ""
 
 
 searchQueryParams : String -> List Builder.QueryParameter
@@ -681,6 +691,9 @@ getGroups route =
         Causality { groups } ->
             groups
 
+        PipelineInfo _ ->
+            []
+
         OneOffBuild _ ->
             []
 
@@ -712,6 +725,9 @@ withGroups groups route =
         Causality params ->
             Causality { params | groups = groups }
 
+        PipelineInfo _ ->
+            route
+
         OneOffBuild _ ->
             route
 
@@ -723,3 +739,51 @@ withGroups groups route =
 
         DownloadFly ->
             route
+
+
+hideUIParamName : String
+hideUIParamName =
+    "hide_ui"
+
+
+hideUIQuery : Query.Parser Bool
+hideUIQuery =
+    Query.string hideUIParamName
+        |> Query.map (\value -> Maybe.map String.toLower value == Just "true")
+
+
+parseHideUI : Url.Url -> Bool
+parseHideUI url =
+    -- Neutralize the path so the query parser matches regardless of which
+    -- page the URL points at, then read the hide_ui flag from the query.
+    { url | path = "/" }
+        |> parse (top <?> hideUIQuery)
+        |> Maybe.withDefault False
+
+
+withHideUIParam : Bool -> String -> String
+withHideUIParam hideUI url =
+    if hideUI then
+        let
+            addParam path =
+                path
+                    ++ (if String.contains "?" path then
+                            "&"
+
+                        else
+                            "?"
+                       )
+                    ++ hideUIParamName
+                    ++ "=true"
+        in
+        -- Insert the param before any URL fragment (e.g. build log
+        -- highlights like #L1:2) so the fragment is preserved.
+        case String.split "#" url of
+            base :: fragmentHead :: fragmentTail ->
+                addParam base ++ "#" ++ String.join "#" (fragmentHead :: fragmentTail)
+
+            _ ->
+                addParam url
+
+    else
+        url

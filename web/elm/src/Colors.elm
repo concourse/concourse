@@ -18,6 +18,7 @@ module Colors exposing
     , cliIconHover
     , dashboardPipelineHeaderText
     , dashboardText
+    , dropTargetHighlight
     , dropdownFaded
     , dropdownItemInputText
     , dropdownItemSelectedBackground
@@ -384,6 +385,11 @@ card =
 
 
 -----
+
+
+dropTargetHighlight : String
+dropTargetHighlight =
+    "#2196F3"
 
 
 instanceGroupBanner : String

@@ -12,9 +12,9 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/worker/gardenruntime/gclient"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/tedsuo/rata"
 )
 
@@ -126,11 +126,13 @@ func (heartbeater *Heartbeater) register(logger lager.Logger) bool {
 		return false
 	}
 
-	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(atc.RegisterWorker, nil, bytes.NewBuffer(payload))
+	request, err := heartbeater.atcEndpointPicker.Pick().CreateRequest(atc.RegisterWorker, nil, bytes.NewReader(payload))
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return false
 	}
+
+	request.Header["Content-Type"] = []string{"application/json"}
 
 	request.URL.RawQuery = url.Values{
 		"ttl": []string{heartbeater.ttl().String()},

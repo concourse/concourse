@@ -6,10 +6,10 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbtest"
-	"github.com/concourse/concourse/atc/gc"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbtest"
+	"github.com/concourse/concourse/v8/atc/gc"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -137,10 +137,8 @@ var _ = Describe("ResourceCacheCollector", func() {
 						Expect(scenario.Job("some-job").SaveNextInputMapping(db.InputMapping{
 							"whatever": db.InputResult{
 								Input: &db.AlgorithmInput{
-									AlgorithmVersion: db.AlgorithmVersion{
-										Version:    db.ResourceVersion(versionSHA256),
-										ResourceID: scenario.Resource("some-resource").ID(),
-									},
+									Version:    db.ResourceVersion(versionSHA256),
+									ResourceID: scenario.Resource("some-resource").ID(),
 								},
 							},
 						}, true)).To(Succeed())

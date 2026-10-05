@@ -12,7 +12,7 @@ import Api
 import Api.Endpoints as Endpoints
 import Assets
 import Base64
-import Browser.Dom exposing (Viewport, getElement, getViewport, getViewportOf, setViewportOf)
+import Browser.Dom exposing (Viewport, getViewport, getViewportOf, setViewportOf)
 import Browser.Navigation as Navigation
 import Concourse exposing (DatabaseID, encodeJob, encodePipeline, encodeTeam)
 import Concourse.BuildStatus exposing (BuildStatus)
@@ -35,6 +35,8 @@ import Message.Storage
         ( deleteFromCache
         , favoritedInstanceGroupsKey
         , favoritedPipelinesKey
+        , groupListViewKey
+        , highDensityKey
         , jobsKey
         , loadFromCache
         , loadFromLocalStorage
@@ -212,6 +214,10 @@ type Effect
     | LoadFavoritedPipelines
     | SaveFavoritedInstanceGroups (Set ( Concourse.TeamName, Concourse.PipelineName ))
     | LoadFavoritedInstanceGroups
+    | SaveHighDensity Bool
+    | LoadHighDensity
+    | SaveGroupListView Bool
+    | LoadGroupListView
     | GetHostname
 
 
@@ -740,6 +746,18 @@ runEffect effect key csrfToken =
         LoadFavoritedInstanceGroups ->
             loadFromLocalStorage favoritedInstanceGroupsKey
 
+        SaveHighDensity highDensity ->
+            saveToLocalStorage ( highDensityKey, Json.Encode.bool highDensity )
+
+        LoadHighDensity ->
+            loadFromLocalStorage highDensityKey
+
+        SaveGroupListView groupListView ->
+            saveToLocalStorage ( groupListViewKey, Json.Encode.bool groupListView )
+
+        LoadGroupListView ->
+            loadFromLocalStorage groupListViewKey
+
         SaveCachedTeams teams ->
             saveToCache ( teamsKey, teams |> Json.Encode.list encodeTeam )
 
@@ -924,6 +942,9 @@ toHtmlID domId =
 
         TopBarPinIcon ->
             "top-bar-pin-icon"
+
+        TopBarInfoIcon ->
+            "top-bar-info-icon"
 
         CommentBar id ->
             "comment-bar-" ++ toHtmlID id

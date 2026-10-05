@@ -8,10 +8,10 @@ import (
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
 
-	"github.com/concourse/concourse/atc/api/policychecker"
-	"github.com/concourse/concourse/atc/api/policychecker/policycheckerfakes"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
+	"github.com/concourse/concourse/v8/atc/api/policychecker"
+	"github.com/concourse/concourse/v8/atc/api/policychecker/policycheckerfakes"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/policy/policyfakes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

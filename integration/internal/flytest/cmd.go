@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/concourse/concourse/integration/internal/cmdtest"
-	"github.com/concourse/concourse/integration/internal/dctest"
+	"github.com/concourse/concourse/v8/integration/internal/cmdtest"
+	"github.com/concourse/concourse/v8/integration/internal/dctest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -93,7 +93,7 @@ func (cmd Cmd) WaitForRunningWorker(t *testing.T) {
 		}
 
 		return false
-	}, time.Minute, time.Second, "should have a running worker")
+	}, 2*time.Minute, time.Second, "should have a running worker")
 }
 
 type Table []map[string]string

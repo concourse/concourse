@@ -1,7 +1,7 @@
 package postgresrunner_test
 
 import (
-	"github.com/concourse/concourse/atc/postgresrunner"
+	"github.com/concourse/concourse/v8/atc/postgresrunner"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

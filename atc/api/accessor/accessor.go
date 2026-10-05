@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -38,6 +38,8 @@ type Verification struct {
 	IsTokenValid bool
 	RawClaims    map[string]any
 }
+
+var _ Access = (*access)(nil)
 
 type access struct {
 	verification           Verification

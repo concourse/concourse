@@ -16,30 +16,43 @@ import (
 var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 
 	var (
-		serverCertBytes []byte
-		serverKeyBytes  []byte
-		caCertFile      *os.File
+		serverCertBytes         []byte
+		serverKeyBytes          []byte
+		caCertFile              *os.File
+		incorrectCaCertFilePath string
 	)
 
 	BeforeEach(func() {
-		var err error
-
 		setReleaseNameAndNamespace("wtt")
 
-		CACert, serverKey, serverCert := generateKeyPairWithCA(namespace, releaseName+"-web")
-		CACertBytes, err := CACert.Export()
-		Expect(err).NotTo(HaveOccurred())
+		By("creating a self-signed cert for the web node", func() {
+			CACert, serverKey, serverCert := generateKeyPairWithCA(namespace, releaseName+"-web")
+			CACertBytes, err := CACert.Export()
+			Expect(err).NotTo(HaveOccurred())
 
-		caCertFile, err = os.CreateTemp("", "ca")
-		Expect(err).NotTo(HaveOccurred())
-		caCertFile.Write(CACertBytes)
-		caCertFile.Close()
+			caCertFile, err = os.CreateTemp("", "ca")
+			Expect(err).NotTo(HaveOccurred())
+			caCertFile.Write(CACertBytes)
+			caCertFile.Close()
 
-		serverKeyBytes, err = serverKey.ExportPrivate()
-		Expect(err).NotTo(HaveOccurred())
+			serverKeyBytes, err = serverKey.ExportPrivate()
+			Expect(err).NotTo(HaveOccurred())
 
-		serverCertBytes, err = serverCert.Export()
-		Expect(err).NotTo(HaveOccurred())
+			serverCertBytes, err = serverCert.Export()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		By("creating a self-signed cert not used by the web node", func() {
+			CACert, _, _ := generateKeyPairWithCA(namespace, releaseName+"-web")
+			CACertBytes, err := CACert.Export()
+			Expect(err).NotTo(HaveOccurred())
+
+			unknownCaCertFile, err := os.CreateTemp("", "ca")
+			Expect(err).NotTo(HaveOccurred())
+			unknownCaCertFile.Write(CACertBytes)
+			unknownCaCertFile.Close()
+			incorrectCaCertFilePath = unknownCaCertFile.Name()
+		})
 	})
 
 	AfterEach(func() {
@@ -97,7 +110,7 @@ var _ = Describe("Web HTTP or HTTPS(TLS) termination at web node", func() {
 			It("fly login fails when NOT using the correct CA", func() {
 				Eventually(func() *gbytes.Buffer {
 					sess := fly.Start("login", "-u", "test", "-p", "test",
-						"--ca-cert", "k8s/certs/wrong-ca.crt",
+						"--ca-cert", incorrectCaCertFilePath,
 						"-c", "https://"+atc.Address(),
 					)
 					Eventually(sess).Should(gexec.Exit())

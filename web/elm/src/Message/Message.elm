@@ -50,6 +50,8 @@ type Message
     | Click DomID
     | GoToRoute Routes.Route
     | Scrolled StrictEvents.ScrollState
+    | ToggleHighDensity
+    | ToggleGroupListView
     | NoOp
 
 
@@ -88,6 +90,7 @@ type DomID
     | PipelineCardPauseToggle PipelinesSection Concourse.DatabaseID
     | TopBarPipelineName Concourse.DatabaseID
     | TopBarPinIcon
+    | TopBarInfoIcon
     | TopBarFavoritedIcon Concourse.DatabaseID
     | TopBarPauseToggle Concourse.PipelineIdentifier
     | VisibilityButton PipelinesSection Concourse.DatabaseID

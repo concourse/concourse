@@ -10,17 +10,18 @@ import (
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/policy"
-	"github.com/concourse/concourse/atc/policy/policyfakes"
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/tracing"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/exec/build"
+	"github.com/concourse/concourse/v8/atc/exec/execfakes"
+	"github.com/concourse/concourse/v8/atc/policy"
+	"github.com/concourse/concourse/v8/atc/policy/policyfakes"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
+	"github.com/concourse/concourse/v8/tracing"
+	"github.com/concourse/concourse/v8/vars"
 	"github.com/onsi/gomega/gbytes"
 )
 
@@ -87,6 +88,22 @@ jobs:
         path: echo
         args:
          - ((branch))
+`
+
+	const pipelineWithVarFiles = `
+---
+jobs:
+- name: some-job
+  plan:
+  - task: some-task
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      run:
+        path: echo
+        args: [((foo)), ((bar))]
 `
 
 	var pipelineObject = atc.Config{
@@ -273,9 +290,34 @@ jobs:
 			})
 		})
 
+		Context("pipeline file exists and file path contains parent-dir references", func() {
+			BeforeEach(func() {
+				spPlan.File = "some-resource/../../pipeline.yml"
+				fakeStreamer.StreamFileCalls(func(_ context.Context, _ runtime.Artifact, filePath string) (io.ReadCloser, error) {
+					Expect(filePath).To(Equal("pipeline.yml"), "should not contain parent-dir references")
+					return gbytes.BufferWithBytes([]byte(pipelineContent)), nil
+				})
+			})
+
+			It("succeeds", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("pipeline file exists and file path is absolute", func() {
+			BeforeEach(func() {
+				spPlan.File = "/some-resource/pipeline.yml"
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
+			})
+
+			It("succeeds", func() {
+				Expect(stepErr).ToNot(HaveOccurred())
+			})
+		})
+
 		Context("when pipeline file exists but has bad syntax", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithInvalidSyntax}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(badPipelineContentWithInvalidSyntax)), nil)
 			})
 
 			It("should not return error", func() {
@@ -296,7 +338,7 @@ jobs:
 
 		Context("when pipeline file exists but has duplicate keys", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineWithDuplicateKeys}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(badPipelineWithDuplicateKeys)), nil)
 			})
 
 			It("should not return error", func() {
@@ -317,7 +359,7 @@ jobs:
 
 		Context("when pipeline file exists and has merge keys", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineWithMergeKeys}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineWithMergeKeys)), nil)
 			})
 
 			It("should not return error", func() {
@@ -333,7 +375,7 @@ jobs:
 
 		Context("when pipeline file exists but is empty", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: badPipelineContentWithEmptyContent}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(badPipelineContentWithEmptyContent)), nil)
 			})
 
 			It("should return an error", func() {
@@ -351,7 +393,7 @@ jobs:
 
 		Context("when pipeline file is good", func() {
 			BeforeEach(func() {
-				fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+				fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
 			})
 
 			Context("when get pipeline fails", func() {
@@ -482,6 +524,43 @@ jobs:
 					Expect(fakeDelegate.FinishedCallCount()).To(Equal(1))
 					_, succeeded := fakeDelegate.FinishedArgsForCall(0)
 					Expect(succeeded).To(BeTrue())
+				})
+			})
+
+			Context("when vars and var files contain the same variables", func() {
+				BeforeEach(func() {
+					spPlan = &atc.SetPipelinePlan{
+						Name:     "some-pipeline",
+						File:     "some-resource/pipeline.yml",
+						Vars:     map[string]any{"foo": "from-vars"},
+						VarFiles: []string{"some-resource/first-vars.yml", "some-resource/second-vars.yml"},
+					}
+					fakeStreamer.StreamFileCalls(func(_ context.Context, _ runtime.Artifact, path string) (io.ReadCloser, error) {
+						switch path {
+						case "pipeline.yml":
+							return gbytes.BufferWithBytes([]byte(pipelineWithVarFiles)), nil
+						case "second-vars.yml":
+							return gbytes.BufferWithBytes([]byte("foo: from-second-file\nbar: from-second-file\n")), nil
+						case "first-vars.yml":
+							return gbytes.BufferWithBytes([]byte("bar: from-first-file\n")), nil
+						default:
+							return nil, errors.New("unexpected file: " + path)
+						}
+					})
+				})
+
+				It("should give vars precedence over var files and later var files precedence over earlier ones", func() {
+					Expect(stepErr).NotTo(HaveOccurred())
+					Expect(fakeBuild.SavePipelineCallCount()).To(Equal(1))
+
+					_, _, path := fakeStreamer.StreamFileArgsForCall(1)
+					Expect(path).To(Equal("second-vars.yml"))
+					_, _, path = fakeStreamer.StreamFileArgsForCall(2)
+					Expect(path).To(Equal("first-vars.yml"))
+
+					_, _, savedConfig, _, _ := fakeBuild.SavePipelineArgsForCall(0)
+					taskConfig := savedConfig.Jobs[0].PlanSequence[0].Config.(*atc.TaskStep).Config
+					Expect(taskConfig.Run.Args).To(Equal([]string{"from-vars", "from-second-file"}))
 				})
 			})
 
@@ -617,7 +696,7 @@ jobs:
 	Context("when team name contains '/'", func() {
 		BeforeEach(func() {
 			spPlan.Team = "some/team"
-			fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+			fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
 		})
 
 		It("should fail with error", func() {
@@ -630,7 +709,7 @@ jobs:
 	Context("when pipeline name contains '/'", func() {
 		BeforeEach(func() {
 			spPlan.Name = "some/pipeline"
-			fakeStreamer.StreamFileReturns(&fakeReadCloser{str: pipelineContent}, nil)
+			fakeStreamer.StreamFileReturns(gbytes.BufferWithBytes([]byte(pipelineContent)), nil)
 		})
 
 		It("should fail with error invalid identifier", func() {
@@ -640,21 +719,3 @@ jobs:
 		})
 	})
 })
-
-type fakeReadCloser struct {
-	str   string
-	index int
-}
-
-func (r *fakeReadCloser) Read(p []byte) (int, error) {
-	if r.index >= len(r.str) {
-		return 0, io.EOF
-	}
-	l := copy(p, []byte(r.str)[r.index:])
-	r.index += l
-	return l, nil
-}
-
-func (r *fakeReadCloser) Close() error {
-	return nil
-}

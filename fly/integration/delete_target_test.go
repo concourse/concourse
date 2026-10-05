@@ -3,8 +3,8 @@ package integration_test
 import (
 	"os/exec"
 
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v8/fly/rc"
+	"github.com/concourse/concourse/v8/fly/ui"
 	"github.com/fatih/color"
 
 	"github.com/onsi/gomega/gbytes"
@@ -57,8 +57,7 @@ var _ = Describe("delete-target", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(gbytes.Say(`deleted target: test1`))
 
@@ -88,8 +87,7 @@ var _ = Describe("delete-target", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 
 				Expect(sess.Out).To(gbytes.Say(`deleted all targets`))
 

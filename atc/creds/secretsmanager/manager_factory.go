@@ -1,7 +1,7 @@
 package secretsmanager
 
 import (
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 	"github.com/go-viper/mapstructure/v2"
 	flags "github.com/jessevdk/go-flags"
 )

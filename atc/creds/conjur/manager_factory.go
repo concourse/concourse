@@ -1,7 +1,7 @@
 package conjur
 
 import (
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 	flags "github.com/jessevdk/go-flags"
 )
 

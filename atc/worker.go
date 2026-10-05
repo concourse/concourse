@@ -21,6 +21,8 @@ type Worker struct {
 	ActiveVolumes    int `json:"active_volumes"`
 	ActiveTasks      int `json:"active_tasks"`
 
+	MaxActiveTasks int `json:"max_active_tasks"`
+
 	ResourceTypes []WorkerResourceType `json:"resource_types"`
 
 	Platform  string `json:"platform"`

@@ -83,7 +83,7 @@ all =
                                 }
                             )
                         )
-        , test "parses dashboard in hd view" <|
+        , test "/hd is no longer a valid route" <|
             \_ ->
                 Routes.parsePath
                     { protocol = Url.Http
@@ -93,15 +93,8 @@ all =
                     , query = Nothing
                     , fragment = Nothing
                     }
-                    |> Expect.equal
-                        (Just
-                            (Routes.Dashboard
-                                { searchType = Routes.HighDensity
-                                , dashboardView = Routes.ViewNonArchivedPipelines
-                                }
-                            )
-                        )
-        , test "dashboard hd view ignores search and instance group query params" <|
+                    |> Expect.equal Nothing
+        , test "/hd with query params is no longer a valid route" <|
             \_ ->
                 Routes.parsePath
                     { protocol = Url.Http
@@ -111,14 +104,7 @@ all =
                     , query = Just "search=abc&team=def&group=ghi"
                     , fragment = Nothing
                     }
-                    |> Expect.equal
-                        (Just
-                            (Routes.Dashboard
-                                { searchType = Routes.HighDensity
-                                , dashboardView = Routes.ViewNonArchivedPipelines
-                                }
-                            )
-                        )
+                    |> Expect.equal Nothing
         , test "fly success has noop parameter" <|
             \_ ->
                 Routes.parsePath

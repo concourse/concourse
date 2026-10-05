@@ -11,13 +11,14 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/concourse/concourse/go-concourse/concourse"
+	"github.com/concourse/concourse/v8/go-concourse/concourse"
 	"github.com/google/uuid"
 	"github.com/onsi/gomega/gexec"
 )
@@ -32,7 +33,22 @@ const teamName = "testflight"
 const adminTeamName = "main"
 const guestTeamName = "testflight-guest"
 
-var flyTarget string
+var (
+	flyTarget   string
+	flyTargetMu sync.RWMutex
+)
+
+func getFlyTarget() string {
+	flyTargetMu.RLock()
+	defer flyTargetMu.RUnlock()
+	return flyTarget
+}
+
+func setFlyTarget(target string) {
+	flyTargetMu.Lock()
+	defer flyTargetMu.Unlock()
+	flyTarget = target
+}
 
 type suiteConfig struct {
 	FlyBin           string `json:"fly"`
@@ -60,10 +76,14 @@ var (
 
 func TestTestflight(t *testing.T) {
 	RegisterFailHandler(Fail)
+
+	SetDefaultEventuallyTimeout(5 * time.Minute)
+	SetDefaultEventuallyPollingInterval(time.Second)
+	SetDefaultConsistentlyDuration(time.Minute)
+	SetDefaultConsistentlyPollingInterval(time.Second)
+
 	RunSpecs(t, "TestFlight Suite")
 }
-
-const DefaultSpecTimeout = SpecTimeout(6 * time.Minute)
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	atcURL := os.Getenv("ATC_URL")
@@ -82,7 +102,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		config.FlyBin, err = downloadFly(config.ATCURL)
 		Expect(err).ToNot(HaveOccurred())
 	} else {
-		config.FlyBin, err = gexec.Build("github.com/concourse/concourse/fly")
+		config.FlyBin, err = gexec.Build("github.com/concourse/concourse/v8/fly")
 		Expect(err).ToNot(HaveOccurred())
 	}
 
@@ -144,17 +164,14 @@ var _ = SynchronizedAfterSuite(func() {
 	os.Remove(config.FlyBin)
 })
 
-var _ = BeforeEach(func() {
-	SetDefaultEventuallyTimeout(5 * time.Minute)
-	SetDefaultEventuallyPollingInterval(time.Second)
-	SetDefaultConsistentlyDuration(time.Minute)
-	SetDefaultConsistentlyPollingInterval(time.Second)
+const DefaultSpecTimeout = SpecTimeout(6 * time.Minute)
 
+var _ = BeforeEach(func() {
 	var err error
 	tmp, err = os.MkdirTemp("", "testflight-tmp")
 	Expect(err).ToNot(HaveOccurred())
 
-	flyTarget = testflightFlyTarget
+	setFlyTarget(testflightFlyTarget)
 
 	pipelineName = randomPipelineName()
 })
@@ -188,31 +205,40 @@ func downloadFly(atcUrl string) (string, error) {
 }
 
 func randomPipelineName() string {
+	GinkgoHelper()
 	guid, err := uuid.NewRandom()
 	Expect(err).ToNot(HaveOccurred())
 
 	return fmt.Sprintf("%s-%d-%s", pipelinePrefix, GinkgoParallelProcess(), guid)
 }
 
+// Runs the fly command and waits for it to Exit. Will fail the test if exit
+// code is non-zero
 func fly(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawnFly(argv...)
 	wait(sess, false)
 	return sess
 }
 
 func flyIn(dir string, argv ...string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawnFlyIn(dir, argv...)
 	wait(sess, false)
 	return sess
 }
 
+// Runs the fly command and waits for it to Exit. Only fails the test if the
+// command fails to exit before the timeout
 func flyUnsafe(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawnFly(argv...)
 	wait(sess, true)
 	return sess
 }
 
 func flyLogin(target, team, username, password string) *gexec.Session {
+	GinkgoHelper()
 	sess := spawn(
 		config.FlyBin,
 		"-t", target,
@@ -227,17 +253,20 @@ func flyLogin(target, team, username, password string) *gexec.Session {
 }
 
 func spawnFly(argv ...string) *gexec.Session {
-	return spawn(config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
+	GinkgoHelper()
+	return spawn(config.FlyBin, append([]string{"-t", getFlyTarget()}, argv...)...)
 }
 
 func spawnFlyIn(dir string, argv ...string) *gexec.Session {
-	return spawnIn(dir, config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
+	GinkgoHelper()
+	return spawnIn(dir, config.FlyBin, append([]string{"-t", getFlyTarget()}, argv...)...)
 }
 
 func spawnFlyOpts(opts ...spawnOpt) func(argv ...string) *gexec.Session {
+	GinkgoHelper()
 	spawnFn := spawnOpts(opts...)
 	return func(argv ...string) *gexec.Session {
-		return spawnFn(config.FlyBin, append([]string{"-t", flyTarget}, argv...)...)
+		return spawnFn(config.FlyBin, append([]string{"-t", getFlyTarget()}, argv...)...)
 	}
 }
 
@@ -252,6 +281,7 @@ func withStdin(stdin io.Reader) spawnOpt {
 
 func spawnOpts(opts ...spawnOpt) func(argc string, argv ...string) *gexec.Session {
 	return func(argc string, argv ...string) *gexec.Session {
+		GinkgoHelper()
 		By("running: " + argc + " " + strings.Join(argv, " "))
 		cmd := exec.Command(argc, argv...)
 		for _, opt := range opts {
@@ -264,6 +294,7 @@ func spawnOpts(opts ...spawnOpt) func(argc string, argv ...string) *gexec.Sessio
 }
 
 func spawn(argc string, argv ...string) *gexec.Session {
+	GinkgoHelper()
 	By("running: " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	cmd.StdinPipe()
@@ -273,6 +304,7 @@ func spawn(argc string, argv ...string) *gexec.Session {
 }
 
 func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
+	GinkgoHelper()
 	By("running in " + dir + ": " + argc + " " + strings.Join(argv, " "))
 	cmd := exec.Command(argc, argv...)
 	cmd.Dir = dir
@@ -282,18 +314,20 @@ func spawnIn(dir string, argc string, argv ...string) *gexec.Session {
 }
 
 func wait(session *gexec.Session, allowNonZero bool) {
-	<-session.Exited
-	if !allowNonZero {
-		Expect(session.ExitCode()).To(Equal(0), "Output: "+string(session.Out.Contents()))
+	GinkgoHelper()
+	if allowNonZero {
+		Eventually(session).Should(gexec.Exit())
+		return
 	}
+	Eventually(session).Should(gexec.Exit(0))
 }
 
 var colSplit = regexp.MustCompile(`\s{2,}`)
 
 func flyTable(argv ...string) []map[string]string {
+	GinkgoHelper()
 	session := spawnFly(append([]string{"--print-table-headers"}, argv...)...)
-	<-session.Exited
-	Expect(session.ExitCode()).To(Equal(0))
+	Eventually(session).Should(gexec.Exit(0))
 
 	result := []map[string]string{}
 	var headers []string
@@ -328,20 +362,24 @@ func flyTable(argv ...string) []map[string]string {
 }
 
 func setAndUnpausePipeline(config string, args ...string) {
+	GinkgoHelper()
 	setPipeline(config, args...)
 	fly("unpause-pipeline", "-p", pipelineName)
 }
 
 func setPipeline(config string, args ...string) {
+	GinkgoHelper()
 	sp := []string{"set-pipeline", "-n", "-p", pipelineName, "-c", config}
 	fly(append(sp, args...)...)
 }
 
 func inPipeline(thing string) string {
+	GinkgoHelper()
 	return pipelineName + "/" + thing
 }
 
 func newMockVersion(resourceName string, tag string) string {
+	GinkgoHelper()
 	guid, err := uuid.NewRandom()
 	Expect(err).ToNot(HaveOccurred())
 
@@ -353,6 +391,7 @@ func newMockVersion(resourceName string, tag string) string {
 }
 
 func waitForBuildAndWatch(jobName string, buildName ...string) *gexec.Session {
+	GinkgoHelper()
 	args := []string{"watch", "-j", inPipeline(jobName)}
 
 	if len(buildName) > 0 {
@@ -362,7 +401,7 @@ func waitForBuildAndWatch(jobName string, buildName ...string) *gexec.Session {
 	keepPollingCheck := regexp.MustCompile("job has no builds|build not found|failed to get build")
 	for {
 		session := spawnFly(args...)
-		<-session.Exited
+		Eventually(session).Should(gexec.Exit())
 
 		if session.ExitCode() == 1 {
 			output := strings.TrimSpace(string(session.Err.Contents()))
@@ -378,10 +417,11 @@ func waitForBuildAndWatch(jobName string, buildName ...string) *gexec.Session {
 }
 
 func withFlyTarget(target string, f func()) {
-	before := flyTarget
-	flyTarget = target
+	GinkgoHelper()
+	before := getFlyTarget()
+	setFlyTarget(target)
 	f()
-	flyTarget = before
+	setFlyTarget(before)
 }
 
 // Returns true if only cgroups V2 is enabled and cgroups V1 is disabled

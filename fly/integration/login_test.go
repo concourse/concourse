@@ -18,7 +18,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 )
 
 var _ = Describe("login", func() {
@@ -47,8 +47,7 @@ var _ = Describe("login", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(1))
+			Eventually(sess).Should(gexec.Exit(1))
 
 			Expect(sess.Err).To(gbytes.Say(`name for the target must be specified \(--target/-t\)`))
 		})
@@ -77,8 +76,7 @@ var _ = Describe("login", func() {
 
 			Eventually(sess).Should(gbytes.Say("logging in to team 'main'"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 
 		Context("when already logged in as different team", func() {
@@ -106,8 +104,7 @@ var _ = Describe("login", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 	})
@@ -129,7 +126,7 @@ var _ = Describe("login", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
+			Eventually(sess).Should(gexec.Exit())
 			Expect(sess.ExitCode()).NotTo(Equal(0))
 			Expect(sess.Err).To(gbytes.Say(`unexpected argument \[unknown-argument, blah\]`))
 		})
@@ -159,8 +156,7 @@ var _ = Describe("login", func() {
 
 			Eventually(sess).Should(gbytes.Say("logging in to team 'some-team'"))
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 		})
 
 		Context("when tracing is not enabled", func() {
@@ -179,8 +175,7 @@ var _ = Describe("login", func() {
 				Consistently(sess.Err).ShouldNot(gbytes.Say("HTTP/1.1 200 OK"))
 				Consistently(sess.Out).ShouldNot(gbytes.Say("HTTP/1.1 200 OK"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -199,8 +194,7 @@ var _ = Describe("login", func() {
 
 				Eventually(sess.Err).Should(gbytes.Say("HTTP/1.1 200 OK"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 
@@ -229,8 +223,7 @@ var _ = Describe("login", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 		})
 	})
@@ -238,7 +231,7 @@ var _ = Describe("login", func() {
 	Describe("with ca cert", func() {
 		BeforeEach(func() {
 			loginATCServer = ghttp.NewUnstartedServer()
-			cert, err := tls.X509KeyPair([]byte(serverCert), []byte(serverKey))
+			cert, err := tls.X509KeyPair(serverCert, serverKey)
 			Expect(err).NotTo(HaveOccurred())
 
 			loginATCServer.HTTPTestServer.TLS = &tls.Config{
@@ -265,15 +258,14 @@ var _ = Describe("login", func() {
 				Expect(err).NotTo(HaveOccurred())
 				caCertFilePath = caCertFile.Name()
 
-				err = os.WriteFile(caCertFilePath, []byte(serverCert), os.ModePerm)
+				err = os.WriteFile(caCertFilePath, serverCert, os.ModePerm)
 				Expect(err).NotTo(HaveOccurred())
 
 				setupFlyCmd := exec.Command(flyPath, "-t", "some-target", "login", "-c", loginATCServer.URL(), "-n", "some-team", "--ca-cert", caCertFilePath, "-u", "user", "-p", "pass")
 
 				sess, err := gexec.Start(setupFlyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 
 			AfterEach(func() {
@@ -293,8 +285,7 @@ var _ = Describe("login", func() {
 					sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
 		})
@@ -340,8 +331,7 @@ var _ = Describe("login", func() {
 				err = stdin.Close()
 				Expect(err).NotTo(HaveOccurred())
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 
 			Context("when the token from stdin is malformed", func() {
@@ -367,8 +357,7 @@ var _ = Describe("login", func() {
 					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 			})
 
@@ -390,8 +379,7 @@ var _ = Describe("login", func() {
 					err = stdin.Close()
 					Expect(err).NotTo(HaveOccurred())
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 
 				It("ignores empty input", func() {
@@ -452,8 +440,7 @@ var _ = Describe("login", func() {
 					var err error
 					resp, err = client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 
 				It("sets a CORS header for the ATC being logged in to", func() {
@@ -535,8 +522,7 @@ var _ = Describe("login", func() {
 
 				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 
 			Context("after logging in succeeds", func() {
@@ -549,8 +535,7 @@ var _ = Describe("login", func() {
 
 					Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(0))
+					Eventually(sess).Should(gexec.Exit(0))
 				})
 
 				It("flyrc is backwards-compatible with pre-v5.4.0", func() {
@@ -579,7 +564,7 @@ var _ = Describe("login", func() {
 						sess, err := gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						<-sess.Exited
+						Eventually(sess).Should(gexec.Exit())
 
 						Expect(sess).To(gbytes.Say("pipeline-1"))
 
@@ -628,15 +613,14 @@ var _ = Describe("login", func() {
 
 						Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-						<-sess.Exited
-						Expect(sess.ExitCode()).To(Equal(0))
+						Eventually(sess).Should(gexec.Exit(0))
 
 						otherCmd := exec.Command(flyPath, "-t", "some-target", "pipelines")
 
 						sess, err = gexec.Start(otherCmd, GinkgoWriter, GinkgoWriter)
 						Expect(err).NotTo(HaveOccurred())
 
-						<-sess.Exited
+						Eventually(sess).Should(gexec.Exit())
 
 						Expect(sess).To(gbytes.Say("pipeline-2"))
 
@@ -670,8 +654,7 @@ var _ = Describe("login", func() {
 
 					Eventually(sess.Err).Should(gbytes.Say("you are not a member of 'any-team' or the team does not exist"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
 			Context("/api/v1/user returns garbage", func() {
@@ -694,8 +677,7 @@ var _ = Describe("login", func() {
 
 					Eventually(sess.Err).Should(gbytes.Say("unable to verify role on team"))
 
-					<-sess.Exited
-					Expect(sess.ExitCode()).To(Equal(1))
+					Eventually(sess).Should(gexec.Exit(1))
 				})
 			})
 		})
@@ -736,8 +718,7 @@ var _ = Describe("login", func() {
 
 				Eventually(sess.Out).Should(gbytes.Say("target saved"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(0))
+				Eventually(sess).Should(gexec.Exit(0))
 			})
 			It("fails to login if the team does not exist", func() {
 				loginATCServer.AppendHandlers(
@@ -774,8 +755,7 @@ var _ = Describe("login", func() {
 
 				Eventually(sess.Err).Should(gbytes.Say("error: team 'doesNotExist' does not exist"))
 
-				<-sess.Exited
-				Expect(sess.ExitCode()).To(Equal(1))
+				Eventually(sess).Should(gexec.Exit(1))
 			})
 		})
 	})

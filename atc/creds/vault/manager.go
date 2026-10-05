@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"strings"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 	"github.com/go-viper/mapstructure/v2"
 )
 
@@ -139,9 +140,21 @@ func (manager VaultManager) IsConfigured() bool {
 }
 
 func (manager VaultManager) Validate() error {
-	_, err := url.Parse(manager.URL)
+	u, err := url.Parse(manager.URL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %s", err)
+	}
+
+	if !strings.Contains(manager.URL, "((") {
+		switch u.Scheme {
+		case "http", "https":
+		default:
+			return fmt.Errorf("invalid scheme %q: must be http or https", u.Scheme)
+		}
+
+		if u.Hostname() == "" {
+			return fmt.Errorf("URL must specify a host")
+		}
 	}
 
 	if manager.PathPrefix == "" {

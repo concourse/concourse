@@ -5,11 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db"
 
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/google/uuid"
 )
 
 type SubjectScope string
@@ -56,11 +57,17 @@ func (g TokenGenerator) GenerateToken(params creds.SecretLookupParams) (token st
 		return "", time.Time{}, err
 	}
 
+	jti, err := uuid.NewRandom()
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf("error generating UUID: %w", err)
+	}
+
 	claims := jwt.Claims{
+		ID:       jti.String(),
 		Issuer:   g.Issuer,
 		IssuedAt: jwt.NewNumericDate(now),
 		Audience: jwt.Audience(g.Audience),
-		Subject:  g.generateSubject(params),
+		Subject:  generateSubject(g.SubjectScope, params),
 		Expiry:   jwt.NewNumericDate(validUntil),
 	}
 
@@ -109,13 +116,13 @@ func (g TokenGenerator) getSigningKey() (*jose.SigningKey, error) {
 	}, nil
 }
 
-func (g TokenGenerator) generateSubject(params creds.SecretLookupParams) string {
+func generateSubject(scope SubjectScope, params creds.SecretLookupParams) string {
 	team := escapeSlashes(params.Team)
 	pipeline := escapeSlashes(params.Pipeline)
 	ivars := escapeSlashes(params.InstanceVars.String())
 	job := escapeSlashes(params.Job)
 
-	switch g.SubjectScope {
+	switch scope {
 	case SubjectScopeTeam:
 		return team
 	default:

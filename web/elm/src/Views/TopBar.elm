@@ -146,6 +146,20 @@ breadcrumbs session route =
                         , pipeline.archived
                         )
 
+            Routes.PipelineInfo id ->
+                case lookupPipeline (byPipelineId id) session of
+                    Nothing ->
+                        ( [], False, False )
+
+                    Just pipeline ->
+                        ( pipelineBreadcrumbs session pipeline []
+                            ++ [ breadcrumbSeparator
+                               , infoBreadcrumb
+                               ]
+                        , pipeline.paused
+                        , pipeline.archived
+                        )
+
             Routes.Dashboard _ ->
                 ( [ clusterNameBreadcrumb session ], False, False )
 
@@ -298,6 +312,13 @@ pipelineBreadcrumb inInstanceGroup pipeline groups isLastBreadcrumb =
             []
         , nameHtml
         ]
+
+
+infoBreadcrumb : Bool -> Html Message
+infoBreadcrumb isLastBreadcrumb =
+    Html.li
+        (id "breadcrumb-info" :: Styles.breadcrumbItem False isLastBreadcrumb)
+        [ Html.text "info" ]
 
 
 jobBreadcrumb : String -> Bool -> Html Message

@@ -1,7 +1,6 @@
 module Dashboard.DashboardPreview exposing (groupByRank, view)
 
 import Concourse
-import Concourse.PipelineStatus exposing (PipelineStatus(..), StatusDetails(..))
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
 import HoverState

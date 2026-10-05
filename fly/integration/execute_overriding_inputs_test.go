@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/event"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -270,7 +270,6 @@ run:
 
 		Eventually(sess.Out).Should(gbytes.Say("sup"))
 
-		<-sess.Exited
-		Expect(sess).To(gexec.Exit(0))
+		Eventually(sess).Should(gexec.Exit(0))
 	})
 })

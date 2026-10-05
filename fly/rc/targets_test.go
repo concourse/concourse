@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/fly/rc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -274,7 +274,7 @@ var _ = Describe("Targets", func() {
 						true,
 						"main",
 						nil,
-						rsaCertPEM,
+						string(rootCA),
 						"",
 						"",
 					)
@@ -284,7 +284,7 @@ var _ = Describe("Targets", func() {
 				It("returns the rc insecure flag as true", func() {
 					returnedTarget, err := rc.LoadTarget(targetName, false)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(returnedTarget.CACert()).To(Equal(rsaCertPEM))
+					Expect(returnedTarget.CACert()).To(Equal(string(rootCA)))
 				})
 			})
 		})

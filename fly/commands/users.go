@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/concourse/concourse/fly/commands/internal/displayhelpers"
-	"github.com/concourse/concourse/fly/rc"
-	"github.com/concourse/concourse/fly/ui"
+	"github.com/concourse/concourse/v8/fly/commands/internal/displayhelpers"
+	"github.com/concourse/concourse/v8/fly/rc"
+	"github.com/concourse/concourse/v8/fly/ui"
 	"github.com/fatih/color"
 )
 

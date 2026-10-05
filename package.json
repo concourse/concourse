@@ -17,21 +17,20 @@
     "babel-loader": "^10.0.0",
     "child-process-promise": "2.2.1",
     "clean-css-cli": "5.6.3",
-    "elm": "0.19.1-6",
+    "elm": "0.19.2-0",
     "elm-analyse": "0.16.5",
     "elm-format": "0.8.8",
-    "elm-test": "0.19.1-revision17",
+    "elm-test": "0.19.2-0",
     "less": "4.6.4",
     "less-plugin-autoprefix": "2.0.0",
     "puppeteer": "^24.37.3",
     "simple-icons": "^16.18.1",
-    "uglify-js": "^3.19.3",
+    "terser": "^5.50.0",
     "webpack": "^5.105.2",
     "webpack-cli": "7.0.2"
   },
   "resolutions": {
-    "less/request": "^2.86.0",
-    "elm": "npm:@lydell/elm@0.19.1-14"
+    "less/request": "^2.86.0"
   },
   "scripts": {
     "format": "elm-format --elm-version=0.19 web/elm --yes",
@@ -41,8 +40,8 @@
     "build-js": "webpack --mode production",
     "test": "cd web/elm && elm-test",
     "build-less": "lessc web/assets/css/main.less web/public/main.out.css && cleancss -o web/public/main.css web/public/main.out.css && rm web/public/main.out.css",
-    "build-elm": "cd web/elm && elm make --optimize --output ../public/elm.js src/Main.elm && uglifyjs ../public/elm.js --compress \"pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe\" | uglifyjs --mangle --output ../public/elm.min.js",
-    "build-elm-debug": "cd web/elm && elm make --debug --output ../public/elm.js src/Main.elm && uglifyjs < ../public/elm.js > ../public/elm.min.js",
+    "build-elm": "cd web/elm && elm make --optimize --output ../public/elm.js src/Main.elm && terser ../public/elm.js --compress \"pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe\" | terser --mangle --output ../public/elm.min.js",
+    "build-elm-debug": "cd web/elm && elm make --debug --output ../public/elm.js src/Main.elm && terser < ../public/elm.js > ../public/elm.min.js",
     "update-mdi-svg": "./hack/update-mdi-svg \"node_modules/@mdi/svg/svg\" | tr -d '\n' > web/public/mdi-svg.min.js",
     "update-si-svg": "go run ./hack/update-si-svg/",
     "benchmark": "cd web/elm && elm make --optimize --output /tmp/benchmark.html benchmarks/Benchmarks.elm && node benchmarks/benchmark.js /tmp/benchmark.html"

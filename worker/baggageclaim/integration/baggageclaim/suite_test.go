@@ -15,8 +15,8 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/worker/baggageclaim"
-	"github.com/concourse/concourse/worker/baggageclaim/client"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/worker/baggageclaim/client"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/ifrit"
@@ -31,6 +31,10 @@ var baggageClaimPath string
 
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
+
+	// poll less frequently
+	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+	SetDefaultConsistentlyPollingInterval(100 * time.Millisecond)
 	RunSpecs(t, "Baggage Claim Suite")
 }
 
@@ -39,7 +43,7 @@ type suiteData struct {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	bcPath, err := gexec.Build("github.com/concourse/concourse/worker/baggageclaim/cmd/baggageclaim", "-buildvcs=false")
+	bcPath, err := gexec.Build("github.com/concourse/concourse/v8/worker/baggageclaim/cmd/baggageclaim", "-buildvcs=false")
 	Expect(err).NotTo(HaveOccurred())
 
 	data, err := json.Marshal(suiteData{
@@ -55,10 +59,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	logger = lagertest.NewTestLogger("test")
 	baggageClaimPath = suiteData.BaggageClaimPath
-
-	// poll less frequently
-	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
-	SetDefaultConsistentlyPollingInterval(100 * time.Millisecond)
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {

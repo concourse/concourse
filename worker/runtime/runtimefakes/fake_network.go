@@ -5,7 +5,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/concourse/concourse/worker/runtime"
+	"github.com/concourse/concourse/v8/worker/runtime"
 	"github.com/containerd/containerd/v2/client"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -69,10 +69,11 @@ type FakeNetwork struct {
 	setupHostNetworkReturnsOnCall map[int]struct {
 		result1 error
 	}
-	SetupMountsStub        func(string) ([]specs.Mount, error)
+	SetupMountsStub        func(string, bool) ([]specs.Mount, error)
 	setupMountsMutex       sync.RWMutex
 	setupMountsArgsForCall []struct {
 		arg1 string
+		arg2 bool
 	}
 	setupMountsReturns struct {
 		result1 []specs.Mount
@@ -387,18 +388,19 @@ func (fake *FakeNetwork) SetupHostNetworkReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeNetwork) SetupMounts(arg1 string) ([]specs.Mount, error) {
+func (fake *FakeNetwork) SetupMounts(arg1 string, arg2 bool) ([]specs.Mount, error) {
 	fake.setupMountsMutex.Lock()
 	ret, specificReturn := fake.setupMountsReturnsOnCall[len(fake.setupMountsArgsForCall)]
 	fake.setupMountsArgsForCall = append(fake.setupMountsArgsForCall, struct {
 		arg1 string
-	}{arg1})
+		arg2 bool
+	}{arg1, arg2})
 	stub := fake.SetupMountsStub
 	fakeReturns := fake.setupMountsReturns
-	fake.recordInvocation("SetupMounts", []interface{}{arg1})
+	fake.recordInvocation("SetupMounts", []interface{}{arg1, arg2})
 	fake.setupMountsMutex.Unlock()
 	if stub != nil {
-		return stub(arg1)
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -412,17 +414,17 @@ func (fake *FakeNetwork) SetupMountsCallCount() int {
 	return len(fake.setupMountsArgsForCall)
 }
 
-func (fake *FakeNetwork) SetupMountsCalls(stub func(string) ([]specs.Mount, error)) {
+func (fake *FakeNetwork) SetupMountsCalls(stub func(string, bool) ([]specs.Mount, error)) {
 	fake.setupMountsMutex.Lock()
 	defer fake.setupMountsMutex.Unlock()
 	fake.SetupMountsStub = stub
 }
 
-func (fake *FakeNetwork) SetupMountsArgsForCall(i int) string {
+func (fake *FakeNetwork) SetupMountsArgsForCall(i int) (string, bool) {
 	fake.setupMountsMutex.RLock()
 	defer fake.setupMountsMutex.RUnlock()
 	argsForCall := fake.setupMountsArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeNetwork) SetupMountsReturns(result1 []specs.Mount, result2 error) {

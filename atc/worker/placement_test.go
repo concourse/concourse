@@ -4,12 +4,12 @@ import (
 	"slices"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/atc/worker"
-	grt "github.com/concourse/concourse/atc/worker/gardenruntime/gardenruntimetest"
-	"github.com/concourse/concourse/atc/worker/workertest"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
+	"github.com/concourse/concourse/v8/atc/worker"
+	grt "github.com/concourse/concourse/v8/atc/worker/gardenruntime/gardenruntimetest"
+	"github.com/concourse/concourse/v8/atc/worker/workertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
@@ -610,6 +610,40 @@ var _ = Describe("Container Placement Strategies", func() {
 				err = strategy.Approve(logger, workers[0], spec)
 				Expect(err).ToNot(HaveOccurred())
 			})
+		})
+
+		Test("allows workers to define their own max active tasks", func() {
+			var scenario *workertest.Scenario
+
+			By("specifying the worker has a max active tasks of 10", func() {
+				scenario = Setup(
+					workertest.WithBasicJob(),
+					workertest.WithWorkers(
+						grt.NewWorker("worker1").
+							WithMaxActiveTasks(10).
+							WithActiveTasks(10),
+					),
+				)
+			})
+
+			var strategy worker.PlacementStrategy
+			By("specifying the system default max-tasks-per-worker as higher than 10", func() {
+				strategy = limitActiveTasksStrategy(20)
+			})
+
+			spec := runtime.ContainerSpec{
+				TeamID:   scenario.TeamID,
+				JobID:    scenario.JobID,
+				StepName: scenario.StepName,
+
+				Type: db.ContainerTypeTask,
+			}
+
+			workers, err := strategy.Order(logger, scenario.Pool, scenario.DB.Workers, spec)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = strategy.Approve(logger, workers[0], spec)
+			Expect(err).To(MatchError(db.ErrTooManyActiveTasks))
 		})
 	})
 

@@ -12,9 +12,9 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/util"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/util"
 )
 
 var (
@@ -190,7 +190,7 @@ type resource struct {
 }
 
 func newEmptyResource(conn DbConn, lockFactory lock.LockFactory) *resource {
-	return &resource{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &resource{conn: conn, lockFactory: lockFactory}
 }
 
 type ResourceNotFoundError struct {

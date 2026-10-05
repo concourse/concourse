@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/event"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -67,8 +67,7 @@ func AssertEvents(sess *gexec.Session, streaming <-chan struct{}, events chan<- 
 
 	close(events)
 
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(Equal(0))
+	Eventually(sess).Should(gexec.Exit(0))
 }
 
 func AssertErrorEvents(sess *gexec.Session, streaming <-chan struct{}, events chan<- atc.Event) {
@@ -81,6 +80,5 @@ func AssertErrorEvents(sess *gexec.Session, streaming <-chan struct{}, events ch
 
 	close(events)
 
-	<-sess.Exited
-	Expect(sess.ExitCode()).To(Equal(2))
+	Eventually(sess).Should(gexec.Exit(2))
 }

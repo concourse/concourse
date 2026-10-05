@@ -4,12 +4,14 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 )
 
 type IConjurClient interface {
 	RetrieveSecret(string) ([]byte, error)
 }
+
+var _ creds.Secrets = (*Conjur)(nil)
 
 type Conjur struct {
 	log             lager.Logger
@@ -25,11 +27,10 @@ func NewConjur(log lager.Logger, client IConjurClient, secretTemplates []*creds.
 	}
 }
 
-func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
+func (c Conjur) NewSecretLookupPaths(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, template := range c.secretTemplates {
-		c.log.Info(" teamname: " + teamName + "pipeline: " + pipelineName)
-		if lPath := creds.NewSecretLookupWithTemplate(template, teamName, pipelineName); lPath != nil {
+		if lPath := creds.NewSecretLookupWithTemplate(template, params.Team, params.Pipeline); lPath != nil {
 			lookupPaths = append(lookupPaths, lPath)
 		}
 	}
@@ -37,7 +38,7 @@ func (c Conjur) NewSecretLookupPaths(teamName string, pipelineName string, allow
 	return lookupPaths
 }
 
-func (c Conjur) Get(secretPath string) (any, *time.Time, bool, error) {
+func (c Conjur) Get(secretPath string, _ creds.SecretLookupParams) (any, *time.Time, bool, error) {
 	secretValue, err := c.client.RetrieveSecret(secretPath)
 	if err != nil {
 		return nil, nil, false, nil

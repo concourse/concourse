@@ -7,13 +7,13 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	. "github.com/concourse/concourse/atc/api/helpers"
-	"github.com/concourse/concourse/atc/configvalidate"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	. "github.com/concourse/concourse/v8/atc/api/helpers"
+	"github.com/concourse/concourse/v8/atc/configvalidate"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/vars"
 	"github.com/hashicorp/go-multierror"
 	"github.com/tedsuo/rata"
 )
@@ -99,7 +99,13 @@ func (s *Server) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if checkCredentials {
-		variables := creds.NewVariables(s.secretManager, creds.SecretLookupParams{Team: teamName, Pipeline: pipelineName}, false)
+		variables := creds.NewVariables(s.secretManager,
+			creds.SecretLookupParams{
+				Team:         teamName,
+				Pipeline:     pipelineName,
+				InstanceVars: pipelineRef.InstanceVars,
+			},
+			false)
 
 		errs := validateCredParams(variables, config, session)
 		if errs != nil {

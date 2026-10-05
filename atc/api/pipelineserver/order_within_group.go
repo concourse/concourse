@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
 )
 
 func (s *Server) OrderPipelinesWithinGroup(team db.Team) http.Handler {
@@ -31,8 +31,7 @@ func (s *Server) OrderPipelinesWithinGroup(team db.Team) http.Handler {
 				"pipeline_name": groupName,
 				"instance_vars": instanceVars,
 			})
-			var errNotFound db.ErrPipelineNotFound
-			if errors.As(err, &errNotFound) {
+			if _, ok := errors.AsType[db.ErrPipelineNotFound](err); ok {
 				w.WriteHeader(http.StatusBadRequest)
 				fmt.Fprintln(w, err.Error())
 			} else {

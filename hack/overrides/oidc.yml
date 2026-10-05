@@ -8,30 +8,25 @@
 # user1@example.com:user1pass;group1
 # user2@example.com:user2pass
 #
-# ref: https://hub.docker.com/r/qlik/simple-oidc-provider/
+# ref: https://hub.docker.com/r/siocode/local-idp
 # ref: https://docs.docker.com/compose/extends/
 #
-version: '3'
-
 services:
   web:
     environment:
-      # CONCOURSE_MAIN_TEAM_OIDC_USER: user1
-      CONCOURSE_MAIN_TEAM_OIDC_USER: John
-      # CONCOURSE_MAIN_TEAM_OIDC_GROUP: group1
-
+      # CONCOURSE_EXTERNAL_URL: http://web:8080
       CONCOURSE_OIDC_ISSUER: http://oidc:9000
-      CONCOURSE_OIDC_CLIENT_ID: foo
-      CONCOURSE_OIDC_CLIENT_SECRET: bar
+      CONCOURSE_OIDC_CLIENT_ID: client1
+      CONCOURSE_OIDC_CLIENT_SECRET: super_secret
+      CONCOURSE_MAIN_TEAM_OIDC_USER: UserOne
+      CONCOURSE_MAIN_TEAM_OIDC_GROUP: group1
 
   oidc:
-    image: qlik/simple-oidc-provider
+    image: siocode/local-idp
     ports:
-    - 9000:9000
-    environment:
-      REDIRECTS: http://localhost:8080/sky/issuer/callback
-      CONFIG_FILE: /oidc/config.json
-      USERS_FILE: /oidc/users.json
+      - 9000:9000
     volumes:
-    - ./hack/oidc:/oidc
-
+      - ./hack/oidc:/oidc
+    environment:
+      CONFIG_PATH: /oidc/config.yml
+      PORT: 9000

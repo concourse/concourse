@@ -425,21 +425,23 @@ view : Session -> Model -> Html Message
 view session model =
     Html.div
         (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-        [ Html.div
+        [ Views.Styles.hideIf session.hideUI (Html.div
             (id "top-bar-app" :: Views.Styles.topBar False)
             (SideBar.sideBarIcon session
                 :: TopBar.breadcrumbs session session.route
                 ++ [ Login.view session.userState model ]
             )
+          )
         , Html.div
-            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.route)
-            [ SideBar.view session
+            (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.hideUI session.route)
+            [ Views.Styles.hideIf session.hideUI (SideBar.view session
                 (Just
                     { pipelineName = model.jobIdentifier.pipelineName
                     , pipelineInstanceVars = model.jobIdentifier.pipelineInstanceVars
                     , teamName = model.jobIdentifier.teamName
                     }
                 )
+              )
             , viewMainJobsSection session model
             ]
         ]

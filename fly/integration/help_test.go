@@ -16,8 +16,7 @@ var _ = Describe("help", func() {
 		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred())
 
-		<-sess.Exited
-		Expect(sess.ExitCode()).To(Equal(0))
+		Eventually(sess).Should(gexec.Exit(0))
 
 		Expect(sess.Out).To(gbytes.Say("Usage:"))
 		Expect(sess.Out).To(gbytes.Say("Application Options:"))
@@ -32,8 +31,7 @@ var _ = Describe("help", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 
 			Expect(sess.Out).To(gbytes.Say("Usage:"))
 			Expect(sess.Out).To(gbytes.Say("Application Options:"))
@@ -49,8 +47,7 @@ var _ = Describe("help", func() {
 			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			<-sess.Exited
-			Expect(sess.ExitCode()).To(Equal(0))
+			Eventually(sess).Should(gexec.Exit(0))
 			Expect(sess.Out).To(gbytes.Say("completion command options"))
 		})
 	})

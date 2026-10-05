@@ -17,16 +17,16 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/vars"
 	"go.opentelemetry.io/otel/propagation"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/encryption"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/event"
-	"github.com/concourse/concourse/atc/util"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/encryption"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/event"
+	"github.com/concourse/concourse/v8/atc/util"
+	"github.com/concourse/concourse/v8/tracing"
 )
 
 const schema = "exec.v2"
@@ -285,7 +285,7 @@ type build struct {
 }
 
 func newEmptyBuild(conn DbConn, lockFactory lock.LockFactory) *build {
-	return &build{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &build{conn: conn, lockFactory: lockFactory}
 }
 
 var ErrBuildDisappeared = errors.New("build disappeared from db")
@@ -1451,10 +1451,8 @@ func (b *build) AdoptInputsAndPipes() ([]BuildInput, bool, error) {
 
 		inputs[inputName] = InputResult{
 			Input: &AlgorithmInput{
-				AlgorithmVersion: AlgorithmVersion{
-					ResourceID: resourceID,
-					Version:    ResourceVersion(versionSHA256),
-				},
+				ResourceID:      resourceID,
+				Version:         ResourceVersion(versionSHA256),
 				FirstOccurrence: firstOccurrence,
 			},
 		}
@@ -1614,10 +1612,8 @@ func (b *build) AdoptRerunInputsAndPipes() ([]BuildInput, bool, error) {
 
 		inputs[inputName] = InputResult{
 			Input: &AlgorithmInput{
-				AlgorithmVersion: AlgorithmVersion{
-					ResourceID: resourceID,
-					Version:    ResourceVersion(versionSHA256),
-				},
+				ResourceID:      resourceID,
+				Version:         ResourceVersion(versionSHA256),
 				FirstOccurrence: firstOccurrence,
 			},
 		}

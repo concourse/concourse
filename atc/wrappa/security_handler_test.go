@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/concourse/concourse/v8/atc/wrappa"
 
-	"github.com/concourse/concourse/atc/wrappa/wrappafakes"
+	"github.com/concourse/concourse/v8/atc/wrappa/wrappafakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -93,6 +93,40 @@ var _ = Describe("SecurityHandler", func() {
 	Context("when Strict-Transport-Security is empty", func() {
 		It("does not set Strict-Transport-Security header", func() {
 			Expect(rw.Result().Header).NotTo(HaveKey("Strict-Transport-Security"))
+		})
+	})
+
+	Context("when CustomHTTPHeaders is set", func() {
+		BeforeEach(func() {
+			securityHandler = wrappa.SecurityHandler{
+				CustomHTTPHeaders: map[string]string{
+					"X-Custom-Header": "some-custom-value",
+				},
+				Handler: fakeHandler,
+			}
+		})
+		It("sets each header to the configured value", func() {
+			Expect(rw.Header().Get("X-Custom-Header")).To(Equal("some-custom-value"))
+		})
+	})
+
+	Context("when CustomHTTPHeaders overrides a hardcoded header", func() {
+		BeforeEach(func() {
+			securityHandler = wrappa.SecurityHandler{
+				CustomHTTPHeaders: map[string]string{
+					"X-Content-Type-Options": "some-custom-value",
+				},
+				Handler: fakeHandler,
+			}
+		})
+		It("overrides the hardcoded header value", func() {
+			Expect(rw.Header().Get("X-Content-Type-Options")).To(Equal("some-custom-value"))
+		})
+	})
+
+	Context("when CustomHTTPHeaders is empty", func() {
+		It("does not set any additional headers", func() {
+			Expect(rw.Result().Header).NotTo(HaveKey("X-Custom-Header"))
 		})
 	})
 })

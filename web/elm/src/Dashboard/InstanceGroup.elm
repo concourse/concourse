@@ -1,11 +1,10 @@
-module Dashboard.InstanceGroup exposing (cardView, hdCardView)
+module Dashboard.InstanceGroup exposing (cardView, hdCardView, instanceGroupRoute)
 
 import Application.Models exposing (Session)
 import ColorValues
 import Concourse
-import Concourse.BuildStatus exposing (BuildStatus(..))
 import Dashboard.FilterBuilder exposing (instanceGroupFilter)
-import Dashboard.Group.Models exposing (Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Pipeline)
 import Dashboard.Pipeline exposing (pipelineStatus)
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
@@ -77,7 +76,7 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
             ++ Styles.instanceGroupCardHd
         )
     <|
-        [ Html.div
+        Html.div
             Styles.instanceGroupCardBodyHd
             [ InstanceGroupBadge.view ColorValues.grey20 <| List.length (pipeline :: pipelines)
             , Html.div
@@ -87,8 +86,7 @@ hdCardView { pipeline, pipelines, resourceError, dashboardView, query } =
                 )
                 [ Html.text pipeline.name ]
             ]
-        ]
-            ++ (if resourceError then
+            :: (if resourceError then
                     [ Html.div Styles.resourceErrorTriangle [] ]
 
                 else

@@ -6,10 +6,10 @@ import (
 	"code.cloudfoundry.org/clock/fakeclock"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 
 	// load dummy credential manager
-	_ "github.com/concourse/concourse/atc/creds/dummy"
+	_ "github.com/concourse/concourse/v8/atc/creds/dummy"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,6 +23,7 @@ var _ = Context("pool", func() {
 		varSourcePool        creds.VarSourcePool
 		config1, config2     map[string]any
 		fakeClock            *fakeclock.FakeClock
+		secretParams         creds.SecretLookupParams
 	)
 
 	BeforeEach(func() {
@@ -38,6 +39,7 @@ var _ = Context("pool", func() {
 		}
 
 		fakeClock = fakeclock.NewFakeClock(time.Now())
+		secretParams = creds.SecretLookupParams{}
 
 		credentialManagement = creds.CredentialManagementConfig{
 			RetryConfig: creds.SecretRetryConfig{
@@ -74,14 +76,14 @@ var _ = Context("pool", func() {
 			})
 
 			It("should get k1", func() {
-				v, _, found, err := secrets.Get("k1")
+				v, _, found, err := secrets.Get("k1", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v1"))
 			})
 
 			It("should not get foo", func() {
-				_, _, found, err := secrets.Get("foo")
+				_, _, found, err := secrets.Get("foo", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -104,25 +106,25 @@ var _ = Context("pool", func() {
 			})
 
 			It("should get k1", func() {
-				v, _, found, err := secrets1.Get("k1")
+				v, _, found, err := secrets1.Get("k1", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v1"))
 			})
 
 			It("should get k2", func() {
-				v, _, found, err := secrets2.Get("k2")
+				v, _, found, err := secrets2.Get("k2", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v2"))
 			})
 
 			It("should not get foo", func() {
-				_, _, found, err := secrets1.Get("foo")
+				_, _, found, err := secrets1.Get("foo", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 
-				_, _, found, err = secrets2.Get("foo")
+				_, _, found, err = secrets2.Get("foo", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})
@@ -153,25 +155,25 @@ var _ = Context("pool", func() {
 			})
 
 			It("should get k1", func() {
-				v, _, found, err := secrets1.Get("k1")
+				v, _, found, err := secrets1.Get("k1", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v1"))
 			})
 
 			It("should get k2", func() {
-				v, _, found, err := secrets2.Get("k2")
+				v, _, found, err := secrets2.Get("k2", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeTrue())
 				Expect(v.(string)).To(Equal("v2"))
 			})
 
 			It("should not get foo", func() {
-				_, _, found, err := secrets1.Get("foo")
+				_, _, found, err := secrets1.Get("foo", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 
-				_, _, found, err = secrets2.Get("foo")
+				_, _, found, err = secrets2.Get("foo", secretParams)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(BeFalse())
 			})

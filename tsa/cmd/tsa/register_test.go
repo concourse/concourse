@@ -16,9 +16,9 @@ import (
 	gfakes "code.cloudfoundry.org/garden/gardenfakes"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/tsa"
-	"github.com/concourse/concourse/worker/baggageclaim"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/tsa"
+	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -475,7 +475,7 @@ var _ = Describe("Register", func() {
 					By("waiting for connections to be idle before exiting")
 					before := time.Now()
 					Expect(<-registerErr).To(Equal(tsa.ErrConnectionDrainTimeout))
-					Expect(time.Now().Sub(before)).To(BeNumerically("~", opts.ConnectionDrainTimeout, time.Second))
+					Expect(time.Since(before)).To(BeNumerically("~", opts.ConnectionDrainTimeout, time.Second))
 				})
 			})
 		})

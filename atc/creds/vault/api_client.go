@@ -89,7 +89,11 @@ func (ac *APIClient) Read(path string) (*vaultapi.Secret, error) {
 	// Need to discard the metadata object and pull the v2 data field up to match kv1
 	if kv2 {
 		if data, ok := secret.Data["data"]; ok && data != nil {
-			secret.Data = data.(map[string]any)
+			dataMap, ok := data.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("unexpected data type %T in vault response for path %q", data, path)
+			}
+			secret.Data = dataMap
 			secret.LeaseDuration = -1
 		} else {
 			// Return a nil secret object if the secret was deleted, but not destroyed
@@ -243,6 +247,12 @@ func (ac *APIClient) Login() (time.Duration, error) {
 		return time.Second, err
 	}
 
+	if secret == nil || secret.Auth == nil {
+		err := fmt.Errorf("unexpected vault login response")
+		logger.Error("vault-login-auth-missing", err)
+		return time.Second, err
+	}
+
 	logger.Info("succeeded", lager.Data{
 		"token-accessor": secret.Auth.Accessor,
 		"lease-duration": secret.Auth.LeaseDuration,
@@ -306,6 +316,12 @@ func (ac *APIClient) Renew() (time.Duration, error) {
 			return time.Second, nil
 		}
 		logger.Error("failed", err)
+		return time.Second, err
+	}
+
+	if secret == nil || secret.Auth == nil {
+		err := fmt.Errorf("unexpected vault renew response")
+		logger.Error("vault-renew-auth-missing", err)
 		return time.Second, err
 	}
 

@@ -1,10 +1,10 @@
 package wrappa_test
 
 import (
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/api/auth"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/wrappa"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/auth"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/wrappa"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/tedsuo/rata"

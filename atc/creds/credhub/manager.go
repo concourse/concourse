@@ -10,13 +10,15 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/auth"
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds"
 )
 
 type CredHubManager struct {
 	URL string `long:"url" description:"CredHub server address used to access secrets."`
 
 	PathPrefix string `long:"path-prefix" default:"/concourse" description:"Path under which to namespace credential lookup."`
+
+	SharedPath string `long:"shared-path" description:"Path under which to lookup shared credentials."`
 
 	TLS    TLS
 	UAA    UAA
@@ -46,6 +48,7 @@ func (manager *CredHubManager) MarshalJSON() ([]byte, error) {
 		"path_prefix":   manager.PathPrefix,
 		"ca_certs":      manager.TLS.CACerts,
 		"uaa_client_id": manager.UAA.ClientId,
+		"shared_path":   manager.SharedPath,
 		"health":        health,
 	}
 
@@ -149,7 +152,7 @@ func (manager CredHubManager) Health() (*creds.HealthResponse, error) {
 }
 
 func (manager CredHubManager) NewSecretsFactory(logger lager.Logger) (creds.SecretsFactory, error) {
-	return NewCredHubFactory(logger, manager.Client, manager.PathPrefix), nil
+	return NewCredHubFactory(logger, manager.Client, manager.PathPrefix, manager.SharedPath), nil
 }
 
 type LazyCredhub struct {

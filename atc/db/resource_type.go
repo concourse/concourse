@@ -10,9 +10,9 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/util"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/util"
 )
 
 type ResourceTypeNotFoundError struct {
@@ -217,7 +217,7 @@ func (t *resourceType) CurrentPinnedVersion() atc.Version { return nil }
 func (t *resourceType) HasWebhook() bool                  { return false }
 
 func newEmptyResourceType(conn DbConn, lockFactory lock.LockFactory) *resourceType {
-	return &resourceType{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &resourceType{conn: conn, lockFactory: lockFactory}
 }
 
 func (t *resourceType) Reload() (bool, error) {

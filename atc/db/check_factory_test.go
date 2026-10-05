@@ -7,10 +7,10 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/db/dbtest"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/db/dbtest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -575,6 +575,84 @@ var _ = Describe("CheckFactory", func() {
 				}
 
 				Expect(resourceNames).To(ConsistOf("some-resource-trigger", "some-resource"))
+			})
+		})
+
+		Context("when a non-triggering resource is pinned to a version that doesn't exist in the resources version history", func() {
+			BeforeEach(func() {
+				pipelineConfig := atc.Config{
+					Jobs: atc.JobConfigs{
+						{
+							Name: "some-job",
+							PlanSequence: []atc.Step{
+								{
+									Config: &atc.GetStep{
+										Name:    "some-resource-trigger",
+										Trigger: true,
+									},
+								},
+								{
+									Config: &atc.GetStep{
+										Name: "some-pinned-resource",
+									},
+								},
+							},
+						},
+					},
+					Resources: atc.ResourceConfigs{
+						{
+							Name: "some-resource-trigger",
+							Type: dbtest.BaseResourceType,
+							Source: atc.Source{
+								"some": "source",
+							},
+						},
+						{
+							Name: "some-pinned-resource",
+							Type: dbtest.BaseResourceType,
+							Source: atc.Source{
+								"some": "source",
+							},
+							Version: atc.Version{"ref": "pinned-version"},
+						},
+					},
+				}
+
+				scenario.Run(
+					builder.WithPipeline(pipelineConfig),
+					builder.WithResourceVersions("some-resource-trigger", time.Minute, atc.Version{"ref": "r1"}),
+					// "some-pinned-resource" has an established version history, but
+					// it does NOT include the version it's currently pinned to
+					// in the pipeline config above
+					builder.WithResourceVersions("some-pinned-resource", time.Minute,
+						atc.Version{"ref": "some-other-version"}),
+				)
+			})
+
+			It("returns the pinned resource so its pinned version can be discovered", func() {
+				resourceNames := []string{}
+				for _, r := range resources {
+					resourceNames = append(resourceNames, r.Name())
+				}
+
+				Expect(resourceNames).To(ConsistOf("some-resource-trigger", "some-pinned-resource"))
+			})
+
+			Context("once the pinned version has been discovered", func() {
+				BeforeEach(func() {
+					scenario.Run(
+						builder.WithResourceVersions("some-pinned-resource", time.Minute, atc.Version{"ref": "pinned-version"}),
+					)
+				})
+
+				It("no longer returns the resource", func() {
+					resourceNames := []string{}
+					for _, r := range resources {
+						resourceNames = append(resourceNames, r.Name())
+					}
+
+					Expect(resourceNames).To(ConsistOf("some-resource-trigger"))
+				})
 			})
 		})
 	})

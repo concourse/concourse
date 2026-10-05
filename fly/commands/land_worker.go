@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
-	"github.com/concourse/concourse/fly/commands/internal/flaghelpers"
-	"github.com/concourse/concourse/fly/rc"
+	"github.com/concourse/concourse/v8/fly/commands/internal/flaghelpers"
+	"github.com/concourse/concourse/v8/fly/rc"
 )
 
 type LandWorkerCommand struct {
@@ -24,7 +24,20 @@ func (command *LandWorkerCommand) Execute(args []string) error {
 		return err
 	}
 
-	err = target.Client().LandWorker(workerName)
+	workers, err := target.Client().ListWorkers()
+	if err != nil {
+		return err
+	}
+
+	teamName := ""
+	for _, w := range workers {
+		if w.Name == workerName {
+			teamName = w.Team
+			break
+		}
+	}
+
+	err = target.Client().LandWorker(workerName, teamName)
 	if err != nil {
 		return err
 	}

@@ -51,8 +51,7 @@ var _ = Describe("set-pipeline Step", func() {
 		It("sets the other pipeline", func(ctx SpecContext) {
 			By("second pipeline should initially not exist")
 			execS := spawnFly("get-pipeline", "-p", createdPipelineName)
-			<-execS.Exited
-			Expect(execS).To(gexec.Exit(1))
+			Eventually(execS).Should(gexec.Exit(1))
 			Expect(execS.Err).To(gbytes.Say("pipeline not found"))
 
 			By("set-pipeline step should succeed")
@@ -73,8 +72,7 @@ var _ = Describe("set-pipeline Step", func() {
 			It("sets the other pipeline as instanced pipeline", func(ctx SpecContext) {
 				By("second pipeline should initially not exist")
 				execS := spawnFly("get-pipeline", "-p", createdPipelineName+currentInstanceVars)
-				<-execS.Exited
-				Expect(execS).To(gexec.Exit(1))
+				Eventually(execS).Should(gexec.Exit(1))
 				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
 
 				By("set-pipeline step should succeed")
@@ -99,8 +97,7 @@ var _ = Describe("set-pipeline Step", func() {
 			By("second pipeline should initially not exist")
 			withFlyTarget(testflightFlyTarget, func() {
 				execS := spawnFly("get-pipeline", "-p", createdPipelineName)
-				<-execS.Exited
-				Expect(execS).To(gexec.Exit(1))
+				Eventually(execS).Should(gexec.Exit(1))
 				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
 			})
 
@@ -135,16 +132,14 @@ var _ = Describe("set-pipeline Step", func() {
 			By("second pipeline should initially not exist")
 			withFlyTarget(adminFlyTarget, func() {
 				execS := spawnFly("get-pipeline", "-p", createdPipelineName)
-				<-execS.Exited
-				Expect(execS).To(gexec.Exit(1))
+				Eventually(execS).Should(gexec.Exit(1))
 				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
 			})
 
 			By("set-pipeline step should fail")
 			withFlyTarget(testflightFlyTarget, func() {
 				execS := spawnFly("trigger-job", "-w", "-j", pipelineName+"/sp")
-				<-execS.Exited
-				Expect(execS).To(gexec.Exit(2))
+				Eventually(execS).Should(gexec.Exit(2))
 				Expect(execS.Out).To(gbytes.Say("only main team can set another team's pipeline"))
 				Expect(execS.Out).To(gbytes.Say("errored"))
 			})
@@ -152,8 +147,7 @@ var _ = Describe("set-pipeline Step", func() {
 			By("second pipeline should still not exist")
 			withFlyTarget(adminFlyTarget, func() {
 				execS := spawnFly("get-pipeline", "-p", createdPipelineName)
-				<-execS.Exited
-				Expect(execS).To(gexec.Exit(1))
+				Eventually(execS).Should(gexec.Exit(1))
 				Expect(execS.Err).To(gbytes.Say("pipeline not found"))
 			})
 		})

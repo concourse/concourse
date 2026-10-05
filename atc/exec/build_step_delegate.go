@@ -8,10 +8,10 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/tracing"
 )
 
 //counterfeiter:generate . BuildStepDelegateFactory

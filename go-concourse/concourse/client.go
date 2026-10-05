@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/go-concourse/concourse/internal"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/go-concourse/concourse/internal"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -25,8 +25,9 @@ type Client interface {
 	SaveWorker(atc.Worker, *time.Duration) (*atc.Worker, error)
 	ListWorkers() ([]atc.Worker, error)
 	PruneWorker(workerName string) error
-	LandWorker(workerName string) error
+	LandWorker(workerName, teamName string) error
 	GetInfo() (atc.Info, error)
+	GetHealth() (atc.Health, error)
 	GetCLIReader(arch, platform string) (io.ReadCloser, http.Header, error)
 	ListPipelines() ([]atc.Pipeline, error)
 	ListAllJobs() ([]atc.Job, error)
@@ -44,6 +45,8 @@ type Client interface {
 	PauseAllComponents() error
 	UnpauseAllComponents() error
 }
+
+var _ Client = (*client)(nil)
 
 type client struct {
 	//Deprecated. Use httpAgent instead

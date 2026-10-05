@@ -1,11 +1,14 @@
 package wrappa
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type SecurityHandler struct {
 	XFrameOptions           string
 	ContentSecurityPolicy   string
 	StrictTransportSecurity string
+	CustomHTTPHeaders       map[string]string
 	Handler                 http.Handler
 }
 
@@ -22,5 +25,8 @@ func (handler SecurityHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-Download-Options", "noopen")
 	w.Header().Set("Cache-Control", "no-store, private")
+	for name, value := range handler.CustomHTTPHeaders {
+		w.Header().Set(name, value)
+	}
 	handler.Handler.ServeHTTP(w, r)
 }

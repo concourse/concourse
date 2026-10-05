@@ -2,6 +2,8 @@ module Dashboard.Group exposing
     ( PipelineIndex
     , Section
     , hdView
+    , listView
+    , listViewFavoritePipelines
     , ordering
     , pipelineNotSetView
     , view
@@ -9,18 +11,22 @@ module Dashboard.Group exposing
     )
 
 import Application.Models exposing (Session)
-import Concourse
+import Colors
+import Concourse exposing (flattenJson)
+import Concourse.PipelineStatus
 import Dashboard.Grid as Grid
 import Dashboard.Grid.Constants as GridConstants
-import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier, cardTeamName)
+import Dashboard.Group.Models exposing (Card(..), Pipeline, cardIdentifier, cardPipeline, cardTeamName)
 import Dashboard.Group.Tag as Tag
 import Dashboard.InstanceGroup as InstanceGroup
 import Dashboard.Models exposing (DragState(..), DropState(..))
 import Dashboard.Pipeline as Pipeline
 import Dashboard.Styles as Styles
 import Dict exposing (Dict)
+import Favorites
+import HoverState
 import Html exposing (Html)
-import Html.Attributes exposing (attribute, class, classList, draggable, id, style)
+import Html.Attributes exposing (attribute, class, classList, draggable, href, id, style)
 import Html.Events exposing (on, preventDefaultOn, stopPropagationOn)
 import Html.Keyed
 import Json.Decode
@@ -31,7 +37,10 @@ import Ordering exposing (Ordering)
 import Routes
 import Set exposing (Set)
 import Time
+import Tooltip
 import UserState exposing (UserState(..))
+import Views.FavoritedIcon
+import Views.PauseToggle as PauseToggle
 import Views.Spinner as Spinner
 import Views.Styles
 
@@ -266,11 +275,13 @@ hdView :
     , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
     , dashboardView : Routes.DashboardView
     , query : String
+    , dragState : DragState
+    , dropState : DropState
     }
-    -> { a | userState : UserState, pipelineRunningKeyframes : String }
+    -> Session
     -> Section Card
     -> List (Html Message)
-hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query } session { teamName, cards, header } =
+hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query, dragState, dropState } session { teamName, cards, header } =
     let
         headerElement =
             Html.div
@@ -278,57 +289,77 @@ hdView { pipelinesWithResourceErrors, pipelineJobs, jobs, dashboardView, query }
                 [ Html.text header ]
                 :: (Maybe.Extra.toList <| Maybe.map (Tag.view True) (tag session teamName))
 
+        hdPipelineArgs p =
+            { pipeline = p
+            , resourceError = Set.member p.id pipelinesWithResourceErrors
+            , existingJobs =
+                pipelineJobs
+                    |> Dict.get p.id
+                    |> Maybe.withDefault []
+                    |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
+            }
+
         teamPipelines =
             if List.isEmpty cards then
                 [ pipelineNotSetView ]
 
             else
+                let
+                    createCardWithDropZone card =
+                        let
+                            isBeingDragged =
+                                case dragState of
+                                    Dragging currCard ->
+                                        cardIdentifier currCard == cardIdentifier card
+
+                                    _ ->
+                                        False
+
+                            dragAttributes =
+                                if cardIdentifier card /= "" then
+                                    [ attribute
+                                        "ondragstart"
+                                        "event.dataTransfer.setData('text/plain', '');"
+                                    , draggable "true"
+                                    , on "dragstart" (Json.Decode.succeed (DragStart card))
+                                    , on "dragend" (Json.Decode.succeed DragEnd)
+                                    ]
+
+                                else
+                                    []
+
+                            cardBody =
+                                case card of
+                                    PipelineCard p ->
+                                        Pipeline.hdPipelineView session (hdPipelineArgs p)
+
+                                    InstancedPipelineCard p ->
+                                        Pipeline.hdPipelineView session (hdPipelineArgs p)
+
+                                    InstanceGroupCard p ps ->
+                                        InstanceGroup.hdCardView
+                                            { pipeline = p
+                                            , pipelines = ps
+                                            , resourceError =
+                                                List.any
+                                                    (\pipeline ->
+                                                        Set.member pipeline.id pipelinesWithResourceErrors
+                                                    )
+                                                    (p :: ps)
+                                            , dashboardView = dashboardView
+                                            , query = query
+                                            }
+                        in
+                        [ hdDropZoneView dragState dropState teamName card
+                        , Html.div
+                            (Styles.hdCardWrapper isBeingDragged ++ dragAttributes)
+                            [ cardBody ]
+                        ]
+                in
                 cards
-                    |> List.map
-                        (\card ->
-                            case card of
-                                PipelineCard p ->
-                                    Pipeline.hdPipelineView
-                                        session
-                                        { pipeline = p
-                                        , resourceError =
-                                            pipelinesWithResourceErrors
-                                                |> Set.member p.id
-                                        , existingJobs =
-                                            pipelineJobs
-                                                |> Dict.get p.id
-                                                |> Maybe.withDefault []
-                                                |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
-                                        }
-
-                                InstancedPipelineCard p ->
-                                    Pipeline.hdPipelineView
-                                        session
-                                        { pipeline = p
-                                        , resourceError =
-                                            pipelinesWithResourceErrors
-                                                |> Set.member p.id
-                                        , existingJobs =
-                                            pipelineJobs
-                                                |> Dict.get p.id
-                                                |> Maybe.withDefault []
-                                                |> List.filterMap (\j -> Dict.get ( p.id, j ) jobs)
-                                        }
-
-                                InstanceGroupCard p ps ->
-                                    InstanceGroup.hdCardView
-                                        { pipeline = p
-                                        , pipelines = ps
-                                        , resourceError =
-                                            List.any
-                                                (\pipeline ->
-                                                    Set.member pipeline.id pipelinesWithResourceErrors
-                                                )
-                                                (p :: ps)
-                                        , dashboardView = dashboardView
-                                        , query = query
-                                        }
-                        )
+                    |> List.concatMap createCardWithDropZone
+                    |> List.tail
+                    |> Maybe.withDefault []
     in
     case teamPipelines of
         [] ->
@@ -354,6 +385,407 @@ pipelineNotSetView =
                 [ Html.text "no pipelines set" ]
             ]
         ]
+
+
+listView :
+    { pipelinesWithResourceErrors : Set Concourse.DatabaseID
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    , dashboardView : Routes.DashboardView
+    , query : String
+    , now : Maybe Time.Posix
+    , dragState : DragState
+    , dropState : DropState
+    }
+    -> Session
+    -> HoverState.HoverState
+    -> List (Section Card)
+    -> List (Html Message)
+listView params session hovered sections =
+    List.map
+        (\section ->
+            Html.div Styles.listViewTeamGroup
+                [ Html.div Styles.listViewTeamHeader
+                    [ Html.div Styles.listViewTeamName
+                        [ Html.text section.header ]
+                    ]
+                , Html.div Styles.listView
+                    (if List.isEmpty section.cards then
+                        [ pipelineNotSetView ]
+
+                     else
+                        section.cards
+                            |> sortPipelinesForListView
+                            |> List.concatMap
+                                (\card ->
+                                    [ hdDropZoneView params.dragState params.dropState section.teamName card
+                                    , renderPipelineRow
+                                        { pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                        , pipelineJobs = params.pipelineJobs
+                                        , jobs = params.jobs
+                                        , dashboardView = params.dashboardView
+                                        , query = params.query
+                                        , now = params.now
+                                        , dragState = params.dragState
+                                        , isDraggable = True
+                                        , section = AllPipelinesSection
+                                        }
+                                        session
+                                        hovered
+                                        card
+                                    ]
+                                )
+                            |> (\rows -> rows ++ [ endDropZoneView params.dragState params.dropState section.teamName ])
+                    )
+                ]
+        )
+        sections
+
+
+listViewFavoritePipelines :
+    { pipelinesWithResourceErrors : Set Concourse.DatabaseID
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    , dashboardView : Routes.DashboardView
+    , query : String
+    , now : Maybe Time.Posix
+    }
+    -> Session
+    -> HoverState.HoverState
+    -> List (Section Card)
+    -> List (Html Message)
+listViewFavoritePipelines params session hovered sections =
+    List.map
+        (\section ->
+            Html.div Styles.listViewTeamGroup
+                [ Html.div Styles.listViewTeamHeader
+                    [ Html.div Styles.listViewTeamName
+                        [ Html.text section.header ]
+                    ]
+                , Html.div
+                    (Styles.listView
+                        ++ [ style "display" "flex"
+                           , style "flex-direction" "column"
+                           , style "gap" "3px"
+                           ]
+                    )
+                    (section.cards
+                        |> sortPipelinesForListView
+                        |> List.map
+                            (renderPipelineRow
+                                { pipelinesWithResourceErrors = params.pipelinesWithResourceErrors
+                                , pipelineJobs = params.pipelineJobs
+                                , jobs = params.jobs
+                                , dashboardView = params.dashboardView
+                                , query = params.query
+                                , now = params.now
+                                , dragState = NotDragging
+                                , isDraggable = False
+                                , section = FavoritesSection
+                                }
+                                session
+                                hovered
+                            )
+                    )
+                ]
+        )
+        sections
+
+
+sortPipelinesForListView : List Card -> List Card
+sortPipelinesForListView cards =
+    cards
+        |> List.sortBy
+            (\card ->
+                let
+                    p =
+                        cardPipeline card
+                in
+                ( if p.paused then
+                    1
+
+                  else
+                    0
+                , if p.archived then
+                    1
+
+                  else
+                    0
+                , p.name
+                )
+            )
+
+
+renderPipelineRow :
+    { pipelinesWithResourceErrors : Set Concourse.DatabaseID
+    , pipelineJobs : Dict Concourse.DatabaseID (List Concourse.JobName)
+    , jobs : Dict ( Concourse.DatabaseID, Concourse.JobName ) Concourse.Job
+    , dashboardView : Routes.DashboardView
+    , query : String
+    , now : Maybe Time.Posix
+    , dragState : DragState
+    , isDraggable : Bool
+    , section : PipelinesSection
+    }
+    -> Session
+    -> HoverState.HoverState
+    -> Card
+    -> Html Message
+renderPipelineRow params session hovered card =
+    let
+        pipelineId =
+            (cardPipeline card).id
+
+        pipelineJobs =
+            params.pipelineJobs
+                |> Dict.get pipelineId
+                |> Maybe.withDefault []
+                |> List.filterMap (\j -> Dict.get ( pipelineId, j ) params.jobs)
+
+        isBeingDragged =
+            case params.dragState of
+                Dragging draggedCard ->
+                    cardIdentifier draggedCard == cardIdentifier card
+
+                _ ->
+                    False
+
+        anyDragHappening =
+            case params.dragState of
+                Dragging _ ->
+                    True
+
+                NotDragging ->
+                    False
+
+        dragAttrs =
+            if params.isDraggable then
+                [ attribute "ondragstart" "event.dataTransfer.setData('text/plain', '');"
+                , draggable "true"
+                , on "dragstart" (Json.Decode.succeed (DragStart <| card))
+                , on "dragend" (Json.Decode.succeed DragEnd)
+                ]
+
+            else
+                []
+    in
+    case card of
+        InstanceGroupCard pipeline _ ->
+            Html.div
+                (Styles.listViewRowContainer isBeingDragged
+                    ++ dragAttrs
+                )
+                [ Html.div
+                    (Styles.listViewRowOverlay anyDragHappening
+                        ++ [ preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver (Before card), True ))
+                           , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
+                           ]
+                    )
+                    []
+                , Html.a
+                    ([ draggable "false"
+                     , href <|
+                        Routes.toString <|
+                            InstanceGroup.instanceGroupRoute
+                                { pipeline = pipeline
+                                , dashboardView = params.dashboardView
+                                , query = params.query
+                                }
+                     ]
+                        ++ Styles.listViewRowLink
+                    )
+                    [ Html.div Styles.listViewInstanceGroupBar []
+                    , Html.div (Styles.listViewPipelineRow ++ [ style "flex-grow" "1" ])
+                        [ Html.div Styles.listViewRowContent
+                            [ Html.div Styles.listViewPipelineInfo
+                                (getPipelineDisplayNameHtml pipeline)
+                            ]
+                        ]
+                    ]
+                ]
+
+        InstancedPipelineCard pipeline ->
+            let
+                statusColor =
+                    Colors.statusColor True (Pipeline.pipelineStatus pipelineJobs pipeline)
+            in
+            Html.div
+                (Styles.listViewRowContainer isBeingDragged
+                    ++ (style "align-items" "stretch" :: dragAttrs)
+                )
+                [ Html.div
+                    (Styles.listViewRowOverlay anyDragHappening
+                        ++ [ preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver (Before card), True ))
+                           , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
+                           ]
+                    )
+                    []
+                , Html.a
+                    ([ draggable "false"
+                     , href <| Routes.toString <| Routes.pipelineRoute pipeline []
+                     ]
+                        ++ Styles.listViewInstancedRowLink
+                    )
+                    [ Html.div (Styles.listViewRowStatusBar statusColor) []
+                    , Html.div (Styles.listViewPipelineRow ++ [ style "flex-grow" "1" ])
+                        [ Html.div Styles.listViewRowContent
+                            [ Html.div Styles.listViewPipelineInfo
+                                (getPipelineDisplayNameHtml pipeline)
+                            , Html.div (Styles.listViewPipelineStatusColored statusColor)
+                                [ Html.text (getPipelineStatusText pipelineJobs pipeline params.now) ]
+                            ]
+                        ]
+                    ]
+                , Html.div Styles.listViewInstancedPipelineButtons
+                    (renderPipelineButtons pipeline params.section session hovered)
+                ]
+
+        PipelineCard pipeline ->
+            let
+                statusColor =
+                    Colors.statusColor True (Pipeline.pipelineStatus pipelineJobs pipeline)
+            in
+            Html.div
+                (Styles.listViewRowContainer isBeingDragged
+                    ++ dragAttrs
+                )
+                [ Html.div
+                    (Styles.listViewRowOverlay anyDragHappening
+                        ++ [ preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver (Before card), True ))
+                           , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
+                           ]
+                    )
+                    []
+                , Html.a
+                    ([ draggable "false"
+                     , href <| Routes.toString <| Routes.pipelineRoute pipeline []
+                     ]
+                        ++ Styles.listViewRowLink
+                    )
+                    [ Html.div (Styles.listViewRowStatusBarTall statusColor) []
+                    , Html.div (Styles.listViewPipelineRow ++ [ style "flex-grow" "1" ])
+                        [ Html.div Styles.listViewRowContent
+                            [ Html.div Styles.listViewPipelineInfo
+                                (getPipelineDisplayNameHtml pipeline)
+                            , Html.div Styles.listViewPipelineStatus
+                                [ Html.text (getPipelineStatusText pipelineJobs pipeline params.now) ]
+                            , Html.div Styles.listViewPipelineButtonsContainer
+                                (renderStepStatusBlocks pipeline.id pipelineJobs ++ renderPipelineButtons pipeline params.section session hovered)
+                            ]
+                        ]
+                    ]
+                ]
+
+
+getPipelineStatusText : List Concourse.Job -> Pipeline -> Maybe Time.Posix -> String
+getPipelineStatusText jobs pipeline now =
+    let
+        status =
+            Pipeline.pipelineStatus jobs pipeline
+    in
+    case ( status, now ) of
+        ( Concourse.PipelineStatus.PipelineStatusSucceeded details, Just t ) ->
+            Concourse.PipelineStatus.show status ++ " " ++ Pipeline.sinceTransitionText details t
+
+        ( Concourse.PipelineStatus.PipelineStatusFailed details, Just t ) ->
+            Concourse.PipelineStatus.show status ++ " " ++ Pipeline.sinceTransitionText details t
+
+        ( Concourse.PipelineStatus.PipelineStatusErrored details, Just t ) ->
+            Concourse.PipelineStatus.show status ++ " " ++ Pipeline.sinceTransitionText details t
+
+        ( Concourse.PipelineStatus.PipelineStatusAborted details, Just t ) ->
+            Concourse.PipelineStatus.show status ++ " " ++ Pipeline.sinceTransitionText details t
+
+        _ ->
+            Concourse.PipelineStatus.show status
+
+
+getPipelineDisplayNameHtml : Pipeline -> List (Html Message)
+getPipelineDisplayNameHtml pipeline =
+    if Dict.isEmpty pipeline.instanceVars then
+        [ Html.text pipeline.name ]
+
+    else
+        pipeline.instanceVars
+            |> Dict.toList
+            |> List.concatMap (\( k, v ) -> flattenJson k v)
+            |> List.map
+                (\( k, v ) ->
+                    Html.span Styles.inlineInstanceVar
+                        [ Html.span [ style "color" Colors.pending ]
+                            [ Html.text <| k ++ ":" ]
+                        , Html.text v
+                        ]
+                )
+
+
+renderStepStatusBlocks : Concourse.DatabaseID -> List Concourse.Job -> List (Html Message)
+renderStepStatusBlocks pipelineId jobs =
+    if List.isEmpty jobs then
+        []
+
+    else
+        [ Html.div Styles.listViewStepStatusBlocks
+            (List.map
+                (\job ->
+                    Html.div
+                        (Styles.listViewStepStatusBlock (Colors.buildStatusColor True (Pipeline.jobStatus job))
+                            ++ Tooltip.hoverAttrs (JobPreview AllPipelinesSection pipelineId job.name)
+                        )
+                        []
+                )
+                jobs
+            )
+        ]
+
+
+renderPipelineButtons : Pipeline -> PipelinesSection -> Session -> HoverState.HoverState -> List (Html Message)
+renderPipelineButtons pipeline section session hovered =
+    let
+        pauseToggle =
+            PauseToggle.view
+                { isPaused = pipeline.paused
+                , pipeline = Concourse.toPipelineId pipeline
+                , isToggleHovered =
+                    HoverState.isHovered (PipelineCardPauseToggle section pipeline.id) hovered
+                , isToggleLoading = pipeline.isToggleLoading
+                , tooltipPosition = Views.Styles.Above
+                , margin = "0"
+                , userState = session.userState
+                , domID = PipelineCardPauseToggle section pipeline.id
+                }
+
+        visibilityButton =
+            Pipeline.visibilityView
+                { public = pipeline.public
+                , pipelineId = pipeline.id
+                , isClickable =
+                    UserState.isAnonymous session.userState
+                        || UserState.isMember
+                            { teamName = pipeline.teamName
+                            , userState = session.userState
+                            }
+                , isHovered =
+                    HoverState.isHovered (VisibilityButton section pipeline.id) hovered
+                , isVisibilityLoading = pipeline.isVisibilityLoading
+                , section = section
+                }
+
+        favoritedIcon =
+            Views.FavoritedIcon.view
+                { isFavorited = Favorites.isPipelineFavorited session pipeline
+                , isHovered =
+                    HoverState.isHovered (PipelineCardFavoritedIcon section pipeline.id) hovered
+                , isSideBar = False
+                , domID = PipelineCardFavoritedIcon section pipeline.id
+                }
+                []
+    in
+    if pipeline.archived then
+        [ visibilityButton, favoritedIcon ]
+
+    else
+        [ pauseToggle, visibilityButton, favoritedIcon ]
 
 
 pipelineCardView :
@@ -613,6 +1045,59 @@ pipelineDropAreaView dragState name { x, y, width, height } target =
         , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver target, True ))
         , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
         ]
+        []
+
+
+hdDropZoneView : DragState -> DropState -> String -> Card -> Html Message
+hdDropZoneView dragState dropState teamName targetCard =
+    let
+        active =
+            case ( dragState, dropState ) of
+                ( Dragging draggingCard, Dropping (Before hoveredCard) ) ->
+                    cardTeamName draggingCard
+                        == teamName
+                        && cardIdentifier hoveredCard
+                        == cardIdentifier targetCard
+
+                _ ->
+                    False
+    in
+    Html.div
+        (Styles.cardDropZone active
+            ++ [ on "dragenter" (Json.Decode.succeed (DragOver (Before targetCard)))
+               , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver (Before targetCard), True ))
+               , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
+               ]
+        )
+        []
+
+
+endDropZoneView : DragState -> DropState -> String -> Html Message
+endDropZoneView dragState dropState teamName =
+    let
+        active =
+            case ( dragState, dropState ) of
+                ( Dragging draggingCard, Dropping End ) ->
+                    cardTeamName draggingCard == teamName
+
+                _ ->
+                    False
+
+        anyDragHappening =
+            case dragState of
+                Dragging _ ->
+                    True
+
+                NotDragging ->
+                    False
+    in
+    Html.div
+        (Styles.endDropZone { active = active, anyDragHappening = anyDragHappening }
+            ++ [ on "dragenter" (Json.Decode.succeed (DragOver End))
+               , preventDefaultOn "dragover" (Json.Decode.succeed ( DragOver End, True ))
+               , stopPropagationOn "drop" (Json.Decode.succeed ( DragEnd, True ))
+               ]
+        )
         []
 
 

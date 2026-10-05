@@ -3,12 +3,12 @@ package tsa_test
 import (
 	"context"
 
-	"github.com/concourse/concourse/tsa"
+	"github.com/concourse/concourse/v8/tsa"
 	"golang.org/x/oauth2"
 
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc"
+	"github.com/concourse/concourse/v8/atc"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -55,6 +55,7 @@ var _ = Describe("Lander", func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+				ghttp.VerifyJSONRepresenting(worker),
 				ghttp.RespondWith(200, nil, nil),
 			))
 
@@ -69,6 +70,7 @@ var _ = Describe("Lander", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
 			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
+			ghttp.VerifyJSONRepresenting(worker),
 			ghttp.RespondWith(200, nil, nil),
 		))
 

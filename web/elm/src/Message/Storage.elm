@@ -5,6 +5,8 @@ port module Message.Storage exposing
     , deleteFromLocalStorage
     , favoritedInstanceGroupsKey
     , favoritedPipelinesKey
+    , groupListViewKey
+    , highDensityKey
     , jobsKey
     , loadFromCache
     , loadFromLocalStorage
@@ -86,6 +88,11 @@ teamsKey =
     "teams"
 
 
+highDensityKey : Key
+highDensityKey =
+    "high_density"
+
+
 favoritedPipelinesKey : Key
 favoritedPipelinesKey =
     "favorited_pipelines"
@@ -94,3 +101,8 @@ favoritedPipelinesKey =
 favoritedInstanceGroupsKey : Key
 favoritedInstanceGroupsKey =
     "favorited_instance_groups"
+
+
+groupListViewKey : Key
+groupListViewKey =
+    "group_list_view"

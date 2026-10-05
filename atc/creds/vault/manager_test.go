@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/concourse/concourse/atc/creds/vault"
+	"github.com/concourse/concourse/v8/atc/creds/vault"
 	"github.com/hashicorp/vault/api"
 	"github.com/jessevdk/go-flags"
 	"github.com/square/certstrap/pkix"
@@ -70,7 +70,27 @@ var _ = Describe("VaultManager", func() {
 
 		It("fails on missing vault auth credentials", func() {
 			manager.Auth = vault.AuthConfig{}
-			Expect(manager.Validate()).ToNot(BeNil())
+			Expect(manager.Validate()).To(MatchError("must configure client token or auth backend"))
+		})
+
+		It("fails when the scheme is not http or https", func() {
+			manager.URL = "file://foobar"
+			Expect(manager.Validate()).To(MatchError(`invalid scheme "file": must be http or https`))
+		})
+
+		It("fails when host is not specified", func() {
+			manager.URL = "http:///foobar"
+			Expect(manager.Validate()).To(MatchError(`URL must specify a host`))
+		})
+
+		It("passes when URL is an unresolved variable reference", func() {
+			manager.URL = "((v.vault_addr))"
+			Expect(manager.Validate()).To(BeNil())
+		})
+
+		It("passes when URL contains an unresolved variable reference for the host portion", func() {
+			manager.URL = "https://((v.vault_addr))"
+			Expect(manager.Validate()).To(BeNil())
 		})
 	})
 
@@ -146,19 +166,19 @@ var _ = Describe("VaultManager", func() {
 					"/what/{{.Team}}/blah/{{.Pipeline}}/{{.Secret}}",
 					"/thing/{{.Team}}/{{.Secret}}",
 				},
-				"shared_path":          "/shared-path",
-				"namespace":            "some-namespace",
-				"ca_cert":              string(caBytes),
-				"client_cert":          string(clientCertBytes),
-				"client_key":           string(clientKeyBytes),
-				"server_name":          serverName,
-				"insecure_skip_verify": true,
+				"shared_path":           "/shared-path",
+				"namespace":             "some-namespace",
+				"ca_cert":               string(caBytes),
+				"client_cert":           string(clientCertBytes),
+				"client_key":            string(clientKeyBytes),
+				"server_name":           serverName,
+				"insecure_skip_verify":  true,
 				"enable_kv_mount_cache": true,
-				"client_token":         "some-client-token",
-				"auth_backend_max_ttl": "5m",
-				"auth_retry_max":       "15m",
-				"auth_retry_initial":   "10s",
-				"auth_backend":         "approle",
+				"client_token":          "some-client-token",
+				"auth_backend_max_ttl":  "5m",
+				"auth_retry_max":        "15m",
+				"auth_retry_initial":    "10s",
+				"auth_backend":          "approle",
 				"auth_params": map[string]string{
 					"role_id":   "some-role-id",
 					"secret_id": "some-secret-id",

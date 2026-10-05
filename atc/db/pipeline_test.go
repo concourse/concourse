@@ -7,19 +7,19 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/clock"
-	"github.com/concourse/concourse/atc/creds"
-	"github.com/concourse/concourse/atc/creds/credsfakes"
-	"github.com/concourse/concourse/atc/db/dbtest"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc/creds"
+	"github.com/concourse/concourse/v8/atc/creds/credsfakes"
+	"github.com/concourse/concourse/v8/atc/db/dbtest"
+	"github.com/concourse/concourse/v8/vars"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/event"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/event"
 
 	// load dummy credential manager
-	_ "github.com/concourse/concourse/atc/creds/dummy"
+	_ "github.com/concourse/concourse/v8/atc/creds/dummy"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -833,14 +833,12 @@ var _ = Describe("Pipeline", func() {
 				}))
 
 				explicitOutput := atc.DebugBuildOutput{
-					DebugResourceVersion: atc.DebugResourceVersion{
-						VersionID:  savedVR1.ID(),
-						ResourceID: resource.ID(),
-						ScopeID:    resource.ResourceConfigScopeID(),
-						CheckOrder: savedVR1.CheckOrder(),
-					},
-					JobID:   scenarioPipeline1.Job("a-job").ID(),
-					BuildID: build1DB.ID(),
+					VersionID:  savedVR1.ID(),
+					ResourceID: resource.ID(),
+					ScopeID:    resource.ResourceConfigScopeID(),
+					CheckOrder: savedVR1.CheckOrder(),
+					JobID:      scenarioPipeline1.Job("a-job").ID(),
+					BuildID:    build1DB.ID(),
 				}
 
 				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
@@ -885,14 +883,12 @@ var _ = Describe("Pipeline", func() {
 
 				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
 					{
-						DebugResourceVersion: atc.DebugResourceVersion{
-							VersionID:  savedVR1.ID(),
-							ResourceID: resource.ID(),
-							ScopeID:    resource.ResourceConfigScopeID(),
-							CheckOrder: savedVR1.CheckOrder(),
-						},
-						JobID:   scenarioPipeline1.Job("a-job").ID(),
-						BuildID: build1DB.ID(),
+						VersionID:  savedVR1.ID(),
+						ResourceID: resource.ID(),
+						ScopeID:    resource.ResourceConfigScopeID(),
+						CheckOrder: savedVR1.CheckOrder(),
+						JobID:      scenarioPipeline1.Job("a-job").ID(),
+						BuildID:    build1DB.ID(),
 					},
 				}))
 
@@ -944,24 +940,20 @@ var _ = Describe("Pipeline", func() {
 
 				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
 					{
-						DebugResourceVersion: atc.DebugResourceVersion{
-							VersionID:  savedVR3.ID(),
-							ResourceID: otherResource.ID(),
-							ScopeID:    otherResource.ResourceConfigScopeID(),
-							CheckOrder: savedVR3.CheckOrder(),
-						},
-						JobID:   scenarioPipeline1.Job("a-job").ID(),
-						BuildID: otherPipelineBuild.ID(),
+						VersionID:  savedVR3.ID(),
+						ResourceID: otherResource.ID(),
+						ScopeID:    otherResource.ResourceConfigScopeID(),
+						CheckOrder: savedVR3.CheckOrder(),
+						JobID:      scenarioPipeline1.Job("a-job").ID(),
+						BuildID:    otherPipelineBuild.ID(),
 					},
 					{
-						DebugResourceVersion: atc.DebugResourceVersion{
-							VersionID:  savedVR1.ID(),
-							ResourceID: resource.ID(),
-							ScopeID:    resource.ResourceConfigScopeID(),
-							CheckOrder: savedVR1.CheckOrder(),
-						},
-						JobID:   scenarioPipeline1.Job("a-job").ID(),
-						BuildID: build1DB.ID(),
+						VersionID:  savedVR1.ID(),
+						ResourceID: resource.ID(),
+						ScopeID:    resource.ResourceConfigScopeID(),
+						CheckOrder: savedVR1.CheckOrder(),
+						JobID:      scenarioPipeline1.Job("a-job").ID(),
+						BuildID:    build1DB.ID(),
 					},
 				}))
 
@@ -987,10 +979,8 @@ var _ = Describe("Pipeline", func() {
 				err = scenarioPipeline1.Job("a-job").SaveNextInputMapping(db.InputMapping{
 					"some-input-name": db.InputResult{
 						Input: &db.AlgorithmInput{
-							AlgorithmVersion: db.AlgorithmVersion{
-								Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "1"})),
-								ResourceID: resource.ID(),
-							},
+							Version:         db.ResourceVersion(convertToSHA256(atc.Version{"version": "1"})),
+							ResourceID:      resource.ID(),
 							FirstOccurrence: true,
 						},
 						PassedBuildIDs: []int{},
@@ -1012,40 +1002,34 @@ var _ = Describe("Pipeline", func() {
 
 				Expect(versions.BuildInputs).To(ConsistOf([]atc.DebugBuildInput{
 					{
-						DebugResourceVersion: atc.DebugResourceVersion{
-							VersionID:  savedVR1.ID(),
-							ResourceID: resource.ID(),
-							ScopeID:    resource.ResourceConfigScopeID(),
-							CheckOrder: savedVR1.CheckOrder(),
-						},
-						JobID:     scenarioPipeline1.Job("a-job").ID(),
-						BuildID:   build1DB.ID(),
-						InputName: "some-input-name",
+						VersionID:  savedVR1.ID(),
+						ResourceID: resource.ID(),
+						ScopeID:    resource.ResourceConfigScopeID(),
+						CheckOrder: savedVR1.CheckOrder(),
+						JobID:      scenarioPipeline1.Job("a-job").ID(),
+						BuildID:    build1DB.ID(),
+						InputName:  "some-input-name",
 					},
 				}))
 
 				By("including implicit outputs of successful builds")
 				implicitOutput := atc.DebugBuildOutput{
-					DebugResourceVersion: atc.DebugResourceVersion{
-						VersionID:  savedVR1.ID(),
-						ResourceID: resource.ID(),
-						ScopeID:    resource.ResourceConfigScopeID(),
-						CheckOrder: savedVR1.CheckOrder(),
-					},
-					JobID:   scenarioPipeline1.Job("a-job").ID(),
-					BuildID: build1DB.ID(),
+					VersionID:  savedVR1.ID(),
+					ResourceID: resource.ID(),
+					ScopeID:    resource.ResourceConfigScopeID(),
+					CheckOrder: savedVR1.CheckOrder(),
+					JobID:      scenarioPipeline1.Job("a-job").ID(),
+					BuildID:    build1DB.ID(),
 				}
 
 				By("including put-only resource's outputs of successful builds")
 				otherExplicitOutput := atc.DebugBuildOutput{
-					DebugResourceVersion: atc.DebugResourceVersion{
-						VersionID:  savedVR3.ID(),
-						ResourceID: otherResource.ID(),
-						ScopeID:    otherResource.ResourceConfigScopeID(),
-						CheckOrder: savedVR3.CheckOrder(),
-					},
-					JobID:   scenarioPipeline1.Job("a-job").ID(),
-					BuildID: otherPipelineBuild.ID(),
+					VersionID:  savedVR3.ID(),
+					ResourceID: otherResource.ID(),
+					ScopeID:    otherResource.ResourceConfigScopeID(),
+					CheckOrder: savedVR3.CheckOrder(),
+					JobID:      scenarioPipeline1.Job("a-job").ID(),
+					BuildID:    otherPipelineBuild.ID(),
 				}
 
 				Expect(versions.BuildOutputs).To(ConsistOf([]atc.DebugBuildOutput{
@@ -1162,10 +1146,8 @@ var _ = Describe("Pipeline", func() {
 			err = scenario.Job("some-job").SaveNextInputMapping(db.InputMapping{
 				"build-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"key": "value"})),
-							ResourceID: scenario.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(atc.Version{"key": "value"})),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -1588,10 +1570,8 @@ var _ = Describe("Pipeline", func() {
 			err = scenario.Job("job-name").SaveNextInputMapping(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "v1"})),
-							ResourceID: scenario.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(atc.Version{"version": "v1"})),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -1617,20 +1597,16 @@ var _ = Describe("Pipeline", func() {
 			err = scenario.Job("job-name").SaveNextInputMapping(db.InputMapping{
 				"some-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "v1"})),
-							ResourceID: scenario.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(atc.Version{"version": "v1"})),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
 				},
 				"some-other-input": db.InputResult{
 					Input: &db.AlgorithmInput{
-						AlgorithmVersion: db.AlgorithmVersion{
-							Version:    db.ResourceVersion(convertToSHA256(atc.Version{"version": "v3"})),
-							ResourceID: scenario.Resource("some-resource").ID(),
-						},
+						Version:         db.ResourceVersion(convertToSHA256(atc.Version{"version": "v3"})),
+						ResourceID:      scenario.Resource("some-resource").ID(),
 						FirstOccurrence: true,
 					},
 					PassedBuildIDs: []int{},
@@ -1955,6 +1931,11 @@ var _ = Describe("Pipeline", func() {
 							Type:   "some-type",
 							Source: atc.Source{"some": "source"},
 						},
+						{
+							Name:   "other-resource",
+							Type:   "some-type",
+							Source: atc.Source{"some": "source"},
+						},
 					},
 				}),
 				builder.WithResourceVersions("some-resource",
@@ -1970,9 +1951,23 @@ var _ = Describe("Pipeline", func() {
 			var found bool
 			var err error
 
-			rv, found, err = pipeline.ResourceVersion(resourceConfigVersion.ID())
+			rv, found, err = scenario.Pipeline.ResourceVersion(scenario.Resource("some-resource").ID(), resourceConfigVersion.ID())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(found).To(BeTrue())
+		})
+
+		It("does not return a version for another resource in the pipeline", func() {
+			version, found, err := scenario.Pipeline.ResourceVersion(scenario.Resource("other-resource").ID(), resourceConfigVersion.ID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+			Expect(version).To(Equal(atc.ResourceVersion{}))
+		})
+
+		It("does not return a version for a resource in another pipeline", func() {
+			version, found, err := pipeline.ResourceVersion(scenario.Resource("some-resource").ID(), resourceConfigVersion.ID())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(found).To(BeFalse())
+			Expect(version).To(Equal(atc.ResourceVersion{}))
 		})
 
 		Context("when a resource is enabled", func() {
@@ -2147,7 +2142,7 @@ var _ = Describe("Pipeline", func() {
 
 		JustBeforeEach(func() {
 			fakeGlobalSecrets = new(credsfakes.FakeSecrets)
-			fakeGlobalSecrets.GetStub = func(key string) (any, *time.Time, bool, error) {
+			fakeGlobalSecrets.GetStub = func(key string, params creds.SecretLookupParams) (any, *time.Time, bool, error) {
 				if key == "gk" {
 					return "gv", nil, true, nil
 				}

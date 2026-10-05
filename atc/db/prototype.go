@@ -10,9 +10,9 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db/lock"
-	"github.com/concourse/concourse/atc/util"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db/lock"
+	"github.com/concourse/concourse/v8/atc/util"
 )
 
 //counterfeiter:generate . Prototype
@@ -154,7 +154,7 @@ func (p *prototype) CurrentPinnedVersion() atc.Version { return nil }
 func (p *prototype) HasWebhook() bool { return false }
 
 func newEmptyPrototype(conn DbConn, lockFactory lock.LockFactory) *prototype {
-	return &prototype{pipelineRef: pipelineRef{conn: conn, lockFactory: lockFactory}}
+	return &prototype{conn: conn, lockFactory: lockFactory}
 }
 
 func (p *prototype) Reload() (bool, error) {

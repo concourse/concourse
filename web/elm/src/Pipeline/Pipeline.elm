@@ -14,6 +14,7 @@ module Pipeline.Pipeline exposing
     )
 
 import Application.Models exposing (Session)
+import Assets
 import Colors
 import Concourse
 import Concourse.BuildStatus exposing (BuildStatus(..))
@@ -61,6 +62,7 @@ import Time
 import Tooltip
 import UpdateMsg exposing (UpdateMsg)
 import Views.FavoritedIcon as FavoritedIcon
+import Views.Icon as Icon
 import Views.PauseToggle as PauseToggle
 import Views.SearchBar as SearchBar
 import Views.Styles
@@ -442,10 +444,15 @@ view session model =
             isPaused model.pipeline
                 && not (isArchived model.pipeline)
     in
-    Html.div [ Html.Attributes.style "height" "100%" ]
+    Html.div
+        [ Html.Attributes.style "flex" "1"
+        , Html.Attributes.style "min-height" "0"
+        , Html.Attributes.style "display" "flex"
+        , Html.Attributes.style "flex-direction" "column"
+        ]
         [ Html.div
             (id "page-including-top-bar" :: Views.Styles.pageIncludingTopBar)
-            [ Html.div
+            [ Views.Styles.hideIf session.hideUI (Html.div
                 (id "top-bar-app" :: Views.Styles.topBar displayPaused)
                 [ Html.div
                     [ style "display" "flex"
@@ -479,6 +486,7 @@ view session model =
                             , timeZone = session.timeZone
                             }
                     , PinMenu.viewPinMenu session model
+                    , viewInfoIcon session model
                     , Html.div
                         Styles.favoritedIcon
                         [ FavoritedIcon.view
@@ -515,19 +523,72 @@ view session model =
                     , Login.view session.userState model
                     ]
                 ]
+              )
             , Html.div
-                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar route)
+                (id "page-below-top-bar" :: Views.Styles.pageBelowTopBar session.hideUI route)
               <|
-                [ SideBar.view session (Just model.pipelineLocator)
+                [ Views.Styles.hideIf session.hideUI (SideBar.view session (Just model.pipelineLocator))
                 , viewSubPage session model
                 ]
             ]
         ]
 
 
+viewInfoIcon : { a | hovered : HoverState.HoverState } -> Model -> Html Message
+viewInfoIcon session model =
+    if hasUserData model.pipeline then
+        Html.a
+            (id "top-bar-info-icon"
+                :: href
+                    (Routes.toString <|
+                        Routes.PipelineInfo model.pipelineLocator
+                    )
+                :: onMouseEnter (Hover <| Just TopBarInfoIcon)
+                :: onMouseLeave (Hover Nothing)
+                :: Styles.infoIcon
+            )
+            [ Icon.icon
+                { sizePx = 20, image = Assets.InformationOutlineIcon }
+                [ style "margin" "17px"
+                , style "opacity" <|
+                    if HoverState.isHovered TopBarInfoIcon session.hovered then
+                        "1"
+
+                    else
+                        "0.5"
+                ]
+            ]
+
+    else
+        Html.text ""
+
+
+hasUserData : WebData Concourse.Pipeline -> Bool
+hasUserData pipeline =
+    case pipeline of
+        RemoteData.Success { userData } ->
+            case userData of
+                Just _ ->
+                    True
+
+                Nothing ->
+                    False
+
+        _ ->
+            False
+
+
 tooltip : Model -> Session -> Maybe Tooltip.Tooltip
 tooltip model session =
     case session.hovered of
+        HoverState.Tooltip TopBarInfoIcon _ ->
+            Just
+                { body = Html.text "pipeline info"
+                , attachPosition = { direction = Tooltip.Bottom, alignment = Tooltip.End }
+                , arrow = Just 5
+                , containerAttrs = Nothing
+                }
+
         HoverState.Tooltip (TopBarPipelineName _) _ ->
             case lastUpdatedAt model.pipeline of
                 Just time ->
@@ -648,7 +709,7 @@ backgroundImage pipeline =
 
 
 viewSubPage :
-    { a | hovered : HoverState.HoverState, version : String, screenSize : ScreenSize }
+    { a | hovered : HoverState.HoverState, version : String, screenSize : ScreenSize, hideUI : Bool }
     -> Model
     -> Html Message
 viewSubPage session model =
@@ -681,7 +742,7 @@ viewSubPage session model =
                     , Html.p [ class "explanation" ] []
                     ]
                 ]
-            , if model.hideLegend then
+            , if model.hideLegend || session.hideUI then
                 Html.text ""
 
               else
@@ -711,7 +772,7 @@ viewSubPage session model =
                     , Html.dt [ class "solid" ] [ Html.text "-" ]
                     , Html.dd [] [ Html.text "dependency (trigger)" ]
                     ]
-            , Html.table [ class "lower-right-info" ]
+            , Views.Styles.hideIf session.hideUI (Html.table [ class "lower-right-info" ]
                 [ Html.tr []
                     [ Html.td [ class "label" ]
                         [ Html.a
@@ -751,6 +812,7 @@ viewSubPage session model =
                         ]
                     ]
                 ]
+              )
             ]
         ]
 

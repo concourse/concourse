@@ -7,24 +7,24 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/concourse/concourse/tracing"
+	"github.com/concourse/concourse/v8/tracing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
-	"github.com/concourse/concourse/atc"
-	"github.com/concourse/concourse/atc/db"
-	"github.com/concourse/concourse/atc/db/dbfakes"
-	"github.com/concourse/concourse/atc/exec"
-	"github.com/concourse/concourse/atc/exec/build"
-	"github.com/concourse/concourse/atc/exec/execfakes"
-	"github.com/concourse/concourse/atc/resource"
-	"github.com/concourse/concourse/atc/runtime"
-	"github.com/concourse/concourse/atc/runtime/runtimetest"
-	"github.com/concourse/concourse/atc/worker"
-	"github.com/concourse/concourse/vars"
+	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
+	"github.com/concourse/concourse/v8/atc/exec"
+	"github.com/concourse/concourse/v8/atc/exec/build"
+	"github.com/concourse/concourse/v8/atc/exec/execfakes"
+	"github.com/concourse/concourse/v8/atc/resource"
+	"github.com/concourse/concourse/v8/atc/runtime"
+	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
+	"github.com/concourse/concourse/v8/atc/worker"
+	"github.com/concourse/concourse/v8/vars"
 )
 
 var _ = Describe("PutStep", func() {
@@ -633,6 +633,29 @@ var _ = Describe("PutStep", func() {
 
 		It("is successful", func() {
 			Expect(stepOk).To(BeTrue())
+		})
+	})
+
+	Context("when saving the build output fails", func() {
+		disaster := errors.New("failed to save output")
+
+		BeforeEach(func() {
+			fakeDelegate.SaveOutputReturns(disaster)
+		})
+
+		It("returns the error", func() {
+			Expect(stepErr).To(MatchError(disaster))
+		})
+
+		It("is not successful", func() {
+			Expect(stepOk).To(BeFalse())
+		})
+
+		It("does not finish the step or store its result", func() {
+			Expect(fakeDelegate.FinishedCallCount()).To(Equal(0))
+
+			var result atc.Version
+			Expect(state.Result(planID, &result)).To(BeFalse())
 		})
 	})
 
