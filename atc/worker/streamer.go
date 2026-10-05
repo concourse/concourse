@@ -111,6 +111,12 @@ func (s Streamer) stream(ctx context.Context, src runtime.Artifact, dst runtime.
 		return s.streamThroughATC(ctx, src, dst)
 	}
 
+	srcGroup := p2pSrc.DBVolume().P2PStreamingGroup()
+	dstGroup := p2pDst.DBVolume().P2PStreamingGroup()
+	if srcGroup != dstGroup {
+		return s.streamThroughATC(ctx, src, dst)
+	}
+
 	err := s.p2pStream(ctx, p2pSrc, p2pDst)
 	if err != nil {
 		// P2P streaming failed - fallback to streaming through ATC (web node)

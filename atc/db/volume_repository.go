@@ -814,6 +814,7 @@ var volumeColumns = []string{
 	when v.worker_artifact_id is not NULL then 'artifact'
 	else 'unknown'
 end`,
+	"w.p2p_streaming_group",
 }
 
 func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, DestroyingVolume, FailedVolume, error) {
@@ -832,6 +833,7 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 	var sqWorkerResourceCertsID sql.NullInt64
 	var sqWorkerArtifactID sql.NullInt64
 	var volumeType VolumeType
+	var sqP2PStreamingGroup sql.NullString
 
 	err := row.Scan(
 		&id,
@@ -849,6 +851,7 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 		&sqWorkerResourceCertsID,
 		&sqWorkerArtifactID,
 		&volumeType,
+		&sqP2PStreamingGroup,
 	)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -904,6 +907,11 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 		workerArtifactID = int(sqWorkerArtifactID.Int64)
 	}
 
+	var p2pStreamingGroup string
+	if sqP2PStreamingGroup.Valid {
+		p2pStreamingGroup = sqP2PStreamingGroup.String
+	}
+
 	switch VolumeState(state) {
 	case VolumeStateCreated:
 		return nil, &createdVolume{
@@ -921,6 +929,7 @@ func scanVolume(row sq.RowScanner, conn DbConn) (CreatingVolume, CreatedVolume, 
 			workerTaskCacheID:        workerTaskCacheID,
 			workerResourceCertsID:    workerResourceCertsID,
 			workerArtifactID:         workerArtifactID,
+			p2pStreamingGroup:        p2pStreamingGroup,
 			conn:                     conn,
 		}, nil, nil, nil
 	case VolumeStateCreating:

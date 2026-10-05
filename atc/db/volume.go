@@ -104,6 +104,19 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 		return nil, err
 	}
 
+	// Newly created volumes are streamed before they are fetched again. Read the
+	// worker's group here so those volumes use the same policy as reloaded ones.
+	var p2pStreamingGroup string
+	err = psql.Select("COALESCE(w.p2p_streaming_group, '')").
+		From("volumes v").
+		LeftJoin("workers w ON v.worker_name = w.name").
+		Where(sq.Eq{"v.id": volume.id}).
+		RunWith(volume.conn).
+		QueryRow().Scan(&p2pStreamingGroup)
+	if err != nil {
+		return nil, err
+	}
+
 	return &createdVolume{
 		id:                       volume.id,
 		workerName:               volume.workerName,
@@ -118,6 +131,7 @@ func (volume *creatingVolume) Created() (CreatedVolume, error) {
 		workerBaseResourceTypeID: volume.workerBaseResourceTypeID,
 		workerTaskCacheID:        volume.workerTaskCacheID,
 		workerResourceCertsID:    volume.workerResourceCertsID,
+		p2pStreamingGroup:        p2pStreamingGroup,
 	}, nil
 }
 
@@ -172,6 +186,7 @@ type CreatedVolume interface {
 	ResourceType() (*VolumeResourceType, error)
 	BaseResourceType() (*UsedWorkerBaseResourceType, error)
 	TaskIdentifier() (int, atc.PipelineRef, string, string, error)
+	P2PStreamingGroup() string
 }
 
 type createdVolume struct {
@@ -189,6 +204,7 @@ type createdVolume struct {
 	workerTaskCacheID        int
 	workerResourceCertsID    int
 	workerArtifactID         int
+	p2pStreamingGroup        string
 	conn                     DbConn
 }
 
@@ -207,6 +223,7 @@ func (volume *createdVolume) ContainerHandle() string    { return volume.contain
 func (volume *createdVolume) ParentHandle() string       { return volume.parentHandle }
 func (volume *createdVolume) WorkerArtifactID() int      { return volume.workerArtifactID }
 func (volume *createdVolume) WorkerResourceCacheID() int { return volume.workerResourceCacheID }
+func (volume *createdVolume) P2PStreamingGroup() string  { return volume.p2pStreamingGroup }
 
 func (volume *createdVolume) ResourceType() (*VolumeResourceType, error) {
 	if volume.resourceCacheID == 0 {

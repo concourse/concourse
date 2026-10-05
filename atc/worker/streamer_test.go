@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/compression"
 	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/concourse/concourse/v8/atc/runtime"
 	"github.com/concourse/concourse/v8/atc/runtime/runtimetest"
@@ -207,6 +208,44 @@ var _ = Describe("Streamer", func() {
 		Expect(baggageclaimVolume(dst)).To(grt.HaveContent(content))
 	})
 
+	DescribeTable("P2P streaming group routing", func(srcGroup, dstGroup string, enabled, wantP2P bool) {
+		content := runtimetest.VolumeContent{
+			"file1":        {Data: []byte("content 1")},
+			"folder/file2": {Data: []byte("content 2")},
+		}
+		scenario := Setup(workertest.WithWorkers(
+			grt.NewWorker("src-worker").WithP2PStreamingGroup(srcGroup).
+				WithVolumesCreatedInDBAndBaggageclaim(grt.NewVolume("src").WithContent(content)),
+			grt.NewWorker("dst-worker").WithP2PStreamingGroup(dstGroup).
+				WithVolumesCreatedInDBAndBaggageclaim(grt.NewVolume("dst")),
+		))
+		src := &trackedP2PVolume{P2PVolume: scenario.WorkerVolume("src-worker", "src").(runtime.P2PVolume)}
+		dst := &trackedP2PVolume{P2PVolume: scenario.WorkerVolume("dst-worker", "dst").(runtime.P2PVolume)}
+
+		err := scenario.Streamer(worker.P2PConfig{Enabled: enabled}).Stream(context.Background(), src, dst)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(baggageclaimVolume(dst.P2PVolume)).To(grt.HaveContent(content))
+		if wantP2P {
+			Expect(src.p2pOutCalls).To(Equal(1))
+			Expect(dst.p2pURLCalls).To(Equal(1))
+			Expect(src.streamOutCalls).To(BeZero())
+			Expect(dst.streamInCalls).To(BeZero())
+		} else {
+			Expect(src.p2pOutCalls).To(BeZero())
+			Expect(dst.p2pURLCalls).To(BeZero())
+			Expect(src.streamOutCalls).To(Equal(1))
+			Expect(dst.streamInCalls).To(Equal(1))
+		}
+	},
+		Entry("same named group streams directly", "group-a", "group-a", true, true),
+		Entry("two ungrouped workers stream directly", "", "", true, true),
+		Entry("different groups stream through ATC", "group-a", "group-b", true, false),
+		Entry("group names are case sensitive", "group-a", "Group-a", true, false),
+		Entry("grouped source and ungrouped destination stream through ATC", "group-a", "", true, false),
+		Entry("ungrouped source and grouped destination stream through ATC", "", "group-a", true, false),
+		Entry("disabled P2P streams through ATC even within a group", "group-a", "group-a", false, false),
+	)
+
 	Test("stream file from volume", func() {
 		content := runtimetest.VolumeContent{
 			"file":        {Data: []byte("content 1")},
@@ -269,4 +308,31 @@ func baggageclaimVolume(volume runtime.Volume) *grt.Volume {
 
 	bcVolume := grVolume.BaggageclaimVolume().(*grt.Volume)
 	return bcVolume
+}
+
+// Count calls at the runtime boundary so successful content delivery cannot
+// hide an unexpected fallback from P2P to ATC streaming.
+type trackedP2PVolume struct {
+	runtime.P2PVolume
+	p2pOutCalls, p2pURLCalls, streamOutCalls, streamInCalls int
+}
+
+func (v *trackedP2PVolume) GetStreamInP2PURL(ctx context.Context, path string) (string, error) {
+	v.p2pURLCalls++
+	return v.P2PVolume.GetStreamInP2PURL(ctx, path)
+}
+
+func (v *trackedP2PVolume) StreamP2POut(ctx context.Context, path, url string, c compression.Compression) error {
+	v.p2pOutCalls++
+	return v.P2PVolume.StreamP2POut(ctx, path, url, c)
+}
+
+func (v *trackedP2PVolume) StreamOut(ctx context.Context, path string, c compression.Compression) (io.ReadCloser, error) {
+	v.streamOutCalls++
+	return v.P2PVolume.StreamOut(ctx, path, c)
+}
+
+func (v *trackedP2PVolume) StreamIn(ctx context.Context, path string, c compression.Compression, limit float64, in io.Reader) error {
+	v.streamInCalls++
+	return v.P2PVolume.StreamIn(ctx, path, c, limit, in)
 }
