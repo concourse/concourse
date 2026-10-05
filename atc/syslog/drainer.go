@@ -9,6 +9,7 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"github.com/concourse/concourse/v8/atc"
 	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/concourse/concourse/v8/atc/event"
 )
@@ -226,9 +227,18 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		ts = time.Unix(finishGetEvent.Time, 0)
 		tag = build.SyslogTag(finishGetEvent.Origin.ID)
 
-		version, _ := json.Marshal(finishGetEvent.FetchedVersion)
-		metadata, _ := json.Marshal(finishGetEvent.FetchedMetadata)
-		message = fmt.Sprintf("get {\"version\": %s, \"metadata\": %s", string(version), string(metadata))
+		version, err := json.Marshal(struct {
+			Version  atc.Version  `json:"version"`
+			Metadata atc.Metadata `json:"metadata"`
+		}{
+			Version:  finishGetEvent.FetchedVersion,
+			Metadata: finishGetEvent.FetchedMetadata,
+		})
+		if err != nil {
+			logger.Error("failed-to-marshal", err)
+			return err
+		}
+		message = fmt.Sprintf("get %s", version)
 	case event.EventTypeFinishPut:
 		var finishPutEvent event.FinishPut
 		err := json.Unmarshal(*ev.Data, &finishPutEvent)
@@ -239,9 +249,18 @@ func (d *drainer) sendEvent(logger lager.Logger, build db.Build, syslog *Syslog,
 		ts = time.Unix(finishPutEvent.Time, 0)
 		tag = build.SyslogTag(finishPutEvent.Origin.ID)
 
-		version, _ := json.Marshal(finishPutEvent.CreatedVersion)
-		metadata, _ := json.Marshal(finishPutEvent.CreatedMetadata)
-		message = fmt.Sprintf("put {\"version\": %s, \"metadata\": %s", string(version), string(metadata))
+		version, err := json.Marshal(struct {
+			Version  atc.Version  `json:"version"`
+			Metadata atc.Metadata `json:"metadata"`
+		}{
+			Version:  finishPutEvent.CreatedVersion,
+			Metadata: finishPutEvent.CreatedMetadata,
+		})
+		if err != nil {
+			logger.Error("failed-to-marshal", err)
+			return err
+		}
+		message = fmt.Sprintf("put %s", version)
 	case event.EventTypeError:
 		var errorEvent event.Error
 		err := json.Unmarshal(*ev.Data, &errorEvent)
