@@ -22,7 +22,9 @@ import DashboardTests exposing (iconSelector)
 import Data exposing (flags)
 import Dict
 import Expect
+import Fuzz
 import Html.Attributes as Attr
+import Json.Decode as Decode
 import Json.Encode as Encode
 import Keyboard
 import Message.Callback as Callback
@@ -1105,8 +1107,8 @@ all =
                         }
                     |> Tuple.second
                     |> Expect.equal [ Effects.Scroll ScrollDirection.ToBottom "build-body" ]
-        , test "pressing 'T' twice triggers two builds" <|
-            \_ ->
+        , fuzz (Fuzz.oneOfValues [ Keyboard.T, Keyboard.K, Keyboard.Unknown "KeyY" ]) "pressing logical T twice triggers two builds" <|
+            \physicalCode ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
                     |> Application.handleCallback
                         (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
@@ -1127,7 +1129,8 @@ all =
                                 { ctrlKey = False
                                 , shiftKey = True
                                 , metaKey = False
-                                , code = Keyboard.T
+                                , code = physicalCode
+                                , key = "T"
                                 }
                         )
                     |> Tuple.first
@@ -1137,7 +1140,8 @@ all =
                                 { ctrlKey = False
                                 , shiftKey = False
                                 , metaKey = False
-                                , code = Keyboard.T
+                                , code = physicalCode
+                                , key = "t"
                                 }
                         )
                     |> Tuple.first
@@ -1147,11 +1151,57 @@ all =
                                 { ctrlKey = False
                                 , shiftKey = True
                                 , metaKey = False
-                                , code = Keyboard.T
+                                , code = physicalCode
+                                , key = "T"
                                 }
                         )
                     |> Tuple.second
                     |> Expect.equal [ Effects.DoTriggerBuild Data.shortJobId ]
+        , test "pressing 'j' uses the logical key instead of the physical key" <|
+            \_ ->
+                Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                    |> Application.handleCallback
+                        (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
+                    |> Tuple.first
+                    |> Application.update
+                        (Msgs.DeliveryReceived <|
+                            KeyDown
+                                { ctrlKey = False
+                                , shiftKey = False
+                                , metaKey = False
+                                , code = Keyboard.K
+                                , key = "j"
+                                }
+                        )
+                    |> Tuple.second
+                    |> Expect.equal
+                        [ Effects.Scroll ScrollDirection.Down "build-body" ]
+        , test "question mark on an unrecognized physical key opens help" <|
+            \_ ->
+                let
+                    event =
+                        Encode.object
+                            [ ( "ctrlKey", Encode.bool False )
+                            , ( "shiftKey", Encode.bool True )
+                            , ( "metaKey", Encode.bool False )
+                            , ( "code", Encode.string "Minus" )
+                            , ( "key", Encode.string "?" )
+                            ]
+                in
+                case Decode.decodeValue Keyboard.decodeKeyEvent event of
+                    Ok keyEvent ->
+                        Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
+                            |> Application.handleCallback
+                                (Callback.BuildFetched <| Ok (Data.jobBuild BuildStatusStarted))
+                            |> Tuple.first
+                            |> Application.update (Msgs.DeliveryReceived (KeyDown keyEvent))
+                            |> Tuple.first
+                            |> Common.queryView
+                            |> Query.find [ class "keyboard-help" ]
+                            |> Query.hasNot [ class "hidden" ]
+
+                    Err error ->
+                        Expect.fail (Decode.errorToString error)
         , test "pressing 'R' reruns build" <|
             \_ ->
                 Common.init "/teams/t/pipelines/p/jobs/j/builds/1"
@@ -1175,6 +1225,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.R
+                                , key = "R"
                                 }
                         )
                     |> Tuple.second
@@ -1202,6 +1253,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.R
+                                , key = "R"
                                 }
                         )
                     |> Tuple.second
@@ -1219,6 +1271,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "g"
                                 }
                         )
                     |> Tuple.first
@@ -1229,6 +1282,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "g"
                                 }
                         )
                     |> Tuple.second
@@ -1246,6 +1300,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "G"
                                 }
                         )
                     |> Tuple.second
@@ -1263,6 +1318,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.G
+                                , key = "g"
                                 }
                         )
                     |> Tuple.second
@@ -1280,6 +1336,7 @@ all =
                                 , shiftKey = True
                                 , metaKey = False
                                 , code = Keyboard.Slash
+                                , key = "?"
                                 }
                         )
                     |> Tuple.first
@@ -1748,6 +1805,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second
@@ -1800,6 +1858,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second
@@ -1878,6 +1937,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = True
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second
@@ -1916,6 +1976,7 @@ all =
                                 , shiftKey = False
                                 , metaKey = False
                                 , code = Keyboard.L
+                                , key = "l"
                                 }
                             )
                         >> Tuple.second
