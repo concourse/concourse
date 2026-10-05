@@ -126,6 +126,11 @@ var _ = Describe("PipelineRef", func() {
 				out:   nil,
 			},
 			{
+				desc:  "explicitly empty",
+				query: url.Values{"vars": []string{"{}"}},
+				out:   atc.InstanceVars{},
+			},
+			{
 				desc: "simple",
 				query: url.Values{
 					"vars.hello": {`"world"`},

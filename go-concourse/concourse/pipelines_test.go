@@ -575,6 +575,26 @@ var _ = Describe("ATC Handler Pipelines", func() {
 					Expect(renamed).To(BeTrue())
 				})
 			})
+
+			Context("when explicitly selecting a pipeline without instance vars", func() {
+				BeforeEach(func() {
+					oldRef = atc.PipelineRef{Name: "mypipeline", InstanceVars: atc.InstanceVars{}}
+				})
+
+				JustBeforeEach(func() {
+					atcServer.SetHandler(0, ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedURL, "vars=%7B%7D"),
+						ghttp.VerifyJSON(expectedRequestBody),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedResponse),
+					))
+				})
+
+				It("sends an explicit empty vars selector", func() {
+					renamed, _, err := team.RenamePipeline(oldRef, newRef)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(renamed).To(BeTrue())
+				})
+			})
 		})
 
 		Context("when the pipeline does not exist", func() {

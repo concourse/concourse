@@ -4029,6 +4029,47 @@ var _ = Describe("Team", func() {
 			})
 		})
 
+		Context("when explicitly selecting a pipeline without instance vars", func() {
+			var (
+				nonInstanced db.Pipeline
+				instanced    db.Pipeline
+			)
+
+			BeforeEach(func() {
+				var err error
+				nonInstanced, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
+					Name: "release",
+				}, defaultPipelineConfig, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+
+				instanced, _, err = defaultTeam.SavePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"version": "7.0.x"},
+				}, defaultPipelineConfig, db.ConfigVersion(0), false)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("adds instance vars only to the non-instanced pipeline", func() {
+				found, err := defaultTeam.RenamePipeline(atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{},
+				}, atc.PipelineRef{
+					Name:         "release",
+					InstanceVars: atc.InstanceVars{"branch": "dev"},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				_, err = nonInstanced.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(nonInstanced.InstanceVars()).To(Equal(atc.InstanceVars{"branch": "dev"}))
+
+				_, err = instanced.Reload()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(instanced.InstanceVars()).To(Equal(atc.InstanceVars{"version": "7.0.x"}))
+			})
+		})
+
 		Context("when renaming would create duplicate pipeline refs", func() {
 			var (
 				p1       db.Pipeline

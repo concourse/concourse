@@ -9,7 +9,7 @@ import (
 )
 
 type RenamePipelineCommand struct {
-	OldName flaghelpers.PipelineFlag `short:"o"  long:"old-name" required:"true"  description:"Existing pipeline or instance group to rename"`
+	OldName flaghelpers.PipelineFlag `short:"o"  long:"old-name" required:"true"  description:"Existing pipeline or instance group to rename. If the pipeline is part of an instance group but has no instance vars, add a trailing '/' to target it."`
 	NewName flaghelpers.PipelineFlag `short:"n"    long:"new-name" required:"true"  description:"New name for the pipeline or instance group"`
 	Team    flaghelpers.TeamFlag     `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }

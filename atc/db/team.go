@@ -678,14 +678,18 @@ func (t *team) RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, error) {
 		})
 
 	if oldRef.InstanceVars != nil {
-		oldInstanceVarsBytes, err := json.Marshal(oldRef.InstanceVars)
-		if err != nil {
-			return false, err
-		}
+		if len(oldRef.InstanceVars) == 0 {
+			query = query.Where(sq.Eq{"instance_vars": nil})
+		} else {
+			oldInstanceVarsBytes, err := json.Marshal(oldRef.InstanceVars)
+			if err != nil {
+				return false, err
+			}
 
-		query = query.Where(sq.Eq{
-			"instance_vars": sql.NullString{String: string(oldInstanceVarsBytes), Valid: true},
-		})
+			query = query.Where(sq.Eq{
+				"instance_vars": sql.NullString{String: string(oldInstanceVarsBytes), Valid: true},
+			})
+		}
 	}
 
 	if oldRef.InstanceVars != nil || newRef.InstanceVars != nil {

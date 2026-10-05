@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/concourse/concourse/atc"
 	"github.com/concourse/concourse/go-concourse/concourse/internal"
@@ -235,10 +236,14 @@ func (team *team) RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, []Config
 	}
 
 	var response setConfigResponse
+	query := oldRef.QueryParams()
+	if oldRef.InstanceVars != nil && len(oldRef.InstanceVars) == 0 {
+		query = url.Values{"vars": []string{"{}"}}
+	}
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.RenamePipeline,
 		Params:      params,
-		Query:       oldRef.QueryParams(),
+		Query:       query,
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
 	}, &internal.Response{

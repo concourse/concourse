@@ -218,5 +218,27 @@ var _ = Describe("rename-pipeline", func() {
 				Expect(sess.Out).To(gbytes.Say("pipeline successfully renamed to 'some-pipeline/branch:develop'"))
 			})
 		})
+
+		Context("when explicitly selecting a pipeline without instance vars", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", "/api/v1/teams/main/pipelines/some-pipeline/rename", "vars=%7B%7D"),
+						ghttp.VerifyJSON(`{"name":"some-pipeline","instance_vars":{"branch":"develop"}}`),
+						ghttp.RespondWith(http.StatusNoContent, ""),
+					),
+				)
+			})
+
+			It("sends an explicit empty vars selector", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "rename-pipeline", "-o", "some-pipeline/", "-n", "some-pipeline/branch:develop")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Out).To(gbytes.Say("pipeline successfully renamed to 'some-pipeline/branch:develop'"))
+			})
+		})
 	})
 })
