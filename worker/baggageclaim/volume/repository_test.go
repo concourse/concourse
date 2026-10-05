@@ -1314,20 +1314,28 @@ var _ = Describe("Repository", func() {
 		})
 
 		DescribeTable("destination path stays within the volume",
-			func(inputPath string) {
-				_, _ = traversalRepo.StreamIn(context.Background(), "some-handle", inputPath,
+			func(inputPath string, skipOnWindows bool) {
+				if skipOnWindows {
+					Skip("skipped on Windows")
+				}
+
+				badStream, err := traversalRepo.StreamIn(context.Background(), "some-handle", inputPath,
 					baggageclaim.GzipEncoding, 0, strings.NewReader(""))
+				Expect(err).ToNot(HaveOccurred())
+				Expect(badStream).To(BeFalse())
 
 				Expect(fakeGzipStreamer.InCallCount()).To(Equal(1))
 				_, destPath, _ := fakeGzipStreamer.InArgsForCall(0)
 				Expect(destPath).To(HavePrefix(volumeDataDir),
 					"streamer must not receive a path outside the volume directory")
 			},
-			Entry("single parent-dir traversal", "../outside"),
-			Entry("multi-level parent-dir traversal", "a/../../outside"),
-			Entry("embedded parent-dir component", "foo/../bar"),
-			Entry("quadruple-dot escape attempt", "....//escape"),
-			Entry("absolute path component", "//absolute"),
+			Entry("single parent-dir traversal", "../outside", false),
+			Entry("multi-level parent-dir traversal", "a/../../outside", false),
+			Entry("embedded parent-dir component", "foo/../bar", false),
+			// Skipping on Windows because we end up trying to make a folder
+			// named '....' which Windows does not allow
+			Entry("quadruple-dot escape attempt", "....//escape", true),
+			Entry("absolute path component", "//absolute", false),
 		)
 	})
 
@@ -1336,9 +1344,8 @@ var _ = Describe("Repository", func() {
 			fakeGzipStreamer *volumefakes.FakeStreamer
 			fakeVolume       *volumefakes.FakeFilesystemLiveVolume
 			traversalRepo    volume.Repository
+			volumeDataPath   = filepath.FromSlash("/data/volume-root")
 		)
-
-		const volumeDataPath = "/data/volume-root"
 
 		BeforeEach(func() {
 			fakeGzipStreamer = new(volumefakes.FakeStreamer)
@@ -1359,8 +1366,9 @@ var _ = Describe("Repository", func() {
 
 		DescribeTable("source path stays within the volume",
 			func(inputPath string) {
-				_ = traversalRepo.StreamOut(context.Background(), "some-handle", inputPath,
+				err := traversalRepo.StreamOut(context.Background(), "some-handle", inputPath,
 					baggageclaim.GzipEncoding, new(bytes.Buffer))
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeGzipStreamer.OutCallCount()).To(Equal(1))
 				_, srcPath, _ := fakeGzipStreamer.OutArgsForCall(0)
@@ -1381,9 +1389,8 @@ var _ = Describe("Repository", func() {
 			fakeVolume       *volumefakes.FakeFilesystemLiveVolume
 			traversalRepo    volume.Repository
 			streamInServer   *httptest.Server
+			volumeDataPath   = filepath.FromSlash("/data/volume-root")
 		)
-
-		const volumeDataPath = "/data/volume-root"
 
 		BeforeEach(func() {
 			streamInServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1412,8 +1419,9 @@ var _ = Describe("Repository", func() {
 
 		DescribeTable("source path stays within the volume",
 			func(inputPath string) {
-				_ = traversalRepo.StreamP2pOut(context.Background(), "some-handle", inputPath,
+				err := traversalRepo.StreamP2pOut(context.Background(), "some-handle", inputPath,
 					baggageclaim.GzipEncoding, streamInServer.URL)
+				Expect(err).ToNot(HaveOccurred())
 
 				Expect(fakeGzipStreamer.OutCallCount()).To(Equal(1))
 				_, srcPath, _ := fakeGzipStreamer.OutArgsForCall(0)
