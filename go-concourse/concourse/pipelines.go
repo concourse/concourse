@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/concourse/concourse/v8/atc"
 	"github.com/concourse/concourse/v8/go-concourse/concourse/internal"
@@ -223,21 +224,26 @@ func (team *team) managePipeline(pipelineRef atc.PipelineRef, endpoint string) (
 	}
 }
 
-func (team *team) RenamePipeline(oldName string, newName string) (bool, []ConfigWarning, error) {
+func (team *team) RenamePipeline(oldRef, newRef atc.PipelineRef) (bool, []ConfigWarning, error) {
 	params := rata.Params{
-		"pipeline_name": oldName,
+		"pipeline_name": oldRef.Name,
 		"team_name":     team.Name(),
 	}
 
-	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: newName})
+	jsonBytes, err := json.Marshal(atc.RenameRequest{NewName: newRef.Name, NewInstanceVars: newRef.InstanceVars})
 	if err != nil {
 		return false, []ConfigWarning{}, err
 	}
 
 	var response setConfigResponse
+	query := oldRef.QueryParams()
+	if oldRef.InstanceVars != nil && len(oldRef.InstanceVars) == 0 {
+		query = url.Values{"vars": []string{"{}"}}
+	}
 	err = team.connection.Send(internal.Request{
 		RequestName: atc.RenamePipeline,
 		Params:      params,
+		Query:       query,
 		Body:        bytes.NewBuffer(jsonBytes),
 		Header:      http.Header{"Content-Type": []string{"application/json"}},
 	}, &internal.Response{

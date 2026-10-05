@@ -29,6 +29,12 @@ var _ = Describe("PipelineFlag", func() {
 				name: "some-pipeline",
 			},
 			{
+				desc:         "explicitly selects a pipeline without instance vars",
+				flag:         "some-pipeline/",
+				name:         "some-pipeline",
+				instanceVars: atc.InstanceVars{},
+			},
+			{
 				desc:         "instance var",
 				flag:         "some-pipeline/branch:master",
 				name:         "some-pipeline",
