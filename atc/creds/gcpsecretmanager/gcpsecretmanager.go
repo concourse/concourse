@@ -52,6 +52,7 @@ type SecretManager struct {
 	projectID       string
 	requestTimeout  time.Duration
 	secretTemplates []*creds.SecretTemplate
+	delimiter       string
 }
 
 func NewSecretManager(
@@ -60,10 +61,15 @@ func NewSecretManager(
 	projectID string,
 	requestTimeout time.Duration,
 	secretTemplates []*creds.SecretTemplate,
+	delimiter string,
 ) *SecretManager {
 	// A zero timeout yields an already-expired context, so treat it as unset.
 	if requestTimeout <= 0 {
 		requestTimeout = DefaultRequestTimeout
+	}
+
+	if delimiter == "" {
+		delimiter = DefaultSegmentDelimiter
 	}
 
 	return &SecretManager{
@@ -72,15 +78,22 @@ func NewSecretManager(
 		projectID:       projectID,
 		requestTimeout:  requestTimeout,
 		secretTemplates: secretTemplates,
+		delimiter:       delimiter,
 	}
 }
 
-// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager
+// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager.
+// Each path rejects team, pipeline and var names that would make the secret ID ambiguous.
 func (s *SecretManager) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
 		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
-			lookupPaths = append(lookupPaths, lPath)
+			lookupPaths = append(lookupPaths, delimitedLookupPath{
+				SecretLookupPath: lPath,
+				teamName:         teamName,
+				pipelineName:     pipelineName,
+				delimiter:        s.delimiter,
+			})
 		}
 	}
 	return lookupPaths

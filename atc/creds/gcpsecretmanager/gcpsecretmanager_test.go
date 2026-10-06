@@ -66,6 +66,7 @@ var _ = Describe("SecretManager", func() {
 			testProject,
 			time.Second,
 			templates,
+			DefaultSegmentDelimiter,
 		)
 	})
 
@@ -84,8 +85,82 @@ var _ = Describe("SecretManager", func() {
 			Expect(rendered).To(Equal([]string{
 				"concourse--main--mypipeline--mysecret",
 				"concourse--main--mysecret",
-				"concourse--mysecret",
+				"concourse-shared--mysecret",
 			}))
+		})
+
+		It("accepts names with single hyphens", func() {
+			paths := secrets.NewSecretLookupPaths("team-a", "my-pipeline", false)
+
+			value, err := paths[0].VariableToSecretPath("my-secret")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(value).To(Equal("concourse--team-a--my-pipeline--my-secret"))
+		})
+
+		DescribeTable("rejects a var name that could reach another scope, on every path",
+			func(varName string) {
+				paths := secrets.NewSecretLookupPaths("main", "mypipeline", false)
+				Expect(paths).To(HaveLen(3))
+
+				for _, p := range paths {
+					_, err := p.VariableToSecretPath(varName)
+					Expect(err).To(MatchError(ErrAmbiguousSegment))
+					Expect(err).To(MatchError(ContainSubstring("var name")))
+				}
+			},
+			Entry("another team's secret", "other-team--secret"),
+			Entry("another pipeline's secret", "other-pipeline--secret"),
+			Entry("leading hyphen", "-secret"),
+			Entry("trailing hyphen", "secret-"),
+			Entry("only the delimiter", "--"),
+		)
+
+		DescribeTable("rejects a team or pipeline name that could overlap another scope",
+			func(team, pipeline, kind string) {
+				paths := secrets.NewSecretLookupPaths(team, pipeline, false)
+				Expect(paths).ToNot(BeEmpty())
+
+				for _, p := range paths {
+					_, err := p.VariableToSecretPath("mysecret")
+					Expect(err).To(MatchError(ErrAmbiguousSegment))
+					Expect(err).To(MatchError(ContainSubstring(kind)))
+				}
+			},
+			Entry("team containing the delimiter", "a--b", "mypipeline", "team name"),
+			Entry("team with a trailing hyphen", "main-", "mypipeline", "team name"),
+			Entry("team containing the delimiter, no pipeline", "a--b", "", "team name"),
+			Entry("pipeline containing the delimiter", "main", "a--b", "pipeline name"),
+			Entry("pipeline with a leading hyphen", "main", "-pipeline", "pipeline name"),
+		)
+
+		Context("with a custom delimiter", func() {
+			BeforeEach(func() {
+				pipelineTemplate, err := creds.BuildSecretTemplate("pipeline", "ci__{{.Team}}__{{.Pipeline}}__{{.Secret}}")
+				Expect(err).ToNot(HaveOccurred())
+
+				secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{pipelineTemplate}, "__")
+			})
+
+			It("permits the default delimiter inside names", func() {
+				paths := secrets.NewSecretLookupPaths("team--a", "my--pipeline", false)
+				Expect(paths).To(HaveLen(1))
+
+				value, err := paths[0].VariableToSecretPath("my--secret")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(value).To(Equal("ci__team--a__my--pipeline__my--secret"))
+			})
+
+			DescribeTable("rejects names that could overlap the custom delimiter",
+				func(team, pipeline, varName, kind string) {
+					_, err := secrets.NewSecretLookupPaths(team, pipeline, false)[0].VariableToSecretPath(varName)
+					Expect(err).To(MatchError(ErrAmbiguousSegment))
+					Expect(err).To(MatchError(ContainSubstring(kind)))
+				},
+				Entry("var containing the delimiter", "main", "mypipeline", "other_team__secret", "var name"),
+				Entry("var with a trailing underscore", "main", "mypipeline", "secret_", "var name"),
+				Entry("team with a leading underscore", "_main", "mypipeline", "secret", "team name"),
+				Entry("pipeline containing the delimiter", "main", "a__b", "secret", "pipeline name"),
+			)
 		})
 
 		It("omits the pipeline-dependent path when there is no pipeline", func() {
@@ -141,7 +216,7 @@ var _ = Describe("SecretManager", func() {
 		})
 
 		It("falls back to the default timeout when none is configured", func() {
-			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates)
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates, DefaultSegmentDelimiter)
 
 			_, _, found, err := secrets.Get("concourse--main--mysecret")
 			Expect(err).ToNot(HaveOccurred())
