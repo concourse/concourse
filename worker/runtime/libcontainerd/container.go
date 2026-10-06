@@ -27,6 +27,9 @@ func (c *container) Info(ctx context.Context, opts ...containerd.InfoOpts) (cont
 }
 
 func (c *container) Delete(ctx context.Context, opts ...containerd.DeleteOpts) error {
+	// releases the container's snapshot when it has one (containers backed
+	// by natively pulled images); a no-op for the rest
+	opts = append(opts, containerd.WithSnapshotCleanup)
 	return c.container.Delete(ctx, opts...)
 }
 

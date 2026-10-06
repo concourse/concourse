@@ -32,11 +32,6 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 		gdn.RootFSPath = gdn.Image.URI
 	}
 
-	rootfs, err := rootfsDir(gdn.RootFSPath)
-	if err != nil {
-		return nil, err
-	}
-
 	mounts, err := OciSpecBindMounts(gdn.BindMounts)
 	if err != nil {
 		return nil, err
@@ -51,22 +46,41 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 		Options:     []string{"ro"},
 	})
 
-	return &specs.Spec{
+	oci = &specs.Spec{
 		Version: specs.Version,
 		Process: &specs.Process{
 			Args: []string{filepath.Join(InitBinContainerDir, filepath.Base(initBinPath))},
 			Cwd:  `C:\`,
 			Env:  gdn.Env,
 		},
-		Root:        &specs.Root{Path: rootfs},
 		Mounts:      mounts,
 		Annotations: map[string]string(gdn.Properties),
 		Windows: &specs.Windows{
-			LayerFolders:            []string{rootfs},
 			Resources:               OciWindowsResources(gdn.Limits),
 			IgnoreFlushesDuringBoot: true,
 		},
-	}, nil
+	}
+
+	if imageRef, ok := strings.CutPrefix(gdn.RootFSPath, OCIImageScheme+"://"); ok {
+		// the image is pulled natively through containerd at container
+		// creation; the snapshotter provides the rootfs
+		if oci.Annotations == nil {
+			oci.Annotations = map[string]string{}
+		}
+		oci.Annotations[OCIImageAnnotation] = imageRef
+
+		return oci, nil
+	}
+
+	rootfs, err := rootfsDir(gdn.RootFSPath)
+	if err != nil {
+		return nil, err
+	}
+
+	oci.Root = &specs.Root{Path: rootfs}
+	oci.Windows.LayerFolders = []string{rootfs}
+
+	return oci, nil
 }
 
 // WindowsContainerPath converts the POSIX-style absolute container paths the
