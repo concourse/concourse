@@ -1,4 +1,4 @@
-//go:build linux
+//go:build linux || windows
 
 // Package backend provides the implementation of a Garden server backed by
 // containerd.
@@ -365,6 +365,11 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 	}
 
 	oci.Mounts = append(oci.Mounts, netMounts...)
+
+	err = b.prepareContainer(oci, gdnSpec.Handle)
+	if err != nil {
+		return nil, fmt.Errorf("prepare container: %w", err)
+	}
 
 	labels, err := propertiesToLabels(gdnSpec.Properties)
 	if err != nil {
