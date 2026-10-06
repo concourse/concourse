@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -156,7 +157,7 @@ func (step *PutStep) run(ctx context.Context, state RunState, delegate PutDelega
 	if step.plan.TypeImage.GetPlan != nil {
 		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.TypeImage.GetPlan, step.plan.TypeImage.CheckPlan, step.plan.TypeImage.Privileged)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to fetch put resource type image: %w", err)
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.TypeImage.BaseType

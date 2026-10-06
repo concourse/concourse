@@ -117,7 +117,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 		var err error
 		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.TypeImage.GetPlan, step.plan.TypeImage.CheckPlan, step.plan.TypeImage.Privileged)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to fetch check resource type image: %w", err)
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.TypeImage.BaseType
