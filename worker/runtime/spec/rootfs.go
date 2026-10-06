@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+// OCIImageScheme is the rootfs URI scheme that makes the worker pull the
+// container image natively through containerd instead of using a streamed
+// rootfs volume, e.g. in a task config:
+//
+//	rootfs_uri: oci://mcr.microsoft.com/windows/servercore:ltsc2022
+const OCIImageScheme = "oci"
+
+// OCIImageAnnotation carries the native image reference through the OCI spec
+// to container creation.
+const OCIImageAnnotation = "org.concourse.oci-image"
+
 // rootfsDir takes a raw rootfs uri and extracts the directory that it points to,
 // if using a valid scheme (`raw://`)
 func rootfsDir(raw string) (directory string, err error) {

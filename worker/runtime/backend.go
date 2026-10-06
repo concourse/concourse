@@ -375,6 +375,11 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 	if err != nil {
 		return nil, fmt.Errorf("convert properties to labels: %w", err)
 	}
+
+	if imageRef, ok := oci.Annotations[bespec.OCIImageAnnotation]; ok {
+		return b.client.NewContainerWithImage(ctx, gdnSpec.Handle, labels, oci, imageRef)
+	}
+
 	return b.client.NewContainer(ctx, gdnSpec.Handle, labels, oci)
 }
 
