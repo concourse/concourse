@@ -219,6 +219,34 @@ var _ = Describe("ExtractEntry", func() {
 
 	})
 
+	Context("regular files", func() {
+		It("overwrites files that an earlier entry made read-only", func() {
+			header := &tar.Header{
+				Typeflag: tar.TypeReg,
+				Name:     "read-only-file",
+				Mode:     0444,
+				Size:     5,
+			}
+
+			err := tarfs.ExtractEntry(header, dest, strings.NewReader("first"), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			header = &tar.Header{
+				Typeflag: tar.TypeReg,
+				Name:     "read-only-file",
+				Mode:     0644,
+				Size:     6,
+			}
+
+			err = tarfs.ExtractEntry(header, dest, strings.NewReader("second"), false)
+			Expect(err).ToNot(HaveOccurred())
+
+			content, err := os.ReadFile(filepath.Join(dest, "read-only-file"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(content)).To(Equal("second"))
+		})
+	})
+
 	Context("symlinks", func() {
 		It("does not modify absolute paths", func() {
 			linkname := "/absolute/path/file"
