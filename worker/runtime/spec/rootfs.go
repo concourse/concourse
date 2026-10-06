@@ -2,6 +2,7 @@ package spec
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"strings"
 )
@@ -28,8 +29,14 @@ func rootfsDir(raw string) (directory string, err error) {
 	}
 
 	if !filepath.IsAbs(directory) {
-		err = fmt.Errorf("directory must be an absolute path")
-		return
+		// the web node builds this URI with net/url, which percent-encodes
+		// Windows path separators (raw://C:%5C...)
+		unescaped, uerr := url.PathUnescape(directory)
+		if uerr != nil || !filepath.IsAbs(unescaped) {
+			err = fmt.Errorf("directory must be an absolute path")
+			return
+		}
+		directory = filepath.Clean(unescaped)
 	}
 
 	return

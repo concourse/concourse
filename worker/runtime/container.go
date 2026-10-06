@@ -1,4 +1,4 @@
-//go:build linux
+//go:build linux || windows
 
 package runtime
 
@@ -103,7 +103,7 @@ func (c *Container) Run(
 		return nil, err
 	}
 
-	err = c.rootfsManager.SetupCwd(containerSpec.Root.Path, procSpec.Cwd)
+	err = c.rootfsManager.SetupCwd(rootfsPath(containerSpec), procSpec.Cwd)
 	if err != nil {
 		return nil, fmt.Errorf("setup cwd: %w", err)
 	}
@@ -370,6 +370,15 @@ func (c *Container) BulkNetOut(netOutRules []garden.NetOutRule) (err error) {
 	return
 }
 
+// rootfsPath returns the spec's root path; on Windows the root is unset in
+// favour of Windows.LayerFolders since the runtime mounts the layers itself.
+func rootfsPath(containerSpec *specs.Spec) string {
+	if containerSpec == nil || containerSpec.Root == nil {
+		return ""
+	}
+	return containerSpec.Root.Path
+}
+
 func procID(gdnProcSpec garden.ProcessSpec) string {
 	id := gdnProcSpec.ID
 	if id == "" {
@@ -408,7 +417,7 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 	if gdnProcSpec.User != "" {
 		var ok bool
 		var err error
-		procSpec.User, ok, err = c.rootfsManager.LookupUser(containerSpec.Root.Path, gdnProcSpec.User)
+		procSpec.User, ok, err = c.rootfsManager.LookupUser(rootfsPath(&containerSpec), gdnProcSpec.User)
 		if err != nil {
 			return specs.Process{}, fmt.Errorf("lookup user: %w", err)
 		}
