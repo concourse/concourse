@@ -10,11 +10,11 @@ PIPELINE="${CONCOURSE_TEST_PIPELINE:-gcp-creds-test}"
 
 ids=(
   "__concourse-health-check"
-  "concourse--shared-cred"
+  "concourse-shared--shared-cred"
   "concourse--${TEAM}--team-cred"
   "concourse--${TEAM}--${PIPELINE}--pipeline-cred"
   "concourse--${TEAM}--${PIPELINE}--json-cred"
-  "concourse--precedence-cred"
+  "concourse-shared--precedence-cred"
   "concourse--${TEAM}--precedence-cred"
   "concourse--${TEAM}--${PIPELINE}--precedence-cred"
 )

@@ -32,8 +32,8 @@ put() {
 # Healthcheck
 put "__concourse-health-check" "health-check-ok"
 
-# Shared scope -- concourse--{{.Secret}}
-put "concourse--shared-cred" "shared-value"
+# Shared scope -- concourse-shared--{{.Secret}}
+put "concourse-shared--shared-cred" "shared-value"
 
 # Team scope -- concourse--{{.Team}}--{{.Secret}}
 put "concourse--${TEAM}--team-cred" "team-value"
@@ -45,7 +45,7 @@ put "concourse--${TEAM}--${PIPELINE}--pipeline-cred" "pipeline-value"
 put "concourse--${TEAM}--${PIPELINE}--json-cred" '{"username":"neo","password":"trinity"}'
 
 # Same name at three scopes, to prove pipeline > team > shared precedence.
-put "concourse--precedence-cred" "wrong-shared"
+put "concourse-shared--precedence-cred" "wrong-shared"
 put "concourse--${TEAM}--precedence-cred" "wrong-team"
 put "concourse--${TEAM}--${PIPELINE}--precedence-cred" "right-pipeline"
 
