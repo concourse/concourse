@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -21,9 +20,6 @@ import (
 )
 
 const (
-	SuperuserPath = "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-	Path          = "PATH=/usr/local/bin:/usr/bin:/bin"
-
 	GraceTimeKey         = "garden.grace-time"
 	ProcessExitStatusKey = "garden.process-exit-status"
 )
@@ -31,7 +27,6 @@ const (
 var (
 	noSuchFile         = regexp.MustCompile(`starting container process caused: exec: .*: stat .*: no such file or directory`)
 	executableNotFound = regexp.MustCompile(`starting container process caused: exec: .*: executable file not found in \$PATH`)
-	pathRegexp         = regexp.MustCompile("^PATH=.*$")
 )
 
 type UserNotFoundError struct {
@@ -120,7 +115,7 @@ func (c *Container) Run(
 			// The task may have been killed if the containerd daemon was
 			// restarted. We can recover from this error by recreating the task
 			// and continuing as usual
-			initTask, err := c.container.NewTask(ctx, cio.NullIO, containerd.WithNoNewKeyring)
+			initTask, err := c.container.NewTask(ctx, cio.NullIO, defaultTaskOpts()...)
 			if err != nil {
 				return nil, fmt.Errorf("recreating init task: %w", err)
 			}
@@ -156,25 +151,9 @@ func (c *Container) Run(
 		return nil, fmt.Errorf("proc start: %w", err)
 	}
 
-	// If there is no TTY allocated for the process, we can call CloseIO right
-	// away. The reason we don't do this when there is a TTY is that runc
-	// signals such processes with SIGHUP when stdin is closed and we have
-	// called CloseIO (which doesn't actually close the stdin stream for the
-	// container - it just marks the stream as "closable").
-	//
-	// If we were to call CloseIO immediately on processes with a TTY, if the
-	// Stdin stream ever receives an error (e.g. an io.EOF due to worker
-	// rebalancing, or the worker restarting gracefully), runc will kill the
-	// process with SIGHUP (because we would have marked the stream as
-	// closable).
-	//
-	// Note: resource containers are the only ones without a TTY - task and
-	// hijack processes have a TTY enabled.
-	if spec.TTY == nil {
-		err = proc.CloseIO(ctx, containerd.WithStdinCloser)
-		if err != nil {
-			return nil, fmt.Errorf("proc closeio: %w", err)
-		}
+	err = closeStdinAfterStart(ctx, proc, spec)
+	if err != nil {
+		return nil, fmt.Errorf("proc closeio: %w", err)
 	}
 
 	return NewProcess(proc, exitStatusC, *c), nil
@@ -411,10 +390,7 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 	procSpec.Args = append([]string{gdnProcSpec.Path}, gdnProcSpec.Args...)
 	procSpec.Env = append(procSpec.Env, gdnProcSpec.Env...)
 
-	cwd := gdnProcSpec.Dir
-	if cwd == "" {
-		cwd = "/"
-	}
+	cwd := processCwd(gdnProcSpec.Dir)
 
 	procSpec.Cwd = cwd
 
@@ -449,20 +425,6 @@ func (c *Container) setupContainerdProcSpec(gdnProcSpec garden.ProcessSpec, cont
 	}
 
 	return *procSpec, nil
-}
-
-// Set a default path based on the UID if no existing PATH is found
-func envWithDefaultPath(uid uint32, currentEnv []string) string {
-	pathFound := slices.ContainsFunc(currentEnv, pathRegexp.MatchString)
-	if pathFound {
-		return ""
-	}
-
-	if uid == 0 {
-		return SuperuserPath
-	}
-
-	return Path
 }
 
 func containerdCIO(gdnProcIO garden.ProcessIO, tty bool) []cio.Opt {

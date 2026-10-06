@@ -178,7 +178,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 	b.createLock = NewTimeoutLimitLock(b.requestTimeout, enableLock)
 
 	if b.network == nil {
-		b.network, err = NewCNINetwork()
+		b.network, err = defaultNetwork()
 		if err != nil {
 			return b, fmt.Errorf("network init: %w", err)
 		}
@@ -240,8 +240,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		b.seccompProfile = profile
 		b.seccompProfileFuse = profile
 	} else {
-		b.seccompProfile = bespec.GetDefaultSeccompProfile()
-		b.seccompProfileFuse = bespec.GetDefaultSeccompProfileFuse()
+		b.seccompProfile, b.seccompProfileFuse = defaultSeccompProfiles()
 	}
 
 	if b.killer == nil {
@@ -375,7 +374,7 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 }
 
 func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container, hermetic bool) error {
-	task, err := cont.NewTask(ctx, cio.NullIO, containerd.WithNoNewKeyring)
+	task, err := cont.NewTask(ctx, cio.NullIO, defaultTaskOpts()...)
 	if err != nil {
 		return fmt.Errorf("new task: %w", err)
 	}
