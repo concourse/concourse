@@ -476,7 +476,7 @@ var _ = Describe("PutStep", func() {
 
 			It("returns the error with resource type image context", func() {
 				Expect(stepOk).To(BeFalse())
-				Expect(stepErr).To(MatchError("failed to fetch put resource type image: Version is missing from previous step"))
+				Expect(stepErr).To(MatchError("failed to fetch image. Check the logs for more details (gear icon) or the resource_type config for this resource: Version is missing from previous step"))
 				Expect(errors.Is(stepErr, fetchErr)).To(BeTrue())
 			})
 		})

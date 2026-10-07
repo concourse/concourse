@@ -1094,7 +1094,7 @@ var _ = Describe("TaskStep", func() {
 
 				It("adds context and preserves the fetch error", func() {
 					Expect(stepOk).To(BeFalse())
-					Expect(stepErr).To(MatchError("failed to fetch task image_resource: image fetch failed"))
+					Expect(stepErr).To(MatchError("failed to fetch image. Check the logs for more details (gear icon) or the task's image_resource config: image fetch failed"))
 					Expect(errors.Is(stepErr, fetchErr)).To(BeTrue())
 				})
 			})
