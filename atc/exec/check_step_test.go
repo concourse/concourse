@@ -381,6 +381,21 @@ var _ = Describe("CheckStep", func() {
 						Expect(privileged).To(BeFalse())
 					})
 
+					Context("when fetching the image fails", func() {
+						var fetchErr error
+
+						BeforeEach(func() {
+							fetchErr = errors.New("Version is missing from previous step")
+							fakeDelegate.FetchImageReturns(runtime.ImageSpec{}, nil, fetchErr)
+						})
+
+						It("returns the error with resource type image context", func() {
+							Expect(stepOk).To(BeFalse())
+							Expect(stepErr).To(MatchError("failed to fetch image. Check the logs for more details (gear icon) or the resource_type config for this resource: Version is missing from previous step"))
+							Expect(errors.Is(stepErr, fetchErr)).To(BeTrue())
+						})
+					})
+
 					It("sets the image spec in the container spec", func() {
 						Expect(chosenContainer.Spec.ImageSpec).To(Equal(fakeImageSpec))
 					})

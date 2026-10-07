@@ -170,7 +170,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 		var err error
 		imageSpec, imageResourceCache, err = delegate.FetchImage(ctx, *step.plan.TypeImage.GetPlan, step.plan.TypeImage.CheckPlan, step.plan.TypeImage.Privileged)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to fetch image. Check the logs for more details (gear icon) or the resource_type config for this resource: %w", err)
 		}
 	} else {
 		imageSpec.ResourceType = step.plan.TypeImage.BaseType

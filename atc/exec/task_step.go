@@ -399,7 +399,10 @@ func (step *TaskStep) imageSpec(ctx context.Context, logger lager.Logger, state 
 			step.plan.Tags,
 			step.plan.CheckSkipInterval,
 		)
-		return imageSpec, err
+		if err != nil {
+			return runtime.ImageSpec{}, fmt.Errorf("failed to fetch image. Check the logs for more details (gear icon) or the task's image_resource config: %w", err)
+		}
+		return imageSpec, nil
 
 		// a rootfs_uri
 	} else if config.RootfsURI != "" {

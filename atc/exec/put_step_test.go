@@ -466,6 +466,21 @@ var _ = Describe("PutStep", func() {
 			Expect(privileged).To(BeFalse())
 		})
 
+		Context("when fetching the image fails", func() {
+			var fetchErr error
+
+			BeforeEach(func() {
+				fetchErr = errors.New("Version is missing from previous step")
+				fakeDelegate.FetchImageReturns(runtime.ImageSpec{}, nil, fetchErr)
+			})
+
+			It("returns the error with resource type image context", func() {
+				Expect(stepOk).To(BeFalse())
+				Expect(stepErr).To(MatchError("failed to fetch image. Check the logs for more details (gear icon) or the resource_type config for this resource: Version is missing from previous step"))
+				Expect(errors.Is(stepErr, fetchErr)).To(BeTrue())
+			})
+		})
+
 		It("sets the bottom-most type in the worker spec", func() {
 			Expect(fakePool.FindOrSelectWorkerCallCount()).To(Equal(1))
 			_, _, _, workerSpec, _, _ := fakePool.FindOrSelectWorkerArgsForCall(0)
