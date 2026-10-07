@@ -35,13 +35,14 @@ type FakeCoreStepFactory struct {
 	artifactOutputStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	CheckStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step
+	CheckStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step
 	checkStepMutex       sync.RWMutex
 	checkStepArgsForCall []struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
+		arg4 bool
+		arg5 engine.DelegateFactory
 	}
 	checkStepReturns struct {
 		result1 exec.Step
@@ -49,13 +50,14 @@ type FakeCoreStepFactory struct {
 	checkStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	GetStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step
+	GetStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step
 	getStepMutex       sync.RWMutex
 	getStepArgsForCall []struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
+		arg4 bool
+		arg5 engine.DelegateFactory
 	}
 	getStepReturns struct {
 		result1 exec.Step
@@ -76,13 +78,14 @@ type FakeCoreStepFactory struct {
 	loadVarStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	PutStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step
+	PutStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step
 	putStepMutex       sync.RWMutex
 	putStepArgsForCall []struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
+		arg4 bool
+		arg5 engine.DelegateFactory
 	}
 	putStepReturns struct {
 		result1 exec.Step
@@ -117,13 +120,14 @@ type FakeCoreStepFactory struct {
 	setPipelineStepReturnsOnCall map[int]struct {
 		result1 exec.Step
 	}
-	TaskStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step
+	TaskStepStub        func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step
 	taskStepMutex       sync.RWMutex
 	taskStepArgsForCall []struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
+		arg4 bool
+		arg5 engine.DelegateFactory
 	}
 	taskStepReturns struct {
 		result1 exec.Step
@@ -259,21 +263,22 @@ func (fake *FakeCoreStepFactory) ArtifactOutputStepReturnsOnCall(i int, result1 
 	}{result1}
 }
 
-func (fake *FakeCoreStepFactory) CheckStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 engine.DelegateFactory) exec.Step {
+func (fake *FakeCoreStepFactory) CheckStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 bool, arg5 engine.DelegateFactory) exec.Step {
 	fake.checkStepMutex.Lock()
 	ret, specificReturn := fake.checkStepReturnsOnCall[len(fake.checkStepArgsForCall)]
 	fake.checkStepArgsForCall = append(fake.checkStepArgsForCall, struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
-	}{arg1, arg2, arg3, arg4})
+		arg4 bool
+		arg5 engine.DelegateFactory
+	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.CheckStepStub
 	fakeReturns := fake.checkStepReturns
-	fake.recordInvocation("CheckStep", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CheckStep", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.checkStepMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
@@ -287,17 +292,17 @@ func (fake *FakeCoreStepFactory) CheckStepCallCount() int {
 	return len(fake.checkStepArgsForCall)
 }
 
-func (fake *FakeCoreStepFactory) CheckStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step) {
+func (fake *FakeCoreStepFactory) CheckStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step) {
 	fake.checkStepMutex.Lock()
 	defer fake.checkStepMutex.Unlock()
 	fake.CheckStepStub = stub
 }
 
-func (fake *FakeCoreStepFactory) CheckStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) {
+func (fake *FakeCoreStepFactory) CheckStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) {
 	fake.checkStepMutex.RLock()
 	defer fake.checkStepMutex.RUnlock()
 	argsForCall := fake.checkStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeCoreStepFactory) CheckStepReturns(result1 exec.Step) {
@@ -323,21 +328,22 @@ func (fake *FakeCoreStepFactory) CheckStepReturnsOnCall(i int, result1 exec.Step
 	}{result1}
 }
 
-func (fake *FakeCoreStepFactory) GetStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 engine.DelegateFactory) exec.Step {
+func (fake *FakeCoreStepFactory) GetStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 bool, arg5 engine.DelegateFactory) exec.Step {
 	fake.getStepMutex.Lock()
 	ret, specificReturn := fake.getStepReturnsOnCall[len(fake.getStepArgsForCall)]
 	fake.getStepArgsForCall = append(fake.getStepArgsForCall, struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
-	}{arg1, arg2, arg3, arg4})
+		arg4 bool
+		arg5 engine.DelegateFactory
+	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.GetStepStub
 	fakeReturns := fake.getStepReturns
-	fake.recordInvocation("GetStep", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("GetStep", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.getStepMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
@@ -351,17 +357,17 @@ func (fake *FakeCoreStepFactory) GetStepCallCount() int {
 	return len(fake.getStepArgsForCall)
 }
 
-func (fake *FakeCoreStepFactory) GetStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step) {
+func (fake *FakeCoreStepFactory) GetStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step) {
 	fake.getStepMutex.Lock()
 	defer fake.getStepMutex.Unlock()
 	fake.GetStepStub = stub
 }
 
-func (fake *FakeCoreStepFactory) GetStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) {
+func (fake *FakeCoreStepFactory) GetStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) {
 	fake.getStepMutex.RLock()
 	defer fake.getStepMutex.RUnlock()
 	argsForCall := fake.getStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeCoreStepFactory) GetStepReturns(result1 exec.Step) {
@@ -450,21 +456,22 @@ func (fake *FakeCoreStepFactory) LoadVarStepReturnsOnCall(i int, result1 exec.St
 	}{result1}
 }
 
-func (fake *FakeCoreStepFactory) PutStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 engine.DelegateFactory) exec.Step {
+func (fake *FakeCoreStepFactory) PutStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 bool, arg5 engine.DelegateFactory) exec.Step {
 	fake.putStepMutex.Lock()
 	ret, specificReturn := fake.putStepReturnsOnCall[len(fake.putStepArgsForCall)]
 	fake.putStepArgsForCall = append(fake.putStepArgsForCall, struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
-	}{arg1, arg2, arg3, arg4})
+		arg4 bool
+		arg5 engine.DelegateFactory
+	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.PutStepStub
 	fakeReturns := fake.putStepReturns
-	fake.recordInvocation("PutStep", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("PutStep", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.putStepMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
@@ -478,17 +485,17 @@ func (fake *FakeCoreStepFactory) PutStepCallCount() int {
 	return len(fake.putStepArgsForCall)
 }
 
-func (fake *FakeCoreStepFactory) PutStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step) {
+func (fake *FakeCoreStepFactory) PutStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step) {
 	fake.putStepMutex.Lock()
 	defer fake.putStepMutex.Unlock()
 	fake.PutStepStub = stub
 }
 
-func (fake *FakeCoreStepFactory) PutStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) {
+func (fake *FakeCoreStepFactory) PutStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) {
 	fake.putStepMutex.RLock()
 	defer fake.putStepMutex.RUnlock()
 	argsForCall := fake.putStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeCoreStepFactory) PutStepReturns(result1 exec.Step) {
@@ -641,21 +648,22 @@ func (fake *FakeCoreStepFactory) SetPipelineStepReturnsOnCall(i int, result1 exe
 	}{result1}
 }
 
-func (fake *FakeCoreStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 engine.DelegateFactory) exec.Step {
+func (fake *FakeCoreStepFactory) TaskStep(arg1 atc.Plan, arg2 exec.StepMetadata, arg3 db.ContainerMetadata, arg4 bool, arg5 engine.DelegateFactory) exec.Step {
 	fake.taskStepMutex.Lock()
 	ret, specificReturn := fake.taskStepReturnsOnCall[len(fake.taskStepArgsForCall)]
 	fake.taskStepArgsForCall = append(fake.taskStepArgsForCall, struct {
 		arg1 atc.Plan
 		arg2 exec.StepMetadata
 		arg3 db.ContainerMetadata
-		arg4 engine.DelegateFactory
-	}{arg1, arg2, arg3, arg4})
+		arg4 bool
+		arg5 engine.DelegateFactory
+	}{arg1, arg2, arg3, arg4, arg5})
 	stub := fake.TaskStepStub
 	fakeReturns := fake.taskStepReturns
-	fake.recordInvocation("TaskStep", []interface{}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("TaskStep", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.taskStepMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4)
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
@@ -669,17 +677,17 @@ func (fake *FakeCoreStepFactory) TaskStepCallCount() int {
 	return len(fake.taskStepArgsForCall)
 }
 
-func (fake *FakeCoreStepFactory) TaskStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) exec.Step) {
+func (fake *FakeCoreStepFactory) TaskStepCalls(stub func(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) exec.Step) {
 	fake.taskStepMutex.Lock()
 	defer fake.taskStepMutex.Unlock()
 	fake.TaskStepStub = stub
 }
 
-func (fake *FakeCoreStepFactory) TaskStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, engine.DelegateFactory) {
+func (fake *FakeCoreStepFactory) TaskStepArgsForCall(i int) (atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, engine.DelegateFactory) {
 	fake.taskStepMutex.RLock()
 	defer fake.taskStepMutex.RUnlock()
 	argsForCall := fake.taskStepArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeCoreStepFactory) TaskStepReturns(result1 exec.Step) {

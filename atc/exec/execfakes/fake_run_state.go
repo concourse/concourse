@@ -81,6 +81,16 @@ type FakeRunState struct {
 	parentReturnsOnCall map[int]struct {
 		result1 exec.RunState
 	}
+	PinnedWorkerStub        func() string
+	pinnedWorkerMutex       sync.RWMutex
+	pinnedWorkerArgsForCall []struct {
+	}
+	pinnedWorkerReturns struct {
+		result1 string
+	}
+	pinnedWorkerReturnsOnCall map[int]struct {
+		result1 string
+	}
 	ResultStub        func(atc.PlanID, any) bool
 	resultMutex       sync.RWMutex
 	resultArgsForCall []struct {
@@ -106,6 +116,17 @@ type FakeRunState struct {
 	runReturnsOnCall map[int]struct {
 		result1 bool
 		result2 error
+	}
+	SetPinnedWorkerStub        func(string) string
+	setPinnedWorkerMutex       sync.RWMutex
+	setPinnedWorkerArgsForCall []struct {
+		arg1 string
+	}
+	setPinnedWorkerReturns struct {
+		result1 string
+	}
+	setPinnedWorkerReturnsOnCall map[int]struct {
+		result1 string
 	}
 	StoreResultStub        func(atc.PlanID, any)
 	storeResultMutex       sync.RWMutex
@@ -465,6 +486,59 @@ func (fake *FakeRunState) ParentReturnsOnCall(i int, result1 exec.RunState) {
 	}{result1}
 }
 
+func (fake *FakeRunState) PinnedWorker() string {
+	fake.pinnedWorkerMutex.Lock()
+	ret, specificReturn := fake.pinnedWorkerReturnsOnCall[len(fake.pinnedWorkerArgsForCall)]
+	fake.pinnedWorkerArgsForCall = append(fake.pinnedWorkerArgsForCall, struct {
+	}{})
+	stub := fake.PinnedWorkerStub
+	fakeReturns := fake.pinnedWorkerReturns
+	fake.recordInvocation("PinnedWorker", []interface{}{})
+	fake.pinnedWorkerMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeRunState) PinnedWorkerCallCount() int {
+	fake.pinnedWorkerMutex.RLock()
+	defer fake.pinnedWorkerMutex.RUnlock()
+	return len(fake.pinnedWorkerArgsForCall)
+}
+
+func (fake *FakeRunState) PinnedWorkerCalls(stub func() string) {
+	fake.pinnedWorkerMutex.Lock()
+	defer fake.pinnedWorkerMutex.Unlock()
+	fake.PinnedWorkerStub = stub
+}
+
+func (fake *FakeRunState) PinnedWorkerReturns(result1 string) {
+	fake.pinnedWorkerMutex.Lock()
+	defer fake.pinnedWorkerMutex.Unlock()
+	fake.PinnedWorkerStub = nil
+	fake.pinnedWorkerReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeRunState) PinnedWorkerReturnsOnCall(i int, result1 string) {
+	fake.pinnedWorkerMutex.Lock()
+	defer fake.pinnedWorkerMutex.Unlock()
+	fake.PinnedWorkerStub = nil
+	if fake.pinnedWorkerReturnsOnCall == nil {
+		fake.pinnedWorkerReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.pinnedWorkerReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
 func (fake *FakeRunState) Result(arg1 atc.PlanID, arg2 any) bool {
 	fake.resultMutex.Lock()
 	ret, specificReturn := fake.resultReturnsOnCall[len(fake.resultArgsForCall)]
@@ -590,6 +664,67 @@ func (fake *FakeRunState) RunReturnsOnCall(i int, result1 bool, result2 error) {
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeRunState) SetPinnedWorker(arg1 string) string {
+	fake.setPinnedWorkerMutex.Lock()
+	ret, specificReturn := fake.setPinnedWorkerReturnsOnCall[len(fake.setPinnedWorkerArgsForCall)]
+	fake.setPinnedWorkerArgsForCall = append(fake.setPinnedWorkerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	stub := fake.SetPinnedWorkerStub
+	fakeReturns := fake.setPinnedWorkerReturns
+	fake.recordInvocation("SetPinnedWorker", []interface{}{arg1})
+	fake.setPinnedWorkerMutex.Unlock()
+	if stub != nil {
+		return stub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeRunState) SetPinnedWorkerCallCount() int {
+	fake.setPinnedWorkerMutex.RLock()
+	defer fake.setPinnedWorkerMutex.RUnlock()
+	return len(fake.setPinnedWorkerArgsForCall)
+}
+
+func (fake *FakeRunState) SetPinnedWorkerCalls(stub func(string) string) {
+	fake.setPinnedWorkerMutex.Lock()
+	defer fake.setPinnedWorkerMutex.Unlock()
+	fake.SetPinnedWorkerStub = stub
+}
+
+func (fake *FakeRunState) SetPinnedWorkerArgsForCall(i int) string {
+	fake.setPinnedWorkerMutex.RLock()
+	defer fake.setPinnedWorkerMutex.RUnlock()
+	argsForCall := fake.setPinnedWorkerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeRunState) SetPinnedWorkerReturns(result1 string) {
+	fake.setPinnedWorkerMutex.Lock()
+	defer fake.setPinnedWorkerMutex.Unlock()
+	fake.SetPinnedWorkerStub = nil
+	fake.setPinnedWorkerReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeRunState) SetPinnedWorkerReturnsOnCall(i int, result1 string) {
+	fake.setPinnedWorkerMutex.Lock()
+	defer fake.setPinnedWorkerMutex.Unlock()
+	fake.SetPinnedWorkerStub = nil
+	if fake.setPinnedWorkerReturnsOnCall == nil {
+		fake.setPinnedWorkerReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.setPinnedWorkerReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeRunState) StoreResult(arg1 atc.PlanID, arg2 any) {

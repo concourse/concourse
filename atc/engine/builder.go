@@ -18,11 +18,11 @@ const supportedSchema = "exec.v2"
 
 //counterfeiter:generate . CoreStepFactory
 type CoreStepFactory interface {
-	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
-	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
-	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
+	GetStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, DelegateFactory) exec.Step
+	PutStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, DelegateFactory) exec.Step
+	TaskStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, DelegateFactory) exec.Step
 	RunStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
-	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, DelegateFactory) exec.Step
+	CheckStep(atc.Plan, exec.StepMetadata, db.ContainerMetadata, bool, DelegateFactory) exec.Step
 	SetPipelineStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
 	LoadVarStep(atc.Plan, exec.StepMetadata, DelegateFactory) exec.Step
 	ArtifactInputStep(atc.Plan, db.Build) exec.Step
@@ -65,10 +65,16 @@ type planBuilder struct {
 	factory     *stepperFactory
 	build       db.Build
 	buildStatus string
+	pinWorker   bool
 }
 
 func (pb *planBuilder) withBuildStatus(state string) *planBuilder {
-	return &planBuilder{factory: pb.factory, build: pb.build, buildStatus: state}
+	return &planBuilder{
+		factory:     pb.factory,
+		build:       pb.build,
+		buildStatus: state,
+		pinWorker:   pb.pinWorker,
+	}
 }
 
 func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, error) {
@@ -76,7 +82,11 @@ func (factory *stepperFactory) StepperForBuild(build db.Build) (exec.Stepper, er
 		return nil, errors.New("schema not supported")
 	}
 
-	pb := &planBuilder{factory: factory, build: build}
+	pb := &planBuilder{
+		factory:   factory,
+		build:     build,
+		pinWorker: build.PrivatePlan().PinWorker,
+	}
 	return func(plan atc.Plan) exec.Step {
 		return pb.buildStep(plan)
 	}, nil
@@ -296,6 +306,7 @@ func (pb *planBuilder) buildGetStep(plan atc.Plan) exec.Step {
 		plan,
 		stepMetadata,
 		containerMetadata,
+		pb.pinWorker,
 		pb.buildDelegateFactory(plan),
 	)
 }
@@ -314,6 +325,7 @@ func (pb *planBuilder) buildPutStep(plan atc.Plan) exec.Step {
 		plan,
 		stepMetadata,
 		containerMetadata,
+		pb.pinWorker,
 		pb.buildDelegateFactory(plan),
 	)
 }
@@ -331,6 +343,7 @@ func (pb *planBuilder) buildCheckStep(plan atc.Plan) exec.Step {
 		plan,
 		stepMetadata,
 		containerMetadata,
+		pb.pinWorker,
 		pb.buildDelegateFactory(plan),
 	)
 }
@@ -366,6 +379,7 @@ func (pb *planBuilder) buildTaskStep(plan atc.Plan) exec.Step {
 		plan,
 		stepMetadata,
 		containerMetadata,
+		pb.pinWorker,
 		pb.buildDelegateFactory(plan),
 	)
 }

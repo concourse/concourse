@@ -27,6 +27,7 @@ type CheckStep struct {
 	resourceConfigFactory db.ResourceConfigFactory
 	noInputStrategy       worker.PlacementStrategy
 	checkStrategy         worker.PlacementStrategy
+	pinWorker             bool
 	delegateFactory       CheckDelegateFactory
 	workerPool            Pool
 	defaultCheckTimeout   time.Duration
@@ -58,6 +59,7 @@ func NewCheckStep(
 	containerMetadata db.ContainerMetadata,
 	noInputStrategy worker.PlacementStrategy,
 	checkStrategy worker.PlacementStrategy,
+	pinWorker bool,
 	pool Pool,
 	delegateFactory CheckDelegateFactory,
 	defaultCheckTimeout time.Duration,
@@ -71,6 +73,7 @@ func NewCheckStep(
 		workerPool:            pool,
 		noInputStrategy:       noInputStrategy,
 		checkStrategy:         checkStrategy,
+		pinWorker:             pinWorker,
 		delegateFactory:       delegateFactory,
 		defaultCheckTimeout:   defaultCheckTimeout,
 	}
@@ -195,7 +198,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 			ctx = lagerctx.NewContext(ctx, logger)
 		}
 
-		versions, processResult, runErr := step.runCheck(ctx, logger, delegate, imageSpec, resourceConfig, source, fromVersion)
+		versions, processResult, runErr := step.runCheck(ctx, logger, state, delegate, imageSpec, resourceConfig, source, fromVersion)
 		if runErr != nil || processResult.ExitStatus != 0 {
 			metric.Metrics.ChecksFinishedWithError.Inc()
 
@@ -250,6 +253,7 @@ func (step *CheckStep) run(ctx context.Context, state RunState, delegate CheckDe
 func (step *CheckStep) runCheck(
 	ctx context.Context,
 	logger lager.Logger,
+	state RunState,
 	delegate CheckDelegate,
 	imageSpec runtime.ImageSpec,
 	resourceConfig db.ResourceConfig,
@@ -289,7 +293,7 @@ func (step *CheckStep) runCheck(
 	if step.plan.IsResourceCheck() {
 		strategy = step.checkStrategy
 	}
-	worker, err := step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, strategy, delegate)
+	worker, err := step.selectWorker(ctx, state, delegate, containerOwner, containerSpec, workerSpec, strategy)
 	if err != nil {
 		return nil, runtime.ProcessResult{}, err
 	}
@@ -341,5 +345,31 @@ func (step *CheckStep) containerOwner(delegate CheckDelegate, resourceConfig db.
 		resourceConfig.ID(),
 		resourceConfig.OriginBaseResourceType().ID,
 		expires,
+	)
+}
+
+// selectWorker picks a worker for the check step, honoring the build's pinned
+// worker (if the job has pin_worker: true). The first step to need a
+// worker sets the pinned worker; subsequent steps are forced to use the
+// same one. See selectStepWorker for the race-handling details.
+func (step *CheckStep) selectWorker(
+	ctx context.Context,
+	state RunState,
+	delegate worker.PoolCallback,
+	containerOwner db.ContainerOwner,
+	containerSpec runtime.ContainerSpec,
+	workerSpec worker.Spec,
+	strategy worker.PlacementStrategy,
+) (runtime.Worker, error) {
+	return selectStepWorker(
+		ctx,
+		step.workerPool,
+		strategy,
+		step.pinWorker,
+		state,
+		delegate,
+		containerOwner,
+		containerSpec,
+		workerSpec,
 	)
 }

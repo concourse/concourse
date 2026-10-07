@@ -90,6 +90,7 @@ type GetStep struct {
 	containerMetadata    db.ContainerMetadata
 	resourceCacheFactory db.ResourceCacheFactory
 	strategy             worker.PlacementStrategy
+	pinWorker            bool
 	workerPool           Pool
 	lockFactory          lock.LockFactory
 	delegateFactory      GetDelegateFactory
@@ -104,6 +105,7 @@ func NewGetStep(
 	lockFactory lock.LockFactory,
 	resourceCacheFactory db.ResourceCacheFactory,
 	strategy worker.PlacementStrategy,
+	pinWorker bool,
 	delegateFactory GetDelegateFactory,
 	pool Pool,
 	defaultGetTimeout time.Duration,
@@ -115,6 +117,7 @@ func NewGetStep(
 		containerMetadata:    containerMetadata,
 		resourceCacheFactory: resourceCacheFactory,
 		strategy:             strategy,
+		pinWorker:            pinWorker,
 		lockFactory:          lockFactory,
 		delegateFactory:      delegateFactory,
 		workerPool:           pool,
@@ -216,6 +219,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 	volume, fromCache, versionResult, processResult, err := step.retrieveFromCacheOrPerformGet(
 		ctx,
 		logger,
+		state,
 		delegate,
 		resourceCache,
 		resource.Resource{
@@ -270,6 +274,7 @@ func (step *GetStep) run(ctx context.Context, state RunState, delegate GetDelega
 func (step *GetStep) retrieveFromCacheOrPerformGet(
 	ctx context.Context,
 	logger lager.Logger,
+	state RunState,
 	delegate GetDelegate,
 	resourceCache db.ResourceCache,
 	getResource resource.Resource,
@@ -295,7 +300,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, err
 		}
 
-		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
+		worker, err = step.selectWorker(ctx, state, delegate, containerOwner, containerSpec, workerSpec)
 		if err != nil {
 			logger.Error("failed-to-select-worker", err)
 			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, err
@@ -359,7 +364,7 @@ func (step *GetStep) retrieveFromCacheOrPerformGet(
 
 		defer lock.Release()
 
-		volume, versionResult, processResult, err := step.performGetAndInitCache(ctx, logger, delegate, getResource, resourceCache, workerSpec, containerSpec, containerOwner, worker)
+		volume, versionResult, processResult, err := step.performGetAndInitCache(ctx, logger, state, delegate, getResource, resourceCache, workerSpec, containerSpec, containerOwner, worker)
 		if err != nil {
 			return nil, false, resource.VersionResult{}, runtime.ProcessResult{}, false, err
 		}
@@ -441,6 +446,7 @@ func (step *GetStep) retrieveFromCache(
 func (step *GetStep) performGetAndInitCache(
 	ctx context.Context,
 	logger lager.Logger,
+	state RunState,
 	delegate GetDelegate,
 	getResource resource.Resource,
 	resourceCache db.ResourceCache,
@@ -463,7 +469,7 @@ func (step *GetStep) performGetAndInitCache(
 			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
 		}
 
-		worker, err = step.workerPool.FindOrSelectWorker(ctx, containerOwner, containerSpec, workerSpec, step.strategy, delegate)
+		worker, err = step.selectWorker(ctx, state, delegate, containerOwner, containerSpec, workerSpec)
 		if err != nil {
 			logger.Error("failed-to-select-worker", err)
 			return nil, resource.VersionResult{}, runtime.ProcessResult{}, err
@@ -518,6 +524,31 @@ func (step *GetStep) performGetAndInitCache(
 	}
 
 	return volume, versionResult, processResult, nil
+}
+
+// selectWorker picks a worker for the get step, honoring the build's pinned
+// worker (if the job has pin_worker: true). The first step to need a
+// worker sets the pinned worker; subsequent steps are forced to use the
+// same one. See selectStepWorker for the race-handling details.
+func (step *GetStep) selectWorker(
+	ctx context.Context,
+	state RunState,
+	delegate worker.PoolCallback,
+	containerOwner db.ContainerOwner,
+	containerSpec runtime.ContainerSpec,
+	workerSpec worker.Spec,
+) (runtime.Worker, error) {
+	return selectStepWorker(
+		ctx,
+		step.workerPool,
+		step.strategy,
+		step.pinWorker,
+		state,
+		delegate,
+		containerOwner,
+		containerSpec,
+		workerSpec,
+	)
 }
 
 func (step *GetStep) resourceMountVolume(mounts []runtime.VolumeMount) runtime.Volume {
