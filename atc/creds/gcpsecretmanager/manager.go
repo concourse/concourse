@@ -36,9 +36,10 @@ var projectPattern = regexp.MustCompile(`^([a-z][a-z0-9-]{4,28}[a-z0-9]|[0-9]+)$
 type Manager struct {
 	ProjectID string `mapstructure:"project" long:"project" description:"GCP project ID containing the secrets"`
 
-	// When neither is set, Application Default Credentials are used.
+	// When neither is set, Application Default Credentials are used. A
+	// var_source must set CredentialsJSON: see managerFactory.NewInstance.
 	CredentialsFile string `mapstructure:"credentials_file" long:"credentials-file" description:"Path to a GCP service account JSON key file. Not available in a var_source. Leave unset to use Application Default Credentials / Workload Identity."`
-	CredentialsJSON string `mapstructure:"credentials_json" long:"credentials-json" description:"Inline GCP service account JSON key. Leave unset to use Application Default Credentials / Workload Identity."`
+	CredentialsJSON string `mapstructure:"credentials_json" long:"credentials-json" description:"Inline GCP service account JSON key. Required in a var_source. Leave unset to use Application Default Credentials / Workload Identity."`
 
 	RequestTimeout time.Duration `mapstructure:"request_timeout" long:"request-timeout" default:"10s" description:"Timeout applied to each Secret Manager API request"`
 

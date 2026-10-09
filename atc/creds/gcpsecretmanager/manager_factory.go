@@ -59,7 +59,14 @@ func (factory *managerFactory) NewInstance(config any) (creds.Manager, error) {
 	// Pipeline authors control var_source configs, so they must not be able
 	// to choose a file on the web node for it to read.
 	if manager.CredentialsFile != "" {
-		return nil, errors.New("credentials_file is not supported in a var_source: use credentials_json or Application Default Credentials")
+		return nil, errors.New("credentials_file is not supported in a var_source: use credentials_json")
+	}
+
+	// Without credentials of its own, a var_source would fall back to the web
+	// node's identity, and its author chooses the project and templates, so
+	// it could read any team's secrets.
+	if manager.CredentialsJSON == "" {
+		return nil, errors.New("credentials_json is required in a var_source")
 	}
 
 	return manager, nil
