@@ -16,11 +16,11 @@ import (
 )
 
 const (
-	// Segments are delimited by DefaultSegmentDelimiter. Shared secrets get their own
-	// root so they can never collide with a team- or pipeline-scoped ID.
-	DefaultPipelineSecretTemplate = "concourse--{{.Team}}--{{.Pipeline}}--{{.Secret}}"
-	DefaultTeamSecretTemplate     = "concourse--{{.Team}}--{{.Secret}}"
-	DefaultSharedSecretTemplate   = "concourse-shared--{{.Secret}}"
+	// Shared secrets get their own root, so they can never collide with a
+	// team- or pipeline-scoped ID.
+	DefaultPipelineSecretTemplate = "/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+	DefaultTeamSecretTemplate     = "/concourse/{{.Team}}/{{.Secret}}"
+	DefaultSharedSecretTemplate   = "/concourse-shared/{{.Secret}}"
 
 	DefaultRequestTimeout = 10 * time.Second
 
@@ -39,10 +39,9 @@ type Manager struct {
 
 	RequestTimeout time.Duration `mapstructure:"request_timeout" long:"request-timeout" default:"10s" description:"Timeout applied to each Secret Manager API request"`
 
-	SegmentDelimiter       string `mapstructure:"segment_delimiter" long:"segment-delimiter" default:"--" description:"Separator between the segments of a secret ID template, made of hyphens and underscores. Team, pipeline and var names may not contain it or begin or end with any of its characters."`
-	PipelineSecretTemplate string `mapstructure:"pipeline_secret_template" long:"pipeline-secret-template" default:"concourse--{{.Team}}--{{.Pipeline}}--{{.Secret}}" description:"Google Secret Manager secret ID template used for pipeline specific parameter"`
-	TeamSecretTemplate     string `mapstructure:"team_secret_template" long:"team-secret-template" default:"concourse--{{.Team}}--{{.Secret}}" description:"Google Secret Manager secret ID template used for team specific parameter"`
-	SharedSecretTemplate   string `mapstructure:"shared_secret_template" long:"shared-secret-template" default:"concourse-shared--{{.Secret}}" description:"Google Secret Manager secret ID template used for shared parameter that can be used by all teams and pipelines"`
+	PipelineSecretTemplate string `mapstructure:"pipeline_secret_template" long:"pipeline-secret-template" default:"/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}" description:"Secret path template used for pipeline specific parameter. Mapped to a Google Secret Manager secret ID by dropping the leading slash and replacing each remaining slash with '--'."`
+	TeamSecretTemplate     string `mapstructure:"team_secret_template" long:"team-secret-template" default:"/concourse/{{.Team}}/{{.Secret}}" description:"Secret path template used for team specific parameter. Mapped to a Google Secret Manager secret ID by dropping the leading slash and replacing each remaining slash with '--'."`
+	SharedSecretTemplate   string `mapstructure:"shared_secret_template" long:"shared-secret-template" default:"/concourse-shared/{{.Secret}}" description:"Secret path template used for shared parameter that can be used by all teams and pipelines, under a root of its own. Mapped to a Google Secret Manager secret ID by dropping the leading slash and replacing each remaining slash with '--'."`
 
 	SecretManager *SecretManager
 }
@@ -60,7 +59,6 @@ func (manager *Manager) Init(log lager.Logger) error {
 		manager.ProjectID,
 		manager.requestTimeoutOrDefault(),
 		nil,
-		manager.segmentDelimiterOrDefault(),
 	)
 
 	return nil
@@ -98,7 +96,6 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(&map[string]any{
 		"project":                  manager.ProjectID,
-		"segment_delimiter":        manager.segmentDelimiterOrDefault(),
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,
 		"shared_secret_template":   manager.SharedSecretTemplate,
@@ -146,20 +143,14 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		manager.ProjectID,
 		manager.requestTimeoutOrDefault(),
 		templates,
-		manager.segmentDelimiterOrDefault(),
 	), nil
 }
 
 // secretTemplates builds the pipeline, team and shared templates, in lookup
 // order. It rejects any template that can render an illegal secret ID, does
-// not delimit its placeholders, or can render an ID that another template
-// also renders.
+// not give each placeholder its own segment, or can render an ID that another
+// template also renders. The shared template must have its own root.
 func (manager *Manager) secretTemplates() ([]*creds.SecretTemplate, error) {
-	delimiter := manager.segmentDelimiterOrDefault()
-	if err := validateDelimiter(delimiter); err != nil {
-		return nil, err
-	}
-
 	configured := []struct{ name, template string }{
 		{"pipeline-secret-template", manager.PipelineSecretTemplate},
 		{"team-secret-template", manager.TeamSecretTemplate},
@@ -178,11 +169,12 @@ func (manager *Manager) secretTemplates() ([]*creds.SecretTemplate, error) {
 		if err != nil {
 			return nil, err
 		}
+		sample = secretPathToID(sample)
 		if !secretIDPattern.MatchString(sample) {
 			return nil, fmt.Errorf("%s produces an invalid Google Secret Manager secret ID (%q): only letters, numerals, hyphens and underscores are permitted", c.name, sample)
 		}
 
-		templateTokens, err := tokenizeTemplate(c.name, built, delimiter)
+		templateTokens, err := tokenizeTemplate(c.name, built)
 		if err != nil {
 			return nil, err
 		}
@@ -195,6 +187,13 @@ func (manager *Manager) secretTemplates() ([]*creds.SecretTemplate, error) {
 
 		templates = append(templates, built)
 		tokens = append(tokens, templateTokens)
+	}
+
+	shared := len(configured) - 1
+	for i := range shared {
+		if tokens[i][0].literal == tokens[shared][0].literal {
+			return nil, fmt.Errorf("%s and %s both begin with %q: shared secrets need their own root, such as /concourse-shared/{{.Secret}}", configured[i].name, configured[shared].name, tokens[shared][0].literal)
+		}
 	}
 
 	return templates, nil
@@ -241,13 +240,6 @@ func validateTemplate(tmpl *creds.SecretTemplate) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
-}
-
-func (manager *Manager) segmentDelimiterOrDefault() string {
-	if manager.SegmentDelimiter == "" {
-		return DefaultSegmentDelimiter
-	}
-	return manager.SegmentDelimiter
 }
 
 func (manager *Manager) requestTimeoutOrDefault() time.Duration {

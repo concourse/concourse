@@ -28,9 +28,14 @@ type SecretManagerAPI interface {
 // secretIDPattern is the character set Google Secret Manager permits in a
 // secret ID. Validating before building the slash-delimited resource name
 // stops a crafted ((var)) from escaping its secret into another resource.
-var secretIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,255}$`)
+var secretIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+// maxSecretIDLength is the longest secret ID Google Secret Manager permits.
+const maxSecretIDLength = 255
 
 var ErrInvalidSecretID = errors.New("invalid Google Secret Manager secret ID")
+
+var errSecretIDTooLong = fmt.Errorf("%w: too long", ErrInvalidSecretID)
 
 // secretVersion is the version Concourse resolves for every secret.
 const secretVersion = "latest"
@@ -40,6 +45,9 @@ type SecretID string
 func NewSecretID(proposed string) (SecretID, error) {
 	if !secretIDPattern.MatchString(proposed) {
 		return "", fmt.Errorf("%w: %q", ErrInvalidSecretID, proposed)
+	}
+	if len(proposed) > maxSecretIDLength {
+		return "", fmt.Errorf("%w: %q is longer than %d characters", errSecretIDTooLong, proposed, maxSecretIDLength)
 	}
 	return SecretID(proposed), nil
 }
@@ -52,7 +60,6 @@ type SecretManager struct {
 	projectID       string
 	requestTimeout  time.Duration
 	secretTemplates []*creds.SecretTemplate
-	delimiter       string
 }
 
 func NewSecretManager(
@@ -61,15 +68,10 @@ func NewSecretManager(
 	projectID string,
 	requestTimeout time.Duration,
 	secretTemplates []*creds.SecretTemplate,
-	delimiter string,
 ) *SecretManager {
 	// A zero timeout yields an already-expired context, so treat it as unset.
 	if requestTimeout <= 0 {
 		requestTimeout = DefaultRequestTimeout
-	}
-
-	if delimiter == "" {
-		delimiter = DefaultSegmentDelimiter
 	}
 
 	return &SecretManager{
@@ -78,24 +80,36 @@ func NewSecretManager(
 		projectID:       projectID,
 		requestTimeout:  requestTimeout,
 		secretTemplates: secretTemplates,
-		delimiter:       delimiter,
 	}
 }
 
 // NewSecretLookupPaths defines how variables will be searched in the underlying secret manager.
-// Each path rejects team, pipeline and var names that would make the secret ID ambiguous.
+// A scope whose team or pipeline name cannot be mapped to a secret ID is skipped, so
+// lookups fall through to the broader scopes, which the pipeline can already read.
 func (s *SecretManager) NewSecretLookupPaths(teamName string, pipelineName string, allowRootPath bool) []creds.SecretLookupPath {
 	lookupPaths := []creds.SecretLookupPath{}
 	for _, tmpl := range s.secretTemplates {
-		if lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName); lPath != nil {
-			lookupPaths = append(lookupPaths, delimitedLookupPath{
-				SecretLookupPath: lPath,
-				teamName:         teamName,
-				pipelineName:     pipelineName,
-				delimiter:        s.delimiter,
-			})
+		lPath := creds.NewSecretLookupWithTemplate(tmpl, teamName, pipelineName)
+		if lPath == nil {
+			continue
 		}
+		if !scopeIsMappable(tmpl, lPath) {
+			s.log.Debug("skipping-unmappable-secret-scope", lager.Data{
+				"template": tmpl.Name(),
+				"team":     teamName,
+				"pipeline": pipelineName,
+			})
+			continue
+		}
+		lookupPaths = append(lookupPaths, secretIDLookupPath{SecretLookupPath: lPath})
 	}
+
+	// With no lookup paths, creds looks the raw var name up as a secret ID,
+	// bypassing every scope. Fail every lookup instead.
+	if len(lookupPaths) == 0 {
+		return []creds.SecretLookupPath{unmappableLookupPath{teamName: teamName, pipelineName: pipelineName}}
+	}
+
 	return lookupPaths
 }
 
@@ -121,6 +135,10 @@ func (s *SecretManager) Get(secretPath string) (any, *time.Time, bool, error) {
 // anything else is returned verbatim as a string. Expiration is always nil.
 func (s *SecretManager) getSecretByID(secretPath string) (any, *time.Time, bool, error) {
 	secretID, err := NewSecretID(secretPath)
+	if errors.Is(err, errSecretIDTooLong) {
+		// No such secret can exist, so fall through to the next lookup path.
+		return nil, nil, false, nil
+	}
 	if err != nil {
 		return nil, nil, false, err
 	}

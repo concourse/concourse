@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"hash/crc32"
+	"strings"
 	"time"
 
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/atc/creds"
+	"github.com/concourse/concourse/vars"
 	gax "github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -66,12 +68,11 @@ var _ = Describe("SecretManager", func() {
 			testProject,
 			time.Second,
 			templates,
-			DefaultSegmentDelimiter,
 		)
 	})
 
 	Describe("NewSecretLookupPaths()", func() {
-		It("builds double-hyphen delimited paths for a team and pipeline", func() {
+		It("maps the conventional secret paths to secret IDs", func() {
 			paths := secrets.NewSecretLookupPaths("main", "mypipeline", false)
 			Expect(paths).To(HaveLen(3))
 
@@ -89,78 +90,130 @@ var _ = Describe("SecretManager", func() {
 			}))
 		})
 
-		It("accepts names with single hyphens", func() {
-			paths := secrets.NewSecretLookupPaths("team-a", "my-pipeline", false)
+		It("accepts names with single hyphens and underscores", func() {
+			paths := secrets.NewSecretLookupPaths("team_a", "my-pipeline", false)
 
-			value, err := paths[0].VariableToSecretPath("my-secret")
+			value, err := paths[0].VariableToSecretPath("my_secret-1")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(value).To(Equal("concourse--team-a--my-pipeline--my-secret"))
+			Expect(value).To(Equal("concourse--team_a--my-pipeline--my_secret-1"))
 		})
 
-		DescribeTable("rejects a var name that could reach another scope, on every path",
+		It("maps a template with or without a leading slash to the same ID", func() {
+			withSlash, err := creds.BuildSecretTemplate("with", "/ci/{{.Team}}/{{.Secret}}")
+			Expect(err).ToNot(HaveOccurred())
+			withoutSlash, err := creds.BuildSecretTemplate("without", "ci/{{.Team}}/{{.Secret}}")
+			Expect(err).ToNot(HaveOccurred())
+
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{withSlash, withoutSlash})
+
+			for _, p := range secrets.NewSecretLookupPaths("main", "", false) {
+				value, err := p.VariableToSecretPath("mysecret")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(value).To(Equal("ci--main--mysecret"))
+			}
+		})
+
+		DescribeTable("rejects a var name that could reach another scope or is not representable, on every path",
 			func(varName string) {
 				paths := secrets.NewSecretLookupPaths("main", "mypipeline", false)
 				Expect(paths).To(HaveLen(3))
 
 				for _, p := range paths {
 					_, err := p.VariableToSecretPath(varName)
-					Expect(err).To(MatchError(ErrAmbiguousSegment))
+					Expect(err).To(MatchError(ErrInvalidSegment))
 					Expect(err).To(MatchError(ContainSubstring("var name")))
 				}
 			},
-			Entry("another team's secret", "other-team--secret"),
-			Entry("another pipeline's secret", "other-pipeline--secret"),
+			Entry("another team's secret through the shared path", "other-team/secret"),
+			Entry("another pipeline's secret through the team path", "other-pipeline/secret"),
+			Entry("the ID separator", "other-team--secret"),
 			Entry("leading hyphen", "-secret"),
 			Entry("trailing hyphen", "secret-"),
-			Entry("only the delimiter", "--"),
+			Entry("only the separator", "--"),
+			Entry("quoted dot", "my.secret"),
+			Entry("at sign", "user@host"),
+			Entry("non-ASCII letter", "sécret"),
 		)
 
-		DescribeTable("rejects a team or pipeline name that could overlap another scope",
-			func(team, pipeline, kind string) {
-				paths := secrets.NewSecretLookupPaths(team, pipeline, false)
-				Expect(paths).ToNot(BeEmpty())
-
-				for _, p := range paths {
-					_, err := p.VariableToSecretPath("mysecret")
-					Expect(err).To(MatchError(ErrAmbiguousSegment))
-					Expect(err).To(MatchError(ContainSubstring(kind)))
+		DescribeTable("skips a scope whose team or pipeline name cannot be mapped, but still resolves the others",
+			func(team, pipeline string, expected []string) {
+				var rendered []string
+				for _, p := range secrets.NewSecretLookupPaths(team, pipeline, false) {
+					value, err := p.VariableToSecretPath("mysecret")
+					Expect(err).ToNot(HaveOccurred())
+					rendered = append(rendered, value)
 				}
+
+				Expect(rendered).To(Equal(expected))
 			},
-			Entry("team containing the delimiter", "a--b", "mypipeline", "team name"),
-			Entry("team with a trailing hyphen", "main-", "mypipeline", "team name"),
-			Entry("team containing the delimiter, no pipeline", "a--b", "", "team name"),
-			Entry("pipeline containing the delimiter", "main", "a--b", "pipeline name"),
-			Entry("pipeline with a leading hyphen", "main", "-pipeline", "pipeline name"),
+			Entry("pipeline containing a dot", "main", "release-1.2", []string{"concourse--main--mysecret", "concourse-shared--mysecret"}),
+			Entry("pipeline containing a slash", "main", "a/b", []string{"concourse--main--mysecret", "concourse-shared--mysecret"}),
+			Entry("pipeline containing the ID separator", "main", "a--b", []string{"concourse--main--mysecret", "concourse-shared--mysecret"}),
+			Entry("pipeline with a leading hyphen", "main", "-pipeline", []string{"concourse--main--mysecret", "concourse-shared--mysecret"}),
+			Entry("team containing a slash", "a/b", "mypipeline", []string{"concourse-shared--mysecret"}),
+			Entry("team containing the ID separator", "a--b", "mypipeline", []string{"concourse-shared--mysecret"}),
+			Entry("team with a trailing hyphen", "main-", "mypipeline", []string{"concourse-shared--mysecret"}),
+			Entry("team with a non-ASCII letter", "équipe", "", []string{"concourse-shared--mysecret"}),
+			Entry("no team", "", "", []string{"concourse-shared--mysecret"}),
 		)
 
-		Context("with a custom delimiter", func() {
-			BeforeEach(func() {
-				pipelineTemplate, err := creds.BuildSecretTemplate("pipeline", "ci__{{.Team}}__{{.Pipeline}}__{{.Secret}}")
-				Expect(err).ToNot(HaveOccurred())
+		// 2026-10-09: with no lookup paths, creds looks the raw var name up as
+		// a secret ID, which would bypass every scope.
+		It("fails every lookup, rather than returning no paths, when every scope is skipped", func() {
+			sharedPerTeam, err := creds.BuildSecretTemplate("shared", "/concourse-shared/{{.Team}}/{{.Secret}}")
+			Expect(err).ToNot(HaveOccurred())
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{templates[0], templates[1], sharedPerTeam})
 
-				secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{pipelineTemplate}, "__")
-			})
+			variables := creds.NewVariables(secrets, creds.SecretLookupParams{Team: "a--b", Pipeline: "p"}, false)
+			_, found, err := variables.Get(vars.Reference{Path: "concourse--victim--db-password"})
 
-			It("permits the default delimiter inside names", func() {
-				paths := secrets.NewSecretLookupPaths("team--a", "my--pipeline", false)
-				Expect(paths).To(HaveLen(1))
+			Expect(err).To(MatchError(ErrInvalidSegment))
+			Expect(found).To(BeFalse())
+			Expect(api.AccessSecretVersionCallCount()).To(Equal(0))
+		})
 
-				value, err := paths[0].VariableToSecretPath("my--secret")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(value).To(Equal("ci__team--a__my--pipeline__my--secret"))
-			})
+		// 2026-10-09: Concourse has no per-secret access control. Isolation
+		// rests on every (scope, team, pipeline, var) mapping to its own ID.
+		It("never maps two different lookups to the same secret ID", func() {
+			names := []string{"a", "b", "a-b", "a_b", "a--b", "a/b", "-a", "a-", "a.b", "shared", ""}
 
-			DescribeTable("rejects names that could overlap the custom delimiter",
-				func(team, pipeline, varName, kind string) {
-					_, err := secrets.NewSecretLookupPaths(team, pipeline, false)[0].VariableToSecretPath(varName)
-					Expect(err).To(MatchError(ErrAmbiguousSegment))
-					Expect(err).To(MatchError(ContainSubstring(kind)))
-				},
-				Entry("var containing the delimiter", "main", "mypipeline", "other_team__secret", "var name"),
-				Entry("var with a trailing underscore", "main", "mypipeline", "secret_", "var name"),
-				Entry("team with a leading underscore", "_main", "mypipeline", "secret", "team name"),
-				Entry("pipeline containing the delimiter", "main", "a__b", "secret", "pipeline name"),
-			)
+			type owner struct{ scope, team, pipeline, secret string }
+			owners := map[string]owner{}
+			scopes := []string{"pipeline", "team", "shared"}
+
+			for i, scope := range scopes {
+				scoped := NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates[i:i+1])
+
+				for _, team := range names {
+					for _, pipeline := range names {
+						for _, p := range scoped.NewSecretLookupPaths(team, pipeline, false) {
+							for _, secret := range names {
+								id, err := p.VariableToSecretPath(secret)
+								if err != nil {
+									continue
+								}
+
+								o := owner{scope: scope, secret: secret}
+								if scope != "shared" {
+									o.team = team
+								}
+								if scope == "pipeline" {
+									o.pipeline = pipeline
+								}
+
+								if existing, seen := owners[id]; seen {
+									Expect(existing).To(Equal(o), "secret ID %q", id)
+								}
+								owners[id] = o
+							}
+						}
+					}
+				}
+			}
+
+			Expect(owners).To(HaveKey("concourse--a-b--a_b--a"))
+			Expect(owners).To(HaveKey("concourse--a_b--a-b"))
+			Expect(owners).To(HaveKey("concourse-shared--shared"))
 		})
 
 		It("omits the pipeline-dependent path when there is no pipeline", func() {
@@ -216,7 +269,7 @@ var _ = Describe("SecretManager", func() {
 		})
 
 		It("falls back to the default timeout when none is configured", func() {
-			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates, DefaultSegmentDelimiter)
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates)
 
 			_, _, found, err := secrets.Get("concourse--main--mysecret")
 			Expect(err).ToNot(HaveOccurred())
@@ -309,13 +362,15 @@ var _ = Describe("SecretManager", func() {
 				Entry("percent encoding", "mysecret%2Fadmin"),
 			)
 
-			It("rejects an ID longer than 255 characters", func() {
-				long := ""
-				for range 256 {
-					long += "a"
-				}
+			It("reports an ID longer than 255 characters as not found, without calling the API", func() {
+				_, _, found, err := secrets.Get(strings.Repeat("a", 256))
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeFalse())
+				Expect(api.AccessSecretVersionCallCount()).To(Equal(0))
+			})
 
-				_, _, _, err := secrets.Get(long)
+			It("still rejects an over-long ID containing illegal characters", func() {
+				_, _, _, err := secrets.Get(strings.Repeat("a/", 200))
 				Expect(err).To(MatchError(ErrInvalidSecretID))
 				Expect(api.AccessSecretVersionCallCount()).To(Equal(0))
 			})
