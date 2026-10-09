@@ -6,6 +6,7 @@ require (
 	charm.land/bubbles/v2 v2.1.1
 	charm.land/bubbletea/v2 v2.0.8
 	charm.land/lipgloss/v2 v2.0.5
+	cloud.google.com/go/auth v0.20.0
 	cloud.google.com/go/secretmanager v1.21.0
 	code.cloudfoundry.org/clock v1.80.0
 	code.cloudfoundry.org/credhub-cli v0.0.0-20260720130235-c9ed4c5ab2e9
@@ -112,7 +113,6 @@ require (
 )
 
 require (
-	cloud.google.com/go/auth v0.20.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.11.0 // indirect

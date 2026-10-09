@@ -1,6 +1,8 @@
 package gcpsecretmanager
 
 import (
+	"errors"
+
 	"github.com/concourse/concourse/atc/creds"
 	"github.com/go-viper/mapstructure/v2"
 	flags "github.com/jessevdk/go-flags"
@@ -52,6 +54,12 @@ func (factory *managerFactory) NewInstance(config any) (creds.Manager, error) {
 	err = decoder.Decode(config)
 	if err != nil {
 		return nil, err
+	}
+
+	// Pipeline authors control var_source configs, so they must not be able
+	// to choose a file on the web node for it to read.
+	if manager.CredentialsFile != "" {
+		return nil, errors.New("credentials_file is not supported in a var_source: use credentials_json or Application Default Credentials")
 	}
 
 	return manager, nil

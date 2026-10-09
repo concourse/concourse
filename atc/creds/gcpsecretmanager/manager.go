@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"time"
 
+	"cloud.google.com/go/auth"
+	"cloud.google.com/go/auth/credentials"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/atc/creds"
@@ -34,7 +37,7 @@ type Manager struct {
 	ProjectID string `mapstructure:"project" long:"project" description:"GCP project ID containing the secrets"`
 
 	// When neither is set, Application Default Credentials are used.
-	CredentialsFile string `mapstructure:"credentials_file" long:"credentials-file" description:"Path to a GCP service account JSON key file. Leave unset to use Application Default Credentials / Workload Identity."`
+	CredentialsFile string `mapstructure:"credentials_file" long:"credentials-file" description:"Path to a GCP service account JSON key file. Not available in a var_source. Leave unset to use Application Default Credentials / Workload Identity."`
 	CredentialsJSON string `mapstructure:"credentials_json" long:"credentials-json" description:"Inline GCP service account JSON key. Leave unset to use Application Default Credentials / Workload Identity."`
 
 	RequestTimeout time.Duration `mapstructure:"request_timeout" long:"request-timeout" default:"10s" description:"Timeout applied to each Secret Manager API request"`
@@ -212,11 +215,12 @@ func (manager *Manager) Close(logger lager.Logger) {
 func (manager *Manager) newClient(ctx context.Context) (SecretManagerAPI, error) {
 	var opts []option.ClientOption
 
-	switch {
-	case manager.CredentialsJSON != "":
-		opts = append(opts, option.WithCredentialsJSON([]byte(manager.CredentialsJSON)))
-	case manager.CredentialsFile != "":
-		opts = append(opts, option.WithCredentialsFile(manager.CredentialsFile))
+	authCreds, err := manager.authCredentials()
+	if err != nil {
+		return nil, err
+	}
+	if authCreds != nil {
+		opts = append(opts, option.WithAuthCredentials(authCreds))
 	}
 
 	client, err := secretmanager.NewClient(ctx, opts...)
@@ -225,6 +229,45 @@ func (manager *Manager) newClient(ctx context.Context) (SecretManagerAPI, error)
 	}
 
 	return client, nil
+}
+
+// authCredentials loads the configured service account key, or returns nil
+// so the client falls back to Application Default Credentials.
+//
+// Only service account keys are accepted. option.WithCredentialsJSON and
+// option.WithCredentialsFile accept any credential type, including
+// external_account configurations that make the client read local files, call
+// arbitrary URLs or run executables. That matters because pipeline authors
+// control var_source configs. The typed replacements (WithAuthCredentialsJSON
+// and WithAuthCredentialsFile) don't help: the gRPC transport drops the type
+// before loading the credentials.
+//
+// Self-signed JWTs, which the generated client uses by default, mean the
+// token_uri inside the key is never contacted.
+func (manager *Manager) authCredentials() (*auth.Credentials, error) {
+	var keyJSON []byte
+	switch {
+	case manager.CredentialsJSON != "":
+		keyJSON = []byte(manager.CredentialsJSON)
+	case manager.CredentialsFile != "":
+		data, err := os.ReadFile(manager.CredentialsFile)
+		if err != nil {
+			return nil, fmt.Errorf("read GCP credentials file: %w", err)
+		}
+		keyJSON = data
+	default:
+		return nil, nil
+	}
+
+	authCreds, err := credentials.NewCredentialsFromJSON(credentials.ServiceAccount, keyJSON, &credentials.DetectOptions{
+		Scopes:           secretmanager.DefaultAuthScopes(),
+		UseSelfSignedJWT: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("load GCP service account credentials: %w", err)
+	}
+
+	return authCreds, nil
 }
 
 // validateTemplate expands a template with placeholders so its literal parts
