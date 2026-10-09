@@ -32,13 +32,13 @@ put() {
 # Healthcheck
 put "__concourse-health-check" "health-check-ok"
 
-# Shared scope -- concourse-shared--{{.Secret}}
+# Shared scope -- /concourse-shared/{{.Secret}}
 put "concourse-shared--shared-cred" "shared-value"
 
-# Team scope -- concourse--{{.Team}}--{{.Secret}}
+# Team scope -- /concourse/{{.Team}}/{{.Secret}}
 put "concourse--${TEAM}--team-cred" "team-value"
 
-# Pipeline scope -- concourse--{{.Team}}--{{.Pipeline}}--{{.Secret}}
+# Pipeline scope -- /concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}
 put "concourse--${TEAM}--${PIPELINE}--pipeline-cred" "pipeline-value"
 
 # JSON object payload: resolves as a map so ((json-cred.username)) works.

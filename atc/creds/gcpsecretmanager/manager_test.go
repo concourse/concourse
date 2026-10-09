@@ -40,7 +40,6 @@ var _ = Describe("Manager", func() {
 			Expect(manager.PipelineSecretTemplate).To(Equal(gcpsecretmanager.DefaultPipelineSecretTemplate))
 			Expect(manager.TeamSecretTemplate).To(Equal(gcpsecretmanager.DefaultTeamSecretTemplate))
 			Expect(manager.SharedSecretTemplate).To(Equal(gcpsecretmanager.DefaultSharedSecretTemplate))
-			Expect(manager.SegmentDelimiter).To(Equal(gcpsecretmanager.DefaultSegmentDelimiter))
 		})
 
 		It("passes on default parameters", func() {
@@ -81,14 +80,20 @@ var _ = Describe("Manager", func() {
 			Expect(manager.Validate()).To(HaveOccurred())
 		})
 
+		It("uses path-style default templates, with shared secrets under their own root", func() {
+			Expect(manager.PipelineSecretTemplate).To(Equal("/concourse/{{.Team}}/{{.Pipeline}}/{{.Secret}}"))
+			Expect(manager.TeamSecretTemplate).To(Equal("/concourse/{{.Team}}/{{.Secret}}"))
+			Expect(manager.SharedSecretTemplate).To(Equal("/concourse-shared/{{.Secret}}"))
+		})
+
 		DescribeTable("rejects a template that cannot produce a legal secret ID",
 			func(template string) {
 				manager.SharedSecretTemplate = template
 				Expect(manager.Validate()).To(MatchError(ContainSubstring("invalid Google Secret Manager secret ID")))
 			},
-			Entry("path style", "/concourse/{{.Secret}}"),
-			Entry("slash delimiter", "concourse/{{.Secret}}"),
-			Entry("dotted", "concourse.{{.Secret}}"),
+			Entry("dotted", "/concourse.ci/{{.Secret}}"),
+			Entry("space", "/concourse ci/{{.Secret}}"),
+			Entry("non-ASCII letter", "/concoursé/{{.Secret}}"),
 		)
 
 		It("rejects an unparseable template", func() {
@@ -96,10 +101,10 @@ var _ = Describe("Manager", func() {
 			Expect(manager.Validate()).To(HaveOccurred())
 		})
 
-		It("accepts custom templates that delimit every placeholder", func() {
-			manager.PipelineSecretTemplate = "ci_creds--{{.Team}}--{{.Pipeline}}--{{.Secret}}"
-			manager.TeamSecretTemplate = "ci_creds--{{.Team}}--{{.Secret}}"
-			manager.SharedSecretTemplate = "{{.Secret}}"
+		It("accepts custom templates that give every placeholder its own segment", func() {
+			manager.PipelineSecretTemplate = "/ci_creds/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+			manager.TeamSecretTemplate = "ci_creds/{{.Team}}/{{.Secret}}"
+			manager.SharedSecretTemplate = "/ci_shared/{{.Secret}}"
 			Expect(manager.Validate()).To(BeNil())
 		})
 
@@ -108,18 +113,21 @@ var _ = Describe("Manager", func() {
 				manager.TeamSecretTemplate = template
 				Expect(manager.Validate()).To(MatchError(ContainSubstring(message)))
 			},
-			Entry("underscore delimiter", "concourse__{{.Team}}__{{.Secret}}", "separated from the rest of the template"),
-			Entry("single hyphen delimiter", "concourse-{{.Team}}-{{.Secret}}", "separated from the rest of the template"),
-			Entry("adjacent placeholders", "concourse--{{.Team}}{{.Secret}}", "separated from the rest of the template"),
-			Entry("triple hyphen", "concourse---{{.Team}}--{{.Secret}}", "separated from the rest of the template"),
-			Entry("literal ending in a hyphen", "concourse---x--{{.Team}}--{{.Secret}}", "must not begin or end with a character of the delimiter"),
-			Entry("leading delimiter", "--{{.Team}}--{{.Secret}}", "must be non-empty"),
-			Entry("empty segment", "concourse----{{.Team}}--{{.Secret}}", "must be non-empty"),
-			Entry("missing secret", "concourse--{{.Team}}", "must contain {{.Secret}}"),
-			Entry("repeated placeholder", "concourse--{{.Team}}--{{.Team}}--{{.Secret}}", "at most once"),
-			Entry("pipeline without team", "concourse--{{.Pipeline}}--{{.Secret}}", "requires {{.Team}}"),
-			Entry("conditional", "concourse--{{if .Team}}{{.Team}}{{end}}--{{.Secret}}", "unsupported template construct"),
-			Entry("function call", `concourse--{{printf "%s" .Team}}--{{.Secret}}`, "unsupported template action"),
+			Entry("old double-hyphen style", "concourse--{{.Team}}--{{.Secret}}", "must fill a whole segment"),
+			Entry("placeholder sharing a segment", "/concourse/team-{{.Team}}/{{.Secret}}", "must fill a whole segment"),
+			Entry("adjacent placeholders", "/concourse/{{.Team}}{{.Secret}}", "must fill a whole segment"),
+			Entry("literal containing the ID separator", "/con--course/{{.Team}}/{{.Secret}}", "literal segment"),
+			Entry("literal ending in a hyphen", "/concourse-/{{.Team}}/{{.Secret}}", "literal segment"),
+			Entry("literal starting with a hyphen", "/-concourse/{{.Team}}/{{.Secret}}", "literal segment"),
+			Entry("empty segment", "/concourse//{{.Team}}/{{.Secret}}", "literal segment"),
+			Entry("trailing slash", "/concourse/{{.Team}}/{{.Secret}}/", "literal segment"),
+			Entry("missing secret", "/concourse/{{.Team}}", "must contain {{.Secret}}"),
+			Entry("repeated placeholder", "/concourse/{{.Team}}/{{.Team}}/{{.Secret}}", "at most once"),
+			Entry("pipeline without team", "/concourse/{{.Pipeline}}/{{.Secret}}", "requires {{.Team}}"),
+			Entry("secret only", "{{.Secret}}", "must begin with a literal segment"),
+			Entry("team as the root", "/{{.Team}}/concourse/{{.Secret}}", "must begin with a literal segment"),
+			Entry("conditional", "/concourse/{{if .Team}}{{.Team}}{{end}}/{{.Secret}}", "unsupported template construct"),
+			Entry("function call", `/concourse/{{printf "%s" .Team}}/{{.Secret}}`, "unsupported template action"),
 		)
 
 		DescribeTable("rejects templates that can produce the same secret ID",
@@ -132,62 +140,43 @@ var _ = Describe("Manager", func() {
 			Entry("shared nested under the team root",
 				gcpsecretmanager.DefaultPipelineSecretTemplate,
 				gcpsecretmanager.DefaultTeamSecretTemplate,
-				"concourse--shared--{{.Secret}}"),
+				"/concourse/shared/{{.Secret}}"),
 			Entry("team literal matching a pipeline placeholder",
 				gcpsecretmanager.DefaultPipelineSecretTemplate,
-				"concourse--{{.Team}}--team--{{.Secret}}",
+				"/concourse/{{.Team}}/team/{{.Secret}}",
 				gcpsecretmanager.DefaultSharedSecretTemplate),
 			Entry("identical templates",
 				gcpsecretmanager.DefaultPipelineSecretTemplate,
 				gcpsecretmanager.DefaultTeamSecretTemplate,
 				gcpsecretmanager.DefaultTeamSecretTemplate),
+			Entry("identical apart from the leading slash",
+				gcpsecretmanager.DefaultPipelineSecretTemplate,
+				gcpsecretmanager.DefaultTeamSecretTemplate,
+				"concourse/{{.Team}}/{{.Secret}}"),
 		)
 
-		Describe("segment delimiter", func() {
-			It("accepts templates that use a custom delimiter", func() {
-				manager.SegmentDelimiter = "__"
-				manager.PipelineSecretTemplate = "ci__{{.Team}}__{{.Pipeline}}__{{.Secret}}"
-				manager.TeamSecretTemplate = "ci__{{.Team}}__{{.Secret}}"
-				manager.SharedSecretTemplate = "ci-shared__{{.Secret}}"
-				Expect(manager.Validate()).To(BeNil())
-			})
+		DescribeTable("rejects a shared template that shares a root with the team or pipeline template",
+			func(pipeline, team, shared string) {
+				manager.PipelineSecretTemplate = pipeline
+				manager.TeamSecretTemplate = team
+				manager.SharedSecretTemplate = shared
+				Expect(manager.Validate()).To(MatchError(ContainSubstring("own root")))
+			},
+			Entry("AWS-style shared template",
+				gcpsecretmanager.DefaultPipelineSecretTemplate,
+				gcpsecretmanager.DefaultTeamSecretTemplate,
+				"/concourse/{{.Secret}}"),
+			Entry("shared root matching only the pipeline template",
+				"/ci-shared/{{.Team}}/{{.Pipeline}}/{{.Secret}}",
+				gcpsecretmanager.DefaultTeamSecretTemplate,
+				"/ci-shared/{{.Secret}}"),
+		)
 
-			It("accepts a longer delimiter", func() {
-				manager.SegmentDelimiter = "---"
-				manager.PipelineSecretTemplate = "concourse---{{.Team}}---{{.Pipeline}}---{{.Secret}}"
-				manager.TeamSecretTemplate = "concourse---{{.Team}}---{{.Secret}}"
-				manager.SharedSecretTemplate = "concourse-shared---{{.Secret}}"
-				Expect(manager.Validate()).To(BeNil())
-			})
-
-			It("treats an empty delimiter as the default", func() {
-				manager.SegmentDelimiter = ""
-				Expect(manager.Validate()).To(BeNil())
-			})
-
-			It("rejects the default templates when the delimiter changes", func() {
-				manager.SegmentDelimiter = "__"
-				Expect(manager.Validate()).To(MatchError(ContainSubstring(`separated from the rest of the template by the delimiter "__"`)))
-			})
-
-			It("detects overlapping templates under a custom delimiter", func() {
-				manager.SegmentDelimiter = "_"
-				manager.PipelineSecretTemplate = "ci_{{.Team}}_{{.Pipeline}}_{{.Secret}}"
-				manager.TeamSecretTemplate = "ci_{{.Team}}_{{.Secret}}"
-				manager.SharedSecretTemplate = "ci_shared_{{.Secret}}"
-				Expect(manager.Validate()).To(MatchError(ContainSubstring("can produce the same secret ID")))
-			})
-
-			DescribeTable("rejects an invalid delimiter",
-				func(delimiter string) {
-					manager.SegmentDelimiter = delimiter
-					Expect(manager.Validate()).To(MatchError(ContainSubstring("invalid segment delimiter")))
-				},
-				Entry("slash", "/"),
-				Entry("dot", "."),
-				Entry("letter", "x"),
-				Entry("mixed with a letter", "-x-"),
-			)
+		It("accepts team and pipeline templates under different roots", func() {
+			manager.PipelineSecretTemplate = "/ci-pipelines/{{.Team}}/{{.Pipeline}}/{{.Secret}}"
+			manager.TeamSecretTemplate = "/ci-teams/{{.Team}}/{{.Secret}}"
+			manager.SharedSecretTemplate = "/ci-shared/{{.Secret}}"
+			Expect(manager.Validate()).To(BeNil())
 		})
 	})
 
@@ -222,7 +211,6 @@ var _ = Describe("Manager", func() {
 
 			Expect(out).To(HaveKeyWithValue("project", "my-test-project"))
 			Expect(out).To(HaveKeyWithValue("shared_secret_template", gcpsecretmanager.DefaultSharedSecretTemplate))
-			Expect(out).To(HaveKeyWithValue("segment_delimiter", gcpsecretmanager.DefaultSegmentDelimiter))
 			Expect(out).To(HaveKey("health"))
 		})
 
@@ -245,8 +233,8 @@ var _ = Describe("Manager", func() {
 				ProjectID:              "my-test-project",
 				PipelineSecretTemplate: gcpsecretmanager.DefaultPipelineSecretTemplate,
 				TeamSecretTemplate:     gcpsecretmanager.DefaultTeamSecretTemplate,
-				SharedSecretTemplate:   "concourse--shared--{{.Secret}}",
-				SecretManager:          gcpsecretmanager.NewSecretManager(nil, nil, "my-test-project", 0, nil, ""),
+				SharedSecretTemplate:   "/concourse/shared/{{.Secret}}",
+				SecretManager:          gcpsecretmanager.NewSecretManager(nil, nil, "my-test-project", 0, nil),
 			}
 			_, err := manager.NewSecretsFactory(nil)
 			Expect(err).To(MatchError(ContainSubstring("can produce the same secret ID")))
@@ -275,7 +263,6 @@ var _ = Describe("Manager", func() {
 			Expect(gcpManager.ProjectID).To(Equal("my-test-project"))
 			Expect(gcpManager.RequestTimeout).To(Equal(gcpsecretmanager.DefaultRequestTimeout))
 			Expect(gcpManager.SharedSecretTemplate).To(Equal(gcpsecretmanager.DefaultSharedSecretTemplate))
-			Expect(gcpManager.SegmentDelimiter).To(Equal(gcpsecretmanager.DefaultSegmentDelimiter))
 			Expect(m.Validate()).To(BeNil())
 		})
 
