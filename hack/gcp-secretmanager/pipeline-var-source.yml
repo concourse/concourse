@@ -4,18 +4,22 @@
 # validated after templating, so an uninterpolated ((gcp_project)) is rejected.
 #
 #   fly validate-pipeline -c hack/gcp-secretmanager/pipeline-var-source.yml \
-#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT
+#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT \
+#     -v "gcp_credentials_json=$(cat path/to/service-account-key.json)"
 #   fly -t dev set-pipeline -p gcp-creds-test -c hack/gcp-secretmanager/pipeline-var-source.yml \
-#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT
+#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT \
+#     -v "gcp_credentials_json=$(cat path/to/service-account-key.json)"
 #
 # The pipeline name must stay gcp-creds-test to match the seeded secret IDs.
-# Credentials are omitted so the manager falls back to ADC.
+# A var_source must bring its own service account key: it may not fall back to
+# the web node's Application Default Credentials.
 
 var_sources:
 - name: gcp
   type: gcpsecretmanager
   config:
     project: ((gcp_project))
+    credentials_json: ((gcp_credentials_json))
     request_timeout: 10s
 
 jobs:

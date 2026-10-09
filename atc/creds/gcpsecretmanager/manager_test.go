@@ -255,7 +255,10 @@ var _ = Describe("Manager", func() {
 		})
 
 		It("applies defaults for a minimal var_source config", func() {
-			m, err := factory.NewInstance(map[string]any{"project": "my-test-project"})
+			m, err := factory.NewInstance(map[string]any{
+				"project":          "my-test-project",
+				"credentials_json": `{"type":"service_account"}`,
+			})
 			Expect(err).ToNot(HaveOccurred())
 
 			gcpManager, ok := m.(*gcpsecretmanager.Manager)
@@ -268,8 +271,9 @@ var _ = Describe("Manager", func() {
 
 		It("decodes a duration string for request_timeout", func() {
 			m, err := factory.NewInstance(map[string]any{
-				"project":         "my-test-project",
-				"request_timeout": "30s",
+				"project":          "my-test-project",
+				"credentials_json": `{"type":"service_account"}`,
+				"request_timeout":  "30s",
 			})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(m.(*gcpsecretmanager.Manager).RequestTimeout).To(Equal(30 * time.Second))
@@ -281,6 +285,18 @@ var _ = Describe("Manager", func() {
 				"credentials_file": "/etc/passwd",
 			})
 			Expect(err).To(MatchError(ContainSubstring("credentials_file is not supported in a var_source")))
+		})
+
+		// 2026-10-09: pipeline authors control var_source configs, including
+		// the project and templates. Without credentials of its own, a
+		// var_source would borrow the web node's identity and could read any
+		// team's secrets.
+		It("rejects a var_source with no credentials, so it cannot borrow the web node's identity", func() {
+			_, err := factory.NewInstance(map[string]any{
+				"project":                "my-test-project",
+				"shared_secret_template": "/concourse-shared/{{.Secret}}",
+			})
+			Expect(err).To(MatchError(ContainSubstring("credentials_json is required in a var_source")))
 		})
 
 		It("accepts credentials_json", func() {
