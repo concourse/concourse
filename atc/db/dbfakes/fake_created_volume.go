@@ -133,16 +133,6 @@ type FakeCreatedVolume struct {
 	initializeTaskCacheReturnsOnCall map[int]struct {
 		result1 error
 	}
-	P2PStreamingGroupStub        func() string
-	p2PStreamingGroupMutex       sync.RWMutex
-	p2PStreamingGroupArgsForCall []struct {
-	}
-	p2PStreamingGroupReturns struct {
-		result1 string
-	}
-	p2PStreamingGroupReturnsOnCall map[int]struct {
-		result1 string
-	}
 	ParentHandleStub        func() string
 	parentHandleMutex       sync.RWMutex
 	parentHandleArgsForCall []struct {
@@ -838,59 +828,6 @@ func (fake *FakeCreatedVolume) InitializeTaskCacheReturnsOnCall(i int, result1 e
 	}
 	fake.initializeTaskCacheReturnsOnCall[i] = struct {
 		result1 error
-	}{result1}
-}
-
-func (fake *FakeCreatedVolume) P2PStreamingGroup() string {
-	fake.p2PStreamingGroupMutex.Lock()
-	ret, specificReturn := fake.p2PStreamingGroupReturnsOnCall[len(fake.p2PStreamingGroupArgsForCall)]
-	fake.p2PStreamingGroupArgsForCall = append(fake.p2PStreamingGroupArgsForCall, struct {
-	}{})
-	stub := fake.P2PStreamingGroupStub
-	fakeReturns := fake.p2PStreamingGroupReturns
-	fake.recordInvocation("P2PStreamingGroup", []interface{}{})
-	fake.p2PStreamingGroupMutex.Unlock()
-	if stub != nil {
-		return stub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fakeReturns.result1
-}
-
-func (fake *FakeCreatedVolume) P2PStreamingGroupCallCount() int {
-	fake.p2PStreamingGroupMutex.RLock()
-	defer fake.p2PStreamingGroupMutex.RUnlock()
-	return len(fake.p2PStreamingGroupArgsForCall)
-}
-
-func (fake *FakeCreatedVolume) P2PStreamingGroupCalls(stub func() string) {
-	fake.p2PStreamingGroupMutex.Lock()
-	defer fake.p2PStreamingGroupMutex.Unlock()
-	fake.P2PStreamingGroupStub = stub
-}
-
-func (fake *FakeCreatedVolume) P2PStreamingGroupReturns(result1 string) {
-	fake.p2PStreamingGroupMutex.Lock()
-	defer fake.p2PStreamingGroupMutex.Unlock()
-	fake.P2PStreamingGroupStub = nil
-	fake.p2PStreamingGroupReturns = struct {
-		result1 string
-	}{result1}
-}
-
-func (fake *FakeCreatedVolume) P2PStreamingGroupReturnsOnCall(i int, result1 string) {
-	fake.p2PStreamingGroupMutex.Lock()
-	defer fake.p2PStreamingGroupMutex.Unlock()
-	fake.P2PStreamingGroupStub = nil
-	if fake.p2PStreamingGroupReturnsOnCall == nil {
-		fake.p2PStreamingGroupReturnsOnCall = make(map[int]struct {
-			result1 string
-		})
-	}
-	fake.p2PStreamingGroupReturnsOnCall[i] = struct {
-		result1 string
 	}{result1}
 }
 

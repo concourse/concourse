@@ -37,22 +37,6 @@ var _ = Describe("Volume", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("preserves the worker P2P streaming group on newly created and reloaded volumes", func() {
-		defaultWorkerPayload.P2PStreamingGroup = "group-a"
-		_, err := workerFactory.SaveWorker(defaultWorkerPayload, 5*time.Minute)
-		Expect(err).NotTo(HaveOccurred())
-
-		creating, err := volumeRepository.CreateContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/group-test")
-		Expect(err).NotTo(HaveOccurred())
-		created, err := creating.Created()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(created.P2PStreamingGroup()).To(Equal("group-a"))
-
-		_, reloaded, err := volumeRepository.FindContainerVolume(defaultTeam.ID(), defaultWorker.Name(), defaultCreatingContainer, "/group-test")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(reloaded.P2PStreamingGroup()).To(Equal("group-a"))
-	})
-
 	Describe("creatingVolume.Failed", func() {
 		var (
 			creatingVolume db.CreatingVolume

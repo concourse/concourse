@@ -111,8 +111,8 @@ func (s Streamer) stream(ctx context.Context, src runtime.Artifact, dst runtime.
 		return s.streamThroughATC(ctx, src, dst)
 	}
 
-	srcGroup := p2pSrc.DBVolume().P2PStreamingGroup()
-	dstGroup := p2pDst.DBVolume().P2PStreamingGroup()
+	srcGroup := p2pSrc.P2PStreamingGroup()
+	dstGroup := p2pDst.P2PStreamingGroup()
 	if srcGroup != dstGroup {
 		return s.streamThroughATC(ctx, src, dst)
 	}
