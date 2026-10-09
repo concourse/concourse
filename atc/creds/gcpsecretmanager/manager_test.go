@@ -275,6 +275,23 @@ var _ = Describe("Manager", func() {
 			Expect(m.(*gcpsecretmanager.Manager).RequestTimeout).To(Equal(30 * time.Second))
 		})
 
+		It("rejects credentials_file, so pipeline authors cannot pick a file on the web node", func() {
+			_, err := factory.NewInstance(map[string]any{
+				"project":          "my-test-project",
+				"credentials_file": "/etc/passwd",
+			})
+			Expect(err).To(MatchError(ContainSubstring("credentials_file is not supported in a var_source")))
+		})
+
+		It("accepts credentials_json", func() {
+			m, err := factory.NewInstance(map[string]any{
+				"project":          "my-test-project",
+				"credentials_json": `{"type":"service_account"}`,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(m.(*gcpsecretmanager.Manager).CredentialsJSON).To(Equal(`{"type":"service_account"}`))
+		})
+
 		It("rejects unknown config keys", func() {
 			_, err := factory.NewInstance(map[string]any{
 				"project":  "my-test-project",
