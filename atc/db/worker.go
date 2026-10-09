@@ -71,6 +71,7 @@ type Worker interface {
 	StartTime() time.Time
 	ExpiresAt() time.Time
 	Ephemeral() bool
+	P2PStreamingGroup() string
 
 	Reload() (bool, error)
 
@@ -93,27 +94,28 @@ var _ Worker = (*worker)(nil)
 type worker struct {
 	conn DbConn
 
-	name             string
-	version          *string
-	state            WorkerState
-	gardenAddr       *string
-	baggageclaimURL  *string
-	httpProxyURL     string
-	httpsProxyURL    string
-	noProxy          string
-	activeContainers int
-	activeVolumes    int
-	activeTasks      int
-	maxActiveTasks   int
-	resourceTypes    []atc.WorkerResourceType
-	platform         string
-	tags             []string
-	teamID           int
-	teamName         string
-	startTime        time.Time
-	expiresAt        time.Time
-	certsPath        *string
-	ephemeral        bool
+	name              string
+	version           *string
+	state             WorkerState
+	gardenAddr        *string
+	baggageclaimURL   *string
+	httpProxyURL      string
+	httpsProxyURL     string
+	noProxy           string
+	activeContainers  int
+	activeVolumes     int
+	activeTasks       int
+	maxActiveTasks    int
+	p2pStreamingGroup string
+	resourceTypes     []atc.WorkerResourceType
+	platform          string
+	tags              []string
+	teamID            int
+	teamName          string
+	startTime         time.Time
+	expiresAt         time.Time
+	certsPath         *string
+	ephemeral         bool
 }
 
 func (worker *worker) Name() string             { return worker.name }
@@ -134,6 +136,7 @@ func (worker *worker) Tags() []string                          { return worker.t
 func (worker *worker) TeamID() int                             { return worker.teamID }
 func (worker *worker) TeamName() string                        { return worker.teamName }
 func (worker *worker) Ephemeral() bool                         { return worker.ephemeral }
+func (worker *worker) P2PStreamingGroup() string               { return worker.p2pStreamingGroup }
 func (worker *worker) MaxActiveTasks() int                     { return worker.maxActiveTasks }
 
 func (worker *worker) StartTime() time.Time { return worker.startTime }

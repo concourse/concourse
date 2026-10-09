@@ -1869,6 +1869,30 @@ var _ = Describe("Garden Worker", func() {
 			Expect(runBuf.String()).To(Equal("hello world\n"))
 		})
 	})
+
+	Describe("Volume P2PStreamingGroup", func() {
+		Test("returns the worker's P2P streaming group", func() {
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker("grouped").
+						WithP2PStreamingGroup("group-a").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("grouped-volume"),
+						),
+					grt.NewWorker("ungrouped").
+						WithVolumesCreatedInDBAndBaggageclaim(
+							grt.NewVolume("ungrouped-volume"),
+						),
+				),
+			)
+
+			groupedVolume := scenario.WorkerVolume("grouped", "grouped-volume").(runtime.P2PVolume)
+			Expect(groupedVolume.P2PStreamingGroup()).To(Equal("group-a"))
+
+			ungroupedVolume := scenario.WorkerVolume("ungrouped", "ungrouped-volume").(runtime.P2PVolume)
+			Expect(ungroupedVolume.P2PStreamingGroup()).To(Equal(""))
+		})
+	})
 })
 
 type expectMap map[string]any

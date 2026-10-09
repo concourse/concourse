@@ -45,6 +45,10 @@ func (v Volume) DBVolume() db.CreatedVolume {
 	return v.dbVolume
 }
 
+func (v Volume) P2PStreamingGroup() string {
+	return v.worker.dbWorker.P2PStreamingGroup()
+}
+
 func (v Volume) InitializeResourceCache(ctx context.Context, cache db.ResourceCache) (*db.UsedWorkerResourceCache, error) {
 	logger := lagerctx.FromContext(ctx)
 	if err := v.bcVolume.SetPrivileged(ctx, false); err != nil {

@@ -216,6 +216,16 @@ type FakeWorker struct {
 	noProxyReturnsOnCall map[int]struct {
 		result1 string
 	}
+	P2PStreamingGroupStub        func() string
+	p2PStreamingGroupMutex       sync.RWMutex
+	p2PStreamingGroupArgsForCall []struct {
+	}
+	p2PStreamingGroupReturns struct {
+		result1 string
+	}
+	p2PStreamingGroupReturnsOnCall map[int]struct {
+		result1 string
+	}
 	PlatformStub        func() string
 	platformMutex       sync.RWMutex
 	platformArgsForCall []struct {
@@ -1392,6 +1402,59 @@ func (fake *FakeWorker) NoProxyReturnsOnCall(i int, result1 string) {
 		})
 	}
 	fake.noProxyReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeWorker) P2PStreamingGroup() string {
+	fake.p2PStreamingGroupMutex.Lock()
+	ret, specificReturn := fake.p2PStreamingGroupReturnsOnCall[len(fake.p2PStreamingGroupArgsForCall)]
+	fake.p2PStreamingGroupArgsForCall = append(fake.p2PStreamingGroupArgsForCall, struct {
+	}{})
+	stub := fake.P2PStreamingGroupStub
+	fakeReturns := fake.p2PStreamingGroupReturns
+	fake.recordInvocation("P2PStreamingGroup", []interface{}{})
+	fake.p2PStreamingGroupMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeWorker) P2PStreamingGroupCallCount() int {
+	fake.p2PStreamingGroupMutex.RLock()
+	defer fake.p2PStreamingGroupMutex.RUnlock()
+	return len(fake.p2PStreamingGroupArgsForCall)
+}
+
+func (fake *FakeWorker) P2PStreamingGroupCalls(stub func() string) {
+	fake.p2PStreamingGroupMutex.Lock()
+	defer fake.p2PStreamingGroupMutex.Unlock()
+	fake.P2PStreamingGroupStub = stub
+}
+
+func (fake *FakeWorker) P2PStreamingGroupReturns(result1 string) {
+	fake.p2PStreamingGroupMutex.Lock()
+	defer fake.p2PStreamingGroupMutex.Unlock()
+	fake.P2PStreamingGroupStub = nil
+	fake.p2PStreamingGroupReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeWorker) P2PStreamingGroupReturnsOnCall(i int, result1 string) {
+	fake.p2PStreamingGroupMutex.Lock()
+	defer fake.p2PStreamingGroupMutex.Unlock()
+	fake.P2PStreamingGroupStub = nil
+	if fake.p2PStreamingGroupReturnsOnCall == nil {
+		fake.p2PStreamingGroupReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.p2PStreamingGroupReturnsOnCall[i] = struct {
 		result1 string
 	}{result1}
 }

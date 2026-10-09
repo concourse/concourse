@@ -21,15 +21,16 @@ var _ = Describe("WorkerFactory", func() {
 
 	BeforeEach(func() {
 		atcWorker = atc.Worker{
-			GardenAddr:       "some-garden-addr",
-			BaggageclaimURL:  "some-bc-url",
-			HTTPProxyURL:     "some-http-proxy-url",
-			HTTPSProxyURL:    "some-https-proxy-url",
-			NoProxy:          "some-no-proxy",
-			Ephemeral:        true,
-			ActiveContainers: 140,
-			ActiveVolumes:    550,
-			MaxActiveTasks:   6,
+			GardenAddr:        "some-garden-addr",
+			BaggageclaimURL:   "some-bc-url",
+			HTTPProxyURL:      "some-http-proxy-url",
+			HTTPSProxyURL:     "some-https-proxy-url",
+			NoProxy:           "some-no-proxy",
+			Ephemeral:         true,
+			ActiveContainers:  140,
+			ActiveVolumes:     550,
+			MaxActiveTasks:    6,
+			P2PStreamingGroup: "group-a",
 			ResourceTypes: []atc.WorkerResourceType{
 				{
 					Type:       "some-resource-type",
@@ -76,6 +77,19 @@ var _ = Describe("WorkerFactory", func() {
 				var err error
 				worker, err = workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("updates and clears the P2P streaming group on re-registration", func() {
+				for _, group := range []string{"group-b", ""} {
+					atcWorker.P2PStreamingGroup = group
+					savedWorker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(savedWorker.P2PStreamingGroup()).To(Equal(group))
+					found, err := worker.Reload()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					Expect(worker.P2PStreamingGroup()).To(Equal(group))
+				}
 			})
 
 			It("saves resource types", func() {
@@ -158,6 +172,7 @@ var _ = Describe("WorkerFactory", func() {
 					savedWorker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(savedWorker.Name()).To(Equal("some-name"))
+					Expect(savedWorker.P2PStreamingGroup()).To(Equal("group-a"))
 					Expect(*savedWorker.GardenAddr()).To(Equal("some-garden-addr"))
 					Expect(savedWorker.State()).To(Equal(db.WorkerStateRunning))
 				})
@@ -186,6 +201,7 @@ var _ = Describe("WorkerFactory", func() {
 				savedWorker, err := workerFactory.SaveWorker(atcWorker, 5*time.Minute)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedWorker.Name()).To(Equal("some-name"))
+				Expect(savedWorker.P2PStreamingGroup()).To(Equal("group-a"))
 				Expect(*savedWorker.GardenAddr()).To(Equal("some-garden-addr"))
 				Expect(savedWorker.State()).To(Equal(db.WorkerStateRunning))
 				Expect(*savedWorker.Version()).To(Equal("1.0.0"))
@@ -227,6 +243,7 @@ var _ = Describe("WorkerFactory", func() {
 				Expect(foundWorker.HTTPSProxyURL()).To(Equal("some-https-proxy-url"))
 				Expect(foundWorker.NoProxy()).To(Equal("some-no-proxy"))
 				Expect(foundWorker.Ephemeral()).To(Equal(true))
+				Expect(foundWorker.P2PStreamingGroup()).To(Equal("group-a"))
 				Expect(foundWorker.ActiveContainers()).To(Equal(140))
 				Expect(foundWorker.ActiveVolumes()).To(Equal(550))
 				Expect(foundWorker.MaxActiveTasks()).To(Equal(6))

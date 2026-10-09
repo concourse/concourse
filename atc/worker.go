@@ -33,6 +33,8 @@ type Worker struct {
 	StartTime int64  `json:"start_time"`
 	Ephemeral bool   `json:"ephemeral"`
 	State     string `json:"state"`
+
+	P2PStreamingGroup string `json:"p2p_streaming_group,omitempty"`
 }
 
 type Tags []string
