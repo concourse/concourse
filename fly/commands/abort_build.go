@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -12,13 +13,22 @@ import (
 )
 
 type AbortBuildCommand struct {
-	Job   flaghelpers.JobFlag  `short:"j" long:"job" value-name:"PIPELINE/JOB"   description:"Name of a job to cancel"`
-	Build string               `short:"b" long:"build" required:"true" description:"If job is specified: build number to cancel. If job not specified: build id"`
-	Team  flaghelpers.TeamFlag `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
-	Force bool                 `long:"force" description:"WARNING: Only use as a last resort! Try regular aborting first and wait 1min. Marks the build as aborted immediately and does not wait for the build's containers to stop."`
+	Job          flaghelpers.JobFlag                `short:"j" long:"job" value-name:"PIPELINE/JOB" description:"Name of a job to cancel"`
+	Build        string                             `short:"b" long:"build" required:"true" description:"If job is specified: build number to cancel. If job not specified: build id"`
+	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i" long:"instance-var" unquote:"false" value-name:"[NAME=YAML]" description:"Specify a YAML value for an instance variable (can be specified multiple times)"`
+	Team         flaghelpers.TeamFlag               `long:"team" description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Force        bool                               `long:"force" description:"WARNING: Only use as a last resort! Try regular aborting first and wait 1min. Marks the build as aborted immediately and does not wait for the build's containers to stop."`
 }
 
 func (command *AbortBuildCommand) Execute([]string) error {
+	pipelineRef := command.Job.PipelineRef
+	if len(command.InstanceVars) > 0 && (pipelineRef.Name == "" || command.Job.JobName == "") {
+		return errors.New("--instance-var requires --job")
+	}
+	if err := flaghelpers.ApplyInstanceVars(&pipelineRef, command.InstanceVars); err != nil {
+		return err
+	}
+
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
 	if err != nil {
 		return err
@@ -40,7 +50,7 @@ func (command *AbortBuildCommand) Execute([]string) error {
 	if command.Job.PipelineRef.Name == "" && command.Job.JobName == "" {
 		build, exists, err = target.Client().Build(command.Build)
 	} else {
-		build, exists, err = team.JobBuild(command.Job.PipelineRef, command.Job.JobName, command.Build)
+		build, exists, err = team.JobBuild(pipelineRef, command.Job.JobName, command.Build)
 	}
 	if err != nil {
 		return err

@@ -27,6 +27,16 @@ var _ = Describe("abort-build", func() {
 	}
 
 	Context("when the job name is not specified", func() {
+		It("rejects instance vars without a job", func() {
+			flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-b", "23", "-i", "branch=master")
+
+			sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(sess.Err).Should(gbytes.Say("--instance-var requires --job"))
+			Eventually(sess).Should(gexec.Exit(1))
+		})
+
 		Context("and the build id is specified", func() {
 			BeforeEach(func() {
 				expectedURL := "/api/v1/builds/23"
@@ -132,6 +142,33 @@ var _ = Describe("abort-build", func() {
 	})
 
 	Context("when the pipeline/build exists", func() {
+		Context("and instance vars are specified with --instance-var", func() {
+			BeforeEach(func() {
+				expectedURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
+
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", expectedURL, "vars.branch=%22master%22"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, expectedBuild),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("PUT", expectedAbortURL),
+						ghttp.RespondWith(http.StatusNoContent, ""),
+					),
+				)
+			})
+
+			It("aborts the build for the specified pipeline instance", func() {
+				flyCmd := exec.Command(flyPath, "-t", targetName, "abort-build", "-j", "my-pipeline/my-job", "-b", "42", "-i", "branch=master")
+
+				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Out).To(gbytes.Say("build successfully aborted"))
+			})
+		})
+
 		Context("and the build name is specified", func() {
 			BeforeEach(func() {
 				expectedURL := "/api/v1/teams/main/pipelines/my-pipeline/jobs/my-job/builds/42"
