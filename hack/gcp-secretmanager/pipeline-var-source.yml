@@ -31,6 +31,7 @@ jobs:
       TEAM: ((gcp:team-cred))
       PIPELINE: ((gcp:pipeline-cred))
       JSON_USERNAME: ((gcp:json-cred.username))
+      VALUE: ((gcp:value-cred))
       PRECEDENCE: ((gcp:precedence-cred))
     config:
       platform: linux
@@ -56,6 +57,7 @@ jobs:
           check "team template"              "$TEAM"          "team-value"
           check "pipeline template"          "$PIPELINE"      "pipeline-value"
           check "JSON object field access"   "$JSON_USERNAME" "neo"
+          check "JSON value key unwrapped"   "$VALUE"         '{"type":"service_account"}'
           check "pipeline beats team/shared" "$PRECEDENCE"    "right-pipeline"
 
           exit $fail

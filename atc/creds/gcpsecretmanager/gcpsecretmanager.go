@@ -60,6 +60,7 @@ type SecretManager struct {
 	projectID       string
 	requestTimeout  time.Duration
 	secretTemplates []*creds.SecretTemplate
+	unwrapValue     bool
 }
 
 func NewSecretManager(
@@ -68,6 +69,7 @@ func NewSecretManager(
 	projectID string,
 	requestTimeout time.Duration,
 	secretTemplates []*creds.SecretTemplate,
+	unwrapValue bool,
 ) *SecretManager {
 	// A zero timeout yields an already-expired context, so treat it as unset.
 	if requestTimeout <= 0 {
@@ -80,6 +82,7 @@ func NewSecretManager(
 		projectID:       projectID,
 		requestTimeout:  requestTimeout,
 		secretTemplates: secretTemplates,
+		unwrapValue:     unwrapValue,
 	}
 }
 
@@ -133,6 +136,9 @@ func (s *SecretManager) Get(secretPath string, _ creds.SecretLookupParams) (any,
 // getSecretByID looks up a secret version by its ID. A payload that parses as a
 // JSON object is returned as a map[string]any so ((secret.field)) works;
 // anything else is returned verbatim as a string. Expiration is always nil.
+//
+// If unwrapValue is set and the object has a "value" key, only that value is
+// returned, as the Vault and Kubernetes managers do. Other keys are ignored.
 func (s *SecretManager) getSecretByID(secretPath string) (any, *time.Time, bool, error) {
 	secretID, err := NewSecretID(secretPath)
 	if errors.Is(err, errSecretIDTooLong) {
@@ -176,6 +182,9 @@ func (s *SecretManager) getSecretByID(secretPath string) (any, *time.Time, bool,
 	}
 
 	if values, err := decodeJSONValue(data); err == nil {
+		if value, found := values["value"]; found && s.unwrapValue {
+			return value, nil, true, nil
+		}
 		return values, nil, true, nil
 	}
 

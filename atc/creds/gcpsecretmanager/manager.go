@@ -47,6 +47,9 @@ type Manager struct {
 	TeamSecretTemplate     string `mapstructure:"team_secret_template" long:"team-secret-template" default:"/concourse/{{.Team}}/{{.Secret}}" description:"Secret path template used for team specific parameter. Mapped to a Google Secret Manager secret ID by dropping the leading slash and replacing each remaining slash with '--'."`
 	SharedSecretTemplate   string `mapstructure:"shared_secret_template" long:"shared-secret-template" default:"/concourse-shared/{{.Secret}}" description:"Secret path template used for shared parameter that can be used by all teams and pipelines, under a root of its own. Mapped to a Google Secret Manager secret ID by dropping the leading slash and replacing each remaining slash with '--'."`
 
+	// Defaults to false because go-flags cannot set a bool flag to false.
+	DisableValueUnwrap bool `mapstructure:"disable_value_unwrap" long:"disable-value-unwrap" description:"Return the whole JSON object for a secret that has a 'value' key. By default, such a secret resolves to the value of that key only, as in the Vault and Kubernetes credential managers."`
+
 	SecretManager *SecretManager
 }
 
@@ -63,6 +66,7 @@ func (manager *Manager) Init(log lager.Logger) error {
 		manager.ProjectID,
 		manager.requestTimeoutOrDefault(),
 		nil,
+		!manager.DisableValueUnwrap,
 	)
 
 	return nil
@@ -103,6 +107,7 @@ func (manager *Manager) MarshalJSON() ([]byte, error) {
 		"pipeline_secret_template": manager.PipelineSecretTemplate,
 		"team_secret_template":     manager.TeamSecretTemplate,
 		"shared_secret_template":   manager.SharedSecretTemplate,
+		"disable_value_unwrap":     manager.DisableValueUnwrap,
 		"health":                   health,
 	})
 }
@@ -147,6 +152,7 @@ func (manager *Manager) NewSecretsFactory(log lager.Logger) (creds.SecretsFactor
 		manager.ProjectID,
 		manager.requestTimeoutOrDefault(),
 		templates,
+		!manager.DisableValueUnwrap,
 	), nil
 }
 

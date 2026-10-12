@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"time"
 
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/concourse/concourse/v8/atc/creds"
 	"github.com/concourse/concourse/v8/atc/creds/gcpsecretmanager"
+	"github.com/concourse/concourse/v8/atc/creds/gcpsecretmanager/gcpsecretmanagerfakes"
 	"github.com/jessevdk/go-flags"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -44,6 +46,10 @@ var _ = Describe("Manager", func() {
 
 		It("passes on default parameters", func() {
 			Expect(manager.Validate()).To(BeNil())
+		})
+
+		It("unwraps value keys by default", func() {
+			Expect(manager.DisableValueUnwrap).To(BeFalse())
 		})
 
 		It("passes with a numeric project number", func() {
@@ -211,6 +217,7 @@ var _ = Describe("Manager", func() {
 
 			Expect(out).To(HaveKeyWithValue("project", "my-test-project"))
 			Expect(out).To(HaveKeyWithValue("shared_secret_template", gcpsecretmanager.DefaultSharedSecretTemplate))
+			Expect(out).To(HaveKeyWithValue("disable_value_unwrap", false))
 			Expect(out).To(HaveKey("health"))
 		})
 
@@ -234,10 +241,32 @@ var _ = Describe("Manager", func() {
 				PipelineSecretTemplate: gcpsecretmanager.DefaultPipelineSecretTemplate,
 				TeamSecretTemplate:     gcpsecretmanager.DefaultTeamSecretTemplate,
 				SharedSecretTemplate:   "/concourse/shared/{{.Secret}}",
-				SecretManager:          gcpsecretmanager.NewSecretManager(nil, nil, "my-test-project", 0, nil),
+				SecretManager:          gcpsecretmanager.NewSecretManager(nil, nil, "my-test-project", 0, nil, true),
 			}
 			_, err := manager.NewSecretsFactory(nil)
 			Expect(err).To(MatchError(ContainSubstring("can produce the same secret ID")))
+		})
+
+		It("passes disable_value_unwrap to the secrets it creates", func() {
+			api := new(gcpsecretmanagerfakes.FakeSecretManagerAPI)
+			api.AccessSecretVersionReturns(&secretmanagerpb.AccessSecretVersionResponse{
+				Payload: &secretmanagerpb.SecretPayload{Data: []byte(`{"value":"hunter2"}`)},
+			}, nil)
+			manager = gcpsecretmanager.Manager{
+				ProjectID:              "my-test-project",
+				PipelineSecretTemplate: gcpsecretmanager.DefaultPipelineSecretTemplate,
+				TeamSecretTemplate:     gcpsecretmanager.DefaultTeamSecretTemplate,
+				SharedSecretTemplate:   gcpsecretmanager.DefaultSharedSecretTemplate,
+				DisableValueUnwrap:     true,
+				SecretManager:          gcpsecretmanager.NewSecretManager(nil, api, "my-test-project", 0, nil, true),
+			}
+
+			factory, err := manager.NewSecretsFactory(nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			value, _, _, err := factory.NewSecrets().Get("concourse--main--mysecret", creds.SecretLookupParams{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(value).To(Equal(map[string]any{"value": "hunter2"}))
 		})
 	})
 
@@ -266,6 +295,7 @@ var _ = Describe("Manager", func() {
 			Expect(gcpManager.ProjectID).To(Equal("my-test-project"))
 			Expect(gcpManager.RequestTimeout).To(Equal(gcpsecretmanager.DefaultRequestTimeout))
 			Expect(gcpManager.SharedSecretTemplate).To(Equal(gcpsecretmanager.DefaultSharedSecretTemplate))
+			Expect(gcpManager.DisableValueUnwrap).To(BeFalse())
 			Expect(m.Validate()).To(BeNil())
 		})
 
@@ -277,6 +307,16 @@ var _ = Describe("Manager", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(m.(*gcpsecretmanager.Manager).RequestTimeout).To(Equal(30 * time.Second))
+		})
+
+		It("decodes disable_value_unwrap", func() {
+			m, err := factory.NewInstance(map[string]any{
+				"project":              "my-test-project",
+				"credentials_json":     `{"type":"service_account"}`,
+				"disable_value_unwrap": true,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(m.(*gcpsecretmanager.Manager).DisableValueUnwrap).To(BeTrue())
 		})
 
 		It("rejects credentials_file, so pipeline authors cannot pick a file on the web node", func() {

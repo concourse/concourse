@@ -44,6 +44,10 @@ put "concourse--${TEAM}--${PIPELINE}--pipeline-cred" "pipeline-value"
 # JSON object payload: resolves as a map so ((json-cred.username)) works.
 put "concourse--${TEAM}--${PIPELINE}--json-cred" '{"username":"neo","password":"trinity"}'
 
+# JSON object with a "value" key: resolves to that value only, so a JSON
+# document such as a service account key can be used as a string.
+put "concourse--${TEAM}--${PIPELINE}--value-cred" '{"value":"{\"type\":\"service_account\"}"}'
+
 # Same name at three scopes, to prove pipeline > team > shared precedence.
 put "concourse-shared--precedence-cred" "wrong-shared"
 put "concourse--${TEAM}--precedence-cred" "wrong-team"

@@ -14,6 +14,7 @@ ids=(
   "concourse--${TEAM}--team-cred"
   "concourse--${TEAM}--${PIPELINE}--pipeline-cred"
   "concourse--${TEAM}--${PIPELINE}--json-cred"
+  "concourse--${TEAM}--${PIPELINE}--value-cred"
   "concourse-shared--precedence-cred"
   "concourse--${TEAM}--precedence-cred"
   "concourse--${TEAM}--${PIPELINE}--precedence-cred"

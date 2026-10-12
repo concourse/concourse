@@ -13,6 +13,7 @@ type secretManagerFactory struct {
 	projectID       string
 	requestTimeout  time.Duration
 	secretTemplates []*creds.SecretTemplate
+	unwrapValue     bool
 }
 
 func NewSecretManagerFactory(
@@ -21,6 +22,7 @@ func NewSecretManagerFactory(
 	projectID string,
 	requestTimeout time.Duration,
 	secretTemplates []*creds.SecretTemplate,
+	unwrapValue bool,
 ) *secretManagerFactory {
 	return &secretManagerFactory{
 		log:             log,
@@ -28,6 +30,7 @@ func NewSecretManagerFactory(
 		projectID:       projectID,
 		requestTimeout:  requestTimeout,
 		secretTemplates: secretTemplates,
+		unwrapValue:     unwrapValue,
 	}
 }
 
@@ -38,5 +41,6 @@ func (factory *secretManagerFactory) NewSecrets() creds.Secrets {
 		factory.projectID,
 		factory.requestTimeout,
 		factory.secretTemplates,
+		factory.unwrapValue,
 	)
 }

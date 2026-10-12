@@ -68,6 +68,7 @@ var _ = Describe("SecretManager", func() {
 			testProject,
 			time.Second,
 			templates,
+			true,
 		)
 	})
 
@@ -104,7 +105,7 @@ var _ = Describe("SecretManager", func() {
 			withoutSlash, err := creds.BuildSecretTemplate("without", "ci/{{.Team}}/{{.Secret}}")
 			Expect(err).ToNot(HaveOccurred())
 
-			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{withSlash, withoutSlash})
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{withSlash, withoutSlash}, true)
 
 			for _, p := range secrets.NewSecretLookupPaths(creds.SecretLookupParams{Team: "main", Pipeline: ""}, false) {
 				value, err := p.VariableToSecretPath("mysecret")
@@ -162,7 +163,7 @@ var _ = Describe("SecretManager", func() {
 		It("fails every lookup, rather than returning no paths, when every scope is skipped", func() {
 			sharedPerTeam, err := creds.BuildSecretTemplate("shared", "/concourse-shared/{{.Team}}/{{.Secret}}")
 			Expect(err).ToNot(HaveOccurred())
-			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{templates[0], templates[1], sharedPerTeam})
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, []*creds.SecretTemplate{templates[0], templates[1], sharedPerTeam}, true)
 
 			variables := creds.NewVariables(secrets, creds.SecretLookupParams{Team: "a--b", Pipeline: "p"}, false)
 			_, found, err := variables.Get(vars.Reference{Path: "concourse--victim--db-password"})
@@ -182,7 +183,7 @@ var _ = Describe("SecretManager", func() {
 			scopes := []string{"pipeline", "team", "shared"}
 
 			for i, scope := range scopes {
-				scoped := NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates[i:i+1])
+				scoped := NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates[i:i+1], true)
 
 				for _, team := range names {
 					for _, pipeline := range names {
@@ -268,8 +269,44 @@ var _ = Describe("SecretManager", func() {
 			Expect(value).To(Equal("null"))
 		})
 
+		Context("when a JSON object payload has a value key", func() {
+			It("returns only the value, as the Vault and Kubernetes managers do", func() {
+				api.AccessSecretVersionReturns(payloadResponse(`{"value":"{\"type\":\"service_account\"}"}`, true), nil)
+
+				value, _, found, err := secrets.Get("concourse--main--mysecret", creds.SecretLookupParams{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).To(BeTrue())
+				Expect(value).To(Equal(`{"type":"service_account"}`))
+			})
+
+			It("ignores the other keys, as the Vault and Kubernetes managers do", func() {
+				api.AccessSecretVersionReturns(payloadResponse(`{"value":"hunter2","user":"admin"}`, true), nil)
+
+				value, _, _, err := secrets.Get("concourse--main--mysecret", creds.SecretLookupParams{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(value).To(Equal("hunter2"))
+			})
+
+			It("returns a value that is not a string unchanged", func() {
+				api.AccessSecretVersionReturns(payloadResponse(`{"value":{"user":"admin"}}`, true), nil)
+
+				value, _, _, err := secrets.Get("concourse--main--mysecret", creds.SecretLookupParams{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(value).To(Equal(map[string]any{"user": "admin"}))
+			})
+
+			It("returns the whole object when unwrapping is disabled, so ((secret.value)) resolves", func() {
+				api.AccessSecretVersionReturns(payloadResponse(`{"value":"hunter2","user":"admin"}`, true), nil)
+				secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates, false)
+
+				value, _, _, err := secrets.Get("concourse--main--mysecret", creds.SecretLookupParams{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(value).To(Equal(map[string]any{"value": "hunter2", "user": "admin"}))
+			})
+		})
+
 		It("falls back to the default timeout when none is configured", func() {
-			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates)
+			secrets = NewSecretManager(lagertest.NewTestLogger("t"), api, testProject, 0, templates, true)
 
 			_, _, found, err := secrets.Get("concourse--main--mysecret", creds.SecretLookupParams{})
 			Expect(err).ToNot(HaveOccurred())

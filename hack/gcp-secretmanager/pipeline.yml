@@ -16,6 +16,7 @@ jobs:
       PIPELINE: ((pipeline-cred))
       JSON_USERNAME: ((json-cred.username))
       JSON_PASSWORD: ((json-cred.password))
+      VALUE: ((value-cred))
       PRECEDENCE: ((precedence-cred))
     config:
       platform: linux
@@ -42,6 +43,7 @@ jobs:
           check "pipeline template"          "$PIPELINE"      "pipeline-value"
           check "JSON object field access"   "$JSON_USERNAME" "neo"
           check "JSON object field access"   "$JSON_PASSWORD" "trinity"
+          check "JSON value key unwrapped"   "$VALUE"         '{"type":"service_account"}'
           check "pipeline beats team/shared" "$PRECEDENCE"    "right-pipeline"
 
           exit $fail
