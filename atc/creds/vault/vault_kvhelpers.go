@@ -14,8 +14,7 @@ import (
 // https://github.com/hashicorp/vault/blob/4b790d2c42f406a980230c196eeeb5b9b52a7cf1/command/kv_helpers.go#L44-L116
 
 func kvPreflightVersionRequest(client *api.Client, path string) (string, int, error) {
-	r := client.NewRequest("GET", "/v1/sys/internal/ui/mounts/"+path)
-	resp, err := client.RawRequest(r)
+	resp, err := client.Logical().ReadRaw("/sys/internal/ui/mounts/" + path)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
