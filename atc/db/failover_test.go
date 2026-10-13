@@ -59,7 +59,7 @@ var _ = Describe("Failover Resilience", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {
-				_, e := failoverDB.Exec("SELECT 1")
+				_, e := failoverDB.Exec("CREATE TABLE IF NOT EXISTS failover_probe (id int)")
 				return e
 			}, 5*time.Second, 50*time.Millisecond).Should(HaveOccurred())
 
@@ -69,7 +69,7 @@ var _ = Describe("Failover Resilience", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(func() error {
-				_, e := failoverDB.Exec("SELECT 1")
+				_, e := failoverDB.Exec("CREATE TABLE IF NOT EXISTS failover_probe (id int)")
 				return e
 			}, 5*time.Second, 50*time.Millisecond).Should(Succeed())
 		})
