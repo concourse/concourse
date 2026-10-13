@@ -61,5 +61,75 @@ func (d *connectionRetryingDriver) Open(connStr string) (driver.Conn, error) {
 		return nil, err
 	}
 
-	return conn, nil
+	return &retryingConn{inner: conn}, nil
+}
+
+// failoverCodes are SQLSTATE codes that indicate the connection has become
+// unusable due to a failover event. Returning driver.ErrBadConn causes
+// database/sql to discard the connection and transparently retry on a new one.
+//
+// 25006: read_only_sql_transaction — primary became standby; no mutation applied.
+// 57P01: admin_shutdown — server shutting down; connection is dead.
+// 57P02: crash_shutdown — server crashed; connection is dead.
+var failoverCodes = map[string]bool{
+	"25006": true,
+	"57P01": true,
+	"57P02": true,
+}
+
+func isFailoverError(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && failoverCodes[pgErr.Code]
+}
+
+func toDriverErr(err error) error {
+	if err != nil && isFailoverError(err) {
+		return driver.ErrBadConn
+	}
+	return err
+}
+
+// wraps driver.Conn - failover errors converted to driver.ErrBadConn so that database/sql retries on a fresh one
+type retryingConn struct {
+	inner driver.Conn
+}
+
+func (c *retryingConn) Prepare(query string) (driver.Stmt, error) {
+	return c.inner.Prepare(query)
+}
+
+func (c *retryingConn) Close() error {
+	return c.inner.Close()
+}
+
+func (c *retryingConn) Begin() (driver.Tx, error) {
+	return c.inner.Begin()
+}
+
+func (c *retryingConn) ExecContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Result, error) {
+	ec, ok := c.inner.(driver.ExecerContext)
+	if !ok {
+		return nil, driver.ErrSkip
+	}
+	result, err := ec.ExecContext(ctx, query, args)
+	return result, toDriverErr(err)
+}
+
+func (c *retryingConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	qc, ok := c.inner.(driver.QueryerContext)
+	if !ok {
+		return nil, driver.ErrSkip
+	}
+	rows, err := qc.QueryContext(ctx, query, args)
+	return rows, toDriverErr(err)
+}
+
+// preserve pgx's type codec support (e.g. []string, []int, time.Time) through the wrapper;
+// without it database/sql falls back to driver.DefaultParameterConverter which rejects any non-primitive slice type.
+func (c *retryingConn) CheckNamedValue(nv *driver.NamedValue) error {
+	checker, ok := c.inner.(driver.NamedValueChecker)
+	if !ok {
+		return driver.ErrSkip
+	}
+	return checker.CheckNamedValue(nv)
 }

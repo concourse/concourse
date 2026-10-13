@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"sync"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/v8/atc/db"
@@ -221,6 +222,16 @@ type FakeDbConn struct {
 	}
 	queryRowContextReturnsOnCall map[int]struct {
 		result1 squirrel.RowScanner
+	}
+	SetConnMaxIdleTimeStub        func(time.Duration)
+	setConnMaxIdleTimeMutex       sync.RWMutex
+	setConnMaxIdleTimeArgsForCall []struct {
+		arg1 time.Duration
+	}
+	SetConnMaxLifetimeStub        func(time.Duration)
+	setConnMaxLifetimeMutex       sync.RWMutex
+	setConnMaxLifetimeArgsForCall []struct {
+		arg1 time.Duration
 	}
 	SetMaxIdleConnsStub        func(int)
 	setMaxIdleConnsMutex       sync.RWMutex
@@ -1263,6 +1274,70 @@ func (fake *FakeDbConn) QueryRowContextReturnsOnCall(i int, result1 squirrel.Row
 	fake.queryRowContextReturnsOnCall[i] = struct {
 		result1 squirrel.RowScanner
 	}{result1}
+}
+
+func (fake *FakeDbConn) SetConnMaxIdleTime(arg1 time.Duration) {
+	fake.setConnMaxIdleTimeMutex.Lock()
+	fake.setConnMaxIdleTimeArgsForCall = append(fake.setConnMaxIdleTimeArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	stub := fake.SetConnMaxIdleTimeStub
+	fake.recordInvocation("SetConnMaxIdleTime", []interface{}{arg1})
+	fake.setConnMaxIdleTimeMutex.Unlock()
+	if stub != nil {
+		fake.SetConnMaxIdleTimeStub(arg1)
+	}
+}
+
+func (fake *FakeDbConn) SetConnMaxIdleTimeCallCount() int {
+	fake.setConnMaxIdleTimeMutex.RLock()
+	defer fake.setConnMaxIdleTimeMutex.RUnlock()
+	return len(fake.setConnMaxIdleTimeArgsForCall)
+}
+
+func (fake *FakeDbConn) SetConnMaxIdleTimeCalls(stub func(time.Duration)) {
+	fake.setConnMaxIdleTimeMutex.Lock()
+	defer fake.setConnMaxIdleTimeMutex.Unlock()
+	fake.SetConnMaxIdleTimeStub = stub
+}
+
+func (fake *FakeDbConn) SetConnMaxIdleTimeArgsForCall(i int) time.Duration {
+	fake.setConnMaxIdleTimeMutex.RLock()
+	defer fake.setConnMaxIdleTimeMutex.RUnlock()
+	argsForCall := fake.setConnMaxIdleTimeArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeDbConn) SetConnMaxLifetime(arg1 time.Duration) {
+	fake.setConnMaxLifetimeMutex.Lock()
+	fake.setConnMaxLifetimeArgsForCall = append(fake.setConnMaxLifetimeArgsForCall, struct {
+		arg1 time.Duration
+	}{arg1})
+	stub := fake.SetConnMaxLifetimeStub
+	fake.recordInvocation("SetConnMaxLifetime", []interface{}{arg1})
+	fake.setConnMaxLifetimeMutex.Unlock()
+	if stub != nil {
+		fake.SetConnMaxLifetimeStub(arg1)
+	}
+}
+
+func (fake *FakeDbConn) SetConnMaxLifetimeCallCount() int {
+	fake.setConnMaxLifetimeMutex.RLock()
+	defer fake.setConnMaxLifetimeMutex.RUnlock()
+	return len(fake.setConnMaxLifetimeArgsForCall)
+}
+
+func (fake *FakeDbConn) SetConnMaxLifetimeCalls(stub func(time.Duration)) {
+	fake.setConnMaxLifetimeMutex.Lock()
+	defer fake.setConnMaxLifetimeMutex.Unlock()
+	fake.SetConnMaxLifetimeStub = stub
+}
+
+func (fake *FakeDbConn) SetConnMaxLifetimeArgsForCall(i int) time.Duration {
+	fake.setConnMaxLifetimeMutex.RLock()
+	defer fake.setConnMaxLifetimeMutex.RUnlock()
+	argsForCall := fake.setConnMaxLifetimeArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeDbConn) SetMaxIdleConns(arg1 int) {
