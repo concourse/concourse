@@ -113,6 +113,21 @@ var _ = Describe("Reference", func() {
 				raw:  `" hello "."world "`,
 				ref:  vars.Reference{Path: " hello ", Fields: []string{"world "}},
 			},
+			{
+				desc: "removes leading parent-dir path references when quoted",
+				raw:  `"../hello/world"`,
+				ref:  vars.Reference{Path: "hello/world", Fields: []string{}},
+			},
+			{
+				desc: "removes internal parent-dir path references when quoted",
+				raw:  `"hello/../world"`,
+				ref:  vars.Reference{Path: "world", Fields: []string{}},
+			},
+			{
+				desc: "removes internal parent-dir path references and preserves absolute path when quoted",
+				raw:  `"/hello/../world"`,
+				ref:  vars.Reference{Path: "/world", Fields: []string{}},
+			},
 		} {
 
 			It(tt.desc, func() {
