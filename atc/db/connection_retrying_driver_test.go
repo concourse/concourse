@@ -1,119 +1,92 @@
-package db
+package db_test
 
 import (
 	"context"
 	"database/sql/driver"
-	"testing"
 
+	"github.com/concourse/concourse/v8/atc/db"
+	"github.com/concourse/concourse/v8/atc/db/dbfakes"
 	"github.com/jackc/pgx/v5/pgconn"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestIsFailoverError(t *testing.T) {
-	cases := []struct {
-		code string
-		want bool
-	}{
-		{"25006", true},  // read_only_sql_transaction
-		{"57P01", true},  // admin_shutdown
-		{"57P02", true},  // crash_shutdown
-		{"40001", false}, // serialization_failure — must not trigger silent retry
-		{"40P01", false}, // deadlock_detected — must not trigger silent retry
-		{"23505", false}, // unique_violation — normal constraint error
-	}
-	for _, c := range cases {
-		err := &pgconn.PgError{Code: c.code}
-		got := isFailoverError(err)
-		if got != c.want {
-			t.Errorf("isFailoverError({Code: %q}) = %v, want %v", c.code, got, c.want)
-		}
-	}
-}
+var _ = Describe("ConnectionRetryingDriver", func() {
+	Describe("isFailoverError", func() {
+		DescribeTable("classifies SQLSTATE codes",
+			func(code string, want bool) {
+				Expect(db.IsFailoverError(&pgconn.PgError{Code: code})).To(Equal(want))
+			},
+			Entry("read_only_sql_transaction", "25006", true),
+			Entry("admin_shutdown", "57P01", true),
+			Entry("crash_shutdown", "57P02", true),
+			Entry("serialization_failure", "40001", false),
+			Entry("deadlock_detected", "40P01", false),
+			Entry("unique_violation", "23505", false),
+		)
+	})
 
-type mockExecerConn struct {
-	execErr  error
-	queryErr error
-}
+	Describe("ExecContext", func() {
+		DescribeTable("converts failover errors to driver.ErrBadConn",
+			func(code string) {
+				inner := new(dbfakes.FakeDriverConn)
+				inner.ExecContextReturns(nil, &pgconn.PgError{Code: code})
+				conn := db.NewRetryingConn(inner)
+				_, err := conn.ExecContext(context.Background(), "SELECT 1", nil)
+				Expect(err).To(Equal(driver.ErrBadConn))
+			},
+			Entry("read_only_sql_transaction", "25006"),
+			Entry("admin_shutdown", "57P01"),
+			Entry("crash_shutdown", "57P02"),
+		)
 
-func (m *mockExecerConn) Prepare(_ string) (driver.Stmt, error) { return nil, nil }
-func (m *mockExecerConn) Close() error                          { return nil }
-func (m *mockExecerConn) Begin() (driver.Tx, error) { return nil, nil }
-func (m *mockExecerConn) ExecContext(_ context.Context, _ string, _ []driver.NamedValue) (driver.Result, error) {
-	return nil, m.execErr
-}
-func (m *mockExecerConn) QueryContext(_ context.Context, _ string, _ []driver.NamedValue) (driver.Rows, error) {
-	return nil, m.queryErr
-}
+		DescribeTable("passes through non-failover errors",
+			func(code string) {
+				pgErr := &pgconn.PgError{Code: code}
+				inner := new(dbfakes.FakeDriverConn)
+				inner.ExecContextReturns(nil, pgErr)
+				conn := db.NewRetryingConn(inner)
+				_, err := conn.ExecContext(context.Background(), "SELECT 1", nil)
+				Expect(err).NotTo(Equal(driver.ErrBadConn))
+				Expect(err).To(BeIdenticalTo(pgErr))
+			},
+			Entry("serialization_failure", "40001"),
+			Entry("deadlock_detected", "40P01"),
+			Entry("unique_violation", "23505"),
+		)
 
-func TestRetryingConn_ExecContext_ConvertsFailoverErrorsToErrBadConn(t *testing.T) {
-	for _, code := range []string{"25006", "57P01", "57P02"} {
-		conn := &retryingConn{inner: &mockExecerConn{execErr: &pgconn.PgError{Code: code}}}
-		_, err := conn.ExecContext(context.Background(), "SELECT 1", nil)
-		if err != driver.ErrBadConn {
-			t.Errorf("ExecContext SQLSTATE %s: want driver.ErrBadConn, got %v", code, err)
-		}
-	}
-}
+		It("returns driver.ErrSkip when the inner connection lacks ExecerContext", func() {
+			type basicConn struct{ driver.Conn }
+			conn := db.NewRetryingConn(basicConn{})
+			_, err := conn.ExecContext(context.Background(), "SELECT 1", nil)
+			Expect(err).To(Equal(driver.ErrSkip))
+		})
+	})
 
-func TestRetryingConn_ExecContext_PassesThroughNonFailoverErrors(t *testing.T) {
-	for _, code := range []string{"40001", "40P01", "23505"} {
-		pgErr := &pgconn.PgError{Code: code}
-		conn := &retryingConn{inner: &mockExecerConn{execErr: pgErr}}
-		_, err := conn.ExecContext(context.Background(), "SELECT 1", nil)
-		if err == driver.ErrBadConn {
-			t.Errorf("ExecContext SQLSTATE %s: must not return driver.ErrBadConn", code)
-		}
-		if err != pgErr {
-			t.Errorf("ExecContext SQLSTATE %s: want original error, got %v", code, err)
-		}
-	}
-}
+	Describe("QueryContext", func() {
+		It("converts read_only_sql_transaction to driver.ErrBadConn", func() {
+			inner := new(dbfakes.FakeDriverConn)
+			inner.QueryContextReturns(nil, &pgconn.PgError{Code: "25006"})
+			conn := db.NewRetryingConn(inner)
+			_, err := conn.QueryContext(context.Background(), "SELECT 1", nil)
+			Expect(err).To(Equal(driver.ErrBadConn))
+		})
+	})
 
-func TestRetryingConn_QueryContext_ConvertsFailoverErrorsToErrBadConn(t *testing.T) {
-	conn := &retryingConn{inner: &mockExecerConn{queryErr: &pgconn.PgError{Code: "25006"}}}
-	_, err := conn.QueryContext(context.Background(), "SELECT 1", nil)
-	if err != driver.ErrBadConn {
-		t.Errorf("QueryContext SQLSTATE 25006: want driver.ErrBadConn, got %v", err)
-	}
-}
+	Describe("CheckNamedValue", func() {
+		It("forwards to the inner connection", func() {
+			inner := new(dbfakes.FakeDriverConn)
+			conn := db.NewRetryingConn(inner)
+			nv := &driver.NamedValue{Value: []string{"a", "b"}}
+			Expect(conn.CheckNamedValue(nv)).To(Succeed())
+			Expect(inner.CheckNamedValueCallCount()).To(Equal(1))
+			Expect(inner.CheckNamedValueArgsForCall(0)).To(BeIdenticalTo(nv))
+		})
 
-func TestRetryingConn_FallsBackToErrSkipWhenInnerDoesNotImplementExecerContext(t *testing.T) {
-	type basicConn struct{ driver.Conn }
-	conn := &retryingConn{inner: basicConn{}}
-	_, err := conn.ExecContext(context.Background(), "SELECT 1", nil)
-	if err != driver.ErrSkip {
-		t.Errorf("ExecContext without ExecerContext: want driver.ErrSkip, got %v", err)
-	}
-}
-
-type mockNamedValueConn struct {
-	mockExecerConn
-	checkErr error
-	called   bool
-}
-
-func (m *mockNamedValueConn) CheckNamedValue(nv *driver.NamedValue) error {
-	m.called = true
-	return m.checkErr
-}
-
-func TestRetryingConn_CheckNamedValue_ForwardsToInner(t *testing.T) {
-	inner := &mockNamedValueConn{}
-	conn := &retryingConn{inner: inner}
-	nv := &driver.NamedValue{Value: []string{"a", "b"}}
-	err := conn.CheckNamedValue(nv)
-	if err != nil {
-		t.Errorf("CheckNamedValue: want nil, got %v", err)
-	}
-	if !inner.called {
-		t.Error("CheckNamedValue: inner.CheckNamedValue was not called")
-	}
-}
-
-func TestRetryingConn_CheckNamedValue_FallsBackToErrSkipWhenInnerLacksChecker(t *testing.T) {
-	type basicConn struct{ driver.Conn }
-	conn := &retryingConn{inner: basicConn{}}
-	err := conn.CheckNamedValue(&driver.NamedValue{Value: "x"})
-	if err != driver.ErrSkip {
-		t.Errorf("CheckNamedValue without NamedValueChecker: want driver.ErrSkip, got %v", err)
-	}
-}
+		It("returns driver.ErrSkip when the inner connection lacks NamedValueChecker", func() {
+			type basicConn struct{ driver.Conn }
+			conn := db.NewRetryingConn(basicConn{})
+			Expect(conn.CheckNamedValue(&driver.NamedValue{Value: "x"})).To(Equal(driver.ErrSkip))
+		})
+	})
+})

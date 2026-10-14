@@ -10,6 +10,7 @@ import (
 
 	"github.com/cenkalti/backoff/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
 type connectionRetryingDriver struct {
@@ -77,21 +78,43 @@ var failoverCodes = map[string]bool{
 	"57P02": true,
 }
 
-func isFailoverError(err error) bool {
+func IsFailoverError(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && failoverCodes[pgErr.Code]
 }
 
 func toDriverErr(err error) error {
-	if err != nil && isFailoverError(err) {
+	if err != nil && IsFailoverError(err) {
 		return driver.ErrBadConn
 	}
 	return err
 }
 
+// Verify interface compliance between pgx and our retryingConn. pgx exposes
+// their driver.Conn as stdlib.Conn. Whatever interfaces stdlib.Conn implements
+// should also be implemented by our retryingConn.
+var _ driverConn = (*stdlib.Conn)(nil)
+var _ driverConn = (*retryingConn)(nil)
+
+//counterfeiter:generate . driverConn
+type driverConn interface {
+	driver.Conn
+	driver.ConnBeginTx
+	driver.ConnPrepareContext
+	driver.ExecerContext
+	driver.NamedValueChecker
+	driver.Pinger
+	driver.QueryerContext
+	driver.SessionResetter
+}
+
 // wraps driver.Conn - failover errors converted to driver.ErrBadConn so that database/sql retries on a fresh one
 type retryingConn struct {
 	inner driver.Conn
+}
+
+func NewRetryingConn(inner driver.Conn) *retryingConn {
+	return &retryingConn{inner: inner}
 }
 
 func (c *retryingConn) Prepare(query string) (driver.Stmt, error) {
@@ -132,4 +155,36 @@ func (c *retryingConn) CheckNamedValue(nv *driver.NamedValue) error {
 		return driver.ErrSkip
 	}
 	return checker.CheckNamedValue(nv)
+}
+
+func (c *retryingConn) PrepareContext(ctx context.Context, query string) (driver.Stmt, error) {
+	pc, ok := c.inner.(driver.ConnPrepareContext)
+	if !ok {
+		return nil, driver.ErrSkip
+	}
+	return pc.PrepareContext(ctx, query)
+}
+
+func (c *retryingConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	pc, ok := c.inner.(driver.ConnBeginTx)
+	if !ok {
+		return nil, driver.ErrSkip
+	}
+	return pc.BeginTx(ctx, opts)
+}
+
+func (c *retryingConn) Ping(ctx context.Context) error {
+	p, ok := c.inner.(driver.Pinger)
+	if !ok {
+		return driver.ErrSkip
+	}
+	return p.Ping(ctx)
+}
+
+func (c *retryingConn) ResetSession(ctx context.Context) error {
+	sr, ok := c.inner.(driver.SessionResetter)
+	if !ok {
+		return driver.ErrSkip
+	}
+	return sr.ResetSession(ctx)
 }
