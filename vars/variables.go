@@ -2,6 +2,7 @@ package vars
 
 import (
 	"fmt"
+	"path"
 	"strings"
 )
 
@@ -53,7 +54,7 @@ func ParseReference(name string) (Reference, error) {
 		return Reference{}, fmt.Errorf("invalid var '%s': no fields", name)
 	}
 
-	ref.Path = fields[0]
+	ref.Path = cleanPath(fields[0])
 	ref.Fields = fields[1:]
 
 	return ref, nil
@@ -92,7 +93,8 @@ func readPathSegment(raw string) (string, string, bool) {
 func (r Reference) String() string {
 	var s strings.Builder
 	if r.Source != "" {
-		s.WriteString(r.Source + ":")
+		s.WriteString(r.Source)
+		s.WriteString(":")
 	}
 	s.WriteString(refSegmentString(r.Path))
 	fields := r.Fields
@@ -109,4 +111,12 @@ func refSegmentString(seg string) string {
 		return fmt.Sprintf("%q", seg)
 	}
 	return seg
+}
+
+func cleanPath(p string) string {
+	if path.IsAbs(p) {
+		return path.Clean(p)
+	}
+
+	return strings.TrimLeft(path.Clean("/"+p), "/")
 }

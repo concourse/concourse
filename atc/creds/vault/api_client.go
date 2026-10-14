@@ -18,6 +18,8 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
+var _ SecretReader = (*APIClient)(nil)
+
 // The APIClient is a SecretReader which maintains an authorized
 // client using the Login and Renew functions.
 type APIClient struct {
