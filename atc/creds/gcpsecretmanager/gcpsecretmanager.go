@@ -40,16 +40,14 @@ var errSecretIDTooLong = fmt.Errorf("%w: too long", ErrInvalidSecretID)
 // secretVersion is the version Concourse resolves for every secret.
 const secretVersion = "latest"
 
-type SecretID string
-
-func NewSecretID(proposed string) (SecretID, error) {
+func validateSecretID(proposed string) (string, error) {
 	if !secretIDPattern.MatchString(proposed) {
 		return "", fmt.Errorf("%w: %q", ErrInvalidSecretID, proposed)
 	}
 	if len(proposed) > maxSecretIDLength {
 		return "", fmt.Errorf("%w: %q is longer than %d characters", errSecretIDTooLong, proposed, maxSecretIDLength)
 	}
-	return SecretID(proposed), nil
+	return proposed, nil
 }
 
 var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
@@ -140,7 +138,7 @@ func (s *SecretManager) Get(secretPath string, _ creds.SecretLookupParams) (any,
 // If unwrapValue is set and the object has a "value" key, only that value is
 // returned, as the Vault and Kubernetes managers do. Other keys are ignored.
 func (s *SecretManager) getSecretByID(secretPath string) (any, *time.Time, bool, error) {
-	secretID, err := NewSecretID(secretPath)
+	secretID, err := validateSecretID(secretPath)
 	if errors.Is(err, errSecretIDTooLong) {
 		// No such secret can exist, so fall through to the next lookup path.
 		return nil, nil, false, nil
