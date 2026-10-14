@@ -137,7 +137,9 @@ func tokenizeTemplate(name string, tmpl *creds.SecretTemplate) ([]templateToken,
 			if !ok {
 				return nil, fmt.Errorf("%s: unsupported template action %s: only {{.Team}}, {{.Pipeline}} and {{.Secret}} are permitted", name, n)
 			}
-			marked.WriteString(placeholderMarker + field + placeholderMarker)
+			marked.WriteString(placeholderMarker)
+			marked.WriteString(field)
+			marked.WriteString(placeholderMarker)
 		default:
 			return nil, fmt.Errorf("%s: unsupported template construct %s: only {{.Team}}, {{.Pipeline}} and {{.Secret}} are permitted", name, n)
 		}
