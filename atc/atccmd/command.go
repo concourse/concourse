@@ -278,7 +278,7 @@ type RunCommand struct {
 		EnableBuildRerunWhenWorkerDisappears bool `long:"enable-rerun-when-worker-disappears" description:"Enable automatically build rerun when worker disappears or a network error occurs"`
 		EnableAcrossStep                     bool `long:"enable-across-step" description:"DEPRECATED: The across step is always enabled and this config has no effect."`
 		EnablePipelineInstances              bool `long:"enable-pipeline-instances" description:"DEPRECATED: Pipeline instances are always enabled and this config has no effect."`
-		EnableP2PVolumeStreaming             bool `long:"enable-p2p-volume-streaming" description:"Enable P2P volume streaming. NOTE: All workers must be on the same LAN network"`
+		EnableP2PVolumeStreaming             bool `long:"enable-p2p-volume-streaming" description:"Enable P2P volume streaming between workers within the same P2P streaming group. NOTE: All workers in a P2P group must be on the same LAN network."`
 		EnableCacheStreamedVolumes           bool `long:"enable-cache-streamed-volumes" description:"When enabled, streamed resource volumes will be cached on the destination worker."`
 		EnableResourceCausality              bool `long:"enable-resource-causality" description:"Enable the resource causality page. Computing causality can be expensive for the database. "`
 	} `group:"Feature Flags"`

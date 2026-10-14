@@ -56,7 +56,8 @@ var workersQuery = psql.Select(`
 		w.start_time,
 		w.expires,
 		w.ephemeral,
-		w.max_active_tasks
+		w.max_active_tasks,
+		w.p2p_streaming_group
 	`).
 	From("workers w").
 	LeftJoin("teams t ON w.team_id = t.id")
@@ -185,6 +186,7 @@ func scanWorker(worker *worker, row scannable) error {
 		&expiresAt,
 		&ephemeral,
 		&worker.maxActiveTasks,
+		&worker.p2pStreamingGroup,
 	)
 	if err != nil {
 		return err
@@ -413,6 +415,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 		teamID,
 		atcWorker.Ephemeral,
 		atcWorker.MaxActiveTasks,
+		atcWorker.P2PStreamingGroup,
 	}
 
 	conflictValues := values
@@ -445,6 +448,7 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 			"team_id",
 			"ephemeral",
 			"max_active_tasks",
+			"p2p_streaming_group",
 		).
 		Values(append([]any{
 			sq.Expr(expires),
@@ -470,7 +474,8 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 				state = ?,
 				team_id = ?,
 				ephemeral = ?,
-				max_active_tasks = ?
+				max_active_tasks = ?,
+				p2p_streaming_group = ?
 			WHERE `+matchTeamUpsert,
 			conflictValues...,
 		).
@@ -495,26 +500,27 @@ func saveWorker(tx Tx, atcWorker atc.Worker, teamID *int, ttl time.Duration, con
 	}
 
 	savedWorker := &worker{
-		name:             atcWorker.Name,
-		version:          workerVersion,
-		state:            workerState,
-		gardenAddr:       &atcWorker.GardenAddr,
-		baggageclaimURL:  &atcWorker.BaggageclaimURL,
-		certsPath:        atcWorker.CertsPath,
-		httpProxyURL:     atcWorker.HTTPProxyURL,
-		httpsProxyURL:    atcWorker.HTTPSProxyURL,
-		noProxy:          atcWorker.NoProxy,
-		activeContainers: atcWorker.ActiveContainers,
-		activeVolumes:    atcWorker.ActiveVolumes,
-		resourceTypes:    atcWorker.ResourceTypes,
-		platform:         atcWorker.Platform,
-		tags:             atcWorker.Tags,
-		teamName:         atcWorker.Team,
-		teamID:           workerTeamID,
-		startTime:        time.Unix(atcWorker.StartTime, 0),
-		ephemeral:        atcWorker.Ephemeral,
-		maxActiveTasks:   atcWorker.MaxActiveTasks,
-		conn:             conn,
+		name:              atcWorker.Name,
+		version:           workerVersion,
+		state:             workerState,
+		gardenAddr:        &atcWorker.GardenAddr,
+		baggageclaimURL:   &atcWorker.BaggageclaimURL,
+		certsPath:         atcWorker.CertsPath,
+		httpProxyURL:      atcWorker.HTTPProxyURL,
+		httpsProxyURL:     atcWorker.HTTPSProxyURL,
+		noProxy:           atcWorker.NoProxy,
+		activeContainers:  atcWorker.ActiveContainers,
+		activeVolumes:     atcWorker.ActiveVolumes,
+		resourceTypes:     atcWorker.ResourceTypes,
+		platform:          atcWorker.Platform,
+		tags:              atcWorker.Tags,
+		teamName:          atcWorker.Team,
+		teamID:            workerTeamID,
+		startTime:         time.Unix(atcWorker.StartTime, 0),
+		ephemeral:         atcWorker.Ephemeral,
+		maxActiveTasks:    atcWorker.MaxActiveTasks,
+		p2pStreamingGroup: atcWorker.P2PStreamingGroup,
+		conn:              conn,
 	}
 
 	workerBaseResourceTypeIDs := []int{}

@@ -343,6 +343,10 @@ type Volume interface {
 type P2PVolume interface {
 	Volume
 
+	// P2PStreamingGroup returns the P2P streaming group of the worker hosting
+	// the Volume. Volumes stream directly only between matching groups.
+	P2PStreamingGroup() string
+
 	// GetStreamInP2PURL gives a URL which, if you POST to with a compressed
 	// tar stream (using the encoding format specified by the
 	// `Content-Encoding` header parameter - either "gzip", "zstd" or "s2"), will

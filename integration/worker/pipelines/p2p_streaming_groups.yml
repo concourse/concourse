@@ -1,0 +1,40 @@
+resources:
+- name: image
+  type: mock
+  source: {mirror_self: true}
+  tags: [source]
+
+jobs:
+- name: transfer
+  plan:
+  - get: image
+    tags: [source]
+  - task: produce
+    tags: [source]
+    image: image
+    config:
+      platform: linux
+      outputs: [{name: payload}]
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          cd payload
+          dd if=/dev/urandom of=blob bs=1024 count=32
+          sha256sum blob > sha256
+          echo p2p-streaming-groups-ok > message
+  - task: consume
+    tags: [destination]
+    image: image
+    config:
+      platform: linux
+      inputs: [{name: payload}]
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          cd payload
+          sha256sum -c sha256
+          cat message

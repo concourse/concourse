@@ -132,6 +132,7 @@ func (command *WorkersCommand) tableFor(workers []worker) ui.Table {
 			ui.TableCell{Contents: "baggageclaim url", Color: color.New(color.Bold)},
 			ui.TableCell{Contents: "active tasks", Color: color.New(color.Bold)},
 			ui.TableCell{Contents: "resource types", Color: color.New(color.Bold)},
+			ui.TableCell{Contents: "p2p streaming group", Color: color.New(color.Bold)},
 		)
 	}
 
@@ -159,6 +160,7 @@ func (command *WorkersCommand) tableFor(workers []worker) ui.Table {
 			row = append(row, stringOrDefault(w.BaggageclaimURL))
 			row = append(row, stringOrDefault(strconv.Itoa(w.ActiveTasks)))
 			row = append(row, stringOrDefault(strings.Join(resourceTypes, ", ")))
+			row = append(row, stringOrDefault(w.P2PStreamingGroup))
 		}
 
 		table.Data = append(table.Data, row)

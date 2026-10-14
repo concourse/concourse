@@ -236,6 +236,12 @@ func (w Worker) WithVersion(version string) *Worker {
 	})
 }
 
+func (w Worker) WithP2PStreamingGroup(group string) *Worker {
+	return w.WithWorkerSetup(func(w *atc.Worker) {
+		w.P2PStreamingGroup = group
+	})
+}
+
 func containerHandles(containers []*Container) []string {
 	handles := make([]string, len(containers))
 	for i, c := range containers {
