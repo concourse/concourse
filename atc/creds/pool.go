@@ -101,6 +101,7 @@ func (pool *varSourcePool) FindOrCreate(logger lager.Logger, config map[string]a
 		}
 		secretsFactory, err := manager.NewSecretsFactory(logger)
 		if err != nil {
+			manager.Close(logger)
 			return nil, err
 		}
 

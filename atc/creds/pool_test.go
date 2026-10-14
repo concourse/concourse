@@ -1,6 +1,7 @@
 package creds_test
 
 import (
+	"errors"
 	"time"
 
 	"code.cloudfoundry.org/clock/fakeclock"
@@ -9,6 +10,7 @@ import (
 	"github.com/concourse/concourse/v8/atc/creds"
 
 	// load dummy credential manager
+	"github.com/concourse/concourse/v8/atc/creds/credsfakes"
 	_ "github.com/concourse/concourse/v8/atc/creds/dummy"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -180,6 +182,25 @@ var _ = Context("pool", func() {
 
 			It("pool size should be 2", func() {
 				Expect(varSourcePool.Size()).To(Equal(2))
+			})
+		})
+
+		Context("closes the manager if NewSecretsFactory errors", func() {
+			var fakeManager *credsfakes.FakeManager
+
+			BeforeEach(func() {
+				fakeFactory := credsfakes.FakeManagerFactory{}
+				factory = &fakeFactory
+				fakeManager = &credsfakes.FakeManager{}
+				fakeManager.InitReturns(nil)
+				fakeFactory.NewInstanceReturns(fakeManager, nil)
+				fakeManager.NewSecretsFactoryReturns(nil, errors.New("error from manager"))
+			})
+
+			It("closes the initialized manager", func() {
+				_, err := varSourcePool.FindOrCreate(logger, config1, factory)
+				Expect(err).To(HaveOccurred())
+				Expect(fakeManager.CloseCallCount()).To(Equal(1))
 			})
 		})
 	})
