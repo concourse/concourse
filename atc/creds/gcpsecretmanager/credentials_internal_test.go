@@ -8,40 +8,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
 )
 
 const (
 	testClientEmail = "concourse@my-test-project.iam.gserviceaccount.com"
-
-	// Nothing listens on port 1, so getting a token proves that the token_uri
-	// in the key was never contacted.
-	unreachableTokenURI = "http://127.0.0.1:1/token"
 )
-
-func serviceAccountKeyJSON() string {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	Expect(err).ToNot(HaveOccurred())
-	der, err := x509.MarshalPKCS8PrivateKey(key)
-	Expect(err).ToNot(HaveOccurred())
-
-	body, err := json.Marshal(map[string]string{
-		"type":           "service_account",
-		"project_id":     "my-test-project",
-		"private_key_id": "test-key-id",
-		"private_key":    string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})),
-		"client_email":   testClientEmail,
-		"client_id":      "1234567890",
-		"token_uri":      unreachableTokenURI,
-	})
-	Expect(err).ToNot(HaveOccurred())
-	return string(body)
-}
 
 func writeCredentialsFile(contents string) string {
 	path := filepath.Join(GinkgoT().TempDir(), "key.json")
@@ -64,9 +44,38 @@ var _ = Describe("Manager credentials", func() {
 
 	Context("with a service account key", func() {
 		var keyJSON string
+		var tokenServer *ghttp.Server
+		var tokenHandlerCalled bool
 
 		BeforeEach(func() {
-			keyJSON = serviceAccountKeyJSON()
+			key, err := rsa.GenerateKey(rand.Reader, 2048)
+			Expect(err).ToNot(HaveOccurred())
+			der, err := x509.MarshalPKCS8PrivateKey(key)
+			Expect(err).ToNot(HaveOccurred())
+
+			tokenServer = ghttp.NewServer()
+			tokenServer.AppendHandlers(func(w http.ResponseWriter, _ *http.Request) {
+				tokenHandlerCalled = true
+				w.WriteHeader(http.StatusInternalServerError)
+			})
+
+			body, err := json.Marshal(map[string]string{
+				"type":           "service_account",
+				"project_id":     "my-test-project",
+				"private_key_id": "test-key-id",
+				"private_key":    string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der})),
+				"client_email":   testClientEmail,
+				"client_id":      "1234567890",
+				"token_uri":      tokenServer.URL() + "/token",
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			keyJSON = string(body)
+		})
+
+		AfterEach(func() {
+			tokenServer.Close()
+			Expect(tokenHandlerCalled).To(BeFalse(), "the token_url should not be called")
 		})
 
 		expectLocallySignedToken := func() {
@@ -98,28 +107,47 @@ var _ = Describe("Manager credentials", func() {
 		})
 	})
 
-	DescribeTable("rejects anything other than a service account key",
-		func(keyJSON string) {
-			manager.CredentialsJSON = keyJSON
-			_, err := manager.authCredentials()
-			Expect(err).To(MatchError(ContainSubstring(`expected type "service_account"`)))
+	Context("rejects certain auth types", func() {
+		var tokenServer *ghttp.Server
+		var tokenHandlerCalled bool
 
-			manager.CredentialsJSON = ""
-			manager.CredentialsFile = writeCredentialsFile(keyJSON)
-			_, err = manager.authCredentials()
-			Expect(err).To(MatchError(ContainSubstring(`expected type "service_account"`)))
-		},
-		Entry("external account reading a local file",
-			`{"type":"external_account","audience":"//iam.googleapis.com/x","subject_token_type":"urn:ietf:params:oauth:token-type:jwt","token_url":"https://attacker.example/token","credential_source":{"file":"/etc/passwd"}}`),
-		Entry("external account calling a URL",
-			`{"type":"external_account","audience":"//iam.googleapis.com/x","subject_token_type":"urn:ietf:params:oauth:token-type:jwt","token_url":"https://sts.googleapis.com/v1/token","credential_source":{"url":"http://169.254.169.254/latest/meta-data"}}`),
-		Entry("authorized user",
-			`{"type":"authorized_user","client_id":"x","client_secret":"y","refresh_token":"z"}`),
-		Entry("impersonated service account",
-			`{"type":"impersonated_service_account","service_account_impersonation_url":"https://attacker.example","source_credentials":{}}`),
-		Entry("missing type",
-			`{"client_email":"concourse@my-test-project.iam.gserviceaccount.com"}`),
-	)
+		BeforeEach(func() {
+			tokenHandlerCalled = false
+			tokenServer = ghttp.NewServer()
+			tokenServer.AppendHandlers(func(w http.ResponseWriter, _ *http.Request) {
+				tokenHandlerCalled = true
+				w.WriteHeader(http.StatusInternalServerError)
+			})
+		})
+
+		AfterEach(func() {
+			tokenServer.Close()
+			Expect(tokenHandlerCalled).To(BeFalse(), "the token_url should not be called")
+		})
+
+		DescribeTable("rejects anything other than a service account key",
+			func(keyJSON string) {
+				manager.CredentialsJSON = strings.ReplaceAll(keyJSON, "DONT_CALL_URL", tokenServer.URL()+"/token")
+				_, err := manager.authCredentials()
+				Expect(err).To(MatchError(ContainSubstring(`expected type "service_account"`)))
+
+				manager.CredentialsJSON = ""
+				manager.CredentialsFile = writeCredentialsFile(keyJSON)
+				_, err = manager.authCredentials()
+				Expect(err).To(MatchError(ContainSubstring(`expected type "service_account"`)))
+			},
+			Entry("external account reading a local file",
+				`{"type":"external_account","audience":"//iam.googleapis.com/x","subject_token_type":"urn:ietf:params:oauth:token-type:jwt","token_url":"DONT_CALL_URL","credential_source":{"file":"/etc/passwd"}}`),
+			Entry("external account calling a URL",
+				`{"type":"external_account","audience":"//iam.googleapis.com/x","subject_token_type":"urn:ietf:params:oauth:token-type:jwt","token_url":"DONT_CALL_URL","credential_source":{"url":"http://169.254.169.254/latest/meta-data"}}`),
+			Entry("authorized user",
+				`{"type":"authorized_user","client_id":"x","client_secret":"y","refresh_token":"z"}`),
+			Entry("impersonated service account",
+				`{"type":"impersonated_service_account","service_account_impersonation_url":"DONT_CALL_URL","source_credentials":{}}`),
+			Entry("missing type",
+				fmt.Sprintf(`{"client_email":"%s"}`, testClientEmail)),
+		)
+	})
 
 	It("rejects malformed JSON", func() {
 		manager.CredentialsJSON = "not json"
