@@ -41,6 +41,8 @@ type DbConn interface {
 
 	SetMaxIdleConns(int)
 	SetMaxOpenConns(int)
+	SetConnMaxLifetime(time.Duration)
+	SetConnMaxIdleTime(time.Duration)
 	Stats() sql.DBStats
 
 	Close() error
@@ -82,7 +84,15 @@ func Open(logger lager.Logger, driver, dsn string, newKey, oldKey *encryption.Ke
 
 func NewConn(logger lager.Logger, name string, sqlDB *sql.DB, dsn string, oldKey, newKey *encryption.Key) (DbConn, error) {
 	// only used for the LISTEN/NOTIFY commands
-	pool, err := pgxpool.New(context.Background(), dsn)
+	poolCfg, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, err
+	}
+	poolCfg.MaxConnLifetime = 5 * time.Minute
+	poolCfg.MaxConnIdleTime = 1 * time.Minute
+	poolCfg.HealthCheckPeriod = 30 * time.Second
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), poolCfg)
 	if err != nil {
 		return nil, err
 	}
