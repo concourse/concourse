@@ -16,6 +16,7 @@ import (
 	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var ErrVolumeDoesNotExist = errors.New("volume does not exist")
@@ -642,13 +643,14 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	}()
 
 	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPut, streamInURL, reader)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, streamInURL, reader)
 	if err != nil {
 		logger.Error("failed-to-create-p2p-stream-in-request", err)
 		return err
 	}
 
 	req.Header.Set("Content-Encoding", string(encoding))
+	tracing.Inject(ctx, propagation.HeaderCarrier(req.Header))
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

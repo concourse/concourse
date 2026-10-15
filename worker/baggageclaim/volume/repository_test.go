@@ -13,12 +13,14 @@ import (
 
 	"github.com/concourse/concourse/v8/go-archive/tgzfs"
 
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid/uidgidfakes"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/volumefakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var _ = Describe("Repository", func() {
@@ -1151,12 +1153,15 @@ var _ = Describe("Repository", func() {
 	})
 
 	Describe("StreamP2pOut", func() {
+		const traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+
 		var (
 			server             *httptest.Server
 			streamErr          error
 			serverCalled       bool
 			serverResponseCode int
 			serverReadBytes    []byte
+			serverTraceparent  string
 			tempFile           *os.File
 		)
 		BeforeEach(func() {
@@ -1176,15 +1181,18 @@ var _ = Describe("Repository", func() {
 		JustBeforeEach(func() {
 			serverCalled = false
 			serverReadBytes = nil
+			serverTraceparent = ""
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(serverResponseCode)
 				serverCalled = true
+				serverTraceparent = r.Header.Get("traceparent")
 
 				var err error
 				serverReadBytes, err = io.ReadAll(r.Body)
 				Expect(err).ToNot(HaveOccurred())
 			}))
-			streamErr = repository.StreamP2pOut(context.Background(), "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
+			ctx := tracing.Extract(context.Background(), propagation.MapCarrier{"traceparent": traceparent})
+			streamErr = repository.StreamP2pOut(ctx, "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
 		})
 
 		Context("when lookup volume fails", func() {
@@ -1266,6 +1274,9 @@ var _ = Describe("Repository", func() {
 					})
 					It("should receive the http request", func() {
 						Expect(serverCalled).To(BeTrue())
+					})
+					It("should receive the trace context", func() {
+						Expect(serverTraceparent).To(Equal(traceparent))
 					})
 					It("remote should receive bytes", func() {
 						b := new(bytes.Buffer)
