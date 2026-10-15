@@ -17,6 +17,7 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/tedsuo/rata"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
@@ -68,7 +69,7 @@ func (c *client) httpClient(ctx context.Context) *http.Client {
 	}
 }
 
-func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec baggageclaim.VolumeSpec) (_ baggageclaim.Volume, err error) {
 	strategy := volumeSpec.Strategy
 	if strategy == nil {
 		strategy = baggageclaim.EmptyStrategy{}
@@ -78,7 +79,7 @@ func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec bag
 		"strategy":   strategy.String(),
 		"privileged": strconv.FormatBool(volumeSpec.Privileged),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	buffer := &bytes.Buffer{}
 	json.NewEncoder(buffer).Encode(baggageclaim.VolumeRequest{
@@ -270,12 +271,12 @@ func (c *client) newVolume(apiVolume baggageclaim.VolumeResponse) baggageclaim.V
 	return volume
 }
 
-func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, limitInMB float64, tarContent io.Reader) error {
+func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, limitInMB float64, tarContent io.Reader) (err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamIn", tracing.Attrs{
 		"volume":   destHandle,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	request, err := c.generateRequest(ctx, baggageclaim.StreamIn, rata.Params{
 		"handle": destHandle,
@@ -349,12 +350,29 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, destHandle string, path 
 	return streamInRequest.URL.String(), nil
 }
 
-func (c *client) streamOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string) (io.ReadCloser, error) {
+// spanCloser ends the span when the stream is closed, so that the span covers
+// the whole transfer rather than just the request.
+type spanCloser struct {
+	io.ReadCloser
+	span trace.Span
+}
+
+func (sc *spanCloser) Close() error {
+	err := sc.ReadCloser.Close()
+	tracing.End(sc.span, err)
+	return err
+}
+
+func (c *client) streamOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string) (_ io.ReadCloser, err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamOut", tracing.Attrs{
 		"volume":   srcHandle,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() {
+		if err != nil {
+			tracing.End(span, err)
+		}
+	}()
 
 	request, err := c.generateRequest(ctx, baggageclaim.StreamOut, rata.Params{
 		"handle": srcHandle,
@@ -375,15 +393,18 @@ func (c *client) streamOut(ctx context.Context, srcHandle string, encoding bagga
 		return nil, getError(response)
 	}
 
-	return response.Body, nil
+	return &spanCloser{
+		ReadCloser: response.Body,
+		span:       span,
+	}, nil
 }
 
-func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) error {
+func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) (err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamP2pOut", tracing.Attrs{
 		"volume":   srcHandle,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	request, err := c.generateRequest(ctx, baggageclaim.StreamP2pOut, rata.Params{
 		"handle": srcHandle,

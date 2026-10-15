@@ -179,12 +179,12 @@ func (repo *repository) CreateVolume(ctx context.Context,
 	handle string,
 	strategy Strategy,
 	opts VolumeOpts,
-) (Volume, error) {
+) (_ Volume, err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.CreateVolume", tracing.Attrs{
 		"volume":   handle,
 		"strategy": strategy.String(),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 	logger := lagerctx.FromContext(ctx).Session("create-volume", lager.Data{"handle": handle})
 	logger.Debug("creating")
 	defer logger.Debug("created")
@@ -418,13 +418,13 @@ func (repo *repository) StreamIn(ctx context.Context,
 	encoding baggageclaim.Encoding,
 	limitInMB float64,
 	stream io.Reader,
-) (bool, error) {
+) (_ bool, err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamIn", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	logger := lagerctx.FromContext(ctx).Session("stream-in", lager.Data{
 		"volume":   handle,
@@ -514,12 +514,12 @@ func (repo *repository) StreamOut(ctx context.Context,
 	path string,
 	encoding baggageclaim.Encoding,
 	dest io.Writer,
-) error {
+) (err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamOut", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	logger := lagerctx.FromContext(ctx).Session("stream-out", lager.Data{
 		"volume":   handle,
@@ -573,13 +573,13 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	path string,
 	encoding baggageclaim.Encoding,
 	streamInURL string,
-) error {
+) (err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamP2pOut", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	logger := lagerctx.FromContext(ctx).Session("stream-p2p-out", lager.Data{
 		"volume":   handle,

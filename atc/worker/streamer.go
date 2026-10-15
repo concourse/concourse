@@ -196,14 +196,21 @@ func (s Streamer) StreamFile(ctx context.Context, artifact runtime.Artifact, pat
 		return nil, err
 	}
 
+	// On errors, close the stream too: it holds the connection to the worker,
+	// and its trace span only ends when it is closed. Close it before the
+	// decompressor, whose Close can wait on a read that only closing the
+	// stream ends.
 	compressionReader, err := s.compression.NewReader(out)
 	if err != nil {
+		out.Close()
 		return nil, err
 	}
 	tarReader := tar.NewReader(compressionReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
+		out.Close()
+		compressionReader.Close()
 		return nil, err
 	}
 

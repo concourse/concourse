@@ -1,6 +1,8 @@
 package worker_test
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"io"
 	"time"
@@ -300,7 +302,48 @@ var _ = Describe("Streamer", func() {
 
 		Expect(fileContent).To(Equal([]byte("content 2")))
 	})
+
+	Test("close the stream when the file cannot be read", func() {
+		streamer := Setup().Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
+
+		By("closing it when the stream is not compressed")
+		notCompressed := &closeTrackingArtifact{Reader: bytes.NewReader([]byte("not gzip"))}
+		_, err := streamer.StreamFile(context.Background(), notCompressed, "file")
+		Expect(err).To(HaveOccurred())
+		Expect(notCompressed.closed).To(BeTrue())
+
+		By("closing it when the stream holds no tar entry")
+		compressed := new(bytes.Buffer)
+		gzipWriter := gzip.NewWriter(compressed)
+		_, err = gzipWriter.Write([]byte("not a tar"))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gzipWriter.Close()).To(Succeed())
+
+		notTar := &closeTrackingArtifact{Reader: compressed}
+		_, err = streamer.StreamFile(context.Background(), notTar, "file")
+		Expect(err).To(HaveOccurred())
+		Expect(notTar.closed).To(BeTrue())
+	})
 })
+
+// closeTrackingArtifact streams out itself, so that a test can tell whether
+// the stream was closed.
+type closeTrackingArtifact struct {
+	runtime.Artifact
+	io.Reader
+	closed bool
+}
+
+func (a *closeTrackingArtifact) StreamOut(context.Context, string, compression.Compression) (io.ReadCloser, error) {
+	return a, nil
+}
+
+func (a *closeTrackingArtifact) Close() error {
+	a.closed = true
+	return nil
+}
 
 func baggageclaimVolume(volume runtime.Volume) *grt.Volume {
 	grVolume, ok := volume.(gardenruntime.Volume)
