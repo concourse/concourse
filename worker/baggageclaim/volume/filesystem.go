@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -147,6 +148,9 @@ func (fs *filesystem) NewVolume(handle string) (FilesystemInitVolume, error) {
 
 func (fs *filesystem) LookupVolume(handle string) (FilesystemLiveVolume, bool, error) {
 	volumePath := fs.liveVolumePath(handle)
+	if !strings.HasPrefix(volumePath, fs.liveDir+string(os.PathSeparator)) {
+		return nil, false, errors.New("volume path points outside the liveDir")
+	}
 
 	info, err := os.Stat(volumePath)
 	if os.IsNotExist(err) {
@@ -233,6 +237,9 @@ func (fs *filesystem) volumeExists(handle string) bool {
 
 func (fs *filesystem) initRawVolume(handle string) (*initVolume, error) {
 	volumePath := fs.initVolumePath(handle)
+	if !strings.HasPrefix(volumePath, fs.initDir+string(os.PathSeparator)) {
+		return nil, errors.New("volume path points outside the initDir")
+	}
 
 	err := os.Mkdir(volumePath, 0755)
 	if err != nil {
@@ -349,6 +356,9 @@ type initVolume struct {
 func (vol *initVolume) Initialize() (FilesystemLiveVolume, error) {
 	vol.fs.log.Debug("init-volume", lager.Data{"handle": vol.Handle()})
 	liveDir := vol.fs.liveVolumePath(vol.handle)
+	if !strings.HasPrefix(liveDir, vol.fs.liveDir+string(os.PathSeparator)) {
+		return nil, errors.New("volume path points outside the liveDir")
+	}
 
 	var err error
 	for range 5 {

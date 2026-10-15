@@ -39,6 +39,21 @@ var _ = Describe("Filesystem", func() {
 	})
 
 	Describe("NewVolume", func() {
+		DescribeTable("rejects handles outside the init directory",
+			func(handle string) {
+				vol, err := fs.NewVolume(handle)
+				Expect(err).To(MatchError("volume path points outside the initDir"))
+				Expect(vol).To(BeNil())
+				Expect(driver.CreateVolumeCallCount()).To(BeZero())
+				Expect(filepath.Join(parentDir, "outside")).NotTo(BeAnExistingFile())
+				Expect(filepath.Join(parentDir, "init-escape")).NotTo(BeAnExistingFile())
+				Expect(filepath.Join(parentDir, "init", "properties.json")).NotTo(BeAnExistingFile())
+			},
+			Entry("a sibling directory", "../outside"),
+			Entry("a sibling sharing the directory prefix", "../init-escape"),
+			Entry("the init directory itself", "."),
+		)
+
 		It("creates a volume", func() {
 			driver.CreateVolumeReturns(nil)
 
@@ -86,7 +101,36 @@ var _ = Describe("Filesystem", func() {
 		})
 	})
 
+	Describe("Initialize", func() {
+		It("rejects a handle that resolves outside the live directory", func() {
+			iVol, err := fs.NewVolume("../init/some-volume")
+			Expect(err).NotTo(HaveOccurred())
+			initPath := filepath.Dir(iVol.DataPath())
+
+			lVol, err := iVol.Initialize()
+			Expect(err).To(MatchError("volume path points outside the liveDir"))
+			Expect(lVol).To(BeNil())
+			Expect(initPath).To(BeADirectory())
+			Expect(filepath.Join(parentDir, "live", "some-volume")).NotTo(BeAnExistingFile())
+		})
+	})
+
 	Describe("LookupVolume", func() {
+		DescribeTable("rejects handles outside the live directory",
+			func(handle string) {
+				Expect(os.Mkdir(filepath.Join(parentDir, "outside"), 0755)).To(Succeed())
+				Expect(os.Mkdir(filepath.Join(parentDir, "live-escape"), 0755)).To(Succeed())
+
+				vol, found, err := fs.LookupVolume(handle)
+				Expect(err).To(MatchError("volume path points outside the liveDir"))
+				Expect(vol).To(BeNil())
+				Expect(found).To(BeFalse())
+			},
+			Entry("a sibling directory", "../outside"),
+			Entry("a sibling sharing the directory prefix", "../live-escape"),
+			Entry("the live directory itself", "."),
+		)
+
 		It("returns a volume if found", func() {
 			driver.CreateVolumeReturns(nil)
 
@@ -144,6 +188,19 @@ var _ = Describe("Filesystem", func() {
 	})
 
 	Describe("Volume Lifecycle", func() {
+		It("rejects creating a sub-volume outside the init directory", func() {
+			iVol, err := fs.NewVolume("parent-vol")
+			Expect(err).NotTo(HaveOccurred())
+			parent, err := iVol.Initialize()
+			Expect(err).NotTo(HaveOccurred())
+
+			child, err := parent.NewSubvolume("../init-escape")
+			Expect(err).To(MatchError("volume path points outside the initDir"))
+			Expect(child).To(BeNil())
+			Expect(driver.CreateCopyOnWriteLayerCallCount()).To(BeZero())
+			Expect(filepath.Join(parentDir, "init-escape")).NotTo(BeAnExistingFile())
+		})
+
 		It("creates sub-volumes and tracks parent volume", func() {
 			driver.CreateVolumeReturns(nil)
 
