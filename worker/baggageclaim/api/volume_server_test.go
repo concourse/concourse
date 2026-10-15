@@ -37,10 +37,13 @@ var _ = Describe("Volume Server", func() {
 
 		volumeDir string
 		tempDir   string
+
+		networkInterface string
 	)
 
 	BeforeEach(func() {
 		var err error
+		networkInterface = "lo"
 
 		tempDir, err = os.MkdirTemp("", fmt.Sprintf("baggageclaim_volume_dir_%d", GinkgoParallelProcess()))
 		Expect(err).NotTo(HaveOccurred())
@@ -84,7 +87,7 @@ var _ = Describe("Volume Server", func() {
 
 		strategizer := volume.NewStrategizer()
 
-		re := regexp.MustCompile("lo")
+		re := regexp.MustCompile(networkInterface)
 		handler, err = api.NewHandler(logger, strategizer, repo, re, 4, 7766)
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -1364,6 +1367,45 @@ var _ = Describe("Volume Server", func() {
 				It("should succeed", func() {
 					// real tests are in JustBeforeEach
 				})
+			})
+		})
+	})
+
+	Describe("get p2p url", func() {
+		var (
+			request  *http.Request
+			recorder *httptest.ResponseRecorder
+		)
+		JustBeforeEach(func() {
+			var err error
+			request, err = http.NewRequest("GET", "/p2p-url", nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			recorder = httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+		})
+
+		Context("when a valid interface name is given", func() {
+			BeforeEach(func() {
+				networkInterface = "lo"
+				if runtime.GOOS == "windows" {
+					networkInterface = "Loopback"
+				}
+			})
+
+			It("returns a url successfully", func() {
+				Expect(recorder.Code).To(Equal(200))
+				Expect(recorder.Body.String()).To(Equal("http://127.0.0.1:7766"))
+			})
+		})
+
+		Context("when an invalid interface name is given", func() {
+			BeforeEach(func() {
+				networkInterface = "dummy_interface"
+			})
+
+			It("returns a url successfully", func() {
+				Expect(recorder.Code).To(Equal(500))
 			})
 		})
 	})
