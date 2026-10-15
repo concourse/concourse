@@ -763,7 +763,11 @@ func (vs *VolumeServer) validateStreamInURL(streamInURL string) error {
 		return ErrInvalidStreamInURL
 	}
 
-	params := u.Query()
+	params, err := url.ParseQuery(u.RawQuery)
+	if err != nil {
+		return err
+	}
+
 	for key, _ := range params {
 		if key != "path" && key != "limit" {
 			return ErrInvalidStreamInURL
