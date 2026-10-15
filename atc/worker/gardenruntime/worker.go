@@ -420,14 +420,15 @@ func (worker *Worker) cloneInputVolumes(
 	container db.CreatingContainer,
 	ownerSpec runtime.VolumeOwnership,
 	delegate runtime.BuildStepDelegate,
-) ([]runtime.VolumeMount, map[string]bool, error) {
+) (_ []runtime.VolumeMount, _ map[string]bool, err error) {
 
 	inputDestinationPaths := make(map[string]bool)
 	localInputs := make([]mountableLocalInput, len(spec.Inputs))
-	g, groupCtx := errgroup.WithContext(ctx)
 
 	ctx, span := tracing.StartSpan(ctx, "worker.cloneInputVolumes", tracing.Attrs{"container_id": container.Handle()})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
+
+	g, groupCtx := errgroup.WithContext(ctx)
 
 	for i, input := range spec.Inputs {
 		cleanedInputPath := filepath.Clean(input.DestinationPath)
