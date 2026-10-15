@@ -10,12 +10,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 )
 
@@ -642,8 +644,13 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 		writer.Close()
 	}()
 
+	// What the HTTP transport reads from the pipe is what goes to the
+	// destination, so count it there.
+	sent := &countingReader{ReadCloser: reader}
+	defer func() { span.SetAttributes(attribute.Int64("streamed-bytes", sent.count.Load())) }()
+
 	client := &http.Client{}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, streamInURL, reader)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, streamInURL, sent)
 	if err != nil {
 		logger.Error("failed-to-create-p2p-stream-in-request", err)
 		return err
@@ -778,4 +785,20 @@ func NewLimitedReader(limit int, reader io.Reader) *LimitedReader {
 		read:       0,
 		underlying: reader,
 	}
+}
+
+// countingReader counts the bytes read through it, so that a span can record
+// how much data a stream carried. The count is atomic because the HTTP
+// transport reads a request body on its own goroutine, and Close is passed
+// through so the transport can still close the pipe and stop the compression
+// when the request fails.
+type countingReader struct {
+	io.ReadCloser
+	count atomic.Int64
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	n, err := r.ReadCloser.Read(p)
+	r.count.Add(int64(n))
+	return n, err
 }

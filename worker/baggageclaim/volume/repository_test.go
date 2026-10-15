@@ -20,7 +20,10 @@ import (
 	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/volumefakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 var _ = Describe("Repository", func() {
@@ -1285,6 +1288,26 @@ var _ = Describe("Repository", func() {
 						Expect(len(serverReadBytes)).To(Equal(len(b.Bytes())))
 						n := len(serverReadBytes)
 						Expect(serverReadBytes[:n]).To(Equal(b.Bytes()[:n]))
+					})
+
+					Context("when tracing is configured", func() {
+						var spanRecorder *tracetest.SpanRecorder
+
+						BeforeEach(func() {
+							spanRecorder = new(tracetest.SpanRecorder)
+							tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+						})
+
+						AfterEach(func() {
+							tracing.Configured = false
+						})
+
+						It("records the bytes sent on its span", func() {
+							Expect(spanRecorder.Ended()).To(HaveLen(1))
+							Expect(spanRecorder.Ended()[0].Attributes()).To(ContainElement(
+								attribute.Int64("streamed-bytes", int64(len(serverReadBytes))),
+							))
+						})
 					})
 				})
 			})
