@@ -234,5 +234,7 @@ func (manager *VaultManager) NewSecretsFactory(logger lager.Logger) (creds.Secre
 }
 
 func (manager VaultManager) Close(logger lager.Logger) {
-	manager.ReAuther.Close()
+	if manager.ReAuther != nil {
+		manager.ReAuther.Close()
+	}
 }

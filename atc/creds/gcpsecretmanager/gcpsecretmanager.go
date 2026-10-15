@@ -1,0 +1,203 @@
+package gcpsecretmanager
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"hash/crc32"
+	"regexp"
+	"time"
+
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	lager "code.cloudfoundry.org/lager/v3"
+	"github.com/concourse/concourse/v8/atc/creds"
+	gax "github.com/googleapis/gax-go/v2"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+
+//counterfeiter:generate . SecretManagerAPI
+type SecretManagerAPI interface {
+	AccessSecretVersion(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	Close() error
+}
+
+// secretIDPattern is the character set Google Secret Manager permits in a
+// secret ID. Validating before building the slash-delimited resource name
+// stops a crafted ((var)) from escaping its secret into another resource.
+var secretIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
+// maxSecretIDLength is the longest secret ID Google Secret Manager permits.
+const maxSecretIDLength = 255
+
+var ErrInvalidSecretID = errors.New("invalid Google Secret Manager secret ID")
+
+var errSecretIDTooLong = fmt.Errorf("%w: too long", ErrInvalidSecretID)
+
+// secretVersion is the version Concourse resolves for every secret.
+const secretVersion = "latest"
+
+func validateSecretID(proposed string) (string, error) {
+	if !secretIDPattern.MatchString(proposed) {
+		return "", fmt.Errorf("%w: %q", ErrInvalidSecretID, proposed)
+	}
+	if len(proposed) > maxSecretIDLength {
+		return "", fmt.Errorf("%w: %q is longer than %d characters", errSecretIDTooLong, proposed, maxSecretIDLength)
+	}
+	return proposed, nil
+}
+
+var crc32cTable = crc32.MakeTable(crc32.Castagnoli)
+
+type SecretManager struct {
+	log             lager.Logger
+	api             SecretManagerAPI
+	projectID       string
+	requestTimeout  time.Duration
+	secretTemplates []*creds.SecretTemplate
+	unwrapValue     bool
+}
+
+func NewSecretManager(
+	log lager.Logger,
+	api SecretManagerAPI,
+	projectID string,
+	requestTimeout time.Duration,
+	secretTemplates []*creds.SecretTemplate,
+	unwrapValue bool,
+) *SecretManager {
+	// A zero timeout yields an already-expired context, so treat it as unset.
+	if requestTimeout <= 0 {
+		requestTimeout = DefaultRequestTimeout
+	}
+
+	return &SecretManager{
+		log:             log,
+		api:             api,
+		projectID:       projectID,
+		requestTimeout:  requestTimeout,
+		secretTemplates: secretTemplates,
+		unwrapValue:     unwrapValue,
+	}
+}
+
+// NewSecretLookupPaths defines how variables will be searched in the underlying secret manager.
+// A scope whose team or pipeline name cannot be mapped to a secret ID is skipped, so
+// lookups fall through to the broader scopes, which the pipeline can already read.
+func (s *SecretManager) NewSecretLookupPaths(params creds.SecretLookupParams, allowRootPath bool) []creds.SecretLookupPath {
+	lookupPaths := []creds.SecretLookupPath{}
+	for _, tmpl := range s.secretTemplates {
+		lPath := creds.NewSecretLookupWithTemplate(tmpl, params.Team, params.Pipeline)
+		if lPath == nil {
+			continue
+		}
+		if !scopeIsMappable(tmpl, lPath) {
+			s.log.Debug("skipping-unmappable-secret-scope", lager.Data{
+				"template": tmpl.Name(),
+				"team":     params.Team,
+				"pipeline": params.Pipeline,
+			})
+			continue
+		}
+		lookupPaths = append(lookupPaths, secretIDLookupPath{SecretLookupPath: lPath})
+	}
+
+	// With no lookup paths, creds looks the raw var name up as a secret ID,
+	// bypassing every scope. Fail every lookup instead.
+	if len(lookupPaths) == 0 {
+		return []creds.SecretLookupPath{unmappableLookupPath{teamName: params.Team, pipelineName: params.Pipeline}}
+	}
+
+	return lookupPaths
+}
+
+// Get retrieves the value and expiration of an individual secret
+func (s *SecretManager) Get(secretPath string, _ creds.SecretLookupParams) (any, *time.Time, bool, error) {
+	value, expiration, found, err := s.getSecretByID(secretPath)
+	if err != nil {
+		// Log the secret ID only, never the payload.
+		s.log.Error("failed-to-fetch-gcp-secret", err, lager.Data{
+			"secret-id": secretPath,
+			"project":   s.projectID,
+		})
+		return nil, nil, false, err
+	}
+	if found {
+		return value, expiration, true, nil
+	}
+	return nil, nil, false, nil
+}
+
+// getSecretByID looks up a secret version by its ID. A payload that parses as a
+// JSON object is returned as a map[string]any so ((secret.field)) works;
+// anything else is returned verbatim as a string. Expiration is always nil.
+//
+// If unwrapValue is set and the object has a "value" key, only that value is
+// returned, as the Vault and Kubernetes managers do. Other keys are ignored.
+func (s *SecretManager) getSecretByID(secretPath string) (any, *time.Time, bool, error) {
+	secretID, err := validateSecretID(secretPath)
+	if errors.Is(err, errSecretIDTooLong) {
+		// No such secret can exist, so fall through to the next lookup path.
+		return nil, nil, false, nil
+	}
+	if err != nil {
+		return nil, nil, false, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), s.requestTimeout)
+	defer cancel()
+
+	name := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", s.projectID, secretID, secretVersion)
+
+	resp, err := s.api.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
+		Name: name,
+	})
+	if err != nil {
+		// NotFound and FailedPrecondition (all versions destroyed/disabled)
+		// mean "not here": fall through to the next lookup path.
+		switch status.Code(err) {
+		case codes.NotFound, codes.FailedPrecondition:
+			return nil, nil, false, nil
+		}
+		return nil, nil, false, err
+	}
+
+	payload := resp.GetPayload()
+	if payload == nil {
+		return nil, nil, false, fmt.Errorf("secret version %q returned no payload", secretID)
+	}
+
+	data := payload.GetData()
+
+	// Verify the server-supplied CRC32C so a corrupted payload fails loudly.
+	if crc := payload.DataCrc32C; crc != nil {
+		if uint32(*crc) != crc32.Checksum(data, crc32cTable) {
+			return nil, nil, false, fmt.Errorf("data corruption detected for secret %q: crc32c checksum mismatch", secretID)
+		}
+	}
+
+	if values, err := decodeJSONValue(data); err == nil {
+		if value, found := values["value"]; found && s.unwrapValue {
+			return value, nil, true, nil
+		}
+		return values, nil, true, nil
+	}
+
+	return string(data), nil, true, nil
+}
+
+// decodeJSONValue returns the payload as a map only when it is a JSON object.
+// Scalars, arrays and literal "null" are rejected so a bare string stays a string.
+func decodeJSONValue(data []byte) (map[string]any, error) {
+	var values map[string]any
+	if err := json.Unmarshal(data, &values); err != nil {
+		return nil, err
+	}
+	if values == nil {
+		return nil, errors.New("payload is not a JSON object")
+	}
+	return values, nil
+}

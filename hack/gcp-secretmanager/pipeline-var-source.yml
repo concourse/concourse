@@ -1,0 +1,63 @@
+# Exercises the per-pipeline var_source path.
+#
+# The -v is required even for validate-pipeline: var_source configs are
+# validated after templating, so an uninterpolated ((gcp_project)) is rejected.
+#
+#   fly validate-pipeline -c hack/gcp-secretmanager/pipeline-var-source.yml \
+#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT \
+#     -v "gcp_credentials_json=$(cat path/to/service-account-key.json)"
+#   fly -t dev set-pipeline -p gcp-creds-test -c hack/gcp-secretmanager/pipeline-var-source.yml \
+#     -v gcp_project=$GCP_SECRETMANAGER_PROJECT \
+#     -v "gcp_credentials_json=$(cat path/to/service-account-key.json)"
+#
+# The pipeline name must stay gcp-creds-test to match the seeded secret IDs.
+# A var_source must bring its own service account key: it may not fall back to
+# the web node's Application Default Credentials.
+
+var_sources:
+- name: gcp
+  type: gcpsecretmanager
+  config:
+    project: ((gcp_project))
+    credentials_json: ((gcp_credentials_json))
+    request_timeout: 10s
+
+jobs:
+- name: resolve-via-var-source
+  plan:
+  - task: assert-all-scopes
+    params:
+      SHARED: ((gcp:shared-cred))
+      TEAM: ((gcp:team-cred))
+      PIPELINE: ((gcp:pipeline-cred))
+      JSON_USERNAME: ((gcp:json-cred.username))
+      VALUE: ((gcp:value-cred))
+      PRECEDENCE: ((gcp:precedence-cred))
+    config:
+      platform: linux
+      image_resource:
+        type: registry-image
+        source: {repository: busybox}
+      run:
+        path: sh
+        args:
+        - -ec
+        - |
+          fail=0
+          check() {
+            if [ "$2" = "$3" ]; then
+              echo "ok    $1"
+            else
+              echo "FAIL  $1: expected '$3', got '$2'"
+              fail=1
+            fi
+          }
+
+          check "shared template"            "$SHARED"        "shared-value"
+          check "team template"              "$TEAM"          "team-value"
+          check "pipeline template"          "$PIPELINE"      "pipeline-value"
+          check "JSON object field access"   "$JSON_USERNAME" "neo"
+          check "JSON value key unwrapped"   "$VALUE"         '{"type":"service_account"}'
+          check "pipeline beats team/shared" "$PRECEDENCE"    "right-pipeline"
+
+          exit $fail

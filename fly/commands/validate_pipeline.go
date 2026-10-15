@@ -11,6 +11,7 @@ import (
 	_ "github.com/concourse/concourse/v8/atc/creds/conjur"
 	_ "github.com/concourse/concourse/v8/atc/creds/credhub"
 	_ "github.com/concourse/concourse/v8/atc/creds/dummy"
+	_ "github.com/concourse/concourse/v8/atc/creds/gcpsecretmanager"
 	"github.com/concourse/concourse/v8/atc/creds/idtoken"
 	_ "github.com/concourse/concourse/v8/atc/creds/kubernetes"
 	_ "github.com/concourse/concourse/v8/atc/creds/secretsmanager"
