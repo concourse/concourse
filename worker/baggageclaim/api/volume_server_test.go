@@ -1278,6 +1278,49 @@ var _ = Describe("Volume Server", func() {
 			Expect(recorder.Body.String()).To(MatchRegexp("failed to compress source volume: .*: (no such file or directory|The system cannot find the file specified)"))
 		})
 
+		DescribeTable("validates the streamInURL", func(streamInP2pURL string, expectedStatus int, match OmegaMatcher) {
+			filePath := filepath.Join(volumeDir, "live", myVolume.Handle, "volume", "some-file")
+			err := os.WriteFile(filePath, []byte("some-file-content"), os.ModePerm)
+			Expect(err).ToNot(HaveOccurred())
+
+			request, err := http.NewRequest("PUT",
+				fmt.Sprintf("/volumes/%s/stream-p2p-out?path=%s&streamInURL=%s&encoding=%s",
+					myVolume.Handle, "some-file", streamInP2pURL, string(baggageclaim.GzipEncoding)), nil)
+			Expect(err).NotTo(HaveOccurred())
+			request.Header.Set("Accept-Encoding", string(baggageclaim.GzipEncoding))
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+
+			Expect(recorder.Code).To(Equal(expectedStatus))
+			Expect(recorder.Body.String()).To(match)
+		},
+			Entry("returns an error when url has no scheme",
+				"127.0.0.1:7788/volumes/some-handle/stream-in?path=dest-path", http.StatusBadRequest,
+				MatchJSON(`{"error":"invalid stream in URL"}`),
+			),
+			Entry("returns an error when url has no port",
+				"http://127.0.0.1/volumes/some-handle/stream-in?path=dest-path", http.StatusBadRequest,
+				MatchJSON(`{"error":"invalid stream in URL"}`),
+			),
+			Entry("returns an error when url has query params other than 'path' or 'limit'",
+				"http://127.0.0.1:7788/volumes/some-handle/stream-in?foo=bar", http.StatusBadRequest,
+				MatchJSON(`{"error":"invalid stream in URL"}`),
+			),
+			Entry("returns an error when url has an invalid endpoint path",
+				"http://127.0.0.1:7788/foo/some-handle/bar?path=dest-path", http.StatusBadRequest,
+				MatchJSON(`{"error":"invalid stream in URL"}`),
+			),
+			Entry("returns an error when url's hostname is not an ip address",
+				"http://some-worker:7788/volumes/some-handle/stream-in?path=dest-path", http.StatusBadRequest,
+				MatchJSON(`{"error":"invalid stream in URL"}`),
+			),
+			Entry("should succeed",
+				"http://127.0.0.1:7788/volumes/some-handle/stream-in?path=dest-path", http.StatusOK,
+				// Expected error when it tries to stream, indicating we've passed validation
+				HavePrefix("failed to stream p2p out from volume"),
+			),
+		)
+
 		Context("when streaming a file", func() {
 			JustBeforeEach(func() {
 				// Create a file in the volume.
