@@ -20,6 +20,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type BackendSuite struct {
@@ -190,6 +191,25 @@ func (s *BackendSuite) TestCreateContainerSetsHandle() {
 	s.NoError(err)
 
 	s.Equal("handle", cont.Handle())
+}
+
+func (s *BackendSuite) TestCreateContinuesTheTraceFromProperties() {
+	fakeContainer := new(libcontainerdfakes.FakeContainer)
+	fakeContainer.NewTaskReturns(new(libcontainerdfakes.FakeTask), nil)
+	s.client.NewContainerReturns(fakeContainer, nil)
+
+	spec := minimumValidGdnSpec
+	spec.Properties = garden.Properties{
+		"traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+		"user":        "root",
+	}
+
+	_, err := s.backend.Create(spec)
+	s.NoError(err)
+
+	ctx, _, labels, _ := s.client.NewContainerArgsForCall(0)
+	s.Equal("4bf92f3577b34da6a3ce929d0e0e4736", trace.SpanContextFromContext(ctx).TraceID().String())
+	s.Equal(map[string]string{"user.0": "root"}, labels)
 }
 
 func (s *BackendSuite) TestCreateMaxContainersReached() {

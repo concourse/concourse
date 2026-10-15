@@ -21,10 +21,12 @@ import (
 	"github.com/concourse/concourse/v8/atc/worker/gardenruntime"
 	grt "github.com/concourse/concourse/v8/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/v8/atc/worker/workertest"
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 var _ = Describe("Garden Worker", func() {
@@ -327,6 +329,26 @@ var _ = Describe("Garden Worker", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(gardenContainer(container).Spec.RootFSPath).To(Equal(""))
+	})
+
+	Test("passes the trace context to garden in the container properties", func() {
+		traceparent := "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+		scenario := Setup(
+			workertest.WithWorkers(
+				grt.NewWorker("worker"),
+			),
+		)
+		worker := scenario.Worker("worker")
+
+		container, _, err := worker.FindOrCreateContainer(
+			tracing.Extract(ctx, propagation.MapCarrier{"traceparent": traceparent}),
+			db.NewFixedHandleContainerOwner("some-handle"),
+			db.ContainerMetadata{},
+			runtime.ContainerSpec{},
+			delegate,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gardenContainer(container).Spec.Properties).To(HaveKeyWithValue("traceparent", traceparent))
 	})
 
 	Test("fetch image from volume on same worker", func() {

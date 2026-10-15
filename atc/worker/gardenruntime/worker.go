@@ -24,6 +24,7 @@ import (
 	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/moby/sys/user"
+	"go.opentelemetry.io/otel/propagation"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -221,6 +222,10 @@ func (worker *Worker) createGardenContainer(
 			userPropertyName: fetchedImage.Metadata.User,
 		},
 	}
+
+	// Garden doesn't pass request contexts to the worker's runtime, so send the
+	// trace context in the properties for it to continue the trace.
+	tracing.Inject(ctx, propagation.MapCarrier(gdnSpec.Properties))
 
 	// By default set NetOutRule to whitelist all range of IPs
 	// otherwise leave NetOutRule to nil so worker runtime knows nothing is allowed
