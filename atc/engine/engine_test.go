@@ -21,7 +21,11 @@ import (
 	"github.com/concourse/concourse/v8/atc/event"
 	"github.com/concourse/concourse/v8/atc/exec"
 	"github.com/concourse/concourse/v8/atc/exec/execfakes"
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/vars"
+	"go.opentelemetry.io/otel/codes"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -171,6 +175,7 @@ var _ = Describe("Engine", func() {
 
 							Context("when getting the build vars succeeds", func() {
 								var invokedState chan exec.RunState
+								var spanRecorder *tracetest.SpanRecorder
 
 								BeforeEach(func() {
 									fakeBuild.VariablesReturns(vars.StaticVariables{"foo": "bar"}, nil)
@@ -180,7 +185,20 @@ var _ = Describe("Engine", func() {
 										invokedState <- state
 										return true, nil
 									}
+
+									spanRecorder = new(tracetest.SpanRecorder)
+									tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
 								})
+
+								AfterEach(func() {
+									tracing.Configured = false
+								})
+
+								buildSpanStatus := func() codes.Code {
+									waitGroup.Wait()
+									Expect(spanRecorder.Ended()).To(HaveLen(1))
+									return spanRecorder.Ended()[0].Status().Code
+								}
 
 								It("runs the step with the build variables", func() {
 									state := <-invokedState
@@ -246,6 +264,10 @@ var _ = Describe("Engine", func() {
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusSucceeded))
 									})
+
+									It("does not mark the build span as an error", func() {
+										Expect(buildSpanStatus()).To(Equal(codes.Unset))
+									})
 								})
 
 								Context("when the build finishes woefully", func() {
@@ -257,6 +279,10 @@ var _ = Describe("Engine", func() {
 										waitGroup.Wait()
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusFailed))
+									})
+
+									It("does not mark the build span as an error", func() {
+										Expect(buildSpanStatus()).To(Equal(codes.Unset))
 									})
 								})
 
@@ -270,6 +296,10 @@ var _ = Describe("Engine", func() {
 											waitGroup.Wait()
 											Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 											Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusErrored))
+										})
+
+										It("marks the build span as an error", func() {
+											Expect(buildSpanStatus()).To(Equal(codes.Error))
 										})
 									})
 
@@ -308,6 +338,10 @@ var _ = Describe("Engine", func() {
 										waitGroup.Wait()
 										Expect(fakeBuild.FinishCallCount()).To(Equal(1))
 										Expect(fakeBuild.FinishArgsForCall(0)).To(Equal(db.BuildStatusAborted))
+									})
+
+									It("does not mark the build span as an error", func() {
+										Expect(buildSpanStatus()).To(Equal(codes.Unset))
 									})
 								})
 
