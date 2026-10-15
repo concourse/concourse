@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -17,6 +18,7 @@ import (
 	"github.com/concourse/concourse/v8/atc/runtime"
 	"github.com/concourse/concourse/v8/tracing"
 	"github.com/hashicorp/go-multierror"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type Streamer struct {
@@ -131,7 +133,7 @@ func (s Streamer) stream(ctx context.Context, src runtime.Artifact, dst runtime.
 	return nil
 }
 
-func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error {
+func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, dst runtime.Volume) (err error) {
 	traceAttrs := tracing.Attrs{
 		"dest-worker": dst.DBVolume().WorkerName(),
 	}
@@ -139,6 +141,9 @@ func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, ds
 		traceAttrs["origin-volume"] = srcVolume.Handle()
 		traceAttrs["origin-worker"] = srcVolume.DBVolume().WorkerName()
 	}
+	ctx, span := tracing.StartSpan(ctx, "volume.StreamThroughATC", traceAttrs)
+	defer func() { tracing.End(span, err) }()
+
 	out, err := src.StreamOut(ctx, ".", s.compression)
 
 	if err != nil {
@@ -147,10 +152,13 @@ func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, ds
 
 	defer out.Close()
 
-	return dst.StreamIn(ctx, ".", s.compression, s.limitInMB, out)
+	relayed := &countingReader{ReadCloser: out}
+	err = dst.StreamIn(ctx, ".", s.compression, s.limitInMB, relayed)
+	span.SetAttributes(attribute.Int64("streamed-bytes", relayed.count.Load()))
+	return err
 }
 
-func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runtime.P2PVolume) error {
+func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runtime.P2PVolume) (err error) {
 	getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer getCancel()
 
@@ -172,13 +180,13 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 	}
 	streamInUrl = rawUrl.String()
 
-	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
+	ctx, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
 		"origin-volume": src.Handle(),
 		"origin-worker": src.DBVolume().WorkerName(),
 		"dest-worker":   dst.DBVolume().WorkerName(),
 		"stream-in-url": streamInUrl,
 	})
-	defer outSpan.End()
+	defer func() { tracing.End(outSpan, err) }()
 
 	putCtx := ctx
 	if s.p2p.Timeout != 0 {
@@ -221,6 +229,21 @@ func (s Streamer) StreamFile(ctx context.Context, artifact runtime.Artifact, pat
 			compressionReader,
 		},
 	}, nil
+}
+
+// countingReader counts the bytes read through it, so that a span can record
+// how much data a stream carried. The count is atomic because an HTTP
+// transport can still be reading a request body after the request returns,
+// and Close is passed through so the transport can still close the stream.
+type countingReader struct {
+	io.ReadCloser
+	count atomic.Int64
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	n, err := r.ReadCloser.Read(p)
+	r.count.Add(int64(n))
+	return n, err
 }
 
 type fileReadMultiCloser struct {

@@ -16,8 +16,12 @@ import (
 	"github.com/concourse/concourse/v8/atc/worker/gardenruntime"
 	grt "github.com/concourse/concourse/v8/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/v8/atc/worker/workertest"
+	"github.com/concourse/concourse/v8/tracing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var _ = Describe("Streamer", func() {
@@ -248,6 +252,49 @@ var _ = Describe("Streamer", func() {
 		Entry("disabled P2P streams through ATC even within a group", "group-a", "group-a", false, false),
 	)
 
+	Test("traces streams", func() {
+		spanRecorder := new(tracetest.SpanRecorder)
+		tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+		defer func() { tracing.Configured = false }()
+
+		endedSpan := func(name string) sdktrace.ReadOnlySpan {
+			for _, span := range spanRecorder.Ended() {
+				if span.Name() == name {
+					return span
+				}
+			}
+			Fail("no ended span named " + name)
+			return nil
+		}
+
+		scenario := Setup(workertest.WithWorkers(
+			grt.NewWorker("src-worker").
+				WithVolumesCreatedInDBAndBaggageclaim(grt.NewVolume("src").WithContent(runtimetest.VolumeContent{
+					"file1": {Data: []byte("content 1")},
+				})),
+			grt.NewWorker("dst-worker").
+				WithVolumesCreatedInDBAndBaggageclaim(grt.NewVolume("dst")),
+		))
+		src := &trackedP2PVolume{P2PVolume: scenario.WorkerVolume("src-worker", "src").(runtime.P2PVolume)}
+		dst := scenario.WorkerVolume("dst-worker", "dst")
+
+		By("streaming P2P within the volume.P2pStreamOut span")
+		err := scenario.Streamer(worker.P2PConfig{Enabled: true}).Stream(context.Background(), src, dst)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(trace.SpanContextFromContext(src.p2pOutCtx)).To(Equal(endedSpan("volume.P2pStreamOut").SpanContext()))
+
+		By("recording the bytes streamed through the ATC")
+		err = scenario.Streamer(worker.P2PConfig{Enabled: false}).Stream(context.Background(), src, dst)
+		Expect(err).ToNot(HaveOccurred())
+		var streamedBytes int64
+		for _, attr := range endedSpan("volume.StreamThroughATC").Attributes() {
+			if attr.Key == "streamed-bytes" {
+				streamedBytes = attr.Value.AsInt64()
+			}
+		}
+		Expect(streamedBytes).To(BeNumerically(">", 0))
+	})
+
 	Test("stream file from volume", func() {
 		content := runtimetest.VolumeContent{
 			"file":        {Data: []byte("content 1")},
@@ -358,6 +405,8 @@ func baggageclaimVolume(volume runtime.Volume) *grt.Volume {
 type trackedP2PVolume struct {
 	runtime.P2PVolume
 	p2pOutCalls, p2pURLCalls, streamOutCalls, streamInCalls int
+
+	p2pOutCtx context.Context
 }
 
 func (v *trackedP2PVolume) GetStreamInP2PURL(ctx context.Context, path string) (string, error) {
@@ -367,6 +416,7 @@ func (v *trackedP2PVolume) GetStreamInP2PURL(ctx context.Context, path string) (
 
 func (v *trackedP2PVolume) StreamP2POut(ctx context.Context, path, url string, c compression.Compression) error {
 	v.p2pOutCalls++
+	v.p2pOutCtx = ctx
 	return v.P2PVolume.StreamP2POut(ctx, path, url, c)
 }
 
