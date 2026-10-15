@@ -1160,6 +1160,7 @@ var _ = Describe("Repository", func() {
 
 		var (
 			server             *httptest.Server
+			streamedBytes      int64
 			streamErr          error
 			serverCalled       bool
 			serverResponseCode int
@@ -1195,7 +1196,7 @@ var _ = Describe("Repository", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}))
 			ctx := tracing.Extract(context.Background(), propagation.MapCarrier{"traceparent": traceparent})
-			streamErr = repository.StreamP2pOut(ctx, "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
+			streamedBytes, streamErr = repository.StreamP2pOut(ctx, "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
 		})
 
 		Context("when lookup volume fails", func() {
@@ -1280,6 +1281,9 @@ var _ = Describe("Repository", func() {
 					})
 					It("should receive the trace context", func() {
 						Expect(serverTraceparent).To(Equal(traceparent))
+					})
+					It("returns the bytes sent", func() {
+						Expect(streamedBytes).To(Equal(int64(len(serverReadBytes))))
 					})
 					It("remote should receive bytes", func() {
 						b := new(bytes.Buffer)
@@ -1453,7 +1457,7 @@ var _ = Describe("Repository", func() {
 
 		DescribeTable("source path stays within the volume",
 			func(inputPath string) {
-				err := traversalRepo.StreamP2pOut(context.Background(), "some-handle", inputPath,
+				_, err := traversalRepo.StreamP2pOut(context.Background(), "some-handle", inputPath,
 					baggageclaim.GzipEncoding, streamInServer.URL)
 				Expect(err).ToNot(HaveOccurred())
 

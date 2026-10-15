@@ -42,7 +42,9 @@ type Repository interface {
 	StreamIn(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, limitInMB float64, stream io.Reader) (bool, error)
 	StreamOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, dest io.Writer) error
 
-	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) error
+	// StreamP2pOut streams a volume path to another worker's stream-in URL and
+	// returns the number of compressed bytes it sent.
+	StreamP2pOut(ctx context.Context, handle string, path string, encoding baggageclaim.Encoding, streamInURL string) (int64, error)
 
 	VolumeParent(ctx context.Context, handle string) (Volume, bool, error)
 
@@ -575,7 +577,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	path string,
 	encoding baggageclaim.Encoding,
 	streamInURL string,
-) (err error) {
+) (_ int64, err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeRepository.StreamP2pOut", tracing.Attrs{
 		"volume":   handle,
 		"sub-path": path,
@@ -595,19 +597,19 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	volume, found, err := repo.filesystem.LookupVolume(handle)
 	if err != nil {
 		logger.Error("failed-to-lookup-volume", err)
-		return err
+		return 0, err
 	}
 
 	if !found {
 		logger.Info("volume-not-found")
-		return ErrVolumeDoesNotExist
+		return 0, ErrVolumeDoesNotExist
 	}
 
 	srcPath := filepath.Join(volume.DataPath(), filepath.Clean("/"+path))
 	if !strings.HasPrefix(srcPath, volume.DataPath()) {
 		err = fmt.Errorf("path '%s' is outside the volume data path '%s'", srcPath, volume.DataPath())
 		logger.Error("path-outside-volume", err)
-		return err
+		return 0, err
 	}
 
 	logger = logger.WithData(lager.Data{
@@ -617,7 +619,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	isPrivileged, err := volume.LoadPrivileged()
 	if err != nil {
 		logger.Error("failed-to-check-if-volume-is-privileged", err)
-		return err
+		return 0, err
 	}
 
 	logger.Debug("p2p-streaming-start", lager.Data{"streamInURL": streamInURL})
@@ -653,14 +655,14 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, streamInURL, sent)
 	if err != nil {
 		logger.Error("failed-to-create-p2p-stream-in-request", err)
-		return err
+		return 0, err
 	}
 
 	req.Header.Set("Content-Encoding", string(encoding))
 	tracing.Inject(ctx, propagation.HeaderCarrier(req.Header))
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return sent.count.Load(), err
 	}
 
 	defer resp.Body.Close()
@@ -668,7 +670,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	logger.Debug("p2p-streaming-end", lager.Data{"code": resp.StatusCode})
 
 	if resp.StatusCode == http.StatusNoContent {
-		return nil
+		return sent.count.Load(), nil
 	}
 
 	// Upon stream-in failure, decode error message from stream-in api.
@@ -680,7 +682,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 		errorResponse.Message = err.Error()
 	}
 
-	return fmt.Errorf("p2p-stream-in %d: %s", resp.StatusCode, errorResponse.Message)
+	return sent.count.Load(), fmt.Errorf("p2p-stream-in %d: %s", resp.StatusCode, errorResponse.Message)
 }
 
 func (repo *repository) VolumeParent(ctx context.Context, handle string) (Volume, bool, error) {

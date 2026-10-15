@@ -16,6 +16,7 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/tedsuo/rata"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
@@ -438,6 +439,9 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 		}
 
 		if err == io.EOF {
+			// Trailers are only available once the body has been read.
+			recordStreamedBytes(span, response.Trailer)
+
 			if result.String() == "ok" {
 				break
 			}
@@ -451,6 +455,15 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 	}
 
 	return nil
+}
+
+// recordStreamedBytes records on span the number of bytes that the source
+// worker reports having sent in the stream-p2p-out trailer, if it sent one.
+func recordStreamedBytes(span trace.Span, trailer http.Header) {
+	sent, err := strconv.ParseInt(trailer.Get(baggageclaim.StreamP2pOutBytesTrailer), 10, 64)
+	if err == nil {
+		span.SetAttributes(attribute.Int64("streamed-bytes", sent))
+	}
 }
 
 func getError(response *http.Response) error {
