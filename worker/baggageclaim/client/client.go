@@ -280,14 +280,14 @@ func (c *client) streamIn(ctx context.Context, destHandle string, path string, e
 	request, err := c.generateRequest(ctx, baggageclaim.StreamIn, rata.Params{
 		"handle": destHandle,
 	}, tarContent)
+	if err != nil {
+		return err
+	}
 
 	request.URL.RawQuery = url.Values{
 		"path":  []string{path},
 		"limit": []string{fmt.Sprintf("%f", limitInMB)},
 	}.Encode()
-	if err != nil {
-		return err
-	}
 	request.Header.Set("Content-Encoding", string(encoding))
 
 	response, err := c.httpClient(ctx).Do(request)
@@ -335,11 +335,11 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, destHandle string, path 
 	streamInRequest, err := c.generateRequest(ctx, baggageclaim.StreamIn, rata.Params{
 		"handle": destHandle,
 	}, nil)
-
-	streamInRequest.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 	if err != nil {
 		return "", err
 	}
+
+	streamInRequest.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 
 	streamInRequest.URL.Scheme = destUrl.Scheme
 	streamInRequest.URL.Host = destUrl.Host
@@ -359,11 +359,11 @@ func (c *client) streamOut(ctx context.Context, srcHandle string, encoding bagga
 	request, err := c.generateRequest(ctx, baggageclaim.StreamOut, rata.Params{
 		"handle": srcHandle,
 	}, nil)
-
-	request.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 	if err != nil {
 		return nil, err
 	}
+
+	request.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 	request.Header.Set("Accept-Encoding", string(encoding))
 
 	response, err := c.httpClient(ctx).Do(request)
@@ -388,15 +388,15 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 	request, err := c.generateRequest(ctx, baggageclaim.StreamP2pOut, rata.Params{
 		"handle": srcHandle,
 	}, nil)
+	if err != nil {
+		return err
+	}
 
 	request.URL.RawQuery = url.Values{
 		"path":        []string{path},
 		"streamInURL": []string{streamInURL},
 		"encoding":    []string{string(encoding)},
 	}.Encode()
-	if err != nil {
-		return err
-	}
 
 	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
