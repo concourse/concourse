@@ -1,0 +1,127 @@
+# victoria-traces.yml - a docker-compose override that adds VictoriaTraces
+# (the tracing backend from VictoriaMetrics) and Grafana to the stack, enables
+# OpenTelemetry tracing on `web` and the workers, and adds a second worker so
+# that volume streaming between workers shows up in traces.
+#
+# usage:
+#
+#   docker compose -f docker-compose.yml -f hack/overrides/victoria-traces.yml up -d
+#
+# once running:
+#
+#   * VictoriaTraces UI (vmui):   http://localhost:10428/select/vmui
+#   * Grafana (Jaeger datasource): http://localhost:3000  (anonymous admin)
+#
+# `worker2` is tagged `remote`, so a step with `tags: [remote]` runs there and
+# streams its inputs from `worker1`. victoria-traces-pipeline.yml runs such a
+# build:
+#
+#   fly -t dev set-pipeline -p tracing -c hack/overrides/victoria-traces-pipeline.yml
+#
+# P2P volume streaming is enabled; set CONCOURSE_ENABLE_P2P_VOLUME_STREAMING to
+# "false" on `web` to stream through the ATC instead. The workers report as
+# separate services (concourse-worker1 and concourse-worker2), so the source
+# and destination of a stream can be told apart in traces.
+#
+# Concourse exports spans via OTLP/gRPC, so VictoriaTraces' gRPC listener
+# (disabled by default) is enabled on :4317. OTLP/HTTP is always available on
+# :10428/insert/opentelemetry/v1/traces.
+#
+# ref: https://docs.victoriametrics.com/victoriatraces/
+# ref: https://docs.docker.com/compose/extends/
+#
+volumes:
+  victoria-traces-data:
+
+configs:
+  grafana-datasources:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: VictoriaTraces
+          uid: victoriatraces
+          type: jaeger
+          access: proxy
+          url: http://victoriatraces:10428/select/jaeger
+          isDefault: true
+          editable: true
+
+services:
+  web:
+    depends_on:
+      victoriatraces:
+        condition: service_started
+    environment:
+      CONCOURSE_TRACING_SERVICE_NAME: concourse-web
+      CONCOURSE_TRACING_OTLP_ADDRESS: victoriatraces:4317
+      CONCOURSE_TRACING_ATTRIBUTE: "deployment.environment:local-dev"
+      CONCOURSE_ENABLE_P2P_VOLUME_STREAMING: "true"
+
+  worker:
+    environment:
+      CONCOURSE_NAME: worker1
+      CONCOURSE_TRACING_SERVICE_NAME: concourse-worker1
+      CONCOURSE_TRACING_OTLP_ADDRESS: victoriatraces:4317
+      CONCOURSE_TRACING_ATTRIBUTE: "deployment.environment:local-dev"
+
+  worker2:
+    build: .
+    image: concourse/concourse:local
+    command: worker
+    privileged: true
+    cgroup: host
+    networks:
+      - default
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    depends_on: [web]
+    volumes: ["./hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_NAME: worker2
+      CONCOURSE_TAG: remote
+      CONCOURSE_RUNTIME: containerd
+
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+
+      CONCOURSE_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
+      CONCOURSE_TRACING_SERVICE_NAME: concourse-worker2
+      CONCOURSE_TRACING_OTLP_ADDRESS: victoriatraces:4317
+      CONCOURSE_TRACING_ATTRIBUTE: "deployment.environment:local-dev"
+
+  victoriatraces:
+    image: victoriametrics/victoria-traces:${VICTORIA_TRACES_TAG:-latest}
+    restart: on-failure
+    command:
+      - -storageDataPath=/victoria-traces-data
+      - -retentionPeriod=7d
+      - -httpListenAddr=:10428
+      # Concourse only speaks OTLP over gRPC; plaintext is fine for local dev
+      - -otlpGRPCListenAddr=:4317
+      - -otlpGRPC.tls=false
+    volumes:
+      - victoria-traces-data:/victoria-traces-data
+    ports:
+      - "10428:10428" # vmui, Jaeger query API, OTLP/HTTP ingestion
+      - "4317:4317"   # OTLP/gRPC ingestion
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_TAG:-latest}
+    depends_on: [victoriatraces]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    configs:
+      - source: grafana-datasources
+        target: /etc/grafana/provisioning/datasources/victoriatraces.yml
+    ports:
+      - "3000:3000"

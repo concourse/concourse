@@ -1,0 +1,68 @@
+# A pipeline for the victoria-traces.yml override whose one build streams a
+# volume between the two workers and runs an error hook, so that its trace
+# covers volume creation and streaming, container creation and hooks:
+#
+#   get repo           -> worker1 creates the volume and the container
+#   task build         -> the ATC reads repo/task.yml from worker1, and the task
+#                         runs on worker2, which streams repo from worker1
+#   try/on_error hook  -> a hook that runs after a step errors
+#
+# usage:
+#
+#   fly -t dev set-pipeline -p tracing -c hack/overrides/victoria-traces-pipeline.yml
+#   fly -t dev unpause-pipeline -p tracing
+#   fly -t dev trigger-job -j tracing/build -w
+#
+# Later builds reuse the copy of repo cached on worker2 and don't stream again;
+# recreate the stack to stream once more.
+resources:
+- name: repo
+  type: mock
+  source:
+    initial_version: v1
+    create_files:
+      task.yml: |
+        platform: linux
+        image_resource:
+          type: mock
+          source: {mirror_self: true}
+        inputs:
+        - name: repo
+        run:
+          path: sh
+          args: [-c, "ls -la repo && wc -c repo/payload.txt"]
+      payload.txt: |
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+        commodo consequat.
+
+jobs:
+- name: build
+  plan:
+  - get: repo
+  - task: build
+    file: repo/task.yml
+    tags: [remote]
+  - try:
+      task: missing-input
+      tags: [remote]
+      config:
+        platform: linux
+        image_resource:
+          type: mock
+          source: {mirror_self: true}
+        inputs:
+        - name: does-not-exist
+        run: {path: "true"}
+      on_error:
+        task: on-error-hook
+        tags: [remote]
+        config:
+          platform: linux
+          image_resource:
+            type: mock
+            source: {mirror_self: true}
+          run:
+            path: sh
+            args: [-c, "echo cleaning up"]
