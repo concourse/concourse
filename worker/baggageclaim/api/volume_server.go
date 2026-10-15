@@ -113,11 +113,12 @@ func (vs *VolumeServer) CreateVolumeAsync(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	ctx, span := tracing.StartSpan(req.Context(), "server.CreateVolumeAsync", tracing.Attrs{
+	// The volume is created after the response is sent, so the span and the
+	// context must outlive the request.
+	ctx, span := tracing.StartSpan(context.WithoutCancel(req.Context()), "server.CreateVolumeAsync", tracing.Attrs{
 		"volume":   handle,
 		"strategy": strategy.String(),
 	})
-	defer span.End()
 
 	handlers := &createVolumeHandlerAsync{
 		promise: volume.NewPromise(),
@@ -128,10 +129,14 @@ func (vs *VolumeServer) CreateVolumeAsync(w http.ResponseWriter, req *http.Reque
 	if err != nil {
 		hLog.Error("failed-to-add-promise", err)
 		RespondWithError(w, err, http.StatusInternalServerError)
+		tracing.End(span, err)
 		return
 	}
 
-	go vs.doCreate(ctx, w, request, handle, strategy, hLog, handlers)
+	go func() {
+		_, err := vs.doCreate(ctx, w, request, handle, strategy, hLog, handlers)
+		tracing.End(span, err)
+	}()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
