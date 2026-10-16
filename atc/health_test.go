@@ -116,6 +116,73 @@ var _ = Describe("Health", func() {
 			Expect(unmarshaled.Components[1].Name).To(Equal(atc.ComponentCollectorVolumes))
 		})
 
+		It("omits by_platform, by_team, and by_tag when WorkerHealth has no breakdown maps", func() {
+			health := atc.Health{
+				Status:    atc.HealthStatusOK,
+				Timestamp: time.Now(),
+				Database:  atc.DatabaseHealth{Status: atc.HealthStatusHealthy},
+				Workers:   atc.WorkerHealth{Status: string(atc.HealthStatusHealthy), Total: 1, Running: 1},
+			}
+
+			jsonBytes, err := json.Marshal(health)
+			Expect(err).NotTo(HaveOccurred())
+			raw := string(jsonBytes)
+			Expect(raw).NotTo(ContainSubstring(`"by_platform"`))
+			Expect(raw).NotTo(ContainSubstring(`"by_team"`))
+			Expect(raw).NotTo(ContainSubstring(`"by_tag"`))
+		})
+
+		It("marshals by_platform, by_team, and by_tag breakdowns correctly", func() {
+			health := atc.Health{
+				Status:    atc.HealthStatusOK,
+				Timestamp: time.Now(),
+				Database:  atc.DatabaseHealth{Status: atc.HealthStatusHealthy},
+				Workers: atc.WorkerHealth{
+					Status:  string(atc.HealthStatusHealthy),
+					Total:   3,
+					Running: 3,
+					ByPlatform: map[string]atc.WorkerBreakdown{
+						"linux":   {Total: 2, Running: 2},
+						"windows": {Total: 1, Running: 1},
+					},
+					ByTeam: map[string]atc.WorkerBreakdown{
+						"":      {Total: 2, Running: 2},
+						"infra": {Total: 1, Running: 1},
+					},
+					ByTag: map[string]atc.WorkerBreakdown{
+						"gpu": {Total: 1, Running: 1},
+					},
+				},
+			}
+
+			jsonBytes, err := json.Marshal(health)
+			Expect(err).NotTo(HaveOccurred())
+			raw := string(jsonBytes)
+
+			Expect(raw).To(ContainSubstring(`"by_platform"`))
+			Expect(raw).To(ContainSubstring(`"linux"`))
+			Expect(raw).To(ContainSubstring(`"windows"`))
+
+			Expect(raw).To(ContainSubstring(`"by_team"`))
+			// empty-string key serialises as ""
+			Expect(raw).To(ContainSubstring(`""`))
+			Expect(raw).To(ContainSubstring(`"infra"`))
+
+			Expect(raw).To(ContainSubstring(`"by_tag"`))
+			Expect(raw).To(ContainSubstring(`"gpu"`))
+
+			// round-trip
+			var unmarshaled atc.Health
+			Expect(json.Unmarshal(jsonBytes, &unmarshaled)).To(Succeed())
+			Expect(unmarshaled.Workers.ByPlatform).To(HaveLen(2))
+			Expect(unmarshaled.Workers.ByPlatform["linux"].Total).To(Equal(2))
+			Expect(unmarshaled.Workers.ByPlatform["linux"].Running).To(Equal(2))
+			Expect(unmarshaled.Workers.ByPlatform["windows"].Total).To(Equal(1))
+			Expect(unmarshaled.Workers.ByTeam[""]).To(Equal(atc.WorkerBreakdown{Total: 2, Running: 2}))
+			Expect(unmarshaled.Workers.ByTeam["infra"]).To(Equal(atc.WorkerBreakdown{Total: 1, Running: 1}))
+			Expect(unmarshaled.Workers.ByTag["gpu"]).To(Equal(atc.WorkerBreakdown{Total: 1, Running: 1}))
+		})
+
 		It("marshals an empty components list as an empty array", func() {
 			health := atc.Health{
 				Status:     atc.HealthStatusOK,

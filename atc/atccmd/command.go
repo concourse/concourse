@@ -28,6 +28,7 @@ import (
 	"github.com/concourse/concourse/v8/atc/api/auth"
 	"github.com/concourse/concourse/v8/atc/api/buildserver"
 	"github.com/concourse/concourse/v8/atc/api/containerserver"
+	"github.com/concourse/concourse/v8/atc/api/healthserver"
 	"github.com/concourse/concourse/v8/atc/api/pipelineserver"
 	"github.com/concourse/concourse/v8/atc/api/policychecker"
 	"github.com/concourse/concourse/v8/atc/auditor"
@@ -207,8 +208,9 @@ type RunCommand struct {
 	} `group:"Web Server"`
 
 	Health struct {
-		MinWorkerCount           int     `long:"health-min-worker-count" default:"1" description:"Minimum number of running workers before the health endpoint reports degraded. Setting this to 0 means the endpoint will only report healthy or failing — never degraded."`
-		ComponentStaleMultiplier float64 `long:"health-component-stale-multiplier" default:"2.0" description:"A component is considered stale when it has not run for more than this multiplier times its interval. Stale runtime components (scheduler, tracker, scanner) cause degraded status."`
+		MinWorkerCount           int      `long:"health-min-worker-count" default:"1" description:"Minimum number of running workers before the health endpoint reports degraded. Setting this to 0 means the endpoint will only report healthy or failing — never degraded."`
+		MinWorkers               []string `long:"health-min-workers" description:"Minimum running-worker threshold scoped to a platform, team, or tag. Repeatable. Format: platform:<name>:<count>, team:<name>:<count>, tag:<name>:<count>. Empty team name (team::<count>) targets unscoped global workers. If a configured class drops below its min (but above 0) the endpoint reports degraded; if it drops to 0 and min>0, the endpoint reports failing (HTTP 503). Env var: CONCOURSE_HEALTH_MIN_WORKERS (semicolon-delimited for multiple values, e.g. tag:gpu:1;team:infra:1)."`
+		ComponentStaleMultiplier float64  `long:"health-component-stale-multiplier" default:"2.0" description:"A component is considered stale when it has not run for more than this multiplier times its interval. Stale runtime components (scheduler, tracker, scanner) cause degraded status."`
 	} `group:"Health Endpoint"`
 
 	LogDBQueries   bool `long:"log-db-queries" description:"Log database queries."`
@@ -2101,6 +2103,11 @@ func (cmd *RunCommand) constructAPIHandler(
 		return nil, err
 	}
 
+	minWorkerThresholds, err := healthserver.ParseMinWorkerThresholds(cmd.Health.MinWorkers)
+	if err != nil {
+		return nil, err
+	}
+
 	apiWrapper := wrappa.MultiWrappa{
 		wrappa.NewConcurrentRequestLimitsWrappa(
 			logger,
@@ -2148,6 +2155,7 @@ func (cmd *RunCommand) constructAPIHandler(
 		dbComponentFactory,
 		dbConn,
 		cmd.Health.MinWorkerCount,
+		minWorkerThresholds,
 		cmd.Health.ComponentStaleMultiplier,
 
 		buildserver.NewEventHandler,

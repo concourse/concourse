@@ -69,6 +69,7 @@ func NewHandler(
 	dbComponentFactory db.ComponentFactory,
 	dbConn db.DbConn,
 	minWorkerCount int,
+	minWorkerThresholds healthserver.MinWorkerThresholds,
 	componentStaleMultiplier float64,
 
 	eventHandlerFactory buildserver.EventHandlerFactory,
@@ -116,7 +117,7 @@ func NewHandler(
 	volumesServer := volumeserver.NewServer(logger, volumeRepository, destroyer)
 	teamServer := teamserver.NewServer(logger, dbTeamFactory, externalURL)
 	infoServer := infoserver.NewServer(logger, version, workerVersion, externalURL, clusterName, credsManagers)
-	healthServer := healthserver.NewServer(logger, dbConn, dbWorkerFactory, dbComponentFactory, minWorkerCount, componentStaleMultiplier)
+	healthServer := healthserver.NewServer(logger, dbConn, dbWorkerFactory, dbComponentFactory, minWorkerCount, minWorkerThresholds, componentStaleMultiplier)
 	artifactServer := artifactserver.NewServer(logger, workerPool)
 	usersServer := usersserver.NewServer(logger, dbUserFactory)
 	wallServer := wallserver.NewServer(dbWall, logger)
@@ -219,7 +220,7 @@ func NewHandler(
 		atc.DownloadCLI:  http.HandlerFunc(cliServer.Download),
 		atc.GetInfo:      http.HandlerFunc(infoServer.Info),
 		atc.GetInfoCreds: http.HandlerFunc(infoServer.Creds),
-		atc.GetHealth: http.HandlerFunc(healthServer.GetHealth),
+		atc.GetHealth:    http.HandlerFunc(healthServer.GetHealth),
 
 		atc.GetUser:              http.HandlerFunc(usersServer.GetUser),
 		atc.ListActiveUsersSince: http.HandlerFunc(usersServer.GetUsersSince),
