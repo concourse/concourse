@@ -76,6 +76,13 @@ func NewManager(issuer string, signingKeyFactory db.SigningKeyFactory, config ma
 				return nil, fmt.Errorf("invalid idtoken provider config: algorithm must be a string")
 			}
 
+		case "aws_session_tags":
+			if enabled, ok := value.(bool); ok {
+				m.tokenGenerator.AWSSessionTags = enabled
+			} else {
+				return nil, fmt.Errorf("invalid idtoken provider config: aws_session_tags must be a boolean")
+			}
+
 		default:
 			return nil, fmt.Errorf("invalid idtoken provider config: unknown setting: %s", key)
 		}
