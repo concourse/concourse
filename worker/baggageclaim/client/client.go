@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
@@ -352,14 +353,25 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, destHandle string, path 
 }
 
 // spanCloser ends the span when the stream is closed, so that the span covers
-// the whole transfer rather than just the request.
+// the whole transfer rather than just the request, and records how many bytes
+// were read from the stream. The count is atomic because the stream can still
+// be read on another goroutine while it is closed: the HTTP transport's when
+// it is the body of a stream-in request, or a zstd decoder's in StreamFile.
 type spanCloser struct {
 	io.ReadCloser
-	span trace.Span
+	span  trace.Span
+	count atomic.Int64
+}
+
+func (sc *spanCloser) Read(p []byte) (int, error) {
+	n, err := sc.ReadCloser.Read(p)
+	sc.count.Add(int64(n))
+	return n, err
 }
 
 func (sc *spanCloser) Close() error {
 	err := sc.ReadCloser.Close()
+	sc.span.SetAttributes(attribute.Int64("streamed-bytes", sc.count.Load()))
 	tracing.End(sc.span, err)
 	return err
 }

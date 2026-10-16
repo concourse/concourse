@@ -1377,6 +1377,66 @@ var _ = Describe("Repository", func() {
 		)
 	})
 
+	Describe("StreamOut tracing", func() {
+		var (
+			spanRecorder     *tracetest.SpanRecorder
+			fakeGzipStreamer *volumefakes.FakeStreamer
+			streamingRepo    volume.Repository
+		)
+
+		BeforeEach(func() {
+			spanRecorder = new(tracetest.SpanRecorder)
+			tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+
+			fakeGzipStreamer = new(volumefakes.FakeStreamer)
+			fakeGzipStreamer.OutStub = func(dest io.Writer, _ string, _ bool) error {
+				_, err := dest.Write([]byte("some tar content"))
+				return err
+			}
+			streamingRepo = volume.NewRepositoryWithStreamers(
+				fakeFilesystem, fakeLocker,
+				fakePrivilegedNamespacer, fakeUnprivilegedNamespacer,
+				fakeGzipStreamer,
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+			)
+
+			fakeVolume := new(volumefakes.FakeFilesystemLiveVolume)
+			fakeVolume.DataPathReturns(filepath.FromSlash("/data/volume-root"))
+			fakeFilesystem.LookupVolumeReturns(fakeVolume, true, nil)
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
+
+		It("records the bytes written on its span", func() {
+			dest := new(bytes.Buffer)
+			err := streamingRepo.StreamOut(context.Background(), "some-handle", ".", baggageclaim.GzipEncoding, dest)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(dest.String()).To(Equal("some tar content"))
+
+			Expect(spanRecorder.Ended()).To(HaveLen(1))
+			Expect(spanRecorder.Ended()[0].Attributes()).To(ContainElement(
+				attribute.Int64("streamed-bytes", int64(dest.Len())),
+			))
+		})
+
+		It("records the bytes written before the stream fails", func() {
+			fakeGzipStreamer.OutStub = func(dest io.Writer, _ string, _ bool) error {
+				_, _ = dest.Write([]byte("some tar"))
+				return errors.New("tar failed")
+			}
+
+			err := streamingRepo.StreamOut(context.Background(), "some-handle", ".", baggageclaim.GzipEncoding, new(bytes.Buffer))
+			Expect(err).To(MatchError("tar failed"))
+
+			Expect(spanRecorder.Ended()).To(HaveLen(1))
+			Expect(spanRecorder.Ended()[0].Attributes()).To(ContainElement(attribute.Int64("streamed-bytes", 8)))
+		})
+	})
+
 	Describe("StreamOut path traversal prevention", func() {
 		var (
 			fakeGzipStreamer *volumefakes.FakeStreamer

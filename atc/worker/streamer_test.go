@@ -283,16 +283,10 @@ var _ = Describe("Streamer", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(trace.SpanContextFromContext(src.p2pOutCtx)).To(Equal(endedSpan("volume.P2pStreamOut").SpanContext()))
 
-		By("recording the bytes streamed through the ATC")
+		By("streaming through the ATC within the volume.StreamThroughATC span")
 		err = scenario.Streamer(worker.P2PConfig{Enabled: false}).Stream(context.Background(), src, dst)
 		Expect(err).ToNot(HaveOccurred())
-		var streamedBytes int64
-		for _, attr := range endedSpan("volume.StreamThroughATC").Attributes() {
-			if attr.Key == "streamed-bytes" {
-				streamedBytes = attr.Value.AsInt64()
-			}
-		}
-		Expect(streamedBytes).To(BeNumerically(">", 0))
+		Expect(trace.SpanContextFromContext(src.streamOutCtx)).To(Equal(endedSpan("volume.StreamThroughATC").SpanContext()))
 	})
 
 	Test("stream file from volume", func() {
@@ -406,7 +400,7 @@ type trackedP2PVolume struct {
 	runtime.P2PVolume
 	p2pOutCalls, p2pURLCalls, streamOutCalls, streamInCalls int
 
-	p2pOutCtx context.Context
+	p2pOutCtx, streamOutCtx context.Context
 }
 
 func (v *trackedP2PVolume) GetStreamInP2PURL(ctx context.Context, path string) (string, error) {
@@ -422,6 +416,7 @@ func (v *trackedP2PVolume) StreamP2POut(ctx context.Context, path, url string, c
 
 func (v *trackedP2PVolume) StreamOut(ctx context.Context, path string, c compression.Compression) (io.ReadCloser, error) {
 	v.streamOutCalls++
+	v.streamOutCtx = ctx
 	return v.P2PVolume.StreamOut(ctx, path, c)
 }
 

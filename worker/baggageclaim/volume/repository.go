@@ -558,15 +558,20 @@ func (repo *repository) StreamOut(ctx context.Context,
 		return err
 	}
 
+	// What the streamer writes to dest is what goes to the caller, so count it
+	// there.
+	sent := &countingWriter{Writer: dest}
+	defer func() { span.SetAttributes(attribute.Int64("streamed-bytes", sent.count.Load())) }()
+
 	switch encoding {
 	case baggageclaim.ZstdEncoding:
-		return repo.zstdStreamer.Out(dest, srcPath, isPrivileged)
+		return repo.zstdStreamer.Out(sent, srcPath, isPrivileged)
 	case baggageclaim.GzipEncoding:
-		return repo.gzipStreamer.Out(dest, srcPath, isPrivileged)
+		return repo.gzipStreamer.Out(sent, srcPath, isPrivileged)
 	case baggageclaim.S2Encoding:
-		return repo.s2Streamer.Out(dest, srcPath, isPrivileged)
+		return repo.s2Streamer.Out(sent, srcPath, isPrivileged)
 	case baggageclaim.RawEncoding:
-		return repo.rawStreamer.Out(dest, srcPath, isPrivileged)
+		return repo.rawStreamer.Out(sent, srcPath, isPrivileged)
 	}
 
 	return ErrUnsupportedStreamEncoding
@@ -802,5 +807,20 @@ type countingReader struct {
 func (r *countingReader) Read(p []byte) (int, error) {
 	n, err := r.ReadCloser.Read(p)
 	r.count.Add(int64(n))
+	return n, err
+}
+
+// countingWriter counts the bytes written through it, so that a span can
+// record how much data a stream carried. The count is atomic because the
+// streamers write on other goroutines than the one that reads it: exec copies
+// tar's output on one, and the zstd and s2 compressors write from their own.
+type countingWriter struct {
+	io.Writer
+	count atomic.Int64
+}
+
+func (w *countingWriter) Write(p []byte) (int, error) {
+	n, err := w.Writer.Write(p)
+	w.count.Add(int64(n))
 	return n, err
 }
