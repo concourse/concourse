@@ -5,9 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -35,11 +39,19 @@ var ErrStreamInFailed = errors.New("failed to stream in to volume")
 var ErrStreamOutFailed = errors.New("failed to stream out from volume")
 var ErrStreamOutNotFound = errors.New("no such file or directory")
 var ErrStreamP2pOutFailed = errors.New("failed to stream p2p out from volume")
+var ErrGetP2pUrlFailed = errors.New("failed to get p2p url, network interface list is empty")
+var ErrGetListSysNetworkInterface = errors.New("failed to get a list of the system's network interface")
+var ErrGetNetworkInterfaceAddr = errors.New("failed to get network interface addr for given interface")
+var ErrInvalidStreamInURL = errors.New("invalid stream in URL")
 
 type VolumeServer struct {
 	strategizer    volume.Strategizer
 	volumeRepo     volume.Repository
 	volumePromises volume.PromiseList
+
+	p2pInterfacePattern *regexp.Regexp
+	p2pInterfaceFamily  int
+	p2pStreamPort       uint16
 
 	logger lager.Logger
 }
@@ -48,12 +60,18 @@ func NewVolumeServer(
 	logger lager.Logger,
 	strategizer volume.Strategizer,
 	volumeRepo volume.Repository,
+	p2pInterfacePattern *regexp.Regexp,
+	p2pInterfaceFamily int,
+	p2pStreamPort uint16,
 ) *VolumeServer {
 	return &VolumeServer{
-		strategizer:    strategizer,
-		volumeRepo:     volumeRepo,
-		volumePromises: volume.NewPromiseList(),
-		logger:         logger,
+		strategizer:         strategizer,
+		volumeRepo:          volumeRepo,
+		volumePromises:      volume.NewPromiseList(),
+		p2pInterfacePattern: p2pInterfacePattern,
+		p2pInterfaceFamily:  p2pInterfaceFamily,
+		p2pStreamPort:       p2pStreamPort,
+		logger:              logger,
 	}
 }
 
@@ -588,6 +606,56 @@ func (vs *VolumeServer) StreamOut(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (vs *VolumeServer) GetP2pUrl(w http.ResponseWriter, req *http.Request) {
+	hLog := vs.logger.Session("get-p2p-url")
+	hLog.Debug("start")
+	defer hLog.Debug("done")
+
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		RespondWithError(w, ErrGetListSysNetworkInterface, http.StatusInternalServerError)
+		return
+	}
+
+	for _, i := range ifaces {
+		if !vs.p2pInterfacePattern.MatchString(i.Name) {
+			continue
+		}
+
+		addrs, err := i.Addrs()
+		if err != nil {
+			RespondWithError(w, ErrGetNetworkInterfaceAddr, http.StatusInternalServerError)
+			return
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+
+			if vs.p2pInterfaceFamily == 6 {
+				if strings.Contains(ip.String(), ".") {
+					continue
+				}
+			} else { // Default to use IPv4
+				if strings.Contains(ip.String(), ":") {
+					continue
+				}
+			}
+			hLog.Debug("found-ip", lager.Data{"ip": ip.String()})
+
+			fmt.Fprintf(w, "http://%s:%d", ip.String(), vs.p2pStreamPort)
+			return
+		}
+	}
+
+	RespondWithError(w, ErrGetP2pUrlFailed, http.StatusInternalServerError)
+}
+
 func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 	handle := rata.Param(req, "handle")
 
@@ -618,6 +686,14 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 		RespondWithError(w, ErrStreamP2pOutFailed, http.StatusBadRequest)
 		return
 	}
+
+	err := vs.validateStreamInURL(streamInURL)
+	if err != nil {
+		hLog.Info("invalid-streamInURL", lager.Data{"stream-in-url": streamInURL})
+		RespondWithError(w, ErrInvalidStreamInURL, http.StatusBadRequest)
+		return
+	}
+
 	if queryPath, ok := req.URL.Query()["encoding"]; ok {
 		encoding = queryPath[0]
 	}
@@ -662,6 +738,43 @@ func (vs *VolumeServer) StreamP2pOut(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
+}
+
+func (vs *VolumeServer) validateStreamInURL(streamInURL string) error {
+	u, err := url.Parse(streamInURL)
+	if err != nil {
+		return err
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return ErrInvalidStreamInURL
+	}
+
+	if u.Port() == "" || u.Hostname() == "" {
+		return ErrInvalidStreamInURL
+	}
+
+	if net.ParseIP(u.Hostname()) == nil {
+		return ErrInvalidStreamInURL
+	}
+
+	var pathRegex = regexp.MustCompile(`^/volumes/[^/]+/stream-in$`)
+	if !pathRegex.MatchString(u.Path) {
+		return ErrInvalidStreamInURL
+	}
+
+	params, err := url.ParseQuery(u.RawQuery)
+	if err != nil {
+		return err
+	}
+
+	for key, _ := range params {
+		if key != "path" && key != "limit" {
+			return ErrInvalidStreamInURL
+		}
+	}
+
+	return nil
 }
 
 func (vs *VolumeServer) generateHandle() (string, error) {
