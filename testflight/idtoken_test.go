@@ -94,6 +94,45 @@ var _ = Describe("A pipeline containing idtoken var sources", Ordered, func() {
 	}, DefaultSpecTimeout)
 })
 
+var _ = Describe("An instanced pipeline containing an idtoken var source with aws session tags", func() {
+	const instanceVars = "/env:prod"
+
+	AfterEach(func() {
+		fly("destroy-pipeline", "-n", "-p", pipelineName+instanceVars)
+	})
+
+	It("adds team, pipeline, job and instance vars as aws session tags", func(ctx SpecContext) {
+		fly("set-pipeline", "-n", "-p", pipelineName, "-i", "env=prod", "-c", "fixtures/idtoken-aws-session-tags.yml")
+		fly("unpause-pipeline", "-p", pipelineName+instanceVars)
+		watch := fly("trigger-job", "-j", pipelineName+instanceVars+"/print-creds", "-w")
+		Expect(watch).To(gexec.Exit(0))
+		outputText := watch.Buffer().Contents()
+
+		token := extractIDtokenFromBuffer(outputText, "T1") + extractIDtokenFromBuffer(outputText, "T2")
+		Expect(token).ToNot(BeEmpty())
+
+		jwks, err := getJWKS(config.ATCURL)
+		Expect(err).ToNot(HaveOccurred())
+
+		parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+		Expect(err).ToNot(HaveOccurred())
+		var claims struct {
+			Tags struct {
+				PrincipalTags map[string][]string `json:"principal_tags"`
+			} `json:"https://aws.amazon.com/tags"`
+		}
+		err = parsed.Claims(jwks, &claims)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(claims.Tags.PrincipalTags).To(Equal(map[string][]string{
+			"team":             {teamName},
+			"pipeline":         {pipelineName},
+			"job":              {"print-creds"},
+			"instance_var:env": {"prod"},
+		}))
+	}, DefaultSpecTimeout)
+})
+
 func extractIDtokenFromBuffer(buffer []byte, identifier string) string {
 	tokenMatcher := regexp.MustCompile("(?m)" + identifier + ": (.*)$")
 	tokenMatches := tokenMatcher.FindSubmatch(buffer)
