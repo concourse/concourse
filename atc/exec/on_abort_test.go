@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"code.cloudfoundry.org/lager/v3/lagerctx"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/v8/atc/exec"
 	"github.com/concourse/concourse/v8/atc/exec/build"
 	"github.com/concourse/concourse/v8/atc/exec/execfakes"
@@ -15,6 +17,7 @@ var _ = Describe("On Abort Step", func() {
 	var (
 		ctx    context.Context
 		cancel func()
+		logger *lagertest.TestLogger
 
 		step *execfakes.FakeStep
 		hook *execfakes.FakeStep
@@ -29,7 +32,8 @@ var _ = Describe("On Abort Step", func() {
 	)
 
 	BeforeEach(func() {
-		ctx, cancel = context.WithCancel(context.Background())
+		logger = lagertest.NewTestLogger("test")
+		ctx, cancel = context.WithCancel(lagerctx.NewContext(context.Background(), logger))
 
 		step = &execfakes.FakeStep{}
 		hook = &execfakes.FakeStep{}
@@ -54,12 +58,19 @@ var _ = Describe("On Abort Step", func() {
 
 	Context("when the step is aborted", func() {
 		BeforeEach(func() {
+			cancel()
 			step.RunReturns(false, context.Canceled)
 		})
 
 		It("runs the abort hook", func() {
 			Expect(stepErr).To(Equal(context.Canceled))
 			Expect(hook.RunCallCount()).To(Equal(1))
+		})
+
+		It("runs the abort hook without canceling it, with the step's logger", func() {
+			hookCtx, _ := hook.RunArgsForCall(0)
+			Expect(hookCtx.Err()).ToNot(HaveOccurred())
+			Expect(lagerctx.FromContext(hookCtx)).To(Equal(logger))
 		})
 	})
 

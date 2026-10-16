@@ -11,16 +11,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"time"
 
 	"code.cloudfoundry.org/garden"
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd"
 	bespec "github.com/concourse/concourse/v8/worker/runtime/spec"
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/pkg/cio"
 	"github.com/containerd/errdefs"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -306,8 +309,12 @@ func (b *GardenBackend) Ping() (err error) {
 }
 
 // Create creates a new container.
-func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, error) {
-	ctx := context.Background()
+func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (_ garden.Container, err error) {
+	ctx, properties := extractTraceContext(gdnSpec.Properties)
+	gdnSpec.Properties = properties
+
+	ctx, span := tracing.StartSpan(ctx, "gardenBackend.Create", tracing.Attrs{"handle": gdnSpec.Handle})
+	defer func() { tracing.End(span, err) }()
 
 	hermetic := b.isHermetic(gdnSpec)
 
@@ -327,6 +334,19 @@ func (b *GardenBackend) Create(gdnSpec garden.ContainerSpec) (garden.Container, 
 		b.rootfsManager,
 		b.ioManager,
 	), nil
+}
+
+// extractTraceContext returns a context with the trace context that the ATC
+// sends in the container properties, since Garden doesn't pass request
+// contexts to backends, and the properties without it, so that it isn't
+// stored as container labels.
+func extractTraceContext(properties garden.Properties) (context.Context, garden.Properties) {
+	properties = maps.Clone(properties)
+	ctx := tracing.Extract(context.Background(), propagation.MapCarrier(properties))
+	for _, key := range (propagation.TraceContext{}).Fields() {
+		delete(properties, key)
+	}
+	return ctx, properties
 }
 
 func (b *GardenBackend) isHermetic(gdnSpec garden.ContainerSpec) bool {

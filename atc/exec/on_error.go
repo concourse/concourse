@@ -39,7 +39,7 @@ func (o OnErrorStep) Run(ctx context.Context, state RunState) (bool, error) {
 
 	// for all errors that aren't caused by an Abort or the retry_error's Retriable step, run the hook
 	if !(errors.Is(stepRunErr, context.Canceled) || errors.Is(stepRunErr, Retriable{})) {
-		_, err := o.hook.Run(context.Background(), state)
+		_, err := o.hook.Run(context.WithoutCancel(ctx), state)
 		if err != nil {
 			// This causes to return both the errors as expected.
 			errs = multierror.Append(errs, err)

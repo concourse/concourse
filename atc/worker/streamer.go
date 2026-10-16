@@ -131,7 +131,7 @@ func (s Streamer) stream(ctx context.Context, src runtime.Artifact, dst runtime.
 	return nil
 }
 
-func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, dst runtime.Volume) error {
+func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, dst runtime.Volume) (err error) {
 	traceAttrs := tracing.Attrs{
 		"dest-worker": dst.DBVolume().WorkerName(),
 	}
@@ -139,6 +139,9 @@ func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, ds
 		traceAttrs["origin-volume"] = srcVolume.Handle()
 		traceAttrs["origin-worker"] = srcVolume.DBVolume().WorkerName()
 	}
+	ctx, span := tracing.StartSpan(ctx, "volume.StreamThroughATC", traceAttrs)
+	defer func() { tracing.End(span, err) }()
+
 	out, err := src.StreamOut(ctx, ".", s.compression)
 
 	if err != nil {
@@ -150,7 +153,7 @@ func (s Streamer) streamThroughATC(ctx context.Context, src runtime.Artifact, ds
 	return dst.StreamIn(ctx, ".", s.compression, s.limitInMB, out)
 }
 
-func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runtime.P2PVolume) error {
+func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runtime.P2PVolume) (err error) {
 	getCtx, getCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer getCancel()
 
@@ -172,13 +175,13 @@ func (s Streamer) p2pStream(ctx context.Context, src runtime.P2PVolume, dst runt
 	}
 	streamInUrl = rawUrl.String()
 
-	_, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
+	ctx, outSpan := tracing.StartSpan(ctx, "volume.P2pStreamOut", tracing.Attrs{
 		"origin-volume": src.Handle(),
 		"origin-worker": src.DBVolume().WorkerName(),
 		"dest-worker":   dst.DBVolume().WorkerName(),
 		"stream-in-url": streamInUrl,
 	})
-	defer outSpan.End()
+	defer func() { tracing.End(outSpan, err) }()
 
 	putCtx := ctx
 	if s.p2p.Timeout != 0 {
@@ -196,14 +199,21 @@ func (s Streamer) StreamFile(ctx context.Context, artifact runtime.Artifact, pat
 		return nil, err
 	}
 
+	// On errors, close the stream too: it holds the connection to the worker,
+	// and its trace span only ends when it is closed. Close it before the
+	// decompressor, whose Close can wait on a read that only closing the
+	// stream ends.
 	compressionReader, err := s.compression.NewReader(out)
 	if err != nil {
+		out.Close()
 		return nil, err
 	}
 	tarReader := tar.NewReader(compressionReader)
 
 	_, err = tarReader.Next()
 	if err != nil {
+		out.Close()
+		compressionReader.Close()
 		return nil, err
 	}
 
