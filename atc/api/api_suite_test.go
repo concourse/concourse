@@ -18,6 +18,7 @@ import (
 	"github.com/concourse/concourse/v8/atc/api/apifakes"
 	"github.com/concourse/concourse/v8/atc/api/auth"
 	"github.com/concourse/concourse/v8/atc/api/containerserver/containerserverfakes"
+	"github.com/concourse/concourse/v8/atc/api/healthserver"
 	"github.com/concourse/concourse/v8/atc/api/policychecker/policycheckerfakes"
 	"github.com/concourse/concourse/v8/atc/auditor/auditorfakes"
 	"github.com/concourse/concourse/v8/atc/creds"
@@ -240,6 +241,7 @@ func newApiTestServer(opts ...apiConfigOpt) *httptest.Server {
 		dbComponentFactory,
 		fakeDbConn,
 		testServerConfig.workerCount,
+		testServerConfig.minWorkerThresholds,
 		testServerConfig.componentStaleMultiplier,
 
 		constructedEventHandler.Construct,
@@ -284,6 +286,7 @@ func newApiTestServer(opts ...apiConfigOpt) *httptest.Server {
 
 type apiServerConfig struct {
 	workerCount              int
+	minWorkerThresholds      healthserver.MinWorkerThresholds
 	componentStaleMultiplier float64
 	concourseVersion         string
 	workerVersion            string
@@ -295,5 +298,11 @@ type apiConfigOpt func(*apiServerConfig)
 func withWorkerCount(count int) apiConfigOpt {
 	return func(a *apiServerConfig) {
 		a.workerCount = count
+	}
+}
+
+func withMinWorkerThresholds(t healthserver.MinWorkerThresholds) apiConfigOpt {
+	return func(a *apiServerConfig) {
+		a.minWorkerThresholds = t
 	}
 }

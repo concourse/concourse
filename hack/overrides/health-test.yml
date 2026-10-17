@@ -1,0 +1,144 @@
+# health-test.yml — per-class health thresholds with a graduated worker pool.
+#
+# docker compose -f docker-compose.yml -f hack/overrides/health-test.yml up --build -d
+# watch -n2 'curl -s localhost:8080/api/v1/health | jq .workers'
+#
+# Use pause/unpause to simulate a stalled worker without deregistering it:
+#   docker compose -f docker-compose.yml -f hack/overrides/health-test.yml pause <service>
+#   docker compose -f docker-compose.yml -f hack/overrides/health-test.yml unpause <service>
+# Note: TSA marks the worker stalled after ~1 min of missed heartbeats.
+#
+# Thresholds: global>=2, tag:gpu>=1, team::>=3, team:infra>=1
+# Unscoped workers (team::): worker, worker-2, worker-gpu (3 total)
+#
+# Expected status after pausing (wait ~1 min for stall to register):
+# initial state unhealthy (fly -t dev set-team -n infra --local-user test) create infra team so worker registers successfully
+#   (none)                             ok
+#   worker                             degraded  team::=2/3
+#   worker-2                           degraded  team::=2/3
+#   worker-gpu                         failing   tag:gpu=0/1, HTTP 503
+#   worker-infra                       failing   team:infra=0/1, HTTP 503
+#   worker + worker-2                  degraded  team::=1/3
+#   worker + worker-2 + worker-gpu     failing   tag:gpu=0 AND team::=0, HTTP 503
+#   all four                           failing   running=0, HTTP 503
+
+services:
+  web:
+    environment:
+      CONCOURSE_HEALTH_MIN_WORKER_COUNT: "2"
+      CONCOURSE_HEALTH_MIN_WORKERS: "tag:gpu:1;team::3;team:infra:1"
+
+  worker-2:
+    image: concourse/concourse:local
+    command: worker
+    privileged: true
+    cgroup: host
+    networks:
+      - default
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    depends_on: [web]
+    volumes: ["./hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_RUNTIME: containerd
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+      CONCOURSE_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
+  worker-gpu:
+    image: concourse/concourse:local
+    command: worker --tag gpu
+    privileged: true
+    cgroup: host
+    networks:
+      - default
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    depends_on: [web]
+    volumes: ["./hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_RUNTIME: containerd
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+      CONCOURSE_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
+  worker-cpu:
+    image: concourse/concourse:local
+    command: worker --tag cpu
+    privileged: true
+    cgroup: host
+    networks:
+      - default
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    depends_on: [web]
+    volumes: ["./hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_RUNTIME: containerd
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+      CONCOURSE_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
+  worker-mpu:
+    image: concourse/concourse:local
+    command: worker --tag mpu
+    privileged: true
+    cgroup: host
+    networks:
+      - default
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    depends_on: [web]
+    volumes: ["./hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_RUNTIME: containerd
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+      CONCOURSE_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"
+
+  worker-infra:
+    image: concourse/concourse:local
+    command: worker --team infra
+    privileged: true
+    cgroup: host
+    networks:
+      - default
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    depends_on: [web]
+    volumes: ["./hack/keys:/concourse-keys"]
+    stop_signal: SIGUSR2
+    environment:
+      CONCOURSE_RUNTIME: containerd
+      CONCOURSE_TSA_PUBLIC_KEY: /concourse-keys/tsa_host_key.pub
+      CONCOURSE_TSA_WORKER_PRIVATE_KEY: /concourse-keys/worker_key
+      CONCOURSE_LOG_LEVEL: debug
+      CONCOURSE_TSA_HOST: web:2222
+      CONCOURSE_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_BIND_IP: 0.0.0.0
+      CONCOURSE_BAGGAGECLAIM_DRIVER: overlay
+      CONCOURSE_CONTAINERD_DNS_PROXY_ENABLE: "true"

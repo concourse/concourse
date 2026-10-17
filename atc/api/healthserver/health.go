@@ -10,9 +10,6 @@ import (
 	"github.com/concourse/concourse/v8/atc/db"
 )
 
-// GetHealth returns the health of the Concourse cluster — database, workers, and components.
-// A 503 response indicates a cluster-level problem (e.g. database unreachable, no workers),
-// not a failure of the web node handling this request.
 func (s *Server) GetHealth(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("get-health")
 
@@ -51,7 +48,6 @@ func (s *Server) GetHealth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// checkDatabase pings the database and verifies it is writable (not a standby replica).
 func (s *Server) checkDatabase(ctx context.Context) atc.DatabaseHealth {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -73,7 +69,6 @@ func (s *Server) checkDatabase(ctx context.Context) atc.DatabaseHealth {
 	return atc.DatabaseHealth{Status: atc.HealthStatusHealthy}
 }
 
-// checkWorkers aggregates worker states against the configured minimum.
 func (s *Server) checkWorkers() atc.WorkerHealth {
 	workers, err := s.workerFactory.Workers()
 	if err != nil {
@@ -83,26 +78,110 @@ func (s *Server) checkWorkers() atc.WorkerHealth {
 	total := len(workers)
 	running := 0
 	var unhealthy []string
+
+	byPlatform := make(map[string]atc.WorkerBreakdown)
+	byTeam := make(map[string]atc.WorkerBreakdown)
+	byTag := make(map[string]atc.WorkerBreakdown)
+
 	for _, w := range workers {
-		if w.State() == db.WorkerStateRunning {
+		isRunning := w.State() == db.WorkerStateRunning
+		if isRunning {
 			running++
 		} else {
 			unhealthy = append(unhealthy, w.Name())
 		}
+
+		platform := w.Platform()
+		bd := byPlatform[platform]
+		bd.Total++
+		if isRunning {
+			bd.Running++
+		}
+		byPlatform[platform] = bd
+
+		team := w.TeamName()
+		bt := byTeam[team]
+		bt.Total++
+		if isRunning {
+			bt.Running++
+		}
+		byTeam[team] = bt
+
+		for _, tag := range w.Tags() {
+			btag := byTag[tag]
+			btag.Total++
+			if isRunning {
+				btag.Running++
+			}
+			byTag[tag] = btag
+		}
+	}
+
+	var bpMap, btMap, btagMap map[string]atc.WorkerBreakdown
+	if total > 0 {
+		bpMap = byPlatform
+		btMap = byTeam
+		btagMap = byTag
 	}
 
 	switch {
-	case total == 0 || running == 0:
-		return atc.WorkerHealth{Status: string(atc.HealthStatusUnhealthy), Total: total, Running: running, UnhealthyWorkers: unhealthy}
-	case running < s.minWorkerCount:
-		return atc.WorkerHealth{Status: string(atc.HealthStatusDegraded), Total: total, Running: running, UnhealthyWorkers: unhealthy}
+	case total == 0 || running == 0 ||
+		anyClassEmpty(bpMap, s.minWorkerThresholds.Platform) ||
+		anyClassEmpty(btMap, s.minWorkerThresholds.Team) ||
+		anyClassEmpty(btagMap, s.minWorkerThresholds.Tag):
+		return atc.WorkerHealth{
+			Status:           string(atc.HealthStatusUnhealthy),
+			Total:            total,
+			Running:          running,
+			ByPlatform:       bpMap,
+			ByTeam:           btMap,
+			ByTag:            btagMap,
+			UnhealthyWorkers: unhealthy,
+		}
+	case running < s.minWorkerCount ||
+		anyThresholdUnmet(bpMap, s.minWorkerThresholds.Platform) ||
+		anyThresholdUnmet(btMap, s.minWorkerThresholds.Team) ||
+		anyThresholdUnmet(btagMap, s.minWorkerThresholds.Tag):
+		return atc.WorkerHealth{
+			Status:           string(atc.HealthStatusDegraded),
+			Total:            total,
+			Running:          running,
+			ByPlatform:       bpMap,
+			ByTeam:           btMap,
+			ByTag:            btagMap,
+			UnhealthyWorkers: unhealthy,
+		}
 	default:
-		return atc.WorkerHealth{Status: string(atc.HealthStatusHealthy), Total: total, Running: running, UnhealthyWorkers: unhealthy}
+		return atc.WorkerHealth{
+			Status:           string(atc.HealthStatusHealthy),
+			Total:            total,
+			Running:          running,
+			ByPlatform:       bpMap,
+			ByTeam:           btMap,
+			ByTag:            btagMap,
+			UnhealthyWorkers: unhealthy,
+		}
 	}
 }
 
-// checkComponents fetches all components and checks their staleness.
-// Returns the per-component health list and whether any runtime component is stale.
+func anyThresholdUnmet(counts map[string]atc.WorkerBreakdown, mins map[string]int) bool {
+	for name, min := range mins {
+		if counts[name].Running < min {
+			return true
+		}
+	}
+	return false
+}
+
+func anyClassEmpty(counts map[string]atc.WorkerBreakdown, mins map[string]int) bool {
+	for name, min := range mins {
+		if min > 0 && counts[name].Running == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) checkComponents() ([]atc.ComponentHealth, bool) {
 	components, err := s.componentFactory.All()
 	if err != nil {
@@ -138,8 +217,6 @@ func (s *Server) checkComponents() ([]atc.ComponentHealth, bool) {
 	return healths, runtimeDegraded
 }
 
-// isStale returns true if the component has not run within the stale window.
-// Paused components and components that have never run are never considered stale.
 func isStale(c db.Component, multiplier float64) bool {
 	if c.Paused() || c.LastRan().IsZero() {
 		return false

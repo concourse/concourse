@@ -11,6 +11,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/concourse/concourse/v8/atc"
+	"github.com/concourse/concourse/v8/atc/api/healthserver"
 	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/concourse/concourse/v8/atc/db/dbfakes"
 
@@ -442,6 +443,323 @@ var _ = Describe("Health API", func() {
 				Expect(health.Status).To(Equal(atc.HealthStatusOK))
 				Expect(health.Components).To(BeEmpty())
 			})
+		})
+	})
+})
+
+// makeDetailedWorker builds a FakeWorker with platform, team, and tags set in
+// addition to state. Used by tests that exercise the by_platform/by_team/by_tag
+// breakdown fields.
+func makeDetailedWorker(state db.WorkerState, platform, team string, tags []string) *dbfakes.FakeWorker {
+	w := new(dbfakes.FakeWorker)
+	w.StateReturns(state)
+	w.PlatformReturns(platform)
+	w.TeamNameReturns(team)
+	w.TagsReturns(tags)
+	return w
+}
+
+var _ = Describe("Health API — worker breakdown", func() {
+	var response *http.Response
+
+	AfterEach(func() {
+		response.Body.Close()
+	})
+
+	Context("when workers have platform, team, and tag details", func() {
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				// linux / team infra / tags: gpu, spot
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "infra", []string{"gpu", "spot"}),
+				// linux / global (no team) / tag: spot
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", []string{"spot"}),
+				// windows / team infra / no tags
+				makeDetailedWorker(db.WorkerStateStalled, "windows", "infra", nil),
+			}, nil)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(server.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 ok — threshold met even though one worker is stalled", func() {
+			// minWorkerCount=1 (suite default); 2 running workers exceed it.
+			// A stalled worker appears in unhealthy_workers but does not
+			// degrade the overall status unless the running count drops below
+			// the threshold.
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusOK))
+			Expect(health.Workers.Status).To(Equal(workerStatusHealthy))
+			Expect(health.Workers.UnhealthyWorkers).To(HaveLen(1))
+		})
+
+		It("includes correct by_platform totals and running counts", func() {
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+
+			Expect(health.Workers.ByPlatform).To(HaveKey("linux"))
+			Expect(health.Workers.ByPlatform["linux"].Total).To(Equal(2))
+			Expect(health.Workers.ByPlatform["linux"].Running).To(Equal(2))
+
+			Expect(health.Workers.ByPlatform).To(HaveKey("windows"))
+			Expect(health.Workers.ByPlatform["windows"].Total).To(Equal(1))
+			Expect(health.Workers.ByPlatform["windows"].Running).To(Equal(0))
+		})
+
+		It("includes correct by_team totals with empty key for unscoped workers", func() {
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+
+			Expect(health.Workers.ByTeam).To(HaveKey(""))
+			Expect(health.Workers.ByTeam[""]).To(Equal(atc.WorkerBreakdown{Total: 1, Running: 1}))
+
+			Expect(health.Workers.ByTeam).To(HaveKey("infra"))
+			Expect(health.Workers.ByTeam["infra"].Total).To(Equal(2))
+			Expect(health.Workers.ByTeam["infra"].Running).To(Equal(1)) // only running linux worker
+		})
+
+		It("counts a multi-tagged worker in every matching tag bucket", func() {
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+
+			// "spot" appears in both workers (linux/infra + linux/global)
+			Expect(health.Workers.ByTag).To(HaveKey("spot"))
+			Expect(health.Workers.ByTag["spot"].Total).To(Equal(2))
+			Expect(health.Workers.ByTag["spot"].Running).To(Equal(2))
+
+			// "gpu" appears only in the first worker
+			Expect(health.Workers.ByTag).To(HaveKey("gpu"))
+			Expect(health.Workers.ByTag["gpu"].Total).To(Equal(1))
+			Expect(health.Workers.ByTag["gpu"].Running).To(Equal(1))
+		})
+	})
+
+	Context("with a per-platform threshold that is met", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Platform: map[string]int{"linux": 2},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 with status ok", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusOK))
+			Expect(health.Workers.Status).To(Equal(workerStatusHealthy))
+		})
+	})
+
+	Context("with a per-platform threshold that is not met", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			// Only 1 linux worker running, threshold requires 2
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Platform: map[string]int{"linux": 2},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 with status degraded", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusDegraded))
+			Expect(health.Workers.Status).To(Equal(workerStatusDegraded))
+		})
+	})
+
+	Context("with a per-tag threshold targeting a tag absent from all workers", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			// Workers running but none tagged "gpu"
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Tag: map[string]int{"gpu": 1},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 503 — absent tag with min>0 means 0 workers in that pool", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusServiceUnavailable))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusFailing))
+			Expect(health.Workers.Status).To(Equal(workerStatusUnhealthy))
+			Expect(health.Workers.ByTag).To(BeEmpty())
+		})
+	})
+
+	Context("with a per-team threshold on unscoped workers (empty team name)", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			// 2 unscoped workers running
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Team: map[string]int{"": 2},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 with status ok when unscoped threshold is met", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusOK))
+			Expect(health.Workers.Status).To(Equal(workerStatusHealthy))
+		})
+	})
+
+	Context("when a configured team pool has 0 running workers and min > 0", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+				makeDetailedWorker(db.WorkerStateStalled, "linux", "infra", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Team: map[string]int{"infra": 1},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 503 — 0 running workers in a configured team pool", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusServiceUnavailable))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusFailing))
+			Expect(health.Workers.Status).To(Equal(workerStatusUnhealthy))
+			Expect(health.Workers.ByTeam).To(HaveKey("infra"))
+			Expect(health.Workers.ByTeam["infra"].Running).To(Equal(0))
+		})
+	})
+
+	Context("when a configured class threshold has min=0 and the class has no running workers", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Tag: map[string]int{"gpu": 0},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 ok — min=0 disables the check for that class", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusOK))
+			Expect(health.Workers.Status).To(Equal(workerStatusHealthy))
 		})
 	})
 })
