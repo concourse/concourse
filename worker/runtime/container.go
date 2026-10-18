@@ -370,8 +370,8 @@ func (c *Container) BulkNetOut(netOutRules []garden.NetOutRule) (err error) {
 	return
 }
 
-// rootfsPath returns the spec's root path; on Windows the root is unset in
-// favour of Windows.LayerFolders since the runtime mounts the layers itself.
+// rootfsPath returns the spec's root path; on Windows the root is unset
+// because the container runs on a snapshot of its image.
 func rootfsPath(containerSpec *specs.Spec) string {
 	if containerSpec == nil || containerSpec.Root == nil {
 		return ""

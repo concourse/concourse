@@ -366,21 +366,12 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 
 	oci.Mounts = append(oci.Mounts, netMounts...)
 
-	err = b.prepareContainer(oci, gdnSpec.Handle)
-	if err != nil {
-		return nil, fmt.Errorf("prepare container: %w", err)
-	}
-
 	labels, err := propertiesToLabels(gdnSpec.Properties)
 	if err != nil {
 		return nil, fmt.Errorf("convert properties to labels: %w", err)
 	}
 
-	if imageRef, ok := oci.Annotations[bespec.OCIImageAnnotation]; ok {
-		return b.client.NewContainerWithImage(ctx, gdnSpec.Handle, labels, oci, imageRef)
-	}
-
-	return b.client.NewContainer(ctx, gdnSpec.Handle, labels, oci)
+	return b.newContainer(ctx, gdnSpec.Handle, labels, oci)
 }
 
 func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container, hermetic bool) error {

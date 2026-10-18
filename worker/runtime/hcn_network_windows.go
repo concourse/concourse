@@ -30,6 +30,7 @@ const (
 // task to the network.
 type ContainerAttacher interface {
 	AttachContainer(handle string, oci *specs.Spec) error
+	DetachContainer(oci *specs.Spec) error
 }
 
 // HCNNetwork attaches containers to a Windows Host Compute Network,
@@ -153,6 +154,54 @@ func (n *HCNNetwork) AttachContainer(handle string, oci *specs.Spec) error {
 	}
 	oci.Windows.Network = &specs.WindowsNetwork{
 		NetworkNamespace: namespace.Id,
+	}
+
+	return nil
+}
+
+// DetachContainer deletes the network namespace AttachContainer created for
+// the spec and the endpoints in it, for a container that was never created.
+func (n *HCNNetwork) DetachContainer(oci *specs.Spec) error {
+	if oci.Windows == nil || oci.Windows.Network == nil {
+		return nil
+	}
+
+	namespaceID := oci.Windows.Network.NetworkNamespace
+
+	endpointIDs, err := hcn.GetNamespaceEndpointIds(namespaceID)
+	if err != nil {
+		if hcn.IsNotFoundError(err) {
+			return nil
+		}
+		return fmt.Errorf("get namespace endpoints: %w", err)
+	}
+
+	for _, endpointID := range endpointIDs {
+		endpoint, err := hcn.GetEndpointByID(endpointID)
+		if err != nil {
+			if hcn.IsNotFoundError(err) {
+				continue
+			}
+			return fmt.Errorf("get endpoint: %w", err)
+		}
+
+		err = endpoint.Delete()
+		if err != nil {
+			return fmt.Errorf("delete endpoint: %w", err)
+		}
+	}
+
+	namespace, err := hcn.GetNamespaceByID(namespaceID)
+	if err != nil {
+		if hcn.IsNotFoundError(err) {
+			return nil
+		}
+		return fmt.Errorf("get namespace: %w", err)
+	}
+
+	err = namespace.Delete()
+	if err != nil {
+		return fmt.Errorf("delete namespace: %w", err)
 	}
 
 	return nil

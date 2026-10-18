@@ -22,7 +22,7 @@ const InitBinContainerDir = `C:\concourse\bin`
 // spec. The seccomp profiles, OCI hooks, privileged mode, user namespace
 // mappings and device cgroup rules are Linux-only concepts and are ignored.
 //
-// The rootfs directory must contain a valid Windows container layer.
+// The rootfs directory must hold the image as an OCI image layout.
 func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, hooks specs.Hooks, privilegedMode PrivilegedMode, gdn garden.ContainerSpec, maxUid, maxGid uint32, extraDevices ...[]specs.LinuxDeviceCgroup) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		return nil, fmt.Errorf("handle must be specified")
@@ -30,6 +30,11 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 
 	if gdn.RootFSPath == "" {
 		gdn.RootFSPath = gdn.Image.URI
+	}
+
+	rootfs, err := rootfsDir(gdn.RootFSPath)
+	if err != nil {
+		return nil, err
 	}
 
 	mounts, err := OciSpecBindMounts(gdn.BindMounts)
@@ -46,41 +51,21 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 		Options:     []string{"ro"},
 	})
 
-	oci = &specs.Spec{
+	return &specs.Spec{
 		Version: specs.Version,
 		Process: &specs.Process{
 			Args: []string{filepath.Join(InitBinContainerDir, filepath.Base(initBinPath))},
 			Cwd:  `C:\`,
 			Env:  gdn.Env,
 		},
+		Root:        &specs.Root{Path: rootfs},
 		Mounts:      mounts,
 		Annotations: map[string]string(gdn.Properties),
 		Windows: &specs.Windows{
 			Resources:               OciWindowsResources(gdn.Limits),
 			IgnoreFlushesDuringBoot: true,
 		},
-	}
-
-	if imageRef, ok := strings.CutPrefix(gdn.RootFSPath, OCIImageScheme+"://"); ok {
-		// the image is pulled natively through containerd at container
-		// creation; the snapshotter provides the rootfs
-		if oci.Annotations == nil {
-			oci.Annotations = map[string]string{}
-		}
-		oci.Annotations[OCIImageAnnotation] = imageRef
-
-		return oci, nil
-	}
-
-	rootfs, err := rootfsDir(gdn.RootFSPath)
-	if err != nil {
-		return nil, err
-	}
-
-	oci.Root = &specs.Root{Path: rootfs}
-	oci.Windows.LayerFolders = []string{rootfs}
-
-	return oci, nil
+	}, nil
 }
 
 // WindowsContainerPath converts the POSIX-style absolute container paths the
