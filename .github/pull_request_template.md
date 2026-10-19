@@ -8,7 +8,6 @@ _Make sure to follow all [PR requirements](https://github.com/concourse/concours
   to still complete. Please include reasoning and key decisions to help the
   reviewer understand the changes._
 * _Web UI changes should include before/after screenshots of the change._
-* item 3
 
 ## Notes to reviewer
 
