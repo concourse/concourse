@@ -100,8 +100,14 @@ func (flag *LDAPFlags) Serialize(redirectURI string) ([]byte, error) {
 	ldapConfig.GroupSearch.BaseDN = flag.GroupSearch.BaseDN
 	ldapConfig.GroupSearch.Filter = flag.GroupSearch.Filter
 	ldapConfig.GroupSearch.Scope = flag.GroupSearch.Scope
-	ldapConfig.GroupSearch.UserAttr = flag.GroupSearch.UserAttr
-	ldapConfig.GroupSearch.GroupAttr = flag.GroupSearch.GroupAttr
+	// dex deprecated groupSearch.userAttr/groupAttr in favour of userMatchers.
+	// Without a user attribute a matcher cannot match a group, so none is sent.
+	if flag.GroupSearch.UserAttr != "" {
+		ldapConfig.GroupSearch.UserMatchers = []ldap.UserMatcher{{
+			UserAttr:  flag.GroupSearch.UserAttr,
+			GroupAttr: flag.GroupSearch.GroupAttr,
+		}}
+	}
 	ldapConfig.GroupSearch.NameAttr = flag.GroupSearch.NameAttr
 
 	return json.Marshal(ldapConfig)
