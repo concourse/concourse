@@ -7,8 +7,8 @@ import (
 )
 
 var _ = Describe("ParseMinWorkerThresholds", func() {
-	It("parses a semicolon-delimited single env var entry", func() {
-		t, err := healthserver.ParseMinWorkerThresholds([]string{"tag:gpu:1;team::3;team:infra:1"})
+	It("parses a comma-delimited single env var entry", func() {
+		t, err := healthserver.ParseMinWorkerThresholds([]string{"tag:gpu:1", "team::3", "team:infra:1"})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(t.Tag).To(Equal(map[string]int{"gpu": 1}))
 		Expect(t.Team).To(Equal(map[string]int{"": 3, "infra": 1}))
@@ -36,10 +36,22 @@ var _ = Describe("ParseMinWorkerThresholds", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(t).To(Equal(expected))
 		},
-		Entry("single platform threshold",
+		Entry("linux platform threshold",
 			[]string{"platform:linux:2"},
 			healthserver.MinWorkerThresholds{
 				Platform: map[string]int{"linux": 2},
+			},
+		),
+		Entry("windows platform threshold",
+			[]string{"platform:windows:1"},
+			healthserver.MinWorkerThresholds{
+				Platform: map[string]int{"windows": 1},
+			},
+		),
+		Entry("darwin platform threshold",
+			[]string{"platform:darwin:1"},
+			healthserver.MinWorkerThresholds{
+				Platform: map[string]int{"darwin": 1},
 			},
 		),
 		Entry("single team threshold",
@@ -89,6 +101,7 @@ var _ = Describe("ParseMinWorkerThresholds", func() {
 		},
 		Entry("missing count segment", "platform:linux"),
 		Entry("unknown kind", "zone:us-east:2"),
+		Entry("invalid platform name", "platform:freebsd:1"),
 		Entry("empty platform name", "platform::2"),
 		Entry("empty tag name", "tag::1"),
 		Entry("non-numeric count", "platform:linux:two"),
@@ -128,3 +141,4 @@ var _ = Describe("ParseMinWorkerThresholds", func() {
 		Expect(err.Error()).To(ContainSubstring("badentry"))
 	})
 })
+
