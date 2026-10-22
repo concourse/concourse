@@ -1,4 +1,4 @@
-# health-test.yml — per-class health thresholds with a graduated worker pool.
+# health-test.yml — per-class health thresholds covering all three severity levels and kinds.
 #
 # docker compose -f docker-compose.yml -f hack/overrides/health-test.yml up --build -d
 # watch -n2 'curl -s localhost:8080/api/v1/health | jq .workers'
@@ -8,25 +8,35 @@
 #   docker compose -f docker-compose.yml -f hack/overrides/health-test.yml unpause <service>
 # Note: TSA marks the worker stalled after ~1 min of missed heartbeats.
 #
-# Thresholds: global>=2, tag:gpu>=1, team::>=3, team:infra>=1
-# Unscoped workers (team::): worker, worker-2, worker-gpu (3 total)
+# Workers: worker, worker-2, worker-cpu, worker-mpu, worker-gpu (linux, unscoped),
+#          worker-infra (linux, team:infra)
+#          Total linux: 6; tag:gpu: 1; team:infra: 1
+#
+# Note: run `fly -t dev set-team -n infra --local-user test` before starting so
+# worker-infra can register (TSA rejects workers for teams that do not exist).
+#
+# Thresholds (one of each severity, one of each kind):
+#   platform:linux>=5  critical — validates platform kind; pausing 2 linux workers → degraded
+#   team:infra>=1      warn     — validates team kind;     pausing worker-infra → degraded, never 503
+#   tag:gpu>=1         info     — validates tag kind;      always tracked in by_tag, no status impact
+#
+# Severity semantics:
+#   critical: running==0 → failing (503); 0<running<min → degraded
+#   warn:     running<min (including 0) → degraded, never failing
+#   info:     no status impact; pool always visible in breakdown
 #
 # Expected status after pausing (wait ~1 min for stall to register):
-# initial state unhealthy (fly -t dev set-team -n infra --local-user test) create infra team so worker registers successfully
-#   (none)                             ok
-#   worker                             degraded  team::=2/3
-#   worker-2                           degraded  team::=2/3
-#   worker-gpu                         failing   tag:gpu=0/1, HTTP 503
-#   worker-infra                       failing   team:infra=0/1, HTTP 503
-#   worker + worker-2                  degraded  team::=1/3
-#   worker + worker-2 + worker-gpu     failing   tag:gpu=0 AND team::=0, HTTP 503
-#   all four                           failing   running=0, HTTP 503
+#   (none)                 ok
+#   worker-gpu             ok       tag:gpu=0/1 (info; by_tag shows gpu=0, no status change)
+#   worker-infra           degraded team:infra=0/1 (warn; by_team shows infra=0, never 503)
+#   worker + worker-2      degraded platform:linux=4/6 (critical; 4<5, 0<running<min)
+#   all linux workers      failing  platform:linux=0/6 (critical; running==0, HTTP 503)
 
 services:
   web:
     environment:
       CONCOURSE_HEALTH_MIN_WORKER_COUNT: "2"
-      CONCOURSE_HEALTH_MIN_WORKER_SCOPES: "tag:gpu:1,team::3,team:infra:1"
+      CONCOURSE_HEALTH_MIN_WORKER_SCOPES: "platform:linux:5:critical,team:infra:1:warn,tag:gpu:1:info"
 
   worker-2:
     image: concourse/concourse:local

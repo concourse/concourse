@@ -117,38 +117,46 @@ func (s *Server) checkWorkers() atc.WorkerHealth {
 		}
 	}
 
-	var bpMap, btMap, btagMap map[string]atc.WorkerBreakdown
-	if total > 0 {
-		bpMap = byPlatform
-		btMap = byTeam
-		btagMap = byTag
+	// Inject zero entries so configured-but-absent pools are visible without auth.
+	for name := range s.minWorkerThresholds.Platform {
+		if _, ok := byPlatform[name]; !ok {
+			byPlatform[name] = atc.WorkerBreakdown{}
+		}
+	}
+	for name := range s.minWorkerThresholds.Team {
+		if _, ok := byTeam[name]; !ok {
+			byTeam[name] = atc.WorkerBreakdown{}
+		}
+	}
+	for name := range s.minWorkerThresholds.Tag {
+		if _, ok := byTag[name]; !ok {
+			byTag[name] = atc.WorkerBreakdown{}
+		}
 	}
 
+	pfFailing, pfDegraded := thresholdStatus(byPlatform, s.minWorkerThresholds.Platform)
+	tmFailing, tmDegraded := thresholdStatus(byTeam, s.minWorkerThresholds.Team)
+	tgFailing, tgDegraded := thresholdStatus(byTag, s.minWorkerThresholds.Tag)
+
 	switch {
-	case total == 0 || running == 0 ||
-		anyClassEmpty(bpMap, s.minWorkerThresholds.Platform) ||
-		anyClassEmpty(btMap, s.minWorkerThresholds.Team) ||
-		anyClassEmpty(btagMap, s.minWorkerThresholds.Tag):
+	case total == 0 || running == 0 || pfFailing || tmFailing || tgFailing:
 		return atc.WorkerHealth{
 			Status:           string(atc.HealthStatusUnhealthy),
 			Total:            total,
 			Running:          running,
-			ByPlatform:       bpMap,
-			ByTeam:           btMap,
-			ByTag:            btagMap,
+			ByPlatform:       byPlatform,
+			ByTeam:           byTeam,
+			ByTag:            byTag,
 			UnhealthyWorkers: unhealthy,
 		}
-	case running < s.minWorkerCount ||
-		anyThresholdUnmet(bpMap, s.minWorkerThresholds.Platform) ||
-		anyThresholdUnmet(btMap, s.minWorkerThresholds.Team) ||
-		anyThresholdUnmet(btagMap, s.minWorkerThresholds.Tag):
+	case running < s.minWorkerCount || pfDegraded || tmDegraded || tgDegraded:
 		return atc.WorkerHealth{
 			Status:           string(atc.HealthStatusDegraded),
 			Total:            total,
 			Running:          running,
-			ByPlatform:       bpMap,
-			ByTeam:           btMap,
-			ByTag:            btagMap,
+			ByPlatform:       byPlatform,
+			ByTeam:           byTeam,
+			ByTag:            byTag,
 			UnhealthyWorkers: unhealthy,
 		}
 	default:
@@ -156,30 +164,30 @@ func (s *Server) checkWorkers() atc.WorkerHealth {
 			Status:           string(atc.HealthStatusHealthy),
 			Total:            total,
 			Running:          running,
-			ByPlatform:       bpMap,
-			ByTeam:           btMap,
-			ByTag:            btagMap,
+			ByPlatform:       byPlatform,
+			ByTeam:           byTeam,
+			ByTag:            byTag,
 			UnhealthyWorkers: unhealthy,
 		}
 	}
 }
 
-func anyThresholdUnmet(counts map[string]atc.WorkerBreakdown, mins map[string]int) bool {
-	for name, min := range mins {
-		if counts[name].Running < min {
-			return true
+func thresholdStatus(counts map[string]atc.WorkerBreakdown, entries map[string]ThresholdEntry) (failing, degraded bool) {
+	for name, entry := range entries {
+		if entry.Severity == ThresholdSeverityInfo {
+			continue
+		}
+		running := counts[name].Running
+		if running >= entry.Min {
+			continue
+		}
+		if entry.Severity == ThresholdSeverityCritical && running == 0 {
+			failing = true
+		} else {
+			degraded = true
 		}
 	}
-	return false
-}
-
-func anyClassEmpty(counts map[string]atc.WorkerBreakdown, mins map[string]int) bool {
-	for name, min := range mins {
-		if min > 0 && counts[name].Running == 0 {
-			return true
-		}
-	}
-	return false
+	return
 }
 
 func (s *Server) checkComponents() ([]atc.ComponentHealth, bool) {

@@ -39,9 +39,9 @@ type WorkerHealth struct {
 	Status           string                     `json:"status"`
 	Total            int                        `json:"total"`
 	Running          int                        `json:"running"`
-	ByPlatform       map[string]WorkerBreakdown `json:"by_platform,omitempty"`
-	ByTeam           map[string]WorkerBreakdown `json:"by_team,omitempty"`
-	ByTag            map[string]WorkerBreakdown `json:"by_tag,omitempty"`
+	ByPlatform       map[string]WorkerBreakdown `json:"by_platform"`
+	ByTeam           map[string]WorkerBreakdown `json:"by_team"`
+	ByTag            map[string]WorkerBreakdown `json:"by_tag"`
 	UnhealthyWorkers []string                   `json:"unhealthy_workers,omitempty"`
 }
 

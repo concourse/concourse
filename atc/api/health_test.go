@@ -556,7 +556,7 @@ var _ = Describe("Health API — worker breakdown", func() {
 			}, nil)
 
 			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
-				Platform: map[string]int{"linux": 2},
+				Platform: map[string]healthserver.ThresholdEntry{"linux": {Min: 2, Severity: healthserver.ThresholdSeverityCritical}},
 			}))
 		})
 
@@ -592,7 +592,7 @@ var _ = Describe("Health API — worker breakdown", func() {
 			}, nil)
 
 			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
-				Platform: map[string]int{"linux": 2},
+				Platform: map[string]healthserver.ThresholdEntry{"linux": {Min: 2, Severity: healthserver.ThresholdSeverityCritical}},
 			}))
 		})
 
@@ -628,7 +628,7 @@ var _ = Describe("Health API — worker breakdown", func() {
 			}, nil)
 
 			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
-				Tag: map[string]int{"gpu": 1},
+				Tag: map[string]healthserver.ThresholdEntry{"gpu": {Min: 1, Severity: healthserver.ThresholdSeverityCritical}},
 			}))
 		})
 
@@ -649,7 +649,8 @@ var _ = Describe("Health API — worker breakdown", func() {
 			Expect(json.Unmarshal(body, &health)).To(Succeed())
 			Expect(health.Status).To(Equal(atc.HealthStatusFailing))
 			Expect(health.Workers.Status).To(Equal(workerStatusUnhealthy))
-			Expect(health.Workers.ByTag).To(BeEmpty())
+			Expect(health.Workers.ByTag).To(HaveKey("gpu"))
+			Expect(health.Workers.ByTag["gpu"].Running).To(Equal(0))
 		})
 	})
 
@@ -666,7 +667,7 @@ var _ = Describe("Health API — worker breakdown", func() {
 			}, nil)
 
 			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
-				Team: map[string]int{"": 2},
+				Team: map[string]healthserver.ThresholdEntry{"": {Min: 2, Severity: healthserver.ThresholdSeverityCritical}},
 			}))
 		})
 
@@ -702,7 +703,7 @@ var _ = Describe("Health API — worker breakdown", func() {
 			}, nil)
 
 			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
-				Team: map[string]int{"infra": 1},
+				Team: map[string]healthserver.ThresholdEntry{"infra": {Min: 1, Severity: healthserver.ThresholdSeverityCritical}},
 			}))
 		})
 
@@ -739,7 +740,7 @@ var _ = Describe("Health API — worker breakdown", func() {
 			}, nil)
 
 			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
-				Tag: map[string]int{"gpu": 0},
+				Tag: map[string]healthserver.ThresholdEntry{"gpu": {Min: 0, Severity: healthserver.ThresholdSeverityCritical}},
 			}))
 		})
 
@@ -760,6 +761,78 @@ var _ = Describe("Health API — worker breakdown", func() {
 			Expect(json.Unmarshal(body, &health)).To(Succeed())
 			Expect(health.Status).To(Equal(atc.HealthStatusOK))
 			Expect(health.Workers.Status).To(Equal(workerStatusHealthy))
+		})
+	})
+
+	Context("with a warn-severity threshold and zero workers in that pool", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Tag: map[string]healthserver.ThresholdEntry{"gpu": {Min: 1, Severity: healthserver.ThresholdSeverityWarn}},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 degraded — warn never triggers failing even at zero", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusDegraded))
+			Expect(health.Workers.Status).To(Equal(workerStatusDegraded))
+		})
+	})
+
+	Context("with an info-severity threshold and zero workers in that pool", func() {
+		var customServer *httptest.Server
+
+		BeforeEach(func() {
+			fakeDbConn.QueryRowContextStub = dbHealthyStub
+			dbComponentFactory.AllReturns(nil, nil)
+			dbWorkerFactory.WorkersReturns([]db.Worker{
+				makeDetailedWorker(db.WorkerStateRunning, "linux", "", nil),
+			}, nil)
+
+			customServer = newApiTestServer(withMinWorkerThresholds(healthserver.MinWorkerThresholds{
+				Tag: map[string]healthserver.ThresholdEntry{"gpu": {Min: 1, Severity: healthserver.ThresholdSeverityInfo}},
+			}))
+		})
+
+		AfterEach(func() {
+			customServer.Close()
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			response, err = client.Get(customServer.URL + "/api/v1/health")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns 200 ok — info never affects status", func() {
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			body, _ := io.ReadAll(response.Body)
+			var health atc.Health
+			Expect(json.Unmarshal(body, &health)).To(Succeed())
+			Expect(health.Status).To(Equal(atc.HealthStatusOK))
+			Expect(health.Workers.Status).To(Equal(workerStatusHealthy))
+			Expect(health.Workers.ByTag).To(HaveKey("gpu"))
+			Expect(health.Workers.ByTag["gpu"].Running).To(Equal(0))
 		})
 	})
 })

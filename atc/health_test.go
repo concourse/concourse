@@ -116,7 +116,7 @@ var _ = Describe("Health", func() {
 			Expect(unmarshaled.Components[1].Name).To(Equal(atc.ComponentCollectorVolumes))
 		})
 
-		It("omits by_platform, by_team, and by_tag when WorkerHealth has no breakdown maps", func() {
+		It("always includes by_platform, by_team, and by_tag even when nil", func() {
 			health := atc.Health{
 				Status:    atc.HealthStatusOK,
 				Timestamp: time.Now(),
@@ -127,9 +127,9 @@ var _ = Describe("Health", func() {
 			jsonBytes, err := json.Marshal(health)
 			Expect(err).NotTo(HaveOccurred())
 			raw := string(jsonBytes)
-			Expect(raw).NotTo(ContainSubstring(`"by_platform"`))
-			Expect(raw).NotTo(ContainSubstring(`"by_team"`))
-			Expect(raw).NotTo(ContainSubstring(`"by_tag"`))
+			Expect(raw).To(ContainSubstring(`"by_platform"`))
+			Expect(raw).To(ContainSubstring(`"by_team"`))
+			Expect(raw).To(ContainSubstring(`"by_tag"`))
 		})
 
 		It("marshals by_platform, by_team, and by_tag breakdowns correctly", func() {
