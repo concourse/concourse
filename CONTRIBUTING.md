@@ -135,7 +135,7 @@ practices we've found helpful:
 You'll need a few things installed in order to build, test and run Concourse during
 development:
 
-* [`go`](https://golang.org/dl/) v1.16+
+* [`go`](https://go.dev/dl/) v1.27.3+ (see `go.mod`)
 * [`git`](https://git-scm.com/) v2.11+
 * [`yarn`](https://yarnpkg.com/getting-started/install) v4+
 * [`docker compose`](https://docs.docker.com/compose/install/)
@@ -153,7 +153,7 @@ repo:
 ```sh
 $ yarn install
 $ yarn build
-$ docker build -t concourse/concourse:local .
+$ docker build --pull -t concourse/concourse:local .
 $ docker compose up -d
 ```
 
