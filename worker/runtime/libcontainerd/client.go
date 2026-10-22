@@ -47,6 +47,20 @@ type Client interface {
 		container containerd.Container, err error,
 	)
 
+	// NewContainerWithImage creates a container whose rootfs comes from a
+	// natively pulled image, letting the platform's snapshotter manage the
+	// container's layers.
+	//
+	NewContainerWithImage(
+		ctx context.Context,
+		id string,
+		labels map[string]string,
+		oci *specs.Spec,
+		imageRef string,
+	) (
+		container containerd.Container, err error,
+	)
+
 	// Containers lists containers available in containerd matching a given
 	// labelset.
 	//
@@ -122,6 +136,37 @@ func (c *client) NewContainer(
 	defer cancel()
 
 	cont, err := c.containerd.NewContainer(ctx, id,
+		containerd.WithSpec(oci),
+		containerd.WithContainerLabels(labels),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &container{
+		requestTimeout: c.requestTimeout,
+		container:      cont,
+	}, nil
+}
+
+func (c *client) NewContainerWithImage(
+	ctx context.Context, id string, labels map[string]string, oci *specs.Spec, imageRef string,
+) (
+	containerd.Container, error,
+) {
+	// image pulls aren't bounded by the request timeout: large base images
+	// legitimately take a while, and pulls are cached across containers
+	image, err := c.containerd.Pull(ctx, imageRef, containerd.WithPullUnpack)
+	if err != nil {
+		return nil, fmt.Errorf("pull %s: %w", imageRef, err)
+	}
+
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
+	defer cancel()
+
+	cont, err := c.containerd.NewContainer(ctx, id,
+		containerd.WithImage(image),
+		containerd.WithNewSnapshot(id, image),
 		containerd.WithSpec(oci),
 		containerd.WithContainerLabels(labels),
 	)
