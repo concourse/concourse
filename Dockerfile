@@ -4,12 +4,6 @@
 ARG base_image=concourse/dev
 FROM ${base_image} AS base
 
-# concourse/dev uses Wolfi. Refresh both the source certificates and the bundle
-# to the release that distrusts the compromised eMudhra certificate chains.
-RUN apk add --no-cache \
-    'ca-certificates>=20260909-r3' \
-    'ca-certificates-bundle>=20260909-r3'
-
 ARG goproxy
 ENV GOPROXY=$goproxy
 
