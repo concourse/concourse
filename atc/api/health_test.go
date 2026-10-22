@@ -796,6 +796,8 @@ var _ = Describe("Health API — worker breakdown", func() {
 			Expect(json.Unmarshal(body, &health)).To(Succeed())
 			Expect(health.Status).To(Equal(atc.HealthStatusDegraded))
 			Expect(health.Workers.Status).To(Equal(workerStatusDegraded))
+			Expect(health.Workers.ByTag).To(HaveKey("gpu"))
+			Expect(health.Workers.ByTag["gpu"].Running).To(Equal(0))
 		})
 	})
 
