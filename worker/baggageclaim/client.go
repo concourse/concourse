@@ -13,6 +13,13 @@ const ZstdEncoding Encoding = "zstd"
 const S2Encoding Encoding = "s2"
 const RawEncoding Encoding = "raw"
 
+// StreamP2pOutBytesTrailer is the HTTP trailer on a stream-p2p-out response that
+// carries the number of compressed bytes the source worker sent to the
+// destination. It travels as a trailer so the plain "ok"/error body stays
+// unchanged for clients that predate it, and workers that predate it simply
+// never send it.
+const StreamP2pOutBytesTrailer = "X-Baggageclaim-Streamed-Bytes"
+
 const (
 	StrategyEmpty       = "empty"
 	StrategyCopyOnWrite = "cow"

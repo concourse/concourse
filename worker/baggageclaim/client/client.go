@@ -11,12 +11,15 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagerctx"
 	"github.com/tedsuo/rata"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
@@ -68,7 +71,7 @@ func (c *client) httpClient(ctx context.Context) *http.Client {
 	}
 }
 
-func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec baggageclaim.VolumeSpec) (baggageclaim.Volume, error) {
+func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec baggageclaim.VolumeSpec) (_ baggageclaim.Volume, err error) {
 	strategy := volumeSpec.Strategy
 	if strategy == nil {
 		strategy = baggageclaim.EmptyStrategy{}
@@ -78,7 +81,7 @@ func (c *client) CreateVolume(ctx context.Context, handle string, volumeSpec bag
 		"strategy":   strategy.String(),
 		"privileged": strconv.FormatBool(volumeSpec.Privileged),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	buffer := &bytes.Buffer{}
 	json.NewEncoder(buffer).Encode(baggageclaim.VolumeRequest{
@@ -270,24 +273,24 @@ func (c *client) newVolume(apiVolume baggageclaim.VolumeResponse) baggageclaim.V
 	return volume
 }
 
-func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, limitInMB float64, tarContent io.Reader) error {
+func (c *client) streamIn(ctx context.Context, destHandle string, path string, encoding baggageclaim.Encoding, limitInMB float64, tarContent io.Reader) (err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamIn", tracing.Attrs{
 		"volume":   destHandle,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	request, err := c.generateRequest(ctx, baggageclaim.StreamIn, rata.Params{
 		"handle": destHandle,
 	}, tarContent)
+	if err != nil {
+		return err
+	}
 
 	request.URL.RawQuery = url.Values{
 		"path":  []string{path},
 		"limit": []string{fmt.Sprintf("%f", limitInMB)},
 	}.Encode()
-	if err != nil {
-		return err
-	}
 	request.Header.Set("Content-Encoding", string(encoding))
 
 	response, err := c.httpClient(ctx).Do(request)
@@ -335,11 +338,11 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, destHandle string, path 
 	streamInRequest, err := c.generateRequest(ctx, baggageclaim.StreamIn, rata.Params{
 		"handle": destHandle,
 	}, nil)
-
-	streamInRequest.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 	if err != nil {
 		return "", err
 	}
+
+	streamInRequest.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 
 	streamInRequest.URL.Scheme = destUrl.Scheme
 	streamInRequest.URL.Host = destUrl.Host
@@ -349,21 +352,49 @@ func (c *client) getStreamInP2pUrl(ctx context.Context, destHandle string, path 
 	return streamInRequest.URL.String(), nil
 }
 
-func (c *client) streamOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string) (io.ReadCloser, error) {
+// spanCloser ends the span when the stream is closed, so that the span covers
+// the whole transfer rather than just the request, and records how many bytes
+// were read from the stream. The count is atomic because the stream can still
+// be read on another goroutine while it is closed: the HTTP transport's when
+// it is the body of a stream-in request, or a zstd decoder's in StreamFile.
+type spanCloser struct {
+	io.ReadCloser
+	span  trace.Span
+	count atomic.Int64
+}
+
+func (sc *spanCloser) Read(p []byte) (int, error) {
+	n, err := sc.ReadCloser.Read(p)
+	sc.count.Add(int64(n))
+	return n, err
+}
+
+func (sc *spanCloser) Close() error {
+	err := sc.ReadCloser.Close()
+	sc.span.SetAttributes(attribute.Int64("streamed-bytes", sc.count.Load()))
+	tracing.End(sc.span, err)
+	return err
+}
+
+func (c *client) streamOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string) (_ io.ReadCloser, err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamOut", tracing.Attrs{
 		"volume":   srcHandle,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() {
+		if err != nil {
+			tracing.End(span, err)
+		}
+	}()
 
 	request, err := c.generateRequest(ctx, baggageclaim.StreamOut, rata.Params{
 		"handle": srcHandle,
 	}, nil)
-
-	request.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 	if err != nil {
 		return nil, err
 	}
+
+	request.URL.RawQuery = url.Values{"path": []string{path}}.Encode()
 	request.Header.Set("Accept-Encoding", string(encoding))
 
 	response, err := c.httpClient(ctx).Do(request)
@@ -375,28 +406,31 @@ func (c *client) streamOut(ctx context.Context, srcHandle string, encoding bagga
 		return nil, getError(response)
 	}
 
-	return response.Body, nil
+	return &spanCloser{
+		ReadCloser: response.Body,
+		span:       span,
+	}, nil
 }
 
-func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) error {
+func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding baggageclaim.Encoding, path string, streamInURL string) (err error) {
 	ctx, span := tracing.StartSpan(ctx, "volumeClient.streamP2pOut", tracing.Attrs{
 		"volume":   srcHandle,
 		"encoding": string(encoding),
 	})
-	defer span.End()
+	defer func() { tracing.End(span, err) }()
 
 	request, err := c.generateRequest(ctx, baggageclaim.StreamP2pOut, rata.Params{
 		"handle": srcHandle,
 	}, nil)
+	if err != nil {
+		return err
+	}
 
 	request.URL.RawQuery = url.Values{
 		"path":        []string{path},
 		"streamInURL": []string{streamInURL},
 		"encoding":    []string{string(encoding)},
 	}.Encode()
-	if err != nil {
-		return err
-	}
 
 	response, err := c.httpClient(ctx).Do(request)
 	if err != nil {
@@ -417,6 +451,9 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 		}
 
 		if err == io.EOF {
+			// Trailers are only available once the body has been read.
+			recordStreamedBytes(span, response.Trailer)
+
 			if result.String() == "ok" {
 				break
 			}
@@ -430,6 +467,15 @@ func (c *client) streamP2pOut(ctx context.Context, srcHandle string, encoding ba
 	}
 
 	return nil
+}
+
+// recordStreamedBytes records on span the number of bytes that the source
+// worker reports having sent in the stream-p2p-out trailer, if it sent one.
+func recordStreamedBytes(span trace.Span, trailer http.Header) {
+	sent, err := strconv.ParseInt(trailer.Get(baggageclaim.StreamP2pOutBytesTrailer), 10, 64)
+	if err == nil {
+		span.SetAttributes(attribute.Int64("streamed-bytes", sent))
+	}
 }
 
 func getError(response *http.Response) error {

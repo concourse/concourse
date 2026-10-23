@@ -1,6 +1,8 @@
 package worker_test
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"io"
 	"time"
@@ -14,8 +16,12 @@ import (
 	"github.com/concourse/concourse/v8/atc/worker/gardenruntime"
 	grt "github.com/concourse/concourse/v8/atc/worker/gardenruntime/gardenruntimetest"
 	"github.com/concourse/concourse/v8/atc/worker/workertest"
+	"github.com/concourse/concourse/v8/tracing"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var _ = Describe("Streamer", func() {
@@ -246,6 +252,43 @@ var _ = Describe("Streamer", func() {
 		Entry("disabled P2P streams through ATC even within a group", "group-a", "group-a", false, false),
 	)
 
+	Test("traces streams", func() {
+		spanRecorder := new(tracetest.SpanRecorder)
+		tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+		defer func() { tracing.Configured = false }()
+
+		endedSpan := func(name string) sdktrace.ReadOnlySpan {
+			for _, span := range spanRecorder.Ended() {
+				if span.Name() == name {
+					return span
+				}
+			}
+			Fail("no ended span named " + name)
+			return nil
+		}
+
+		scenario := Setup(workertest.WithWorkers(
+			grt.NewWorker("src-worker").
+				WithVolumesCreatedInDBAndBaggageclaim(grt.NewVolume("src").WithContent(runtimetest.VolumeContent{
+					"file1": {Data: []byte("content 1")},
+				})),
+			grt.NewWorker("dst-worker").
+				WithVolumesCreatedInDBAndBaggageclaim(grt.NewVolume("dst")),
+		))
+		src := &trackedP2PVolume{P2PVolume: scenario.WorkerVolume("src-worker", "src").(runtime.P2PVolume)}
+		dst := scenario.WorkerVolume("dst-worker", "dst")
+
+		By("streaming P2P within the volume.P2pStreamOut span")
+		err := scenario.Streamer(worker.P2PConfig{Enabled: true}).Stream(context.Background(), src, dst)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(trace.SpanContextFromContext(src.p2pOutCtx)).To(Equal(endedSpan("volume.P2pStreamOut").SpanContext()))
+
+		By("streaming through the ATC within the volume.StreamThroughATC span")
+		err = scenario.Streamer(worker.P2PConfig{Enabled: false}).Stream(context.Background(), src, dst)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(trace.SpanContextFromContext(src.streamOutCtx)).To(Equal(endedSpan("volume.StreamThroughATC").SpanContext()))
+	})
+
 	Test("stream file from volume", func() {
 		content := runtimetest.VolumeContent{
 			"file":        {Data: []byte("content 1")},
@@ -300,7 +343,48 @@ var _ = Describe("Streamer", func() {
 
 		Expect(fileContent).To(Equal([]byte("content 2")))
 	})
+
+	Test("close the stream when the file cannot be read", func() {
+		streamer := Setup().Streamer(worker.P2PConfig{
+			Enabled: false,
+		})
+
+		By("closing it when the stream is not compressed")
+		notCompressed := &closeTrackingArtifact{Reader: bytes.NewReader([]byte("not gzip"))}
+		_, err := streamer.StreamFile(context.Background(), notCompressed, "file")
+		Expect(err).To(HaveOccurred())
+		Expect(notCompressed.closed).To(BeTrue())
+
+		By("closing it when the stream holds no tar entry")
+		compressed := new(bytes.Buffer)
+		gzipWriter := gzip.NewWriter(compressed)
+		_, err = gzipWriter.Write([]byte("not a tar"))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gzipWriter.Close()).To(Succeed())
+
+		notTar := &closeTrackingArtifact{Reader: compressed}
+		_, err = streamer.StreamFile(context.Background(), notTar, "file")
+		Expect(err).To(HaveOccurred())
+		Expect(notTar.closed).To(BeTrue())
+	})
 })
+
+// closeTrackingArtifact streams out itself, so that a test can tell whether
+// the stream was closed.
+type closeTrackingArtifact struct {
+	runtime.Artifact
+	io.Reader
+	closed bool
+}
+
+func (a *closeTrackingArtifact) StreamOut(context.Context, string, compression.Compression) (io.ReadCloser, error) {
+	return a, nil
+}
+
+func (a *closeTrackingArtifact) Close() error {
+	a.closed = true
+	return nil
+}
 
 func baggageclaimVolume(volume runtime.Volume) *grt.Volume {
 	grVolume, ok := volume.(gardenruntime.Volume)
@@ -315,6 +399,8 @@ func baggageclaimVolume(volume runtime.Volume) *grt.Volume {
 type trackedP2PVolume struct {
 	runtime.P2PVolume
 	p2pOutCalls, p2pURLCalls, streamOutCalls, streamInCalls int
+
+	p2pOutCtx, streamOutCtx context.Context
 }
 
 func (v *trackedP2PVolume) GetStreamInP2PURL(ctx context.Context, path string) (string, error) {
@@ -324,11 +410,13 @@ func (v *trackedP2PVolume) GetStreamInP2PURL(ctx context.Context, path string) (
 
 func (v *trackedP2PVolume) StreamP2POut(ctx context.Context, path, url string, c compression.Compression) error {
 	v.p2pOutCalls++
+	v.p2pOutCtx = ctx
 	return v.P2PVolume.StreamP2POut(ctx, path, url, c)
 }
 
 func (v *trackedP2PVolume) StreamOut(ctx context.Context, path string, c compression.Compression) (io.ReadCloser, error) {
 	v.streamOutCalls++
+	v.streamOutCtx = ctx
 	return v.P2PVolume.StreamOut(ctx, path, c)
 }
 

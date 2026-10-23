@@ -13,12 +13,17 @@ import (
 
 	"github.com/concourse/concourse/v8/go-archive/tgzfs"
 
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid/uidgidfakes"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/volume/volumefakes"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 var _ = Describe("Repository", func() {
@@ -1151,12 +1156,16 @@ var _ = Describe("Repository", func() {
 	})
 
 	Describe("StreamP2pOut", func() {
+		const traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+
 		var (
 			server             *httptest.Server
+			streamedBytes      int64
 			streamErr          error
 			serverCalled       bool
 			serverResponseCode int
 			serverReadBytes    []byte
+			serverTraceparent  string
 			tempFile           *os.File
 		)
 		BeforeEach(func() {
@@ -1176,15 +1185,18 @@ var _ = Describe("Repository", func() {
 		JustBeforeEach(func() {
 			serverCalled = false
 			serverReadBytes = nil
+			serverTraceparent = ""
 			server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(serverResponseCode)
 				serverCalled = true
+				serverTraceparent = r.Header.Get("traceparent")
 
 				var err error
 				serverReadBytes, err = io.ReadAll(r.Body)
 				Expect(err).ToNot(HaveOccurred())
 			}))
-			streamErr = repository.StreamP2pOut(context.Background(), "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
+			ctx := tracing.Extract(context.Background(), propagation.MapCarrier{"traceparent": traceparent})
+			streamedBytes, streamErr = repository.StreamP2pOut(ctx, "some-handle", filepath.Base(tempFile.Name()), baggageclaim.GzipEncoding, server.URL)
 		})
 
 		Context("when lookup volume fails", func() {
@@ -1267,6 +1279,12 @@ var _ = Describe("Repository", func() {
 					It("should receive the http request", func() {
 						Expect(serverCalled).To(BeTrue())
 					})
+					It("should receive the trace context", func() {
+						Expect(serverTraceparent).To(Equal(traceparent))
+					})
+					It("returns the bytes sent", func() {
+						Expect(streamedBytes).To(Equal(int64(len(serverReadBytes))))
+					})
 					It("remote should receive bytes", func() {
 						b := new(bytes.Buffer)
 						err := tgzfs.Compress(b, filepath.Dir(tempFile.Name()), filepath.Base(tempFile.Name()))
@@ -1274,6 +1292,26 @@ var _ = Describe("Repository", func() {
 						Expect(len(serverReadBytes)).To(Equal(len(b.Bytes())))
 						n := len(serverReadBytes)
 						Expect(serverReadBytes[:n]).To(Equal(b.Bytes()[:n]))
+					})
+
+					Context("when tracing is configured", func() {
+						var spanRecorder *tracetest.SpanRecorder
+
+						BeforeEach(func() {
+							spanRecorder = new(tracetest.SpanRecorder)
+							tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+						})
+
+						AfterEach(func() {
+							tracing.Configured = false
+						})
+
+						It("records the bytes sent on its span", func() {
+							Expect(spanRecorder.Ended()).To(HaveLen(1))
+							Expect(spanRecorder.Ended()[0].Attributes()).To(ContainElement(
+								attribute.Int64("streamed-bytes", int64(len(serverReadBytes))),
+							))
+						})
 					})
 				})
 			})
@@ -1337,6 +1375,66 @@ var _ = Describe("Repository", func() {
 			Entry("quadruple-dot escape attempt", "....//escape", true),
 			Entry("absolute path component", "//absolute", false),
 		)
+	})
+
+	Describe("StreamOut tracing", func() {
+		var (
+			spanRecorder     *tracetest.SpanRecorder
+			fakeGzipStreamer *volumefakes.FakeStreamer
+			streamingRepo    volume.Repository
+		)
+
+		BeforeEach(func() {
+			spanRecorder = new(tracetest.SpanRecorder)
+			tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+
+			fakeGzipStreamer = new(volumefakes.FakeStreamer)
+			fakeGzipStreamer.OutStub = func(dest io.Writer, _ string, _ bool) error {
+				_, err := dest.Write([]byte("some tar content"))
+				return err
+			}
+			streamingRepo = volume.NewRepositoryWithStreamers(
+				fakeFilesystem, fakeLocker,
+				fakePrivilegedNamespacer, fakeUnprivilegedNamespacer,
+				fakeGzipStreamer,
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+				new(volumefakes.FakeStreamer),
+			)
+
+			fakeVolume := new(volumefakes.FakeFilesystemLiveVolume)
+			fakeVolume.DataPathReturns(filepath.FromSlash("/data/volume-root"))
+			fakeFilesystem.LookupVolumeReturns(fakeVolume, true, nil)
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
+
+		It("records the bytes written on its span", func() {
+			dest := new(bytes.Buffer)
+			err := streamingRepo.StreamOut(context.Background(), "some-handle", ".", baggageclaim.GzipEncoding, dest)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(dest.String()).To(Equal("some tar content"))
+
+			Expect(spanRecorder.Ended()).To(HaveLen(1))
+			Expect(spanRecorder.Ended()[0].Attributes()).To(ContainElement(
+				attribute.Int64("streamed-bytes", int64(dest.Len())),
+			))
+		})
+
+		It("records the bytes written before the stream fails", func() {
+			fakeGzipStreamer.OutStub = func(dest io.Writer, _ string, _ bool) error {
+				_, _ = dest.Write([]byte("some tar"))
+				return errors.New("tar failed")
+			}
+
+			err := streamingRepo.StreamOut(context.Background(), "some-handle", ".", baggageclaim.GzipEncoding, new(bytes.Buffer))
+			Expect(err).To(MatchError("tar failed"))
+
+			Expect(spanRecorder.Ended()).To(HaveLen(1))
+			Expect(spanRecorder.Ended()[0].Attributes()).To(ContainElement(attribute.Int64("streamed-bytes", 8)))
+		})
 	})
 
 	Describe("StreamOut path traversal prevention", func() {
@@ -1419,7 +1517,7 @@ var _ = Describe("Repository", func() {
 
 		DescribeTable("source path stays within the volume",
 			func(inputPath string) {
-				err := traversalRepo.StreamP2pOut(context.Background(), "some-handle", inputPath,
+				_, err := traversalRepo.StreamP2pOut(context.Background(), "some-handle", inputPath,
 					baggageclaim.GzipEncoding, streamInServer.URL)
 				Expect(err).ToNot(HaveOccurred())
 

@@ -7,7 +7,9 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/tedsuo/rata"
+	"go.opentelemetry.io/otel/propagation"
 
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/volume"
 )
@@ -48,7 +50,21 @@ func NewHandler(
 		baggageclaim.CleanupOrphanedVolumes:  http.HandlerFunc(volumeServer.CleanupOrphanedVolumes),
 	}
 
-	return rata.NewRouter(baggageclaim.Routes, handlers)
+	router, err := rata.NewRouter(baggageclaim.Routes, handlers)
+	if err != nil {
+		return nil, err
+	}
+
+	return tracingMiddleware(router), nil
+}
+
+// tracingMiddleware puts the trace context from the request headers into the
+// request context, so that the handler's spans continue the caller's trace.
+func tracingMiddleware(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		ctx := tracing.Extract(req.Context(), propagation.HeaderCarrier(req.Header))
+		handler.ServeHTTP(w, req.WithContext(ctx))
+	})
 }
 
 type ErrorResponse struct {
