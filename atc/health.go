@@ -2,8 +2,6 @@ package atc
 
 import "time"
 
-// systemStatus represents the overall health of the ATC instance.
-// Valid values: ok, degraded, failing.
 type systemStatus string
 
 const (
@@ -12,8 +10,6 @@ const (
 	HealthStatusFailing  systemStatus = "failing"
 )
 
-// subsystemStatus represents the binary health of an individual subsystem (database, component).
-// Valid values: healthy, unhealthy.
 type subsystemStatus string
 
 const (
@@ -21,7 +17,6 @@ const (
 	HealthStatusUnhealthy subsystemStatus = "unhealthy"
 )
 
-// Health represents the overall health status of the Concourse ATC instance.
 type Health struct {
 	Status     systemStatus      `json:"status"`
 	Timestamp  time.Time         `json:"timestamp"`
@@ -30,23 +25,26 @@ type Health struct {
 	Components []ComponentHealth `json:"components"`
 }
 
-// DatabaseHealth represents the health of the database connection.
 type DatabaseHealth struct {
 	Status subsystemStatus `json:"status"`
 	Error  string          `json:"error,omitempty"`
 }
 
-// WorkerHealth represents the aggregate health of registered workers.
-// Status is one of: "healthy", "degraded", "unhealthy" — workers uniquely span
-// both binary and graduated health levels, so the field is typed as string.
-type WorkerHealth struct {
-	Status           string   `json:"status"`
-	Total            int      `json:"total"`
-	Running          int      `json:"running"`
-	UnhealthyWorkers []string `json:"unhealthy_workers,omitempty"`
+type WorkerBreakdown struct {
+	Total   int `json:"total"`
+	Running int `json:"running"`
 }
 
-// ComponentHealth represents the health of a single ATC component.
+type WorkerHealth struct {
+	Status           string                     `json:"status"`
+	Total            int                        `json:"total"`
+	Running          int                        `json:"running"`
+	ByPlatform       map[string]WorkerBreakdown `json:"by_platform"`
+	ByTeam           map[string]WorkerBreakdown `json:"by_team"`
+	ByTag            map[string]WorkerBreakdown `json:"by_tag"`
+	UnhealthyWorkers []string                   `json:"unhealthy_workers,omitempty"`
+}
+
 type ComponentHealth struct {
 	Name    string          `json:"name"`
 	Status  subsystemStatus `json:"status"`

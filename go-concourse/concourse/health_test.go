@@ -21,9 +21,12 @@ var _ = Describe("GetHealth", func() {
 			Timestamp: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
 			Database:  atc.DatabaseHealth{Status: atc.HealthStatusHealthy},
 			Workers: atc.WorkerHealth{
-				Status:  string(atc.HealthStatusHealthy),
-				Total:   3,
-				Running: 3,
+				Status:     string(atc.HealthStatusHealthy),
+				Total:      3,
+				Running:    3,
+				ByPlatform: map[string]atc.WorkerBreakdown{"linux": {Total: 3, Running: 3}},
+				ByTeam:     map[string]atc.WorkerBreakdown{"": {Total: 3, Running: 3}},
+				ByTag:      map[string]atc.WorkerBreakdown{},
 			},
 			Components: []atc.ComponentHealth{
 				{Name: atc.ComponentScheduler, Status: atc.HealthStatusHealthy, Paused: false},
@@ -48,6 +51,13 @@ var _ = Describe("GetHealth", func() {
 			Expect(health.Database.Status).To(Equal(atc.HealthStatusHealthy))
 			Expect(health.Workers.Total).To(Equal(3))
 			Expect(health.Workers.Running).To(Equal(3))
+			Expect(health.Workers.ByPlatform).To(Equal(map[string]atc.WorkerBreakdown{
+				"linux": {Total: 3, Running: 3},
+			}))
+			Expect(health.Workers.ByTeam).To(Equal(map[string]atc.WorkerBreakdown{
+				"": {Total: 3, Running: 3},
+			}))
+			Expect(health.Workers.ByTag).To(BeEmpty())
 			Expect(health.Components).To(HaveLen(1))
 		})
 	})
@@ -73,6 +83,8 @@ var _ = Describe("GetHealth", func() {
 			Expect(health.Status).To(Equal(atc.HealthStatusFailing))
 			Expect(health.Database.Status).To(Equal(atc.HealthStatusUnhealthy))
 			Expect(health.Database.Error).To(Equal("database unreachable"))
+			Expect(health.Workers.ByPlatform).To(HaveKey("linux"))
+			Expect(health.Workers.ByTeam).To(HaveKey(""))
 		})
 	})
 
