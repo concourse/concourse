@@ -77,6 +77,23 @@ type FakeClient struct {
 		result1 client.Container
 		result2 error
 	}
+	NewContainerFromImageLayoutStub        func(context.Context, string, map[string]string, *specs.Spec, string) (client.Container, error)
+	newContainerFromImageLayoutMutex       sync.RWMutex
+	newContainerFromImageLayoutArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+		arg3 map[string]string
+		arg4 *specs.Spec
+		arg5 string
+	}
+	newContainerFromImageLayoutReturns struct {
+		result1 client.Container
+		result2 error
+	}
+	newContainerFromImageLayoutReturnsOnCall map[int]struct {
+		result1 client.Container
+		result2 error
+	}
 	StopStub        func() error
 	stopMutex       sync.RWMutex
 	stopArgsForCall []struct {
@@ -409,6 +426,74 @@ func (fake *FakeClient) NewContainerReturnsOnCall(i int, result1 client.Containe
 		})
 	}
 	fake.newContainerReturnsOnCall[i] = struct {
+		result1 client.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) NewContainerFromImageLayout(arg1 context.Context, arg2 string, arg3 map[string]string, arg4 *specs.Spec, arg5 string) (client.Container, error) {
+	fake.newContainerFromImageLayoutMutex.Lock()
+	ret, specificReturn := fake.newContainerFromImageLayoutReturnsOnCall[len(fake.newContainerFromImageLayoutArgsForCall)]
+	fake.newContainerFromImageLayoutArgsForCall = append(fake.newContainerFromImageLayoutArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+		arg3 map[string]string
+		arg4 *specs.Spec
+		arg5 string
+	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.NewContainerFromImageLayoutStub
+	fakeReturns := fake.newContainerFromImageLayoutReturns
+	fake.recordInvocation("NewContainerFromImageLayout", []interface{}{arg1, arg2, arg3, arg4, arg5})
+	fake.newContainerFromImageLayoutMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeClient) NewContainerFromImageLayoutCallCount() int {
+	fake.newContainerFromImageLayoutMutex.RLock()
+	defer fake.newContainerFromImageLayoutMutex.RUnlock()
+	return len(fake.newContainerFromImageLayoutArgsForCall)
+}
+
+func (fake *FakeClient) NewContainerFromImageLayoutCalls(stub func(context.Context, string, map[string]string, *specs.Spec, string) (client.Container, error)) {
+	fake.newContainerFromImageLayoutMutex.Lock()
+	defer fake.newContainerFromImageLayoutMutex.Unlock()
+	fake.NewContainerFromImageLayoutStub = stub
+}
+
+func (fake *FakeClient) NewContainerFromImageLayoutArgsForCall(i int) (context.Context, string, map[string]string, *specs.Spec, string) {
+	fake.newContainerFromImageLayoutMutex.RLock()
+	defer fake.newContainerFromImageLayoutMutex.RUnlock()
+	argsForCall := fake.newContainerFromImageLayoutArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+}
+
+func (fake *FakeClient) NewContainerFromImageLayoutReturns(result1 client.Container, result2 error) {
+	fake.newContainerFromImageLayoutMutex.Lock()
+	defer fake.newContainerFromImageLayoutMutex.Unlock()
+	fake.NewContainerFromImageLayoutStub = nil
+	fake.newContainerFromImageLayoutReturns = struct {
+		result1 client.Container
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeClient) NewContainerFromImageLayoutReturnsOnCall(i int, result1 client.Container, result2 error) {
+	fake.newContainerFromImageLayoutMutex.Lock()
+	defer fake.newContainerFromImageLayoutMutex.Unlock()
+	fake.NewContainerFromImageLayoutStub = nil
+	if fake.newContainerFromImageLayoutReturnsOnCall == nil {
+		fake.newContainerFromImageLayoutReturnsOnCall = make(map[int]struct {
+			result1 client.Container
+			result2 error
+		})
+	}
+	fake.newContainerFromImageLayoutReturnsOnCall[i] = struct {
 		result1 client.Container
 		result2 error
 	}{result1, result2}
