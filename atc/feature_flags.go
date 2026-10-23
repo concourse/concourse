@@ -1,5 +1,7 @@
 package atc
 
+import "time"
+
 var (
 	EnableGlobalResources                bool
 	EnableBuildRerunWhenWorkerDisappears bool
@@ -20,4 +22,14 @@ func FeatureFlags() map[string]bool {
 
 var (
 	DisableRedactSecrets bool
+
+	// QueueWhenNoCompatibleWorkers makes a step wait for a compatible worker to
+	// appear instead of failing immediately when none is available. This allows
+	// worker pools to be scaled to zero.
+	QueueWhenNoCompatibleWorkers bool
+
+	// NoCompatibleWorkerQueueTimeout bounds how long a step waits for a
+	// compatible worker when QueueWhenNoCompatibleWorkers is enabled. Zero means
+	// no limit.
+	NoCompatibleWorkerQueueTimeout time.Duration
 )

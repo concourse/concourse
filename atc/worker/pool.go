@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"slices"
@@ -63,6 +64,7 @@ func (pool Pool) FindOrSelectWorker(
 	}
 	var worker db.Worker
 	var pollingTicker *time.Ticker
+	var queueTimeout <-chan time.Time
 	for {
 		var err error
 		worker, err = pool.findOrSelectWorker(logger, owner, containerSpec, workerSpec, strategy)
@@ -76,6 +78,12 @@ func (pool Pool) FindOrSelectWorker(
 		if pollingTicker == nil {
 			pollingTicker = time.NewTicker(PollingInterval)
 			defer pollingTicker.Stop()
+
+			if atc.QueueWhenNoCompatibleWorkers && atc.NoCompatibleWorkerQueueTimeout > 0 {
+				queueTimer := time.NewTimer(atc.NoCompatibleWorkerQueueTimeout)
+				defer queueTimer.Stop()
+				queueTimeout = queueTimer.C
+			}
 
 			logger.Debug("waiting-for-available-worker")
 
@@ -96,6 +104,12 @@ func (pool Pool) FindOrSelectWorker(
 		case <-ctx.Done():
 			logger.Info("aborted-waiting-for-worker")
 			return nil, ctx.Err()
+		case <-queueTimeout:
+			logger.Info("timed-out-waiting-for-worker")
+			return nil, WaitingForWorkerTimeoutError{
+				Spec:    workerSpec,
+				Timeout: atc.NoCompatibleWorkerQueueTimeout,
+			}
 		case <-pollingTicker.C:
 		case <-pool.waker:
 		}
@@ -118,6 +132,12 @@ func (pool Pool) findOrSelectWorker(logger lager.Logger, owner db.ContainerOwner
 	if found {
 		return worker, nil
 	}
+
+	if len(compatibleWorkers) == 0 {
+		// No compatible workers to place on; the caller waits and retries.
+		return nil, nil
+	}
+
 	orderedWorkers, err := strategy.Order(logger, pool, compatibleWorkers, containerSpec)
 	if err != nil {
 		return nil, err
@@ -246,6 +266,11 @@ func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerO
 
 	compatibleWorkers, err := pool.allCompatibleAndRunningWorkers(logger, workerSpec)
 	if err != nil {
+		if atc.QueueWhenNoCompatibleWorkers && noWorkersMatch(err) {
+			// No compatible worker yet; report no candidate so the caller waits
+			// and retries.
+			return nil, nil, false, nil
+		}
 		return nil, nil, false, err
 	}
 
@@ -260,6 +285,13 @@ func (pool Pool) findWorkerForContainer(logger lager.Logger, owner db.ContainerO
 	}
 
 	return nil, compatibleWorkers, false, nil
+}
+
+// noWorkersMatch reports whether err is the "no compatible worker" condition,
+// as opposed to a real failure such as a database error.
+func noWorkersMatch(err error) bool {
+	var noCompatible NoCompatibleWorkersError
+	return errors.Is(err, ErrNoWorkers) || errors.As(err, &noCompatible)
 }
 
 func (pool Pool) FindWorker(logger lager.Logger, name string) (runtime.Worker, bool, error) {
