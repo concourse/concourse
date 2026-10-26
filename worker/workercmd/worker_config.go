@@ -20,8 +20,6 @@ type WorkerConfig struct {
 	P2PStreamingGroup string `long:"p2p-streaming-group" description:"Assign this worker to a P2P streaming group. When P2P streaming is enabled, workers in the same group stream directly to each other. Workers with different groups stream through the ATC. Workers with no group will only stream to other workers that also have no P2P streaming group"`
 
 	MaxActiveTasks int `long:"max-active-tasks" description:"If set, when the worker registers with the web node(s) it will specify this value as the max number of active tasks that can be assigned to it, overriding the web's --max-active-tasks-per-worker for THIS worker. Web nodes must be using the limit-active-tasks placement strategy for this to have any effect."`
-
-	Version string `long:"version" hidden:"true" description:"Version of the worker. This is normally baked in to the binary, so this flag is hidden."`
 }
 
 func (c WorkerConfig) Worker() atc.Worker {
@@ -30,7 +28,6 @@ func (c WorkerConfig) Worker() atc.Worker {
 		Team:              c.TeamName,
 		Name:              c.Name,
 		StartTime:         time.Now().Unix(),
-		Version:           c.Version,
 		HTTPProxyURL:      c.HTTPProxy,
 		HTTPSProxyURL:     c.HTTPSProxy,
 		NoProxy:           c.NoProxy,
