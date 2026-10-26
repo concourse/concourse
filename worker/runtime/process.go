@@ -51,7 +51,6 @@ func (p *Process) Wait() (int, error) {
 		return 0, fmt.Errorf("proc closeio: %w", err)
 	}
 
-	p.process.IO().Cancel()
 	p.process.IO().Wait()
 	p.process.IO().Close()
 
