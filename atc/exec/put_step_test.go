@@ -161,6 +161,7 @@ var _ = Describe("PutStep", func() {
 			stepMetadata,
 			containerMetadata,
 			nil,
+			false,
 			fakePool,
 			fakeDelegateFactory,
 			defaultPutTimeout,
