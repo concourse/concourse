@@ -91,15 +91,18 @@ func (s *ProcessSuite) TestProcessWaitBlocksUntilIOFinishes() {
 	s.containerdProcess.IOReturns(s.io)
 
 	s.io.WaitStub = func() {
-		// ensure Wait() is called before Delete() which cancels IO
+		// Output must drain before cancellation, closing, or deletion can
+		// discard unread stdout/stderr.
+		s.Equal(0, s.io.CancelCallCount())
+		s.Equal(0, s.io.CloseCallCount())
 		s.Equal(0, s.containerdProcess.DeleteCallCount())
 	}
 
 	_, err := s.process.Wait()
 	s.NoError(err)
 
-	s.Equal(3, s.containerdProcess.IOCallCount())
-	s.Equal(1, s.io.CancelCallCount())
+	s.Equal(2, s.containerdProcess.IOCallCount())
+	s.Equal(0, s.io.CancelCallCount())
 	s.Equal(1, s.io.WaitCallCount())
 	s.Equal(1, s.io.CloseCallCount())
 	s.Equal(1, s.containerdProcess.DeleteCallCount())
