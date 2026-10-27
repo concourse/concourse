@@ -209,7 +209,7 @@ type RunCommand struct {
 
 	Health struct {
 		MinWorkerCount           int      `long:"health-min-worker-count" default:"1" description:"Minimum number of running workers before the health endpoint reports degraded. Setting this to 0 means the endpoint will only report healthy or failing — never degraded."`
-		MinWorkerScopes          []string `long:"health-min-worker-scopes" description:"Minimum running-worker threshold for a platform, team, or tag. Repeatable; env var accepts comma-separated values. Format: kind:name:count:severity (all four fields required). Kind: platform (linux/windows/darwin), team, tag; empty team name (team::count:severity) targets unscoped workers. Severity: critical — running==0 reports failing (HTTP 503), 0<running<min reports degraded; warn — any shortfall reports degraded, never failing; info — tracked in breakdown only, no status impact."`
+		MinWorkerScopes          []string `long:"health-min-worker-scopes" description:"Minimum running-worker threshold for a platform, team, or tag. Format: kind:name:count:severity (all four fields required). Kind: platform (linux/windows/darwin), team, tag; empty team name (team::count:severity) targets unscoped workers. Severity (critical/warn/info): critical — running==0 reports failing (HTTP 503), 0<running<min reports degraded; warn — any shortfall reports degraded, never failing; info — tracked in breakdown only, no status impact."`
 		ComponentStaleMultiplier float64  `long:"health-component-stale-multiplier" default:"2.0" description:"A component is considered stale when it has not run for more than this multiplier times its interval. Stale runtime components (scheduler, tracker, scanner) cause degraded status."`
 	} `group:"Health Endpoint"`
 

@@ -54,29 +54,11 @@ func ParseMinWorkerThresholds(entries []string) (MinWorkerThresholds, error) {
 		name := parts[1]
 		rawCount := parts[2]
 
-		var severity ThresholdSeverity
-		switch ThresholdSeverity(parts[3]) {
+		severity := ThresholdSeverity(parts[3])
+		switch severity {
 		case ThresholdSeverityCritical, ThresholdSeverityWarn, ThresholdSeverityInfo:
-			severity = ThresholdSeverity(parts[3])
 		default:
 			return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: severity must be one of critical, warn, info", entry)
-		}
-
-		switch kind {
-		case thresholdKindPlatform:
-			if name == "" {
-				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: platform name must not be empty", entry)
-			}
-			if _, ok := validPlatforms[name]; !ok {
-				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: platform must be one of linux, windows, darwin", entry)
-			}
-		case thresholdKindTag:
-			if name == "" {
-				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: tag name must not be empty", entry)
-			}
-		case thresholdKindTeam:
-		default:
-			return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: unknown kind %q (must be platform, team, or tag)", entry, kind)
 		}
 
 		count, err := strconv.Atoi(rawCount)
@@ -88,31 +70,52 @@ func ParseMinWorkerThresholds(entries []string) (MinWorkerThresholds, error) {
 
 		switch kind {
 		case thresholdKindPlatform:
+			if name == "" {
+				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: platform name must not be empty", entry)
+			}
+
+			if _, ok := validPlatforms[name]; !ok {
+				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: platform must be one of linux, windows, darwin", entry)
+			}
+
 			if _, dup := t.Platform[name]; dup {
 				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: duplicate platform %q", entry, name)
 			}
+
 			if t.Platform == nil {
 				t.Platform = make(map[string]ThresholdEntry)
 			}
+
 			t.Platform[name] = e
 
 		case thresholdKindTeam:
 			if _, dup := t.Team[name]; dup {
 				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: duplicate team %q", entry, name)
 			}
+
 			if t.Team == nil {
 				t.Team = make(map[string]ThresholdEntry)
 			}
+
 			t.Team[name] = e
 
 		case thresholdKindTag:
+			if name == "" {
+				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: tag name must not be empty", entry)
+			}
+
 			if _, dup := t.Tag[name]; dup {
 				return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: duplicate tag %q", entry, name)
 			}
+
 			if t.Tag == nil {
 				t.Tag = make(map[string]ThresholdEntry)
 			}
+
 			t.Tag[name] = e
+
+		default:
+			return MinWorkerThresholds{}, fmt.Errorf("invalid --health-min-worker-scopes entry %q: unknown kind %q (must be platform, team, or tag)", entry, kind)
 		}
 	}
 	return t, nil
