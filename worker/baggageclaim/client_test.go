@@ -13,7 +13,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"go.opentelemetry.io/otel/attribute"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/api"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/client"
@@ -394,6 +398,34 @@ var _ = Describe("Baggageclaim Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(string(b)).To(Equal("some tar content"))
+		})
+
+		It("records the bytes read on its span when the stream is closed", func() {
+			spanRecorder := new(tracetest.SpanRecorder)
+			tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+			defer func() { tracing.Configured = false }()
+
+			bcServer.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("PUT", "/volumes/some-handle/stream-out"),
+					func(w http.ResponseWriter, r *http.Request) {
+						w.Write([]byte("some tar content"))
+					},
+				),
+			)
+			out, err := vol.StreamOut(context.TODO(), ".", baggageclaim.GzipEncoding)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Read only part of the stream, as StreamFile does, so that the
+			// count is what was read rather than the size of the body.
+			_, err = io.ReadFull(out, make([]byte, 4))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(spanRecorder.Ended()).To(BeEmpty())
+
+			Expect(out.Close()).To(Succeed())
+			Expect(spanRecorder.Ended()).To(HaveLen(1))
+			Expect(spanRecorder.Ended()[0].Name()).To(Equal("volumeClient.streamOut"))
+			Expect(spanRecorder.Ended()[0].Attributes()).To(ContainElement(attribute.Int64("streamed-bytes", 4)))
 		})
 
 		Context("when error occurs", func() {

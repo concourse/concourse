@@ -20,10 +20,13 @@ import (
 	"github.com/klauspost/compress/zstd"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	"github.com/concourse/concourse/v8/go-archive/tgzfs"
 
+	"github.com/concourse/concourse/v8/tracing"
 	"github.com/concourse/concourse/v8/worker/baggageclaim"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/api"
 	"github.com/concourse/concourse/v8/worker/baggageclaim/uidgid"
@@ -115,6 +118,43 @@ var _ = Describe("Volume Server", func() {
 			It("returns an empty array", func() {
 				Expect(recorder.Body).To(MatchJSON(`[]`))
 			})
+		})
+	})
+
+	Describe("tracing", func() {
+		var spanRecorder *tracetest.SpanRecorder
+
+		BeforeEach(func() {
+			spanRecorder = new(tracetest.SpanRecorder)
+			tracing.ConfigureTraceProvider(sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spanRecorder)))
+		})
+
+		AfterEach(func() {
+			tracing.Configured = false
+		})
+
+		It("continues the trace from the request headers", func() {
+			body := &bytes.Buffer{}
+			err := json.NewEncoder(body).Encode(baggageclaim.VolumeRequest{
+				Handle: "some-handle",
+				Strategy: encStrategy(map[string]string{
+					"type": "empty",
+				}),
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			request, err := http.NewRequest("POST", "/volumes", body)
+			Expect(err).NotTo(HaveOccurred())
+			request.Header.Set("traceparent", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, request)
+			Expect(recorder.Code).To(Equal(http.StatusCreated))
+
+			Expect(spanRecorder.Ended()).ToNot(BeEmpty())
+			for _, span := range spanRecorder.Ended() {
+				Expect(span.SpanContext().TraceID().String()).To(Equal("4bf92f3577b34da6a3ce929d0e0e4736"))
+			}
 		})
 	})
 

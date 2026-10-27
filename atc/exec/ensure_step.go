@@ -38,7 +38,7 @@ func (o EnsureStep) Run(ctx context.Context, state RunState) (bool, error) {
 	hookCtx := ctx
 	if ctx.Err() != nil {
 		// prevent hook from being immediately canceled
-		hookCtx = context.Background()
+		hookCtx = context.WithoutCancel(ctx)
 	}
 
 	hookOk, hookErr := o.hook.Run(hookCtx, state)

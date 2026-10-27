@@ -66,9 +66,6 @@ func (c Config) traceProvider(exporter func() (sdktrace.SpanExporter, []sdktrace
 	}, exporterOptions...)
 
 	provider := sdktrace.NewTracerProvider(options...)
-	if err != nil {
-		return nil, err
-	}
 
 	return provider, nil
 }

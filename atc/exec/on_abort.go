@@ -34,7 +34,7 @@ func (o OnAbortStep) Run(ctx context.Context, state RunState) (bool, error) {
 
 	if errors.Is(stepRunErr, context.Canceled) {
 		// run only on abort, not timeout
-		o.hook.Run(context.Background(), state)
+		o.hook.Run(context.WithoutCancel(ctx), state)
 	}
 
 	return stepRunOk, stepRunErr
