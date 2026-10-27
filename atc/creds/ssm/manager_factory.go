@@ -1,6 +1,8 @@
 package ssm
 
 import (
+	"errors"
+
 	"github.com/concourse/concourse/v8/atc/creds"
 	"github.com/go-viper/mapstructure/v2"
 	flags "github.com/jessevdk/go-flags"
@@ -44,6 +46,14 @@ func (factory *ssmManagerFactory) NewInstance(config any) (creds.Manager, error)
 	err = decoder.Decode(config)
 	if err != nil {
 		return nil, err
+	}
+
+	if manager.AwsRegion == "" {
+		return nil, errors.New("region must be specified")
+	}
+
+	if manager.AwsAccessKeyID == "" || manager.AwsSecretAccessKey == "" {
+		return nil, errors.New("access_key and secret_key must be specified")
 	}
 
 	return manager, nil
