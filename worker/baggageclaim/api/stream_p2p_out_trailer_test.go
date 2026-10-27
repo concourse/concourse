@@ -28,7 +28,7 @@ import (
 var _ = Describe("stream-p2p-out byte count trailer", func() {
 	// The handler only accepts a stream-in URL with an IP and a port, like the
 	// ones GetP2pUrl returns.
-	const streamInURL = "http://10.0.0.2:7788/volumes/dest/stream-in"
+	const streamInURL = "http://127.0.0.1:7788/volumes/dest/stream-in"
 
 	var (
 		fakeRepo *volumefakes.FakeRepository
