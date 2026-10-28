@@ -19,6 +19,8 @@ type Manager interface {
 //counterfeiter:generate . ManagerFactory
 type ManagerFactory interface {
 	AddConfig(*flags.Group) Manager
+
+	// Creates a new instance of a credential manager for a var_source
 	NewInstance(any) (Manager, error)
 }
 
