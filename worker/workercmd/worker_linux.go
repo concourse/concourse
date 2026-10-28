@@ -1,7 +1,6 @@
 package workercmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -186,41 +185,6 @@ func (cmd *WorkerCommand) dnsProxyRunner(logger lager.Logger) (ifrit.Runner, err
 			}
 		}
 	}), nil
-}
-
-func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResourceType, error) {
-	var types []atc.WorkerResourceType
-
-	if cmd.ResourceTypes != "" {
-		basePath := cmd.ResourceTypes.Path()
-
-		entries, err := os.ReadDir(basePath)
-		if err != nil {
-			logger.Error("failed-to-read-resources-dir", err)
-			return nil, err
-		}
-
-		for _, e := range entries {
-			meta, err := os.ReadFile(filepath.Join(basePath, e.Name(), "resource_metadata.json"))
-			if err != nil {
-				logger.Error("failed-to-read-resource-type-metadata", err)
-				return nil, err
-			}
-
-			var t atc.WorkerResourceType
-			err = json.Unmarshal(meta, &t)
-			if err != nil {
-				logger.Error("failed-to-unmarshal-resource-type-metadata", err)
-				return nil, err
-			}
-
-			t.Image = filepath.Join(basePath, e.Name(), "rootfs.tgz")
-
-			types = append(types, t)
-		}
-	}
-
-	return types, nil
 }
 
 func (cmd *WorkerCommand) hasFlags(prefix string) bool {
