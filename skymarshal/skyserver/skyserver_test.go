@@ -75,8 +75,13 @@ var _ = Describe("Sky Server API", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(redirectURL.Path).To(Equal("/auth"))
 
+					skyServerURL, err := url.Parse(skyServer.URL)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(redirectURL.Host).To(Equal(skyServerURL.Host))
+
 					redirectValues := redirectURL.Query()
 					Expect(redirectValues.Get("access_type")).To(Equal("offline"))
+					Expect(redirectValues.Get("redirect_uri")).To(Equal(config.OAuthConfig.RedirectURL))
 					Expect(redirectValues.Get("response_type")).To(Equal("code"))
 					Expect(redirectValues.Get("state")).NotTo(BeEmpty())
 					Expect(redirectValues.Get("scope")).To(Equal("some-scope"))
