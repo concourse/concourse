@@ -3,6 +3,7 @@ package skyserver_test
 import (
 	"crypto/rand"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -48,8 +49,14 @@ var _ = BeforeEach(func() {
 	_, err = rand.Read(stateSigningKey)
 	Expect(err).NotTo(HaveOccurred())
 
+	authURL, err := url.Parse(dexServer.URL() + "/auth")
+	Expect(err).NotTo(HaveOccurred())
+
+	redirectURL, err := url.Parse(dexServer.URL() + "/callback")
+	Expect(err).NotTo(HaveOccurred())
+
 	endpoint := oauth2.Endpoint{
-		AuthURL:   dexServer.URL() + "/auth",
+		AuthURL:   authURL.Path,
 		TokenURL:  dexServer.URL() + "/token",
 		AuthStyle: oauth2.AuthStyleInHeader,
 	}
@@ -58,6 +65,7 @@ var _ = BeforeEach(func() {
 		Endpoint:     endpoint,
 		ClientID:     "dex-client-id",
 		ClientSecret: "dex-client-secret",
+		RedirectURL:  redirectURL.Path,
 		Scopes:       []string{"some-scope"},
 	}
 
