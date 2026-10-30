@@ -66,6 +66,8 @@ type repository struct {
 	s2Streamer   Streamer
 	rawStreamer  Streamer
 	namespacer   func(bool) uidgid.Namespacer
+
+	namespacePrivilegedVolumes bool
 }
 
 func NewRepository(
@@ -73,10 +75,12 @@ func NewRepository(
 	locker LockManager,
 	privilegedNamespacer uidgid.Namespacer,
 	unprivilegedNamespacer uidgid.Namespacer,
+	namespacePrivilegedVolumes bool,
 ) Repository {
 	return &repository{
-		filesystem: filesystem,
-		locker:     locker,
+		filesystem:                 filesystem,
+		locker:                     locker,
+		namespacePrivilegedVolumes: namespacePrivilegedVolumes,
 
 		rawStreamer: &tarGzipStreamer{
 			namespacer: unprivilegedNamespacer,
@@ -490,6 +494,9 @@ func (repo *repository) StreamIn(ctx context.Context,
 	}
 
 	limitedReader := NewLimitedReader(int(limitInMB*1024*1024), stream)
+	// FUSE-only and ignore mode map even privileged volumes into a user
+	// namespace; tar must use that same mapping rather than host ownership.
+	privileged = privileged && !repo.namespacePrivilegedVolumes
 	var badStream bool
 	switch encoding {
 	case baggageclaim.ZstdEncoding:
@@ -557,6 +564,8 @@ func (repo *repository) StreamOut(ctx context.Context,
 		logger.Error("failed-to-check-if-volume-is-privileged", err)
 		return err
 	}
+
+	isPrivileged = isPrivileged && !repo.namespacePrivilegedVolumes
 
 	// What the streamer writes to dest is what goes to the caller, so count it
 	// there.
@@ -628,6 +637,7 @@ func (repo *repository) StreamP2pOut(ctx context.Context,
 	}
 
 	logger.Debug("p2p-streaming-start", lager.Data{"streamInURL": streamInURL})
+	isPrivileged = isPrivileged && !repo.namespacePrivilegedVolumes
 
 	reader, writer := io.Pipe()
 	go func() {

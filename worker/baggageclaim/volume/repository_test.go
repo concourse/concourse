@@ -47,6 +47,7 @@ var _ = Describe("Repository", func() {
 			fakeLocker,
 			fakePrivilegedNamespacer,
 			fakeUnprivilegedNamespacer,
+			false,
 		)
 	})
 
