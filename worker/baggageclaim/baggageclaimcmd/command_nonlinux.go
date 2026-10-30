@@ -65,6 +65,7 @@ func (cmd *BaggageclaimCommand) Runner(logger lager.Logger, args []string) (ifri
 		locker,
 		uidgid.NoopNamespacer{},
 		uidgid.NoopNamespacer{},
+		false,
 	)
 
 	re, err := regexp.Compile(cmd.P2pInterfaceNamePattern)
