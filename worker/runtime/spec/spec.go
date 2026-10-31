@@ -6,41 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"code.cloudfoundry.org/garden"
 	"dario.cat/mergo"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
-
-type PrivilegedMode int
-
-const (
-	// Full privileged mode means that privileged tasks can do everything.
-	// It is equivalent to full root on the host.
-	FullPrivilegedMode PrivilegedMode = iota
-	// Ignore privileged mode means that privileged tasks have the same
-	// powers as unprivileged tasks (effectively disabling privileged).
-	IgnorePrivilegedMode
-	// FUSE-only privileged mode means that privileged tasks have access to
-	// create and mount FUSE filesystems. This is enough to use
-	// fuse-overlayfs, but not to escape the container.
-	FUSEOnlyPrivilegedMode
-)
-
-func (pm *PrivilegedMode) UnmarshalFlag(value string) error {
-	switch strings.ToLower(value) {
-	case "full":
-		*pm = FullPrivilegedMode
-	case "ignore":
-		*pm = IgnorePrivilegedMode
-	case "fuse-only":
-		*pm = FUSEOnlyPrivilegedMode
-	default:
-		return fmt.Errorf("unsupported value for PrivilegedMode: %s", value)
-	}
-	return nil
-}
 
 const baseCgroupsPath = "garden"
 
@@ -275,33 +245,4 @@ func merge(dst, src *specs.Spec) *specs.Spec {
 	}
 
 	return dst
-}
-
-// rootfsDir takes a raw rootfs uri and extracts the directory that it points to,
-// if using a valid scheme (`raw://`)
-func rootfsDir(raw string) (directory string, err error) {
-	if raw == "" {
-		err = fmt.Errorf("rootfs must not be empty")
-		return
-	}
-
-	parts := strings.SplitN(raw, "://", 2)
-	if len(parts) != 2 {
-		err = fmt.Errorf("malformatted rootfs: must be of form 'scheme://<abs_dir>'")
-		return
-	}
-
-	var scheme string
-	scheme, directory = parts[0], parts[1]
-	if scheme != "raw" {
-		err = fmt.Errorf("unsupported scheme '%s'", scheme)
-		return
-	}
-
-	if !filepath.IsAbs(directory) {
-		err = fmt.Errorf("directory must be an absolute path")
-		return
-	}
-
-	return
 }
