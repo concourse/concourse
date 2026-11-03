@@ -1,0 +1,4 @@
+services:
+  worker:
+    environment:
+      CONCOURSE_CONTAINERD_PRIVILEGED_MODE: rootless

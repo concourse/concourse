@@ -3,6 +3,8 @@
 package spec
 
 import (
+	"slices"
+
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 )
@@ -425,7 +427,8 @@ var seccomp = &specs.LinuxSeccomp{
 
 var enosys = uint(unix.ENOSYS)
 
-var fuse_syscalls = []specs.LinuxSyscall{
+// containerBuildSyscalls is shared by the FUSE-only and rootless profiles.
+var containerBuildSyscalls = []specs.LinuxSyscall{
 	{
 		Names: []string{
 			"clone",
@@ -443,6 +446,9 @@ var fuse_syscalls = []specs.LinuxSyscall{
 		},
 		Action: specs.ActAllow,
 	},
+}
+
+var fuseSyscalls = slices.Concat(containerBuildSyscalls, []specs.LinuxSyscall{
 	{
 		// Allow setns only for mount namespaces (CLONE_NEWNS = 0x20000).
 		// This is needed for BuildKit/runc to join mount namespaces during
@@ -454,7 +460,27 @@ var fuse_syscalls = []specs.LinuxSyscall{
 			{Index: 1, Value: unix.CLONE_NEWNS, Op: specs.OpEqualTo},
 		},
 	},
-}
+})
+
+var rootlessSyscalls = slices.Concat(containerBuildSyscalls, []specs.LinuxSyscall{
+	{
+		// Rootless container tools join network namespaces (pasta/slirp4netns)
+		// and user namespaces (podman's pause process).
+		Names:  []string{"setns"},
+		Action: specs.ActAllow,
+	},
+	{
+		// The new mount API: util-linux tries it first and only falls back to mount(2) on ENOSYS,
+		// not on our default EPERM. containerd allows these whenever CAP_SYS_ADMIN is granted.
+		Names: []string{
+			"fsopen",
+			"fsconfig",
+			"fsmount",
+			"fspick",
+		},
+		Action: specs.ActAllow,
+	},
+})
 
 func AllowSyscall(syscall string, args ...specs.LinuxSeccompArg) specs.LinuxSyscall {
 	return specs.LinuxSyscall{
@@ -469,10 +495,16 @@ func GetDefaultSeccompProfile() specs.LinuxSeccomp {
 }
 
 func GetDefaultSeccompProfileFuse() specs.LinuxSeccomp {
-	merged_seccomp := *seccomp
-	s := []specs.LinuxSyscall{}
-	s = append(s, fuse_syscalls[:]...)
-	s = append(s, seccomp.Syscalls[:]...)
-	merged_seccomp.Syscalls = s
-	return merged_seccomp
+	return withExtraSyscalls(fuseSyscalls)
+}
+
+func GetDefaultSeccompProfileRootless() specs.LinuxSeccomp {
+	return withExtraSyscalls(rootlessSyscalls)
+}
+
+// withExtraSyscalls prepends extra to the default profile's syscalls.
+func withExtraSyscalls(extra []specs.LinuxSyscall) specs.LinuxSeccomp {
+	merged := *seccomp
+	merged.Syscalls = slices.Concat(extra, seccomp.Syscalls)
+	return merged
 }

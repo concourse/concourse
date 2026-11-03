@@ -26,6 +26,10 @@ const (
 	// create and mount FUSE filesystems. This is enough to use
 	// fuse-overlayfs, but not to escape the container.
 	FUSEOnlyPrivilegedMode
+	// Rootless privileged mode extends FUSE-only so rootless podman or docker
+	// can run images, not just build them: unfiltered setns and /dev/net/tun.
+	// A weaker boundary than FUSE-only.
+	RootlessPrivilegedMode
 )
 
 func (pm *PrivilegedMode) UnmarshalFlag(value string) error {
@@ -36,6 +40,8 @@ func (pm *PrivilegedMode) UnmarshalFlag(value string) error {
 		*pm = IgnorePrivilegedMode
 	case "fuse-only":
 		*pm = FUSEOnlyPrivilegedMode
+	case "rootless":
+		*pm = RootlessPrivilegedMode
 	default:
 		return fmt.Errorf("unsupported value for PrivilegedMode: %s", value)
 	}
@@ -57,7 +63,7 @@ func swapLimitEnabled() bool {
 }
 
 // OciSpec converts a given `garden` container specification to an OCI spec.
-func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, hooks specs.Hooks, privilegedMode PrivilegedMode, gdn garden.ContainerSpec, maxUid, maxGid uint32, extraDevices ...[]specs.LinuxDeviceCgroup) (oci *specs.Spec, err error) {
+func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, seccompRootless specs.LinuxSeccomp, hooks specs.Hooks, privilegedMode PrivilegedMode, gdn garden.ContainerSpec, maxUid, maxGid uint32, extraDevices ...[]specs.LinuxDeviceCgroup) (oci *specs.Spec, err error) {
 	if gdn.Handle == "" {
 		err = fmt.Errorf("handle must be specified")
 		return
@@ -88,7 +94,7 @@ func OciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.L
 	}
 
 	oci = merge(
-		defaultGardenOciSpec(initBinPath, seccomp, seccompFuse, privilegedMode, gdn.Privileged, maxUid, maxGid, additionalDevices),
+		defaultGardenOciSpec(initBinPath, seccomp, seccompFuse, seccompRootless, privilegedMode, gdn.Privileged, maxUid, maxGid, additionalDevices),
 		&specs.Spec{
 			Version:  specs.Version,
 			Hostname: gdn.Handle,
@@ -225,7 +231,7 @@ func OciCgroupsPath(basePath, handle string, privilegedMode PrivilegedMode, priv
 //
 // ps.: this spec is NOT completed - it must be merged with more properties to
 // form a properly working container.
-func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, privilegedMode PrivilegedMode, privileged bool, maxUid, maxGid uint32, additionalDevices []specs.LinuxDeviceCgroup) *specs.Spec {
+func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccompFuse specs.LinuxSeccomp, seccompRootless specs.LinuxSeccomp, privilegedMode PrivilegedMode, privileged bool, maxUid, maxGid uint32, additionalDevices []specs.LinuxDeviceCgroup) *specs.Spec {
 	var (
 		namespaces   = OciNamespaces(privilegedMode, privileged)
 		capabilities = OciCapabilities(privilegedMode, privileged)
@@ -233,6 +239,9 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccom
 
 	deviceRules := make([]specs.LinuxDeviceCgroup, 0, len(DefaultContainerDevices)+len(additionalDevices))
 	deviceRules = append(deviceRules, DefaultContainerDevices...)
+	if privileged && privilegedMode == RootlessPrivilegedMode {
+		deviceRules = append(deviceRules, tunDeviceRule)
+	}
 	deviceRules = append(deviceRules, additionalDevices...)
 
 	spec := &specs.Spec{
@@ -256,6 +265,8 @@ func defaultGardenOciSpec(initBinPath string, seccomp specs.LinuxSeccomp, seccom
 	if !privileged || privilegedMode != FullPrivilegedMode {
 		if privilegedMode == FUSEOnlyPrivilegedMode {
 			spec.Linux.Seccomp = &seccompFuse
+		} else if privilegedMode == RootlessPrivilegedMode {
+			spec.Linux.Seccomp = &seccompRootless
 		} else {
 			spec.Linux.Seccomp = &seccomp
 		}

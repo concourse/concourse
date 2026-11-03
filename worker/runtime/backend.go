@@ -42,8 +42,9 @@ type GardenBackend struct {
 	// override path for the seccomp profile
 	seccompProfilePath string
 	// content of the upper path, or the default ones (default or privileged)
-	seccompProfile     specs.LinuxSeccomp
-	seccompProfileFuse specs.LinuxSeccomp
+	seccompProfile         specs.LinuxSeccomp
+	seccompProfileFuse     specs.LinuxSeccomp
+	seccompProfileRootless specs.LinuxSeccomp
 	// path to the hosts OCI hooks dir
 	ociHooksDir string
 	// the deserialized hooks
@@ -242,9 +243,11 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		}
 		b.seccompProfile = profile
 		b.seccompProfileFuse = profile
+		b.seccompProfileRootless = profile
 	} else {
 		b.seccompProfile = bespec.GetDefaultSeccompProfile()
 		b.seccompProfileFuse = bespec.GetDefaultSeccompProfileFuse()
+		b.seccompProfileRootless = bespec.GetDefaultSeccompProfileRootless()
 	}
 
 	if b.killer == nil {
@@ -375,7 +378,7 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 		return nil, fmt.Errorf("getting uid and gid maps: %w", err)
 	}
 
-	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, b.seccompProfileFuse, b.ociHooks, b.privilegedMode, gdnSpec, maxUid, maxGid, b.allowedDevices)
+	oci, err := bespec.OciSpec(b.initBinPath, b.seccompProfile, b.seccompProfileFuse, b.seccompProfileRootless, b.ociHooks, b.privilegedMode, gdnSpec, maxUid, maxGid, b.allowedDevices)
 	if err != nil {
 		return nil, fmt.Errorf("garden spec to oci spec: %w", err)
 	}
