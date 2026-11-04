@@ -1,6 +1,7 @@
 package ssm_test
 
 import (
+	"github.com/concourse/concourse/v8/atc/creds"
 	"github.com/concourse/concourse/v8/atc/creds/ssm"
 	flags "github.com/jessevdk/go-flags"
 
@@ -107,5 +108,51 @@ var _ = Describe("SsmManager", func() {
 			manager.TeamSecretTemplate = "{{.Teams}}"
 			Expect(manager.Validate()).ToNot(BeNil())
 		})
+	})
+
+	Describe("NewInstance()", func() {
+		var factory creds.ManagerFactory
+
+		BeforeEach(func() {
+			factory = ssm.NewSsmManagerFactory()
+		})
+
+		It("returns a manager", func() {
+			config := map[string]any{
+				"region":     "some-region",
+				"access_key": "some-key",
+				"secret_key": "some-key2",
+			}
+			manager, err := factory.NewInstance(config)
+			Expect(err).To(BeNil())
+			Expect(manager).ToNot(BeNil())
+			Expect(manager.IsConfigured()).To(BeTrue())
+		})
+
+		DescribeTable("errors when required fields are missing",
+			func(config map[string]any, errMsg string) {
+				manager, err := factory.NewInstance(config)
+				Expect(err).To(MatchError(errMsg))
+				Expect(manager).To(BeNil())
+			},
+			Entry("no region is specified",
+				map[string]any{},
+				"region must be specified",
+			),
+			Entry("no access_key is specified",
+				map[string]any{
+					"region":     "some-region",
+					"secret_key": "some-key",
+				},
+				"access_key and secret_key must be specified",
+			),
+			Entry("no secret_key is specified",
+				map[string]any{
+					"region":     "some-region",
+					"access_key": "some-key",
+				},
+				"access_key and secret_key must be specified",
+			),
+		)
 	})
 })

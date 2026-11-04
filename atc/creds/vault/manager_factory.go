@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/concourse/concourse/v8/atc/creds"
@@ -31,16 +32,20 @@ func (factory *vaultManagerFactory) AddConfig(group *flags.Group) creds.Manager 
 }
 
 func (factory *vaultManagerFactory) NewInstance(config any) (creds.Manager, error) {
-	if c, ok := config.(map[string]any); !ok {
+	c, ok := config.(map[string]any)
+	if !ok {
 		return nil, fmt.Errorf("invalid vault config format")
-	} else {
-		manager := &VaultManager{}
-
-		err := manager.Config(c)
-		if err != nil {
-			return nil, err
-		}
-
-		return manager, nil
 	}
+
+	manager := &VaultManager{}
+	err := manager.Config(c)
+	if err != nil {
+		return nil, err
+	}
+
+	if manager.URL == "" {
+		return nil, errors.New("vault url must be specified")
+	}
+
+	return manager, nil
 }
