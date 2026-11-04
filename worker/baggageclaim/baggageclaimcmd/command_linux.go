@@ -77,6 +77,7 @@ func (cmd *BaggageclaimCommand) Runner(logger lager.Logger, args []string) (ifri
 		locker,
 		privilegedNamespacer,
 		unprivilegedNamespacer,
+		cmd.PrivilegedMode != bespec.FullPrivilegedMode,
 	)
 
 	re, err := regexp.Compile(cmd.P2pInterfaceNamePattern)

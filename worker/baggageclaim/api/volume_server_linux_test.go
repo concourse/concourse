@@ -70,6 +70,7 @@ var _ = Describe("Volume Server", func() {
 			volume.NewLockManager(),
 			privilegedNamespacer,
 			unprivilegedNamespacer,
+			false,
 		)
 
 		strategizer := volume.NewStrategizer()
