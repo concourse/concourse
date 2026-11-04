@@ -1,12 +1,14 @@
 package worker_test
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
 
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/lager/v3/lagertest"
+	"github.com/concourse/concourse/v8/atc"
 	"github.com/concourse/concourse/v8/atc/db"
 	"github.com/concourse/concourse/v8/atc/metric"
 	"github.com/concourse/concourse/v8/atc/runtime"
@@ -341,6 +343,101 @@ var _ = Describe("Pool", func() {
 				worker := <-workerCh
 				Expect(worker.Name()).To(Equal(fmt.Sprintf("worker1-%d", concurrentId)))
 			})
+		})
+
+		Test("waits for a compatible worker instead of failing when there are no workers", func() {
+			scenario := Setup()
+
+			worker.PollingInterval = 10 * time.Millisecond
+			atc.QueueWhenNoCompatibleWorkers = true
+			atc.NoCompatibleWorkerQueueTimeout = 0
+			defer func() { atc.QueueWhenNoCompatibleWorkers = false }()
+
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			errCh := make(chan error, 1)
+			go func() {
+				defer GinkgoRecover()
+
+				_, err := scenario.Pool.FindOrSelectWorker(
+					ctx,
+					db.NewFixedHandleContainerOwner("my-container"),
+					runtime.ContainerSpec{},
+					worker.Spec{Tags: []string{"target"}},
+					nil,
+					nil,
+				)
+				errCh <- err
+			}()
+
+			By("not failing while no compatible worker is available", func() {
+				Consistently(errCh, 200*time.Millisecond).ShouldNot(Receive())
+			})
+
+			cancel()
+			Eventually(errCh).Should(Receive(MatchError(context.Canceled)))
+		})
+
+		Test("waits for a compatible worker when the only workers are incompatible", func() {
+			concurrentId := GinkgoParallelProcess()
+			scenario := Setup(
+				workertest.WithWorkers(
+					grt.NewWorker(fmt.Sprintf("worker1-%d", concurrentId)).WithTags("other"),
+				),
+			)
+
+			worker.PollingInterval = 10 * time.Millisecond
+			atc.QueueWhenNoCompatibleWorkers = true
+			atc.NoCompatibleWorkerQueueTimeout = 0
+			defer func() { atc.QueueWhenNoCompatibleWorkers = false }()
+
+			ctx, cancel := context.WithCancel(ctx)
+			defer cancel()
+
+			errCh := make(chan error, 1)
+			go func() {
+				defer GinkgoRecover()
+
+				_, err := scenario.Pool.FindOrSelectWorker(
+					ctx,
+					db.NewFixedHandleContainerOwner("my-container"),
+					runtime.ContainerSpec{},
+					worker.Spec{Tags: []string{"target"}},
+					nil,
+					nil,
+				)
+				errCh <- err
+			}()
+
+			By("not failing while no compatible worker is available", func() {
+				Consistently(errCh, 200*time.Millisecond).ShouldNot(Receive())
+			})
+
+			cancel()
+			Eventually(errCh).Should(Receive(MatchError(context.Canceled)))
+		})
+
+		Test("times out waiting for a compatible worker after the configured queue timeout", func() {
+			scenario := Setup()
+
+			worker.PollingInterval = 10 * time.Millisecond
+			atc.QueueWhenNoCompatibleWorkers = true
+			atc.NoCompatibleWorkerQueueTimeout = 50 * time.Millisecond
+			defer func() {
+				atc.QueueWhenNoCompatibleWorkers = false
+				atc.NoCompatibleWorkerQueueTimeout = 0
+			}()
+
+			_, err := scenario.Pool.FindOrSelectWorker(
+				ctx,
+				db.NewFixedHandleContainerOwner("my-container"),
+				runtime.ContainerSpec{},
+				worker.Spec{Tags: []string{"target"}},
+				nil,
+				nil,
+			)
+			Expect(err).To(BeAssignableToTypeOf(worker.WaitingForWorkerTimeoutError{}))
 		})
 	})
 

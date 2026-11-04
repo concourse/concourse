@@ -176,6 +176,10 @@ type RunCommand struct {
 
 	ContainerPlacementStrategyOptions worker.PlacementOptions `group:"Container Placement Strategy"`
 
+	NoCompatibleWorkerAction string `long:"no-compatible-worker-action" default:"fail" choice:"fail" choice:"queue" description:"Action to take when no worker is compatible with a step. 'fail' errors the step immediately; 'queue' waits for a compatible worker to appear, which allows scaling worker pools to zero."`
+
+	NoCompatibleWorkerQueueTimeout time.Duration `long:"no-compatible-worker-queue-timeout" default:"30m" description:"How long a step waits for a compatible worker when --no-compatible-worker-action is 'queue'. 0 means wait indefinitely."`
+
 	BaggageclaimResponseHeaderTimeout time.Duration `long:"baggageclaim-response-header-timeout" default:"1m" description:"How long to wait for Baggageclaim to send the response header."`
 	StreamingArtifactsCompression     string        `long:"streaming-artifacts-compression" default:"gzip" choice:"gzip" choice:"zstd" choice:"s2" choice:"raw" description:"Compression algorithm for internal streaming."`
 	StreamingSizeLimitationInMB       float64       `long:"streaming-size-limitation" default:"0.0" description:"Internal volume streaming size limitation in MB. In case of small limitation needed, float can be used like 0.01."`
@@ -592,6 +596,8 @@ func (cmd *RunCommand) Runner(positionalArguments []string) (ifrit.Runner, error
 	atc.DefaultWebhookInterval = cmd.ResourceWithWebhookCheckingInterval
 	atc.DefaultResourceTypeInterval = cmd.ResourceTypeCheckingInterval
 	atc.DisableRedactSecrets = cmd.DisableRedactSecrets
+	atc.QueueWhenNoCompatibleWorkers = cmd.NoCompatibleWorkerAction == "queue"
+	atc.NoCompatibleWorkerQueueTimeout = cmd.NoCompatibleWorkerQueueTimeout
 
 	if cmd.FeatureFlags.EnablePipelineInstances {
 		commandSession.Info("deprecated", lager.Data{

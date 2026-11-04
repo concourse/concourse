@@ -3,6 +3,7 @@ package worker
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/cppforlife/go-semi-semantic/version"
 )
@@ -16,6 +17,15 @@ type NoCompatibleWorkersError struct {
 
 func (err NoCompatibleWorkersError) Error() string {
 	return fmt.Sprintf("no workers satisfying: %s, version: '%s'", err.Spec.Description(), err.WorkerVersion)
+}
+
+type WaitingForWorkerTimeoutError struct {
+	Spec    Spec
+	Timeout time.Duration
+}
+
+func (err WaitingForWorkerTimeoutError) Error() string {
+	return fmt.Sprintf("timed out after %s waiting for a worker satisfying: %s", err.Timeout, err.Spec.Description())
 }
 
 type NoWorkerFitContainerPlacementStrategyError struct {
