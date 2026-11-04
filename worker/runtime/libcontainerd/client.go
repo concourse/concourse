@@ -6,6 +6,7 @@ import (
 	"time"
 
 	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/core/images"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -43,6 +44,19 @@ type Client interface {
 		id string,
 		labels map[string]string,
 		oci *specs.Spec,
+	) (
+		container containerd.Container, err error,
+	)
+
+	// NewContainerFromImageLayout creates a container in containerd whose
+	// rootfs is a snapshot of the image stored as an OCI image layout in dir.
+	//
+	NewContainerFromImageLayout(
+		ctx context.Context,
+		id string,
+		labels map[string]string,
+		oci *specs.Spec,
+		dir string,
 	) (
 		container containerd.Container, err error,
 	)
@@ -122,6 +136,51 @@ func (c *client) NewContainer(
 	defer cancel()
 
 	cont, err := c.containerd.NewContainer(ctx, id,
+		containerd.WithSpec(oci),
+		containerd.WithContainerLabels(labels),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &container{
+		requestTimeout: c.requestTimeout,
+		container:      cont,
+	}, nil
+}
+
+func (c *client) NewContainerFromImageLayout(
+	ctx context.Context, id string, labels map[string]string, oci *specs.Spec, dir string,
+) (
+	containerd.Container, error,
+) {
+	// the lease keeps the imported content and the unpacked layers until the
+	// container's snapshot references them
+	ctx, done, err := c.containerd.WithLease(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create lease: %w", err)
+	}
+	defer done(ctx)
+
+	target, err := importImageLayout(ctx, c.containerd.ContentStore(), dir)
+	if err != nil {
+		return nil, fmt.Errorf("import image layout %s: %w", dir, err)
+	}
+
+	// unpacking isn't bounded by the request timeout: large base images
+	// legitimately take a while, and layers already unpacked for other
+	// containers are reused
+	image := containerd.NewImage(c.containerd, images.Image{Name: dir, Target: target})
+	err = image.Unpack(ctx, "", containerd.WithSnapshotterPlatformCheck())
+	if err != nil {
+		return nil, fmt.Errorf("unpack image layout %s: %w", dir, err)
+	}
+
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
+	defer cancel()
+
+	cont, err := c.containerd.NewContainer(ctx, id,
+		containerd.WithNewSnapshot(id, image),
 		containerd.WithSpec(oci),
 		containerd.WithContainerLabels(labels),
 	)

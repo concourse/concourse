@@ -141,6 +141,14 @@ func extractEntry(root *os.Root, header *tar.Header, input io.Reader, chown bool
 
 	case tar.TypeReg, tar.TypeRegA:
 		file, err := root.Create(filePath)
+		if errors.Is(err, fs.ErrPermission) {
+			// overwriting a file that an earlier entry marked read-only,
+			// e.g. a duplicate entry from a case-insensitive collision on
+			// Windows; clear the attribute and retry
+			if chmodErr := root.Chmod(filePath, 0644); chmodErr == nil {
+				file, err = root.Create(filePath)
+			}
+		}
 		if err != nil {
 			return err
 		}

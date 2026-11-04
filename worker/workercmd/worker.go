@@ -1,12 +1,16 @@
 package workercmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/concourse/concourse/v8"
+	"github.com/concourse/concourse/v8/atc"
 	"github.com/concourse/concourse/v8/atc/worker/gardenruntime/gclient"
 	concourseCmd "github.com/concourse/concourse/v8/cmd"
 	"github.com/concourse/concourse/v8/flag"
@@ -249,4 +253,39 @@ func (cmd *WorkerCommand) workerName() (string, error) {
 	}
 
 	return os.Hostname()
+}
+
+func (cmd *WorkerCommand) loadResources(logger lager.Logger) ([]atc.WorkerResourceType, error) {
+	var types []atc.WorkerResourceType
+
+	if cmd.ResourceTypes != "" {
+		basePath := cmd.ResourceTypes.Path()
+
+		entries, err := os.ReadDir(basePath)
+		if err != nil {
+			logger.Error("failed-to-read-resources-dir", err)
+			return nil, err
+		}
+
+		for _, e := range entries {
+			meta, err := os.ReadFile(filepath.Join(basePath, e.Name(), "resource_metadata.json"))
+			if err != nil {
+				logger.Error("failed-to-read-resource-type-metadata", err)
+				return nil, err
+			}
+
+			var t atc.WorkerResourceType
+			err = json.Unmarshal(meta, &t)
+			if err != nil {
+				logger.Error("failed-to-unmarshal-resource-type-metadata", err)
+				return nil, err
+			}
+
+			t.Image = filepath.Join(basePath, e.Name(), "rootfs.tgz")
+
+			types = append(types, t)
+		}
+	}
+
+	return types, nil
 }
