@@ -11,9 +11,10 @@ import (
 )
 
 type PausePipelineCommand struct {
-	Pipeline *flaghelpers.PipelineFlag `short:"p"   long:"pipeline" description:"Pipeline to pause"`
-	All      bool                      `short:"a"   long:"all"      description:"Pause all pipelines"`
-	Team     string                    `long:"team"                 description:"Name of the team to which the pipeline belongs, if different from the target default"`
+	Pipeline     *flaghelpers.PipelineFlag          `short:"p"   long:"pipeline" description:"Pipeline to pause"`
+	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i" long:"instance-var" unquote:"false" value-name:"[NAME=YAML]" description:"Specify a YAML value for an instance variable (can be specified multiple times)"`
+	All          bool                               `short:"a"   long:"all"      description:"Pause all pipelines"`
+	Team         string                             `long:"team"                 description:"Name of the team to which the pipeline belongs, if different from the target default"`
 }
 
 func (command *PausePipelineCommand) Validate() error {
@@ -22,6 +23,10 @@ func (command *PausePipelineCommand) Validate() error {
 }
 
 func (command *PausePipelineCommand) Execute(args []string) error {
+	if len(command.InstanceVars) > 0 && command.Pipeline == nil {
+		return fmt.Errorf("--instance-var requires --pipeline")
+	}
+
 	if command.Pipeline == nil && !command.All {
 		displayhelpers.Failf("one of the flags '-p, --pipeline' or '-a, --all' is required")
 	}
@@ -33,6 +38,15 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 	err := command.Validate()
 	if err != nil {
 		return err
+	}
+
+	var pipelineRefs []atc.PipelineRef
+	if command.Pipeline != nil {
+		pipelineRef := command.Pipeline.Ref()
+		if err := flaghelpers.ApplyInstanceVars(&pipelineRef, command.InstanceVars); err != nil {
+			return err
+		}
+		pipelineRefs = []atc.PipelineRef{pipelineRef}
 	}
 
 	target, err := rc.LoadTarget(Fly.Target, Fly.Verbose)
@@ -53,11 +67,6 @@ func (command *PausePipelineCommand) Execute(args []string) error {
 		}
 	} else {
 		team = target.Team()
-	}
-
-	var pipelineRefs []atc.PipelineRef
-	if command.Pipeline != nil {
-		pipelineRefs = []atc.PipelineRef{command.Pipeline.Ref()}
 	}
 
 	if command.All {
