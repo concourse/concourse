@@ -97,11 +97,15 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 	}
 
 	for _, p := range archived {
-		pl.auditor.AuditInternal(atc.ArchivePipeline, map[string][]string{
+		params := map[string][]string{
 			":pipeline_name": {p.name},
 			":team_name":     {p.teamName},
 			":triggered_by":  {"abandoned-pipeline-gc"},
-		})
+		}
+		if len(p.instanceVars) > 0 {
+			params["vars"] = []string{p.instanceVars.String()}
+		}
+		pl.auditor.AuditInternal(atc.ArchivePipeline, params)
 	}
 
 	return nil

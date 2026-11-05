@@ -73,6 +73,33 @@ var _ = Describe("PipelineLifecycle", func() {
 					Expect(params[":pipeline_name"]).To(Equal([]string{"child-pipeline"}))
 					Expect(params[":team_name"]).To(Equal([]string{defaultTeam.Name()}))
 					Expect(params[":triggered_by"]).To(Equal([]string{"abandoned-pipeline-gc"}))
+					Expect(params).NotTo(HaveKey("vars"))
+				})
+			})
+
+			Context("parent pipeline is destroyed and child has instance vars", func() {
+				var childPipeline db.Pipeline
+
+				BeforeEach(func() {
+					build, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
+					childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{
+						Name:         "child-pipeline",
+						InstanceVars: atc.InstanceVars{"branch": "main"},
+					}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+					build.Finish(db.BuildStatusSucceeded)
+					err := defaultPipeline.Destroy()
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should archive the child pipeline", func() {
+					childPipeline.Reload()
+					Expect(childPipeline.Archived()).To(BeTrue())
+				})
+
+				It("should include instance vars in the audit log", func() {
+					Expect(fakeAuditor.AuditInternalCallCount()).To(Equal(1))
+					_, params := fakeAuditor.AuditInternalArgsForCall(0)
+					Expect(params["vars"]).To(Equal([]string{"branch:main"}))
 				})
 			})
 
