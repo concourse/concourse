@@ -110,6 +110,123 @@ func (pool Pool) FindOrSelectWorker(
 	return pool.factory.NewWorker(logger, worker), nil
 }
 
+// FindOrSelectWorkerOnPinned selects the named worker for the given step, or
+// waits for it to become available. The named worker must be compatible with
+// the step's spec (platform, tags, resource type, team, version) and must
+// pass the strategy's Approve check (e.g., not over its active-tasks limit).
+// If the worker no longer exists in the database, the function returns an
+// error.
+//
+// When pinnedWorker is empty, this falls through to the normal
+// FindOrSelectWorker behavior.
+func (pool Pool) FindOrSelectWorkerOnPinned(
+	ctx context.Context,
+	owner db.ContainerOwner,
+	containerSpec runtime.ContainerSpec,
+	workerSpec Spec,
+	pinnedWorker string,
+	strategy PlacementStrategy,
+	callback PoolCallback,
+) (runtime.Worker, error) {
+	if pinnedWorker == "" {
+		return pool.FindOrSelectWorker(ctx, owner, containerSpec, workerSpec, strategy, callback)
+	}
+
+	logger := lagerctx.FromContext(ctx)
+
+	started := time.Now()
+	labels := metric.StepsWaitingLabels{
+		Platform:   workerSpec.Platform,
+		TeamId:     strconv.Itoa(workerSpec.TeamID),
+		TeamName:   containerSpec.TeamName,
+		Type:       string(containerSpec.Type),
+		WorkerTags: strings.Join(workerSpec.Tags, "_"),
+	}
+	var worker db.Worker
+	var pollingTicker *time.Ticker
+	for {
+		var err error
+		worker, err = pool.findOrSelectWorkerOnPinned(logger, owner, containerSpec, workerSpec, pinnedWorker, strategy)
+		if err != nil {
+			return nil, err
+		}
+		if worker != nil {
+			break
+		}
+
+		if pollingTicker == nil {
+			pollingTicker = time.NewTicker(PollingInterval)
+			defer pollingTicker.Stop()
+
+			logger.Debug("waiting-for-pinned-worker", lager.Data{"worker": pinnedWorker})
+
+			_, ok := metric.Metrics.StepsWaiting[labels]
+			if !ok {
+				metric.Metrics.StepsWaiting[labels] = &metric.Gauge{}
+			}
+
+			metric.Metrics.StepsWaiting[labels].Inc()
+			defer metric.Metrics.StepsWaiting[labels].Dec()
+
+			if callback != nil {
+				callback.WaitingForWorker(logger)
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			logger.Info("aborted-waiting-for-pinned-worker")
+			return nil, ctx.Err()
+		case <-pollingTicker.C:
+		case <-pool.waker:
+		}
+	}
+
+	elapsed := time.Since(started)
+	metric.StepsWaitingDuration{
+		Labels:   labels,
+		Duration: elapsed,
+	}.Emit(logger)
+
+	return pool.factory.NewWorker(logger, worker), nil
+}
+
+func (pool Pool) findOrSelectWorkerOnPinned(
+	logger lager.Logger,
+	owner db.ContainerOwner,
+	containerSpec runtime.ContainerSpec,
+	workerSpec Spec,
+	pinnedWorkerName string,
+	strategy PlacementStrategy,
+) (db.Worker, error) {
+	pinnedWorker, found, err := pool.db.WorkerFactory.GetWorker(pinnedWorkerName)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("pinned worker %q no longer exists", pinnedWorkerName)
+	}
+
+	if !pool.isWorkerCompatibleAndRunning(logger, pinnedWorker, workerSpec) {
+		// Worker is not currently compatible (down, draining, wrong
+		// platform/tags, etc.) or is not running. Signal the caller to
+		// keep polling until it comes back or the build is aborted.
+		return nil, nil
+	}
+
+	if err := strategy.Approve(logger, pinnedWorker, containerSpec); err != nil {
+		// Strategy (e.g. active-tasks / active-containers limit) rejects
+		// the worker. Signal the caller to keep polling.
+		logger.Debug("pinned-worker-rejected-by-strategy", lager.Data{
+			"worker": pinnedWorkerName,
+			"error":  err.Error(),
+		})
+		return nil, nil
+	}
+
+	return pinnedWorker, nil
+}
+
 func (pool Pool) findOrSelectWorker(logger lager.Logger, owner db.ContainerOwner, containerSpec runtime.ContainerSpec, workerSpec Spec, strategy PlacementStrategy) (db.Worker, error) {
 	worker, compatibleWorkers, found, err := pool.findWorkerForContainer(logger, owner, workerSpec)
 	if err != nil {

@@ -336,4 +336,40 @@ var _ = Describe("RunState", func() {
 			})
 		})
 	})
+
+	Describe("PinnedWorker", func() {
+		It("returns an empty string when no worker has been pinned", func() {
+			Expect(state.PinnedWorker()).To(BeEmpty())
+		})
+
+		It("returns the pinned worker name after SetPinnedWorker is called", func() {
+			state.SetPinnedWorker("worker-1")
+			Expect(state.PinnedWorker()).To(Equal("worker-1"))
+		})
+
+		It("ignores subsequent SetPinnedWorker calls once a worker is pinned", func() {
+			state.SetPinnedWorker("worker-1")
+			state.SetPinnedWorker("worker-2")
+			Expect(state.PinnedWorker()).To(Equal("worker-1"))
+		})
+
+		It("returns the existing pinned worker name from SetPinnedWorker on subsequent calls", func() {
+			first := state.SetPinnedWorker("worker-1")
+			Expect(first).To(Equal("worker-1"))
+			second := state.SetPinnedWorker("worker-2")
+			Expect(second).To(Equal("worker-1"))
+		})
+
+		It("shares the pinned worker state across local scopes", func() {
+			state.SetPinnedWorker("worker-1")
+			scope := state.NewLocalScope()
+			Expect(scope.PinnedWorker()).To(Equal("worker-1"))
+		})
+
+		It("shares pinned worker writes from a local scope back to the parent", func() {
+			scope := state.NewLocalScope()
+			scope.SetPinnedWorker("worker-1")
+			Expect(state.PinnedWorker()).To(Equal("worker-1"))
+		})
+	})
 })
