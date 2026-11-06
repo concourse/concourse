@@ -38,4 +38,32 @@ var _ = Describe("rerun-build", func() {
 		Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/branch:master/awesome-job #43`))
 		Eventually(sess).Should(gexec.Exit(0))
 	})
+
+	It("reruns the build for the job in the team given with --team", func() {
+		rerunPath, err := atc.Routes.CreatePathForRoute(atc.RerunJobBuild, rata.Params{
+			"build_name":    "42",
+			"job_name":      "awesome-job",
+			"pipeline_name": "awesome-pipeline",
+			"team_name":     "other-team",
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		atcServer.AppendHandlers(
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/api/v1/teams/other-team"),
+				ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "other-team"}),
+			),
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("POST", rerunPath),
+				ghttp.RespondWithJSONEncoded(http.StatusCreated, atc.Build{ID: 57, Name: "43"}),
+			),
+		)
+
+		flyCmd := exec.Command(flyPath, "-t", targetName, "rerun-build", "-j", "awesome-pipeline/awesome-job", "-b", "42", "--team", "other-team")
+		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/awesome-job #43`))
+		Eventually(sess).Should(gexec.Exit(0))
+	})
 })

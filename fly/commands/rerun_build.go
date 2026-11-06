@@ -17,6 +17,7 @@ type RerunBuildCommand struct {
 	Build        string                             `short:"b" long:"build" required:"true" description:"The number of the build to rerun"`
 	InstanceVars []flaghelpers.YAMLVariablePairFlag `short:"i" long:"instance-var" unquote:"false" value-name:"[NAME=YAML]" description:"Specify a YAML value for an instance variable (can be specified multiple times)"`
 	Watch        bool                               `short:"w" long:"watch" description:"Start watching the rerun build output"`
+	Team         flaghelpers.TeamFlag               `long:"team" description:"Name of the team to which the job belongs, if different from the target default"`
 }
 
 func (command *RerunBuildCommand) Execute(args []string) error {
@@ -36,7 +37,12 @@ func (command *RerunBuildCommand) Execute(args []string) error {
 		return err
 	}
 
-	build, err := target.Team().RerunJobBuild(pipelineRef, jobName, buildName)
+	team, err := command.Team.LoadTeam(target)
+	if err != nil {
+		return err
+	}
+
+	build, err := team.RerunJobBuild(pipelineRef, jobName, buildName)
 	if err != nil {
 		return err
 	}
