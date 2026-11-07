@@ -108,3 +108,66 @@ func (s *DevicesSuite) TestParseAllowedDevices() {
 	_, err = spec.ParseAllowedDevices([]string{"b 7:* rwm", "invalid"})
 	s.Error(err)
 }
+
+func devicePaths(devices []specs.LinuxDevice) []string {
+	paths := make([]string, 0, len(devices))
+	for _, d := range devices {
+		paths = append(paths, d.Path)
+	}
+	return paths
+}
+
+func (s *DevicesSuite) TestDevices() {
+	for _, tc := range []struct {
+		desc           string
+		privilegedMode spec.PrivilegedMode
+		privileged     bool
+		expected       []string
+	}{
+		{
+			desc:           "full privileged gets fuse only",
+			privilegedMode: spec.FullPrivilegedMode,
+			privileged:     true,
+			expected:       []string{"/dev/fuse"},
+		},
+		{
+			desc:           "fuse-only privileged gets fuse only",
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			privileged:     true,
+			expected:       []string{"/dev/fuse"},
+		},
+		{
+			desc:           "rootless privileged gets fuse and tun",
+			privilegedMode: spec.RootlessPrivilegedMode,
+			privileged:     true,
+			expected:       []string{"/dev/fuse", "/dev/net/tun"},
+		},
+		{
+			desc:           "ignore mode gets nothing even when privileged",
+			privilegedMode: spec.IgnorePrivilegedMode,
+			privileged:     true,
+			expected:       []string{},
+		},
+		{
+			desc:           "unprivileged gets nothing",
+			privilegedMode: spec.FullPrivilegedMode,
+			privileged:     false,
+			expected:       []string{},
+		},
+	} {
+		s.T().Run(tc.desc, func(_ *testing.T) {
+			actual := spec.Devices(tc.privilegedMode, tc.privileged)
+			s.ElementsMatch(tc.expected, devicePaths(actual))
+		})
+	}
+}
+
+func tunCgroupRuleAllowed(rules []specs.LinuxDeviceCgroup) bool {
+	for _, rule := range rules {
+		if rule.Type == "c" && rule.Major != nil && *rule.Major == 10 &&
+			rule.Minor != nil && *rule.Minor == 200 {
+			return rule.Allow && rule.Access == "rwm"
+		}
+	}
+	return false
+}

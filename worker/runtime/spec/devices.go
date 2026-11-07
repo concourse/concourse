@@ -22,6 +22,15 @@ var (
 		FileMode: &worldReadWrite,
 	}
 
+	// Used by rootless podman/docker networking (pasta/slirp4netns); runc bind-mounts it from the host.
+	tunDevice = specs.LinuxDevice{
+		Path:     "/dev/net/tun",
+		Type:     "c",
+		Major:    10,
+		Minor:    200,
+		FileMode: &worldReadWrite,
+	}
+
 	// runc adds a list of devices by default.
 	// The rule below gets appended to that list.
 	// The rules along with some context can be found here:
@@ -34,15 +43,19 @@ var (
 		// This allows use of the FUSE filesystem
 		{Access: "rwm", Type: fuseDevice.Type, Major: new(fuseDevice.Major), Minor: new(fuseDevice.Minor), Allow: true}, // /dev/fuse
 	}
+
+	tunDeviceRule = specs.LinuxDeviceCgroup{Access: "rwm", Type: tunDevice.Type, Major: new(tunDevice.Major), Minor: new(tunDevice.Minor), Allow: true}
 )
 
 func Devices(privilegedMode PrivilegedMode, privileged bool) []specs.LinuxDevice {
 	if !privileged || privilegedMode == IgnorePrivilegedMode {
 		return nil
 	}
-	return []specs.LinuxDevice{
-		fuseDevice,
+	devices := []specs.LinuxDevice{fuseDevice}
+	if privilegedMode == RootlessPrivilegedMode {
+		devices = append(devices, tunDevice)
 	}
+	return devices
 }
 
 // ParseAllowedDevices parses a list of device rule strings into LinuxDeviceCgroup entries.
