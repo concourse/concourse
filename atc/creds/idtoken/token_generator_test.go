@@ -2,6 +2,7 @@ package idtoken_test
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/concourse/concourse/v8/atc"
@@ -205,6 +206,130 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(parsed.Headers[0].Algorithm).To(Equal("ES256"))
+	})
+
+	Context("AWS session tags", func() {
+		type awsTagsClaims struct {
+			Tags *struct {
+				PrincipalTags map[string][]string `json:"principal_tags"`
+			} `json:"https://aws.amazon.com/tags"`
+		}
+
+		parseTags := func(token string) awsTagsClaims {
+			parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+			Expect(err).ToNot(HaveOccurred())
+
+			var claims awsTagsClaims
+			err = parsed.Claims(rsaVerificationKey, &claims)
+			Expect(err).ToNot(HaveOccurred())
+			return claims
+		}
+
+		It("are not added by default", func() {
+			token, _, err := tokenGenerator.GenerateToken(params)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(parseTags(token).Tags).To(BeNil())
+		})
+
+		Context("when enabled", func() {
+			BeforeEach(func() {
+				tokenGenerator.AWSSessionTags = true
+			})
+
+			It("adds team, pipeline, job and instance vars as principal tags", func() {
+				token, _, err := tokenGenerator.GenerateToken(params)
+				Expect(err).ToNot(HaveOccurred())
+
+				claims := parseTags(token)
+				Expect(claims.Tags).ToNot(BeNil())
+				Expect(claims.Tags.PrincipalTags).To(Equal(map[string][]string{
+					"team":             {"main"},
+					"pipeline":         {"idtoken"},
+					"job":              {"testjob"},
+					"instance_var:foo": {"bar"},
+				}))
+			})
+
+			It("flattens nested and non-string instance vars", func() {
+				params.InstanceVars = atc.InstanceVars{
+					"env": "prod",
+					"app": map[string]any{
+						"name":     "api",
+						"replicas": 3,
+					},
+					"canary": true,
+				}
+				token, _, err := tokenGenerator.GenerateToken(params)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(parseTags(token).Tags.PrincipalTags).To(Equal(map[string][]string{
+					"team":                      {"main"},
+					"pipeline":                  {"idtoken"},
+					"job":                       {"testjob"},
+					"instance_var:env":          {"prod"},
+					"instance_var:app.name":     {"api"},
+					"instance_var:app.replicas": {"3"},
+					"instance_var:canary":       {"true"},
+				}))
+			})
+
+			It("omits instance vars when there are none", func() {
+				params.InstanceVars = nil
+				token, _, err := tokenGenerator.GenerateToken(params)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(parseTags(token).Tags.PrincipalTags).To(HaveLen(3))
+			})
+
+			DescribeTable("rejects instance vars AWS does not accept",
+				func(instanceVars atc.InstanceVars, errorMessage string) {
+					params.InstanceVars = instanceVars
+					_, _, err := tokenGenerator.GenerateToken(params)
+					Expect(err).To(MatchError(ContainSubstring(errorMessage)))
+				},
+				Entry("illegal character in value", atc.InstanceVars{"env": "prod#1"}, "only letters"),
+				Entry("illegal character in key", atc.InstanceVars{"env#": "prod"}, "only letters"),
+				Entry("list value", atc.InstanceVars{"regions": []any{"a", "b"}}, "only letters"),
+				Entry("key too long", atc.InstanceVars{strings.Repeat("a", 116): "x"}, "key longer than 128"),
+				Entry("keys only differ in case", atc.InstanceVars{"env": "a", "Env": "b"}, "conflicting aws session tags"),
+				Entry("nested key equals dotted key", atc.InstanceVars{"a.b": "x", "a": map[string]any{"b": "y"}}, "conflicting aws session tags"),
+				Entry("too many tags", func() atc.InstanceVars {
+					ivars := atc.InstanceVars{}
+					for i := range 48 {
+						ivars[fmt.Sprintf("var%d", i)] = "x"
+					}
+					return ivars
+				}(), "more than 50"),
+			)
+
+			It("omits job when there is none", func() {
+				params.Job = ""
+				token, _, err := tokenGenerator.GenerateToken(params)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(parseTags(token).Tags.PrincipalTags).ToNot(HaveKey("job"))
+			})
+
+			It("does not escape slashes in tag values", func() {
+				params.Pipeline = "fake/pipeline"
+				token, _, err := tokenGenerator.GenerateToken(params)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(parseTags(token).Tags.PrincipalTags["pipeline"]).To(Equal([]string{"fake/pipeline"}))
+			})
+
+			DescribeTable("rejects values AWS does not accept",
+				func(pipeline string) {
+					params.Pipeline = pipeline
+					_, _, err := tokenGenerator.GenerateToken(params)
+					Expect(err).To(MatchError(ContainSubstring("aws session tag")))
+				},
+				Entry("illegal character", "my#pipeline"),
+				Entry("reserved prefix", "aws:pipeline"),
+				Entry("too long", strings.Repeat("a", 257)),
+			)
+		})
 	})
 
 	Context("Generated Token", func() {

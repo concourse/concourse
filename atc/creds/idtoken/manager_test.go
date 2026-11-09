@@ -20,10 +20,11 @@ var _ = Describe("IDToken Manager", func() {
 	BeforeEach(func() {
 		signingKeyFactory = &dbfakes.FakeSigningKeyFactory{}
 		config = map[string]any{
-			"audience":      []any{"testaud"},
-			"subject_scope": string(idtoken.SubjectScopeTeam),
-			"expires_in":    "15m",
-			"algorithm":     "ES256",
+			"audience":         []any{"testaud"},
+			"subject_scope":    string(idtoken.SubjectScopeTeam),
+			"expires_in":       "15m",
+			"algorithm":        "ES256",
+			"aws_session_tags": true,
 		}
 	})
 
@@ -40,6 +41,21 @@ var _ = Describe("IDToken Manager", func() {
 		Expect(gen.Audience).To(ContainElement("testaud"))
 		Expect(gen.ExpiresIn).To(Equal(15 * time.Minute))
 		Expect(gen.Algorithm).To(Equal(jose.ES256))
+		Expect(gen.AWSSessionTags).To(BeTrue())
+	})
+
+	It("disables aws session tags by default", func() {
+		delete(config, "aws_session_tags")
+		manager, err := idtoken.NewManager(testIssuer, signingKeyFactory, config)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(manager.GetTokenGenerator().AWSSessionTags).To(BeFalse())
+	})
+
+	It("rejects malformed aws_session_tags", func() {
+		config["aws_session_tags"] = "true"
+		_, err := idtoken.NewManager(testIssuer, signingKeyFactory, config)
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("rejects malformed audience", func() {
