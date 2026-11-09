@@ -9,7 +9,7 @@ func OciCapabilities(privilegedMode PrivilegedMode, privileged bool) specs.Linux
 		return UnprivilegedContainerCapabilities
 	}
 
-	if privilegedMode == FUSEOnlyPrivilegedMode {
+	if privilegedMode == FUSEOnlyPrivilegedMode || privilegedMode == RootlessPrivilegedMode {
 		return FUSEOnlyContainerCapabilities
 	}
 

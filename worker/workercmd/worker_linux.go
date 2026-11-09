@@ -43,7 +43,7 @@ type ContainerdRuntime struct {
 	LogLevel           string                `long:"log-level" default:"info" description:"Minimum level of logs to see." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" choice:"panic"`
 	RequestTimeout     time.Duration         `long:"request-timeout" default:"5m" description:"How long to wait for requests to Containerd to complete. 0 means no timeout."`
 	MaxContainers      int                   `long:"max-containers" default:"250" description:"Max container capacity. 0 means no limit."`
-	PrivilegedMode     bespec.PrivilegedMode `long:"privileged-mode" default:"full" choice:"full" choice:"fuse-only" choice:"ignore" description:"How many privileges privileged containers get. full is equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs."`
+	PrivilegedMode     bespec.PrivilegedMode `long:"privileged-mode" default:"full" choice:"full" choice:"fuse-only" choice:"rootless" choice:"ignore" description:"How many privileges privileged containers get. full is equivalent to root on host. ignore means no extra privileges. fuse-only means enough to use fuse-overlayfs. rootless means fuse-only plus enough to run rootless podman or docker."`
 	AllowedDevices     []string              `long:"allowed-device" description:"Device cgroup rule to allow in containers, in the format 'type major:minor access' (e.g. 'b 7:* rwm' for loop devices). Can be specified multiple times."`
 
 	Network struct {
