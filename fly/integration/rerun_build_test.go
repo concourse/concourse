@@ -66,4 +66,25 @@ var _ = Describe("rerun-build", func() {
 		Eventually(sess).Should(gbytes.Say(`started awesome-pipeline/awesome-job #43`))
 		Eventually(sess).Should(gexec.Exit(0))
 	})
+
+	It("fails without rerunning a build when the team does not exist", func() {
+		atcServer.AppendHandlers(
+			ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/api/v1/teams/missing-team"),
+				ghttp.RespondWith(http.StatusNotFound, nil),
+			),
+		)
+		requestsBeforeRerun := len(atcServer.ReceivedRequests())
+
+		flyCmd := exec.Command(flyPath, "-t", targetName, "rerun-build", "-j", "awesome-pipeline/awesome-job", "-b", "42", "--team", "missing-team")
+		sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(sess.Err).Should(gbytes.Say(`error: team 'missing-team' does not exist`))
+		Eventually(sess).Should(gexec.Exit(1))
+		Expect(sess.Out).NotTo(gbytes.Say(`started`))
+		for _, request := range atcServer.ReceivedRequests()[requestsBeforeRerun:] {
+			Expect(request.Method).NotTo(Equal(http.MethodPost))
+		}
+	})
 })
