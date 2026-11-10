@@ -33,6 +33,10 @@ func (b *GardenBackend) newContainer(ctx context.Context, handle string, labels 
 	imageLayout := oci.Root.Path
 	oci.Root = nil
 
+	if b.hyperV != nil {
+		b.hyperV.Isolate(oci)
+	}
+
 	attacher, attach := b.network.(ContainerAttacher)
 	if attach {
 		err := attacher.AttachContainer(handle, oci)

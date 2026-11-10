@@ -167,11 +167,18 @@ func (c *client) NewContainerFromImageLayout(
 		return nil, fmt.Errorf("import image layout %s: %w", dir, err)
 	}
 
+	// a Hyper-V isolated container boots its own kernel, so its image doesn't
+	// have to match the host's Windows build
+	var unpackOpts []containerd.UnpackOpt
+	if oci.Windows == nil || oci.Windows.HyperV == nil {
+		unpackOpts = append(unpackOpts, containerd.WithSnapshotterPlatformCheck())
+	}
+
 	// unpacking isn't bounded by the request timeout: large base images
 	// legitimately take a while, and layers already unpacked for other
 	// containers are reused
 	image := containerd.NewImage(c.containerd, images.Image{Name: dir, Target: target})
-	err = image.Unpack(ctx, "", containerd.WithSnapshotterPlatformCheck())
+	err = image.Unpack(ctx, "", unpackOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("unpack image layout %s: %w", dir, err)
 	}

@@ -13,6 +13,7 @@ import (
 	concourseCmd "github.com/concourse/concourse/v8/cmd"
 	"github.com/concourse/concourse/v8/worker/runtime"
 	"github.com/concourse/concourse/v8/worker/runtime/libcontainerd"
+	bespec "github.com/concourse/concourse/v8/worker/runtime/spec"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 )
@@ -72,6 +73,13 @@ func (cmd *WorkerCommand) containerdGardenServerRunner(logger lager.Logger, cont
 		runtime.WithRequestTimeout(cmd.Containerd.RequestTimeout),
 		runtime.WithMaxContainers(cmd.Containerd.MaxContainers),
 		runtime.WithInitBinPath(cmd.Containerd.InitBin),
+	}
+
+	if cmd.Containerd.Isolation == "hyperv" {
+		backendOpts = append(backendOpts, runtime.WithHyperVIsolation(bespec.UtilityVM{
+			ProcessorCount: cmd.Containerd.HyperVCPUs,
+			MemoryMB:       cmd.Containerd.HyperVMemoryMB,
+		}))
 	}
 
 	gardenBackend, err := runtime.NewGardenBackend(

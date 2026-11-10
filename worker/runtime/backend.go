@@ -51,6 +51,8 @@ type GardenBackend struct {
 	createLock     TimeoutWithByPassLock
 	privilegedMode bespec.PrivilegedMode
 	allowedDevices []specs.LinuxDeviceCgroup
+	// nil runs Windows containers with process isolation
+	hyperV *bespec.UtilityVM
 }
 
 //counterfeiter:generate . UserNamespace
@@ -140,6 +142,14 @@ func WithIOManager(ioManager IOManager) GardenBackendOpt {
 func WithAllowedDevices(devices []specs.LinuxDeviceCgroup) GardenBackendOpt {
 	return func(b *GardenBackend) {
 		b.allowedDevices = devices
+	}
+}
+
+// WithHyperVIsolation runs each Windows container in a utility VM of the
+// given size.
+func WithHyperVIsolation(uvm bespec.UtilityVM) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.hyperV = &uvm
 	}
 }
 
