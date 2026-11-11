@@ -9,6 +9,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/pkg/cio"
 )
 
 const (
@@ -21,6 +22,10 @@ func processCwd(dir string) string {
 		return "/"
 	}
 	return dir
+}
+
+func processIOCreator(_ string, opts []cio.Opt) cio.Creator {
+	return cio.NewCreator(opts...)
 }
 
 var pathRegexp = regexp.MustCompile("^PATH=.*$")

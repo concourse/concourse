@@ -131,7 +131,7 @@ func (c *Container) Run(
 
 	id := procID(spec)
 	cioOpts := containerdCIO(processIO, spec.TTY != nil)
-	ioCreator := c.ioManager.Creator(c.Handle(), id, cio.NewCreator(cioOpts...))
+	ioCreator := c.ioManager.Creator(c.Handle(), id, processIOCreator(c.Handle(), cioOpts))
 
 	proc, err := task.Exec(ctx, id, &procSpec, ioCreator)
 	if err != nil {
