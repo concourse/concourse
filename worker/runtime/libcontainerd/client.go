@@ -6,6 +6,8 @@ import (
 	"time"
 
 	containerd "github.com/containerd/containerd/v2/client"
+	"github.com/containerd/containerd/v2/core/images"
+	"github.com/containerd/errdefs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -43,6 +45,19 @@ type Client interface {
 		id string,
 		labels map[string]string,
 		oci *specs.Spec,
+	) (
+		container containerd.Container, err error,
+	)
+
+	// NewContainerFromImageLayout creates a container in containerd whose
+	// rootfs is a snapshot of the image stored as an OCI image layout in dir.
+	//
+	NewContainerFromImageLayout(
+		ctx context.Context,
+		id string,
+		labels map[string]string,
+		oci *specs.Spec,
+		dir string,
 	) (
 		container containerd.Container, err error,
 	)
@@ -122,6 +137,66 @@ func (c *client) NewContainer(
 	defer cancel()
 
 	cont, err := c.containerd.NewContainer(ctx, id,
+		containerd.WithSpec(oci),
+		containerd.WithContainerLabels(labels),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &container{
+		requestTimeout: c.requestTimeout,
+		container:      cont,
+	}, nil
+}
+
+func (c *client) NewContainerFromImageLayout(
+	ctx context.Context, id string, labels map[string]string, oci *specs.Spec, dir string,
+) (
+	containerd.Container, error,
+) {
+	// the lease keeps the imported content and the unpacked layers until the
+	// stored image references them
+	ctx, done, err := c.containerd.WithLease(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create lease: %w", err)
+	}
+	defer done(ctx)
+
+	target, err := importImageLayout(ctx, c.containerd.ContentStore(), dir)
+	if err != nil {
+		return nil, fmt.Errorf("import image layout %s: %w", dir, err)
+	}
+
+	// a Hyper-V isolated container boots its own kernel, so its image doesn't
+	// have to match the host's Windows build
+	var unpackOpts []containerd.UnpackOpt
+	if oci.Windows == nil || oci.Windows.HyperV == nil {
+		unpackOpts = append(unpackOpts, containerd.WithSnapshotterPlatformCheck())
+	}
+
+	// unpacking isn't bounded by the request timeout: large base images
+	// legitimately take a while, and layers already unpacked for other
+	// containers are reused
+	image := containerd.NewImage(c.containerd, images.Image{Name: dir, Target: target})
+	err = image.Unpack(ctx, "", unpackOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("unpack image layout %s: %w", dir, err)
+	}
+
+	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
+	defer cancel()
+
+	// containerd keeps the content and unpacked layers of a stored image, so
+	// later containers on this image skip the copy and the unpack. Nothing
+	// removes stored images.
+	_, err = c.containerd.ImageService().Create(ctx, images.Image{Name: target.Digest.String(), Target: target})
+	if err != nil && !errdefs.IsAlreadyExists(err) {
+		return nil, fmt.Errorf("store image %s: %w", target.Digest, err)
+	}
+
+	cont, err := c.containerd.NewContainer(ctx, id,
+		containerd.WithNewSnapshot(id, image),
 		containerd.WithSpec(oci),
 		containerd.WithContainerLabels(labels),
 	)

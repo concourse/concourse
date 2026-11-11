@@ -1,4 +1,4 @@
-//go:build linux
+//go:build linux || windows
 
 // Package backend provides the implementation of a Garden server backed by
 // containerd.
@@ -54,6 +54,8 @@ type GardenBackend struct {
 	createLock     TimeoutWithByPassLock
 	privilegedMode bespec.PrivilegedMode
 	allowedDevices []specs.LinuxDeviceCgroup
+	// nil runs Windows containers with process isolation
+	hyperV *bespec.UtilityVM
 }
 
 //counterfeiter:generate . UserNamespace
@@ -146,6 +148,14 @@ func WithAllowedDevices(devices []specs.LinuxDeviceCgroup) GardenBackendOpt {
 	}
 }
 
+// WithHyperVIsolation runs each Windows container in a utility VM of the
+// given size.
+func WithHyperVIsolation(uvm bespec.UtilityVM) GardenBackendOpt {
+	return func(b *GardenBackend) {
+		b.hyperV = &uvm
+	}
+}
+
 type When struct {
 	Always      bool              `json:"always,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -181,7 +191,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 	b.createLock = NewTimeoutLimitLock(b.requestTimeout, enableLock)
 
 	if b.network == nil {
-		b.network, err = NewCNINetwork()
+		b.network, err = defaultNetwork()
 		if err != nil {
 			return b, fmt.Errorf("network init: %w", err)
 		}
@@ -243,8 +253,7 @@ func NewGardenBackend(client libcontainerd.Client, opts ...GardenBackendOpt) (b 
 		b.seccompProfile = profile
 		b.seccompProfileFuse = profile
 	} else {
-		b.seccompProfile = bespec.GetDefaultSeccompProfile()
-		b.seccompProfileFuse = bespec.GetDefaultSeccompProfileFuse()
+		b.seccompProfile, b.seccompProfileFuse = defaultSeccompProfiles()
 	}
 
 	if b.killer == nil {
@@ -391,11 +400,12 @@ func (b *GardenBackend) createContainer(ctx context.Context, gdnSpec garden.Cont
 	if err != nil {
 		return nil, fmt.Errorf("convert properties to labels: %w", err)
 	}
-	return b.client.NewContainer(ctx, gdnSpec.Handle, labels, oci)
+
+	return b.newContainer(ctx, gdnSpec.Handle, labels, oci)
 }
 
 func (b *GardenBackend) startTask(ctx context.Context, cont containerd.Container, hermetic bool) error {
-	task, err := cont.NewTask(ctx, cio.NullIO, containerd.WithNoNewKeyring)
+	task, err := cont.NewTask(ctx, cio.NullIO, defaultTaskOpts()...)
 	if err != nil {
 		return fmt.Errorf("new task: %w", err)
 	}
