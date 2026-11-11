@@ -15,8 +15,10 @@ import (
 )
 
 // importImageLayout copies the image stored as an OCI image layout in dir
-// into the content store, returning the descriptor of the image.
-func importImageLayout(ctx context.Context, store content.Ingester, dir string) (ocispec.Descriptor, error) {
+// into the content store, returning the descriptor of the image. Each blob
+// is labelled with the blobs it refers to, so that garbage collection keeps
+// the whole image for as long as something refers to its descriptor.
+func importImageLayout(ctx context.Context, store content.Store, dir string) (ocispec.Descriptor, error) {
 	indexJSON, err := os.ReadFile(filepath.Join(dir, ocispec.ImageIndexFile))
 	if err != nil {
 		return ocispec.Descriptor{}, err
@@ -46,7 +48,7 @@ func importImageLayout(ctx context.Context, store content.Ingester, dir string) 
 
 	err = images.Dispatch(ctx, images.Handlers(
 		copyBlob,
-		images.FilterPlatforms(images.ChildrenHandler(layout), platforms.Default()),
+		images.SetChildrenLabels(store, images.FilterPlatforms(images.ChildrenHandler(layout), platforms.Default())),
 	), nil, index.Manifests[0])
 	if err != nil {
 		return ocispec.Descriptor{}, err

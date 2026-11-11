@@ -3,6 +3,7 @@ package libcontainerd
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"os"
 	"path/filepath"
 	"testing"
@@ -63,11 +64,43 @@ func (l testImageLayout) writeIndex(t *testing.T, manifests ...ocispec.Descripto
 	require.NoError(t, os.WriteFile(filepath.Join(l.dir, ocispec.ImageIndexFile), index, 0644))
 }
 
+type testLabels map[digest.Digest]map[string]string
+
+func (l testLabels) Get(d digest.Digest) (map[string]string, error) {
+	return l[d], nil
+}
+
+func (l testLabels) Set(d digest.Digest, labels map[string]string) error {
+	l[d] = labels
+	return nil
+}
+
+func (l testLabels) Update(d digest.Digest, update map[string]string) (map[string]string, error) {
+	labels := maps.Clone(l[d])
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	for k, v := range update {
+		if v == "" {
+			delete(labels, k)
+		} else {
+			labels[k] = v
+		}
+	}
+	l[d] = labels
+	return labels, nil
+}
+
+func newTestContentStore(t *testing.T) content.Store {
+	store, err := local.NewLabeledStore(t.TempDir(), testLabels{})
+	require.NoError(t, err)
+	return store
+}
+
 func TestImportImageLayoutCopiesTheImageIntoTheContentStore(t *testing.T) {
 	l := newTestImageLayout(t)
 
-	store, err := local.NewStore(t.TempDir())
-	require.NoError(t, err)
+	store := newTestContentStore(t)
 
 	target, err := importImageLayout(context.Background(), store, l.dir)
 	require.NoError(t, err)
@@ -80,14 +113,28 @@ func TestImportImageLayoutCopiesTheImageIntoTheContentStore(t *testing.T) {
 	}
 }
 
+func TestImportImageLayoutKeepsTheWholeImageThroughGarbageCollection(t *testing.T) {
+	l := newTestImageLayout(t)
+	store := newTestContentStore(t)
+
+	_, err := importImageLayout(context.Background(), store, l.dir)
+	require.NoError(t, err)
+
+	manifest, err := store.Info(context.Background(), l.manifest.Digest)
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{
+		"containerd.io/gc.ref.content.config": l.config.Digest.String(),
+		"containerd.io/gc.ref.content.l.0":    l.layer.Digest.String(),
+	}, manifest.Labels)
+}
+
 func TestImportImageLayoutFailsWhenABlobIsMissing(t *testing.T) {
 	l := newTestImageLayout(t)
 	require.NoError(t, os.Remove(filepath.Join(l.dir, ocispec.ImageBlobsDir, l.layer.Digest.Algorithm().String(), l.layer.Digest.Encoded())))
 
-	store, err := local.NewStore(t.TempDir())
-	require.NoError(t, err)
+	store := newTestContentStore(t)
 
-	_, err = importImageLayout(context.Background(), store, l.dir)
+	_, err := importImageLayout(context.Background(), store, l.dir)
 	require.True(t, errdefs.IsNotFound(err), err)
 }
 
@@ -95,10 +142,9 @@ func TestImportImageLayoutFailsWithoutExactlyOneImage(t *testing.T) {
 	l := newTestImageLayout(t)
 	l.writeIndex(t, l.manifest, l.manifest)
 
-	store, err := local.NewStore(t.TempDir())
-	require.NoError(t, err)
+	store := newTestContentStore(t)
 
-	_, err = importImageLayout(context.Background(), store, l.dir)
+	_, err := importImageLayout(context.Background(), store, l.dir)
 	require.Error(t, err)
 }
 
@@ -107,10 +153,9 @@ func TestImportImageLayoutRejectsAMalformedDigest(t *testing.T) {
 	l.manifest.Digest = "../../../outside"
 	l.writeIndex(t, l.manifest)
 
-	store, err := local.NewStore(t.TempDir())
-	require.NoError(t, err)
+	store := newTestContentStore(t)
 
-	_, err = importImageLayout(context.Background(), store, l.dir)
+	_, err := importImageLayout(context.Background(), store, l.dir)
 	require.ErrorIs(t, err, digest.ErrDigestInvalidFormat)
 }
 
@@ -118,9 +163,8 @@ func TestImportImageLayoutFailsOnAnExtractedRootfs(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.MkdirAll(filepath.Join(dir, "Files", "Windows"), 0755))
 
-	store, err := local.NewStore(t.TempDir())
-	require.NoError(t, err)
+	store := newTestContentStore(t)
 
-	_, err = importImageLayout(context.Background(), store, dir)
+	_, err := importImageLayout(context.Background(), store, dir)
 	require.ErrorIs(t, err, os.ErrNotExist)
 }

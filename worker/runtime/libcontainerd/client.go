@@ -7,6 +7,7 @@ import (
 
 	containerd "github.com/containerd/containerd/v2/client"
 	"github.com/containerd/containerd/v2/core/images"
+	"github.com/containerd/errdefs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -155,7 +156,7 @@ func (c *client) NewContainerFromImageLayout(
 	containerd.Container, error,
 ) {
 	// the lease keeps the imported content and the unpacked layers until the
-	// container's snapshot references them
+	// stored image references them
 	ctx, done, err := c.containerd.WithLease(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("create lease: %w", err)
@@ -185,6 +186,14 @@ func (c *client) NewContainerFromImageLayout(
 
 	ctx, cancel := createTimeoutContext(ctx, c.requestTimeout)
 	defer cancel()
+
+	// containerd keeps the content and unpacked layers of a stored image, so
+	// later containers on this image skip the copy and the unpack. Nothing
+	// removes stored images.
+	_, err = c.containerd.ImageService().Create(ctx, images.Image{Name: target.Digest.String(), Target: target})
+	if err != nil && !errdefs.IsAlreadyExists(err) {
+		return nil, fmt.Errorf("store image %s: %w", target.Digest, err)
+	}
 
 	cont, err := c.containerd.NewContainer(ctx, id,
 		containerd.WithNewSnapshot(id, image),
