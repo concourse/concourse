@@ -62,7 +62,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jackpal/gateway v1.2.0
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/klauspost/compress v1.19.1
+	github.com/klauspost/compress v1.20.4
 	github.com/madflojo/testcerts v1.5.0
 	github.com/mattn/go-colorable v0.1.15
 	github.com/mattn/go-isatty v0.0.23
