@@ -1,0 +1,49 @@
+name: govulncheck
+
+on:
+  push:
+    branches: [ master, release/* ]
+  pull_request:
+    branches: [ master, release/* ]
+  schedule:
+    - cron: '22 07 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # WARNING: Always run govulncheck with the exact Go version declared in go.mod
+          # (enforced here and via GOTOOLCHAIN=local below). Running with a newer Go
+          # binary evaluates stdlib against that newer release and hides Go standard
+          # library CVEs affecting the version in go.mod. Consequently, when a stdlib
+          # vulnerability is reported, resolve it by bumping the Go patch version in
+          # go.mod.
+          go-version-file: go.mod
+          check-latest: false
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        env:
+          GOTOOLCHAIN: local
+        run: |
+          go version
+          echo "=== govulncheck (GOOS=linux) ==="
+          GOOS=linux govulncheck ./...
+          for goos in windows darwin; do
+            echo "=== govulncheck (GOOS=${goos}) ==="
+            GOOS="${goos}" govulncheck ./cmd/concourse ./fly/... ./worker/baggageclaim/... ./go-archive/...
+          done
