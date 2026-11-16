@@ -1969,7 +1969,7 @@ func (cmd *RunCommand) constructAuthHandler(
 		Clients:           cmd.Auth.AuthFlags.Clients,
 		Expiration:        cmd.Auth.AuthFlags.Expiration,
 		IssuerURL:         issuerURL.String(),
-		RedirectURL:       redirectURL.String(),
+		RedirectURL:       redirectURL.Path,
 		SigningKey:        cmd.Auth.AuthFlags.SigningKey.PrivateKey,
 		Storage:           storage,
 	})
@@ -2005,7 +2005,7 @@ func (cmd *RunCommand) constructSkyHandler(
 	redirectURL := cmd.ExternalURL.URL.ResolveReference(redirectPath)
 
 	endpoint := oauth2.Endpoint{
-		AuthURL:   authURL.String(),
+		AuthURL:   authURL.Path,
 		TokenURL:  tokenURL.String(),
 		AuthStyle: oauth2.AuthStyleInHeader,
 	}
@@ -2014,7 +2014,7 @@ func (cmd *RunCommand) constructSkyHandler(
 		Endpoint:     endpoint,
 		ClientID:     cmd.Server.ClientID,
 		ClientSecret: cmd.Server.ClientSecret,
-		RedirectURL:  redirectURL.String(),
+		RedirectURL:  redirectURL.Path,
 		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
 	}
 
