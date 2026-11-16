@@ -175,6 +175,7 @@ var _ = Describe("CheckStep", func() {
 			containerMetadata,
 			noInputStrategy,
 			checkStrategy,
+			false,
 			fakePool,
 			fakeDelegateFactory,
 			defaultTimeout,

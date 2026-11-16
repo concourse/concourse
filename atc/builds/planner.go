@@ -25,6 +25,7 @@ func (planner Planner) Create(
 	inputs []db.BuildInput,
 	manuallyTriggered bool,
 	tags atc.Tags,
+	pinWorker bool,
 ) (atc.Plan, error) {
 	visitor := &planVisitor{
 		planFactory: planner.planFactory,
@@ -42,6 +43,8 @@ func (planner Planner) Create(
 	if err != nil {
 		return atc.Plan{}, err
 	}
+
+	visitor.plan.PinWorker = pinWorker
 
 	return visitor.plan, nil
 }
