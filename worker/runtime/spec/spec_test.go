@@ -12,6 +12,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -88,7 +89,7 @@ func (s *SpecSuite) TestContainerSpecValidations() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			_, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), spec.GetDefaultSeccompProfileFuse(), specs.Hooks{}, spec.FullPrivilegedMode, tc.spec, dummyMaxUid, dummyMaxGid)
+			_, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), spec.GetDefaultSeccompProfileFuse(), spec.GetDefaultSeccompProfileRootless(), specs.Hooks{}, spec.FullPrivilegedMode, tc.spec, dummyMaxUid, dummyMaxGid)
 			s.Error(err)
 		})
 	}
@@ -215,6 +216,12 @@ func (s *SpecSuite) TestOciNamespaces() {
 			expected:       spec.UnprivilegedContainerNamespaces,
 		},
 		{
+			desc:           "privileged - rootless",
+			privilegedMode: spec.RootlessPrivilegedMode,
+			privileged:     true,
+			expected:       spec.UnprivilegedContainerNamespaces,
+		},
+		{
 			desc:           "privileged - ignore",
 			privilegedMode: spec.IgnorePrivilegedMode,
 			privileged:     true,
@@ -244,6 +251,12 @@ func (s *SpecSuite) TestOciCapabilities() {
 			desc:           "privileged FUSEOnlyPrivilegedMode",
 			privileged:     true,
 			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			expected:       spec.FUSEOnlyContainerCapabilities,
+		},
+		{
+			desc:           "privileged RootlessPrivilegedMode gets no more than FUSE-only",
+			privileged:     true,
+			privilegedMode: spec.RootlessPrivilegedMode,
 			expected:       spec.FUSEOnlyContainerCapabilities,
 		},
 		{
@@ -399,6 +412,14 @@ func (s *SpecSuite) TestOciCgroupsPath() {
 			basePath:       "garden",
 			handle:         "1234",
 			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			privileged:     true,
+			expected:       "garden/1234",
+		},
+		{
+			desc:           "privileged - rootless",
+			basePath:       "garden",
+			handle:         "1234",
+			privilegedMode: spec.RootlessPrivilegedMode,
 			privileged:     true,
 			expected:       "garden/1234",
 		},
@@ -588,7 +609,7 @@ func (s *SpecSuite) TestContainerSpec() {
 			},
 		},
 		{
-			desc: "seccomp allows setns for FUSE-only",
+			desc: "seccomp filters setns to mount namespaces only for FUSE-only",
 			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
 				Privileged: true,
@@ -598,12 +619,61 @@ func (s *SpecSuite) TestContainerSpec() {
 				s.NotEmpty(oci.Linux.Seccomp)
 				var found bool
 				for _, syscall := range oci.Linux.Seccomp.Syscalls {
-					if slices.Contains(syscall.Names, "setns") && syscall.Action == specs.ActAllow {
-						found = true
-						break
+					if !slices.Contains(syscall.Names, "setns") || syscall.Action != specs.ActAllow {
+						continue
 					}
+					found = true
+					s.Equal([]specs.LinuxSeccompArg{
+						{Index: 1, Value: unix.CLONE_NEWNS, Op: specs.OpEqualTo},
+					}, syscall.Args, "setns should be restricted to mount namespaces")
 				}
 				s.True(found, "setns syscall should be allowed")
+			},
+		},
+		{
+			desc: "seccomp does not filter setns on nstype for rootless",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.RootlessPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.NotEmpty(oci.Linux.Seccomp)
+				var found bool
+				for _, syscall := range oci.Linux.Seccomp.Syscalls {
+					if !slices.Contains(syscall.Names, "setns") || syscall.Action != specs.ActAllow {
+						continue
+					}
+					found = true
+					s.Empty(syscall.Args, "setns should be allowed unconditionally")
+				}
+				s.True(found, "setns syscall should be allowed")
+			},
+		},
+		{
+			desc: "seccomp allows the new mount API for rootless",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.RootlessPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.NotEmpty(oci.Linux.Seccomp)
+				for _, name := range []string{"fsopen", "fsconfig", "fsmount", "fspick"} {
+					var found bool
+					for _, syscall := range oci.Linux.Seccomp.Syscalls {
+						if !slices.Contains(syscall.Names, name) {
+							continue
+						}
+						found = true
+						s.Equal(specs.ActAllow, syscall.Action,
+							"%s should be allowed", name)
+						s.Empty(syscall.Args,
+							"%s should be allowed unconditionally", name)
+						break
+					}
+					s.True(found, "%s should have a seccomp rule", name)
+				}
 			},
 		},
 		{
@@ -655,6 +725,39 @@ func (s *SpecSuite) TestContainerSpec() {
 			},
 		},
 		{
+			desc: "devices allow /dev/net/tun for privileged rootless",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.RootlessPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.True(tunCgroupRuleAllowed(oci.Linux.Resources.Devices), "expected a cgroup allow rule for /dev/net/tun")
+			},
+		},
+		{
+			desc: "devices do not allow /dev/net/tun for unprivileged rootless",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: false,
+			},
+			privilegedMode: spec.RootlessPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.False(tunCgroupRuleAllowed(oci.Linux.Resources.Devices), "expected no cgroup allow rule for /dev/net/tun")
+			},
+		},
+		{
+			desc: "devices do not allow /dev/net/tun outside rootless",
+			gdn: garden.ContainerSpec{
+				Handle: "handle", RootFSPath: "raw:///rootfs",
+				Privileged: true,
+			},
+			privilegedMode: spec.FUSEOnlyPrivilegedMode,
+			check: func(oci *specs.Spec) {
+				s.False(tunCgroupRuleAllowed(oci.Linux.Resources.Devices), "expected no cgroup allow rule for /dev/net/tun")
+			},
+		},
+		{
 			desc: "limits",
 			gdn: garden.ContainerSpec{
 				Handle: "handle", RootFSPath: "raw:///rootfs",
@@ -693,7 +796,7 @@ func (s *SpecSuite) TestContainerSpec() {
 		},
 	} {
 		s.T().Run(tc.desc, func(t *testing.T) {
-			actual, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), spec.GetDefaultSeccompProfileFuse(), specs.Hooks{}, tc.privilegedMode, tc.gdn, dummyMaxUid, dummyMaxGid)
+			actual, err := spec.OciSpec(spec.DefaultInitBinPath, spec.GetDefaultSeccompProfile(), spec.GetDefaultSeccompProfileFuse(), spec.GetDefaultSeccompProfileRootless(), specs.Hooks{}, tc.privilegedMode, tc.gdn, dummyMaxUid, dummyMaxGid)
 			s.NoError(err)
 
 			tc.check(actual)
@@ -715,6 +818,7 @@ func (s *SpecSuite) TestOciSpecWithExtraDevices() {
 		spec.DefaultInitBinPath,
 		spec.GetDefaultSeccompProfile(),
 		spec.GetDefaultSeccompProfileFuse(),
+		spec.GetDefaultSeccompProfileRootless(),
 		specs.Hooks{},
 		spec.FullPrivilegedMode,
 		gdn,

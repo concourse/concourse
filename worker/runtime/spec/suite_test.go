@@ -14,3 +14,9 @@ func TestSuite(t *testing.T) {
 		Assertions: require.New(t),
 	})
 }
+
+func TestDevicesSuite(t *testing.T) {
+	suite.Run(t, &DevicesSuite{
+		Assertions: require.New(t),
+	})
+}

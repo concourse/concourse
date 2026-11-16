@@ -1,0 +1,34 @@
+resources:
+- name: image
+  type: mock
+  source: {mirror_self: true}
+  version: {version: mock}
+
+jobs:
+- name: rootless-namespaces-and-devices
+  plan:
+  - get: image
+  - task: probe
+    privileged: true
+    image: image
+    config:
+      platform: linux
+      run:
+        path: sh
+        args:
+        - -c
+        - |
+          set -eux
+          fail() { echo "FAIL: $*" >&2; exit 1; }
+          has_cap() { test $(( (0x$capbnd >> $1) & 1 )) -eq 1; }
+          cat /proc/self/uid_map
+          # container root must not be host root: the identity map means no user namespace
+          if grep -qE '^[[:space:]]*0[[:space:]]+0[[:space:]]+4294967295' /proc/self/uid_map; then fail "container root is host root (no user namespace)"; fi
+          capbnd=$(awk '/^CapBnd/{print $2}' /proc/self/status)
+          has_cap 21 || fail "CAP_SYS_ADMIN missing from bounding set"
+          ! has_cap 12 || fail "CAP_NET_ADMIN unexpectedly in bounding set"
+          ! has_cap 16 || fail "CAP_SYS_MODULE unexpectedly in bounding set"
+          if mknod /tmp/tun-probe c 10 200; then fail "mknod of tun device succeeded"; fi
+          # rootless allows setns into any namespace; fuse-only restricts it to mount namespaces
+          nsenter --net=/proc/self/ns/net true || fail "setns into network namespace blocked"
+          test -c /dev/net/tun || fail "/dev/net/tun missing or not a character device"
