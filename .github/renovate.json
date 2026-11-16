@@ -1,5 +1,6 @@
 {
-  "extends": ["config:base", "group:all"],
+  "extends": ["config:base", "group:all", "helpers:pinGitHubActionDigests"],
+  "minimumReleaseAge": "14 days",
   "packageRules": [
     {
       "matchLanguages": ["js"],
@@ -14,6 +15,13 @@
       "extends": ["schedule:weekly"],
       "groupName": "golang",
       "groupSlug": "go"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "addLabels": ["github-actions"],
+      "extends": ["schedule:weekly"],
+      "groupName": "github-actions",
+      "groupSlug": "github-actions"
     },
     {
       "matchPackageNames": ["k8s.io/client-go"],
