@@ -39,6 +39,7 @@ func NewAuditor(
 
 type Auditor interface {
 	Audit(action string, userName string, r *http.Request)
+	AuditInternal(action string, params map[string][]string)
 }
 
 type auditor struct {
@@ -183,5 +184,11 @@ func (a *auditor) Audit(action string, userName string, r *http.Request) {
 	err := r.ParseForm()
 	if err == nil && a.ValidateAction(action) {
 		a.logger.Info("audit", lager.Data{"action": action, "user": userName, "parameters": r.Form})
+	}
+}
+
+func (a *auditor) AuditInternal(action string, params map[string][]string) {
+	if a.ValidateAction(action) {
+		a.logger.Info("audit", lager.Data{"action": action, "user": "system", "parameters": params})
 	}
 }
