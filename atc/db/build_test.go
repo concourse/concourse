@@ -1582,6 +1582,83 @@ var _ = Describe("Build", func() {
 		})
 	})
 
+	Describe("Preparation of an automatically triggered build", func() {
+		for _, alwaysCheck := range []bool{false, true} {
+			alwaysCheck := alwaysCheck
+
+			Context(fmt.Sprintf("when always_check_inputs is %t", alwaysCheck), func() {
+				var autoBuild db.Build
+
+				BeforeEach(func() {
+					scenario := dbtest.Setup(
+						builder.WithPipeline(atc.Config{
+							Resources: atc.ResourceConfigs{
+								{
+									Name:   "some-resource",
+									Type:   dbtest.BaseResourceType,
+									Source: atc.Source{"source-config": "some-value"},
+								},
+							},
+							Jobs: atc.JobConfigs{
+								{
+									Name:              "some-job",
+									AlwaysCheckInputs: alwaysCheck,
+									PlanSequence: []atc.Step{
+										{
+											Config: &atc.GetStep{
+												Name:     "some-input",
+												Resource: "some-resource",
+												Trigger:  true,
+											},
+										},
+									},
+								},
+							},
+						}),
+						builder.WithResourceVersions("some-resource", time.Minute, atc.Version{"version": "some-version"}),
+						builder.WithNextInputMapping("some-job", dbtest.JobInputs{
+							{
+								Name:    "some-input",
+								Version: atc.Version{"version": "some-version"},
+							},
+						}),
+					)
+
+					job := scenario.Job("some-job")
+					Expect(job.EnsurePendingBuildExists(context.TODO())).To(Succeed())
+
+					pending, err := job.GetPendingBuilds()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(pending).To(HaveLen(1))
+					autoBuild = pending[0]
+					Expect(autoBuild.IsManuallyTriggered()).To(BeFalse())
+				})
+
+				It("blocks on the unchecked input only when the option is set", func() {
+					buildPrep, found, err := autoBuild.Preparation()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+
+					if alwaysCheck {
+						Expect(buildPrep.Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+							"some-input": db.BuildPreparationStatusBlocking,
+						}))
+						Expect(buildPrep.InputsSatisfied).To(Equal(db.BuildPreparationStatusBlocking))
+						Expect(buildPrep.MissingInputReasons).To(Equal(db.MissingInputReasons{
+							"some-input": db.NoResourceCheckFinished,
+						}))
+					} else {
+						Expect(buildPrep.Inputs).To(Equal(map[string]db.BuildPreparationStatus{
+							"some-input": db.BuildPreparationStatusNotBlocking,
+						}))
+						Expect(buildPrep.InputsSatisfied).To(Equal(db.BuildPreparationStatusNotBlocking))
+						Expect(buildPrep.MissingInputReasons).To(BeEmpty())
+					}
+				})
+			})
+		}
+	})
+
 	Describe("Preparation", func() {
 		var (
 			scenario *dbtest.Scenario

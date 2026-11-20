@@ -1144,7 +1144,7 @@ func (b *build) Preparation() (BuildPreparation, bool, error) {
 
 		if found {
 			if buildInput.ResolveError == "" {
-				if b.IsManuallyTriggered() {
+				if b.IsManuallyTriggered() || config.AlwaysCheckInputs {
 					resource, _, err := pipeline.ResourceByID(buildInput.ResourceID)
 					if err != nil {
 						return BuildPreparation{}, false, err

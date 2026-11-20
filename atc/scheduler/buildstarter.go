@@ -62,11 +62,16 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		return false, fmt.Errorf("get pending builds: %w", err)
 	}
 
-	buildsToSchedule := s.constructBuilds(job, jobInputs, nextPendingBuilds)
+	config, err := job.Config()
+	if err != nil {
+		return false, fmt.Errorf("config: %w", err)
+	}
+
+	buildsToSchedule := s.constructBuilds(job, jobInputs, nextPendingBuilds, config.AlwaysCheckInputs)
 
 	var needsRetry bool
 	for _, nextSchedulableBuild := range buildsToSchedule {
-		results, err := s.tryStartNextPendingBuild(logger, nextSchedulableBuild, job)
+		results, err := s.tryStartNextPendingBuild(logger, nextSchedulableBuild, job, config)
 		if err != nil {
 			return false, err
 		}
@@ -80,7 +85,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 		if !results.readyToDetermineInputs {
 			// Issue checks, stop scheduling, retry later
 			needsRetry = true
-			err = s.createChecks(logger, job, nextSchedulableBuild)
+			err = s.createChecks(logger, job, nextSchedulableBuild, config.AlwaysCheckInputs)
 			if err != nil {
 				return false, err
 			}
@@ -110,7 +115,7 @@ func (s *buildStarter) TryStartPendingBuildsForJob(
 	return needsRetry, nil
 }
 
-func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, builds []db.Build) []Build {
+func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, builds []db.Build, alwaysCheckInputs bool) []Build {
 	var buildsToSchedule []Build
 
 	for _, nextPendingBuild := range builds {
@@ -127,7 +132,8 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, bu
 			})
 		} else {
 			buildsToSchedule = append(buildsToSchedule, &schedulerBuild{
-				Build: nextPendingBuild,
+				Build:             nextPendingBuild,
+				alwaysCheckInputs: alwaysCheckInputs,
 			})
 		}
 	}
@@ -137,7 +143,7 @@ func (s *buildStarter) constructBuilds(job db.Job, jobInputs db.InputConfigs, bu
 
 // Creates in-memory check builds for inputs of the given Job. Does not create
 // checks for inputs that have passed constraints or pinned versions.
-func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build) error {
+func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build, alwaysCheckInputs bool) error {
 	pipeline, found, err := job.Pipeline()
 	if err != nil {
 		return err
@@ -161,6 +167,10 @@ func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build
 		return err
 	}
 
+	// Manually triggered builds, and jobs with always_check_inputs, check every
+	// input regardless of its check interval.
+	checkAll := build.IsManuallyTriggered() || alwaysCheckInputs
+
 	waitGroup := sync.WaitGroup{}
 	for _, input := range inputs {
 		if len(input.Passed) > 0 {
@@ -170,10 +180,10 @@ func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build
 			continue
 		}
 
-		if input.Trigger && !build.IsManuallyTriggered() {
+		if input.Trigger && !checkAll {
 			// Don't check resources that are triggers for the job, unless the
-			// job is manually triggered. For manually triggered jobs we want to
-			// check all input resources.
+			// build is manually triggered or the job sets always_check_inputs.
+			// In those cases we want to check all input resources.
 			continue
 		}
 
@@ -201,8 +211,8 @@ func (s *buildStarter) createChecks(logger lager.Logger, job db.Job, build Build
 
 				_, _, err := s.checkFactory.TryCreateCheck(context.Background(), resource, resourceTypes,
 					nil,
-					build.IsManuallyTriggered(),
-					build.IsManuallyTriggered(),
+					checkAll,
+					checkAll,
 					false, // create in-memory builds
 				)
 				if err != nil {
@@ -231,6 +241,7 @@ func (s *buildStarter) tryStartNextPendingBuild(
 	logger lager.Logger,
 	nextPendingBuild Build,
 	job db.SchedulerJob,
+	config atc.JobConfig,
 ) (startResults, error) {
 	logger = logger.Session("try-start-next-pending-build", lager.Data{
 		"pipeline":   job.PipelineName(),
@@ -291,11 +302,6 @@ func (s *buildStarter) tryStartNextPendingBuild(
 			readyToDetermineInputs: readyToDetermineInputs,
 			inputsDetermined:       inputsDetermined,
 		}, nil
-	}
-
-	config, err := job.Config()
-	if err != nil {
-		return startResults{}, fmt.Errorf("config: %w", err)
 	}
 
 	plan, err := s.planner.Create(config.StepConfig(), job.Resources, job.ResourceTypes, job.Prototypes, buildInputs, nextPendingBuild.IsManuallyTriggered(), config.Tags)

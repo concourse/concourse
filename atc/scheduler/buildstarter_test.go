@@ -1136,6 +1136,37 @@ var _ = Describe("BuildStarter", func() {
 						})
 					})
 
+					Context("job sets always_check_inputs", func() {
+						BeforeEach(func() {
+							config, err := job.Config()
+							Expect(err).ToNot(HaveOccurred())
+							config.AlwaysCheckInputs = true
+							job.ConfigReturns(config, nil)
+							createdBuild.NonTriggeringResourcesCheckedReturns(true, nil)
+							createdBuild.ResourcesCheckedReturns(false, nil)
+						})
+
+						It("waits for every input to be checked and retries", func() {
+							Expect(needsReschedule).To(BeTrue())
+							Expect(createdBuild.ResourcesCheckedCallCount()).To(Equal(1))
+							Expect(createdBuild.NonTriggeringResourcesCheckedCallCount()).To(Equal(0))
+						})
+
+						It("creates check builds for all inputs with no passed constraints or pins, overriding the check interval", func() {
+							Expect(fakeCheckFactory.TryCreateCheckCallCount()).To(Equal(2))
+
+							_, givenResource1, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(0)
+							Expect(skipInterval).To(BeTrue())
+							Expect(skipIntervalRecurv).To(BeTrue())
+
+							_, givenResource2, _, _, skipInterval, skipIntervalRecurv, _ := fakeCheckFactory.TryCreateCheckArgsForCall(1)
+							Expect(skipInterval).To(BeTrue())
+							Expect(skipIntervalRecurv).To(BeTrue())
+
+							Expect([]db.Checkable{givenResource1, givenResource2}).To(ConsistOf(input1, input2))
+						})
+					})
+
 					Context("TryCreateCheck panics", func() {
 						BeforeEach(func() {
 							fakeCheckFactory.TryCreateCheckStub = func(_ context.Context, _ db.Checkable, _ db.ResourceTypes, _ atc.Version, _, _, _ bool) (db.Build, bool, error) {
