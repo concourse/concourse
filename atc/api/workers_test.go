@@ -504,20 +504,18 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
-			worker     atc.Worker
-			reqBody    io.Reader
+			teamName   string
 			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
-			if reqBody == nil {
-				payload, err := json.Marshal(worker)
-				Expect(err).NotTo(HaveOccurred())
-				reqBody = bytes.NewReader(payload)
-			}
-
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/land", reqBody)
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/land", nil)
 			Expect(err).NotTo(HaveOccurred())
+			if teamName != "" {
+				q := req.URL.Query()
+				q.Add("team_name", teamName)
+				req.URL.RawQuery = q.Encode()
+			}
 
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -530,11 +528,7 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.TeamNameReturns("some-team")
 			fakeWorker.LandReturns(nil)
 
-			worker = atc.Worker{
-				Name: workerName,
-				Team: "some-team",
-			}
-			reqBody = nil
+			teamName = "some-team"
 
 			fakeAccess.IsAuthenticatedReturns(true)
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
@@ -545,13 +539,35 @@ var _ = Describe("Workers API", func() {
 				fakeAccess.IsSystemReturns(true)
 			})
 
+			Context("when the stored worker is global", func() {
+				BeforeEach(func() {
+					fakeWorker.TeamNameReturns("")
+				})
+
+				It("rejects a team claim", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(fakeWorker.LandCallCount()).To(BeZero())
+				})
+
+				Context("and the team is omitted", func() {
+					BeforeEach(func() {
+						teamName = ""
+					})
+
+					It("accepts the request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+						Expect(fakeWorker.LandCallCount()).To(Equal(1))
+					})
+				})
+			})
+
 			It("returns 200", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("sees if the worker exists and attempts to land it", func() {
-				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
-				Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(2))
+				Expect(dbWorkerFactory.GetWorkerArgsForCall(1)).To(Equal(workerName))
 				Expect(fakeWorker.LandCallCount()).To(Equal(1))
 			})
 
@@ -578,13 +594,14 @@ var _ = Describe("Workers API", func() {
 				})
 			})
 
-			Context("when the request body cannot be decoded", func() {
+			Context("when a team worker request omits the team", func() {
 				BeforeEach(func() {
-					reqBody = bytes.NewBufferString("{not-valid-json")
+					teamName = ""
+					fakeWorker.TeamNameReturns("some-team")
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 
 				It("does not attempt to land the worker", func() {
@@ -594,11 +611,11 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the given worker belongs to a different team", func() {
 				BeforeEach(func() {
-					worker.Team = "other-team"
+					teamName = "other-team"
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 
 				It("does not attempt to land the worker", func() {
@@ -618,11 +635,11 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the given worker belongs to a different team", func() {
 				BeforeEach(func() {
-					worker.Team = "other-team"
+					teamName = "other-team"
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 
 				It("does not attempt to land the worker", func() {
@@ -660,20 +677,18 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
-			worker     atc.Worker
-			reqBody    io.Reader
+			teamName   string
 			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
-			if reqBody == nil {
-				payload, err := json.Marshal(worker)
-				Expect(err).NotTo(HaveOccurred())
-				reqBody = bytes.NewReader(payload)
-			}
-
-			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/retire", reqBody)
+			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/retire", nil)
 			Expect(err).NotTo(HaveOccurred())
+			if teamName != "" {
+				q := req.URL.Query()
+				q.Add("team_name", teamName)
+				req.URL.RawQuery = q.Encode()
+			}
 
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -686,11 +701,7 @@ var _ = Describe("Workers API", func() {
 			fakeWorker.TeamNameReturns("some-team")
 			fakeAccess.IsAuthenticatedReturns(true)
 
-			worker = atc.Worker{
-				Name: workerName,
-				Team: "some-team",
-			}
-			reqBody = nil
+			teamName = "some-team"
 
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			fakeWorker.RetireReturns(nil)
@@ -701,13 +712,35 @@ var _ = Describe("Workers API", func() {
 				fakeAccess.IsSystemReturns(true)
 			})
 
+			Context("when the stored worker is global", func() {
+				BeforeEach(func() {
+					fakeWorker.TeamNameReturns("")
+				})
+
+				It("rejects a team claim", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
+					Expect(fakeWorker.RetireCallCount()).To(BeZero())
+				})
+
+				Context("and the team is omitted", func() {
+					BeforeEach(func() {
+						teamName = ""
+					})
+
+					It("accepts the request", func() {
+						Expect(response.StatusCode).To(Equal(http.StatusOK))
+						Expect(fakeWorker.RetireCallCount()).To(Equal(1))
+					})
+				})
+			})
+
 			It("returns 200", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 			})
 
 			It("sees if the worker exists and attempts to retire it", func() {
-				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(1))
-				Expect(dbWorkerFactory.GetWorkerArgsForCall(0)).To(Equal(workerName))
+				Expect(dbWorkerFactory.GetWorkerCallCount()).To(Equal(2))
+				Expect(dbWorkerFactory.GetWorkerArgsForCall(1)).To(Equal(workerName))
 
 				Expect(fakeWorker.RetireCallCount()).To(Equal(1))
 			})
@@ -735,13 +768,14 @@ var _ = Describe("Workers API", func() {
 				})
 			})
 
-			Context("when the request body cannot be decoded", func() {
+			Context("when a team worker request omits the team", func() {
 				BeforeEach(func() {
-					reqBody = bytes.NewBufferString("{not-valid-json")
+					teamName = ""
+					fakeWorker.TeamNameReturns("some-team")
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 
 				It("does not attempt to retire the worker", func() {
@@ -751,11 +785,11 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the given worker belongs to a different team", func() {
 				BeforeEach(func() {
-					worker.Team = "other-team"
+					teamName = "other-team"
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 
 				It("does not attempt to retire the worker", func() {
@@ -775,11 +809,11 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the given worker belongs to a different team", func() {
 				BeforeEach(func() {
-					worker.Team = "other-team"
+					teamName = "other-team"
 				})
 
-				It("returns 400", func() {
-					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+				It("returns 403", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusForbidden))
 				})
 
 				It("does not attempt to retire the worker", func() {
@@ -817,12 +851,19 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
+			teamName   string
 			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
 			req, err := http.NewRequest("PUT", server.URL+"/api/v1/workers/"+workerName+"/prune", nil)
 			Expect(err).NotTo(HaveOccurred())
+
+			if teamName != "" {
+				q := req.URL.Query()
+				q.Add("team_name", teamName)
+				req.URL.RawQuery = q.Encode()
+			}
 
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -831,8 +872,9 @@ var _ = Describe("Workers API", func() {
 		BeforeEach(func() {
 			fakeWorker = new(dbfakes.FakeWorker)
 			workerName = "some-worker"
+			teamName = "some-team"
 			fakeWorker.NameReturns(workerName)
-			fakeWorker.TeamNameReturns("some-team")
+			fakeWorker.TeamNameReturns(teamName)
 
 			dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			fakeAccess.IsAuthenticatedReturns(true)
@@ -1069,20 +1111,18 @@ var _ = Describe("Workers API", func() {
 		var (
 			response   *http.Response
 			workerName string
-			worker     atc.Worker
-			reqBody    io.Reader
+			teamName   string
 			fakeWorker *dbfakes.FakeWorker
 		)
 
 		JustBeforeEach(func() {
-			if reqBody == nil {
-				payload, err := json.Marshal(worker)
-				Expect(err).NotTo(HaveOccurred())
-				reqBody = bytes.NewReader(payload)
-			}
-
-			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/workers/"+workerName, reqBody)
+			req, err := http.NewRequest("DELETE", server.URL+"/api/v1/workers/"+workerName, nil)
 			Expect(err).NotTo(HaveOccurred())
+			if teamName != "" {
+				q := req.URL.Query()
+				q.Add("team_name", teamName)
+				req.URL.RawQuery = q.Encode()
+			}
 
 			response, err = client.Do(req)
 			Expect(err).NotTo(HaveOccurred())
@@ -1093,10 +1133,7 @@ var _ = Describe("Workers API", func() {
 			workerName = "some-worker"
 			fakeWorker.NameReturns(workerName)
 
-			worker = atc.Worker{
-				Name: workerName,
-			}
-			reqBody = nil
+			teamName = ""
 
 			fakeAccess.IsAuthenticatedReturns(true)
 			fakeWorker.DeleteReturns(nil)
@@ -1140,9 +1177,10 @@ var _ = Describe("Workers API", func() {
 				})
 			})
 
-			Context("when the request body cannot be decoded", func() {
+			Context("when a team worker request omits the team", func() {
 				BeforeEach(func() {
-					reqBody = bytes.NewBufferString("{not-valid-json")
+					teamName = ""
+					fakeWorker.TeamNameReturns("some-team")
 				})
 
 				It("returns 400", func() {
@@ -1157,7 +1195,7 @@ var _ = Describe("Workers API", func() {
 			Context("when the given worker belongs to a different team", func() {
 				BeforeEach(func() {
 					fakeWorker.TeamNameReturns("some-team")
-					worker.Team = "other-team"
+					teamName = "other-team"
 				})
 
 				It("returns 400", func() {
@@ -1185,7 +1223,7 @@ var _ = Describe("Workers API", func() {
 		Context("when user is authorized for team", func() {
 			BeforeEach(func() {
 				fakeWorker.TeamNameReturns("some-team")
-				worker.Team = "some-team"
+				teamName = "some-team"
 				fakeAccess.IsAuthorizedReturns(true)
 			})
 			It("does not attempt to find the worker", func() {
@@ -1197,7 +1235,7 @@ var _ = Describe("Workers API", func() {
 
 			Context("when the given worker belongs to a different team", func() {
 				BeforeEach(func() {
-					worker.Team = "other-team"
+					teamName = "other-team"
 				})
 
 				It("returns 403", func() {

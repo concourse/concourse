@@ -1,9 +1,7 @@
 package tsa
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"net/http/httputil"
@@ -27,21 +25,15 @@ func (l *Deleter) Delete(ctx context.Context, worker atc.Worker) error {
 	logger.Info("start")
 	defer logger.Info("end")
 
-	payload, err := json.Marshal(worker)
-	if err != nil {
-		logger.Error("failed-to-marshal-request", err)
-		return err
-	}
-
 	request, err := l.ATCEndpoint.CreateRequest(atc.DeleteWorker, rata.Params{
 		"worker_name": worker.Name,
-	}, bytes.NewReader(payload))
+	}, nil)
 	if err != nil {
 		logger.Error("failed-to-construct-request", err)
 		return err
 	}
 
-	request.Header["Content-Type"] = []string{"application/json"}
+	setWorkerQuery(request, "", worker.Team)
 
 	response, err := l.HTTPClient.Do(request)
 	if err != nil {

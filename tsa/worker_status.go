@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/url"
 
 	"net/http/httputil"
 
@@ -74,9 +73,7 @@ func (l *WorkerStatus) WorkerStatus(ctx context.Context, worker atc.Worker, reso
 	}
 	request.Header.Add("Content-Type", "application/json")
 
-	request.URL.RawQuery = url.Values{
-		"worker_name": []string{worker.Name},
-	}.Encode()
+	setWorkerQuery(request, worker.Name, worker.Team)
 
 	response, err := l.HTTPClient.Do(request)
 	if err != nil {

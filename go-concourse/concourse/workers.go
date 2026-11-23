@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/concourse/concourse/v8/atc"
@@ -81,22 +82,13 @@ func (client *client) PruneWorker(workerName string) error {
 }
 
 func (client *client) LandWorker(workerName, teamName string) error {
-	var req atc.Worker
-	req.Team = teamName
-	payload, err := json.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("error marshaling request body: %w", err)
+	query := url.Values{}
+	if teamName != "" {
+		query.Set("team_name", teamName)
 	}
-
-	params := rata.Params{"worker_name": workerName}
-	err = client.connection.Send(internal.Request{
+	return client.connection.Send(internal.Request{
 		RequestName: atc.LandWorker,
-		Params:      params,
-		Header: http.Header{
-			"Content-Type": {"application/json"},
-		},
-		Body: bytes.NewReader(payload),
+		Params:      rata.Params{"worker_name": workerName},
+		Query:       query,
 	}, nil)
-
-	return err
 }

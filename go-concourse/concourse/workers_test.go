@@ -132,21 +132,20 @@ var _ = Describe("ATC Handler Workers", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						ghttp.VerifyHeaderKV("Content-Type", "application/json"),
-						ghttp.VerifyJSONRepresenting(atc.Worker{Team: "some-team"}),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", "team_name=some+team%26ops"),
+						ghttp.VerifyBody(nil),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)
 			})
 
 			It("lands the worker", func() {
-				err := client.LandWorker("some-worker", "some-team")
+				err := client.LandWorker("some-worker", "some team&ops")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("sends the worker's team in the request body", func() {
-				err := client.LandWorker("some-worker", "some-team")
+			It("sends the worker's team in the query", func() {
+				err := client.LandWorker("some-worker", "some team&ops")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(atcServer.ReceivedRequests()).To(HaveLen(1))
 			})
@@ -156,14 +155,14 @@ var _ = Describe("ATC Handler Workers", func() {
 			BeforeEach(func() {
 				atcServer.AppendHandlers(
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						ghttp.VerifyJSONRepresenting(atc.Worker{Team: ""}),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", ""),
+						ghttp.VerifyBody(nil),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)
 			})
 
-			It("sends an empty team in the request body", func() {
+			It("sends an empty team in the query", func() {
 				err := client.LandWorker("some-worker", "")
 				Expect(err).NotTo(HaveOccurred())
 			})

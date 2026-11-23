@@ -1,11 +1,9 @@
 package workerserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/v8/atc"
 	"github.com/concourse/concourse/v8/atc/api/accessor"
 )
 
@@ -14,13 +12,7 @@ func (s *Server) DeleteWorker(w http.ResponseWriter, r *http.Request) {
 	workerName := r.FormValue(":worker_name")
 	acc := accessor.GetAccessor(r)
 
-	var givenWorker atc.Worker
-	err := json.NewDecoder(r.Body).Decode(&givenWorker)
-	if err != nil {
-		logger.Error("failed-to-decode-body", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	givenTeam := r.URL.Query().Get("team_name")
 
 	worker, found, err := s.dbWorkerFactory.GetWorker(workerName)
 	if err != nil || !found {
@@ -35,10 +27,10 @@ func (s *Server) DeleteWorker(w http.ResponseWriter, r *http.Request) {
 		teamAuthorized = acc.IsAuthorized(teamName)
 	}
 
-	if teamName != givenWorker.Team {
+	if teamName != givenTeam {
 		logger.Error("worker-belongs-to-different-team", nil, lager.Data{
 			"workers_team": teamName,
-			"given_team":   givenWorker.Team,
+			"given_team":   givenTeam,
 		})
 		w.WriteHeader(http.StatusBadRequest)
 		return

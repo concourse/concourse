@@ -28,6 +28,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 		fakeAccessor *accessorfakes.FakeAccessFactory
 		fakeaccess   *accessorfakes.FakeAccess
 		fakeWorker   *dbfakes.FakeWorker
+		workerTeam   string
 	)
 
 	BeforeEach(func() {
@@ -68,9 +69,14 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 		requestGenerator := rata.NewRequestGenerator(server.URL, atc.Routes)
 		request, err := requestGenerator.CreateRequest(atc.RetireWorker, rata.Params{
 			"worker_name": "some-worker",
-			"team_name":   "some-team",
 		}, nil)
 		Expect(err).NotTo(HaveOccurred())
+
+		if workerTeam != "" {
+			query := request.URL.Query()
+			query.Add("team_name", workerTeam)
+			request.URL.RawQuery = query.Encode()
+		}
 
 		response, err = new(http.Client).Do(request)
 		Expect(err).NotTo(HaveOccurred())
@@ -105,11 +111,12 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 				fakeWorker = new(dbfakes.FakeWorker)
 				fakeWorker.NameReturns("some-worker")
 				fakeWorker.TeamNameReturns("some-team")
+				workerTeam = "some-team"
 
 				workerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			})
 
-			Context("when user is admin/system", func() {
+			Context("when user is admin", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAdminReturns(true)
 				})
@@ -118,6 +125,22 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 					Expect(delegate.IsCalled).To(BeTrue())
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when user is system", func() {
+				BeforeEach(func() {
+					fakeaccess.IsSystemReturns(true)
+				})
+
+				It("calls worker delegate", func() {
+					Expect(delegate.IsCalled).To(BeTrue())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
@@ -141,6 +164,7 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 			Context("when team in auth does not match worker team", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAuthorizedReturns(false)
+					workerTeam = "other-team"
 				})
 
 				It("fetches worker by the correct name", func() {
@@ -162,27 +186,51 @@ var _ = Describe("CheckWorkerTeamAccessHandler", func() {
 				fakeaccess.IsAuthorizedReturns(false)
 				fakeWorker = new(dbfakes.FakeWorker)
 				fakeWorker.NameReturns("some-worker")
+				workerTeam = ""
 
 				workerFactory.GetWorkerReturns(fakeWorker, true, nil)
 			})
 
-			Context("when user is admin/system", func() {
+			Context("when user is admin", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAdminReturns(true)
+					fakeaccess.IsSystemReturns(false)
 				})
 
 				It("calls worker delegate", func() {
 					Expect(delegate.IsCalled).To(BeTrue())
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
+
 				It("returns 200", func() {
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
 				})
 			})
 
-			Context("when user is not admin/system", func() {
+			Context("when user is system", func() {
 				BeforeEach(func() {
 					fakeaccess.IsAdminReturns(false)
+					fakeaccess.IsSystemReturns(true)
+				})
+
+				It("calls worker delegate", func() {
+					Expect(delegate.IsCalled).To(BeTrue())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+
+				It("fetches the worker", func() {
+					Expect(workerFactory.GetWorkerCallCount()).To(Equal(1))
+				})
+
+				It("returns 200", func() {
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+
+			Context("when user is not admin or system", func() {
+				BeforeEach(func() {
+					fakeaccess.IsAdminReturns(false)
+					fakeaccess.IsSystemReturns(false)
 				})
 
 				It("does not call worker delegate", func() {

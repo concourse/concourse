@@ -105,8 +105,7 @@ var _ = Describe("Retire", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -126,7 +125,7 @@ var _ = Describe("Retire", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -146,8 +145,7 @@ var _ = Describe("Retire", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})

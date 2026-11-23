@@ -30,7 +30,6 @@ var _ = Describe("Delete", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -106,8 +105,7 @@ var _ = Describe("Delete", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
+						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -127,7 +125,7 @@ var _ = Describe("Delete", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -147,8 +145,7 @@ var _ = Describe("Delete", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
+						ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})

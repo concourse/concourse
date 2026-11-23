@@ -93,7 +93,7 @@ var _ = Describe("ReportContainers", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/containers/report", "worker_name=some-worker"),
+						ghttp.VerifyRequest("PUT", "/api/v1/containers/report", "worker_name=some-worker&team_name=some-team"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))
@@ -114,7 +114,7 @@ var _ = Describe("ReportContainers", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/containers/report", "worker_name=some-worker"),
+						ghttp.VerifyRequest("PUT", "/api/v1/containers/report", "worker_name=some-worker&team_name=some-team"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))
@@ -135,7 +135,7 @@ var _ = Describe("ReportContainers", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/containers/report", "worker_name=some-worker"),
+						ghttp.VerifyRequest("PUT", "/api/v1/containers/report", "worker_name=some-worker&team_name=some-team"),
 						ghttp.VerifyJSONRepresenting([]string{"a", "b"}),
 						ghttp.RespondWith(http.StatusNoContent, ""),
 					))

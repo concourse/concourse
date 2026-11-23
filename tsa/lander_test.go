@@ -34,7 +34,7 @@ var _ = Describe("Lander", func() {
 		atcEndpoint := rata.NewRequestGenerator(fakeATC.URL(), atc.Routes)
 
 		token := &oauth2.Token{TokenType: "Bearer", AccessToken: "yo"}
-		httpClient := oauth2.NewClient(oauth2.NoContext, oauth2.StaticTokenSource(token))
+		httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
 
 		lander = &tsa.Lander{
 			ATCEndpoint: atcEndpoint,
@@ -53,9 +53,9 @@ var _ = Describe("Lander", func() {
 
 		It("tells the ATC to land the worker", func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", "team_name=some-team"),
 				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
-				ghttp.VerifyJSONRepresenting(worker),
+				ghttp.VerifyBody(nil),
 				ghttp.RespondWith(200, nil, nil),
 			))
 
@@ -68,9 +68,9 @@ var _ = Describe("Lander", func() {
 
 	It("tells the ATC to land the worker", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
-			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", ""),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
-			ghttp.VerifyJSONRepresenting(worker),
+			ghttp.VerifyBody(nil),
 			ghttp.RespondWith(200, nil, nil),
 		))
 
@@ -83,7 +83,7 @@ var _ = Describe("Lander", func() {
 	Context("when the ATC responds with a 403", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", ""),
 				ghttp.RespondWith(403, nil, nil),
 			))
 		})
@@ -100,7 +100,7 @@ var _ = Describe("Lander", func() {
 	Context("when the ATC responds with a 404", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", ""),
 				ghttp.RespondWith(404, nil, nil),
 			))
 		})
@@ -117,7 +117,7 @@ var _ = Describe("Lander", func() {
 	Context("when the ATC fails to land the worker", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", ""),
 				ghttp.RespondWith(500, nil, nil),
 			))
 		})

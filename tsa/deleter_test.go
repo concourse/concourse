@@ -50,9 +50,9 @@ var _ = Describe("Deleter", func() {
 
 	It("tells the ATC to delete the worker", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
-			ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+			ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker", ""),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
-			ghttp.VerifyJSONRepresenting(worker),
+			ghttp.VerifyBody(nil),
 			ghttp.RespondWith(200, nil, nil),
 		))
 
@@ -65,7 +65,7 @@ var _ = Describe("Deleter", func() {
 	Context("when the ATC does not respond to retire the worker", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+				ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker", ""),
 				ghttp.RespondWith(500, nil, nil),
 			))
 		})
@@ -86,9 +86,9 @@ var _ = Describe("Deleter", func() {
 
 		It("includes the team name in the request", func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker"),
+				ghttp.VerifyRequest("DELETE", "/api/v1/workers/some-worker", "team_name=some-team"),
 				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
-				ghttp.VerifyJSONRepresenting(worker),
+				ghttp.VerifyBody(nil),
 				ghttp.RespondWith(200, nil, nil),
 			))
 

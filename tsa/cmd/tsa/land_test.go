@@ -30,7 +30,6 @@ var _ = Describe("Land", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -81,7 +80,6 @@ var _ = Describe("Land", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
 						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -107,8 +105,7 @@ var _ = Describe("Land", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -128,7 +125,7 @@ var _ = Describe("Land", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
@@ -148,8 +145,7 @@ var _ = Describe("Land", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land"),
-						ghttp.VerifyJSONRepresenting(tsaClient.Worker),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/land", "team_name=some-team"),
 						ghttp.RespondWith(200, nil, nil),
 					))
 				})
