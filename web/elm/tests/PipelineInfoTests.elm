@@ -48,7 +48,7 @@ openInfoPage maybeUserData =
         , fragment = Nothing
         }
         |> Tuple.first
-        |> Application.handleCallback (Callback.PipelineFetched (Ok pipeline))
+        |> Application.handleCallback (Callback.PipelineFetched Data.pipelineId (Ok pipeline))
         |> Tuple.first
         |> Application.handleCallback (Callback.AllPipelinesFetched (Ok [ pipeline ]))
         |> Tuple.first

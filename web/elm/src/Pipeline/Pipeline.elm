@@ -190,7 +190,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        PipelineFetched (Ok pipeline) ->
+        PipelineFetched _ (Ok pipeline) ->
             let
                 locator =
                     Concourse.toPipelineId pipeline
@@ -205,7 +205,7 @@ handleCallback callback ( model, effects ) =
                    ]
             )
 
-        PipelineFetched (Err err) ->
+        PipelineFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
@@ -238,7 +238,7 @@ handleCallback callback ( model, effects ) =
         PipelineToggled _ (Err _) ->
             ( { model | isToggleLoading = False }, effects )
 
-        JobsFetched (Ok fetchedJobs) ->
+        JobsFetched _ (Ok fetchedJobs) ->
             renderIfNeeded
                 ( { model
                     | fetchedJobs = Just fetchedJobs
@@ -247,7 +247,7 @@ handleCallback callback ( model, effects ) =
                 , effects
                 )
 
-        JobsFetched (Err err) ->
+        JobsFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )
@@ -261,7 +261,7 @@ handleCallback callback ( model, effects ) =
                         , effects
                         )
 
-        ResourcesFetched (Ok fetchedResources) ->
+        ResourcesFetched _ (Ok fetchedResources) ->
             renderIfNeeded
                 ( { model
                     | fetchedResources = Just fetchedResources
@@ -270,7 +270,7 @@ handleCallback callback ( model, effects ) =
                 , effects
                 )
 
-        ResourcesFetched (Err err) ->
+        ResourcesFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )

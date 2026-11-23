@@ -239,7 +239,7 @@ runEffect effect key csrfToken =
                 (Endpoints.PipelineJobsList |> Endpoints.Pipeline id)
                 |> Api.expectJson (Json.Decode.list Concourse.decodeJob)
                 |> Api.request
-                |> Task.attempt JobsFetched
+                |> Task.attempt (JobsFetched id)
 
         FetchJobBuilds id page ->
             Api.paginatedGet
@@ -295,7 +295,7 @@ runEffect effect key csrfToken =
                 (Endpoints.PipelineResourcesList |> Endpoints.Pipeline id)
                 |> Api.expectJson (Json.Decode.list Concourse.decodeResource)
                 |> Api.request
-                |> Task.attempt ResourcesFetched
+                |> Task.attempt (ResourcesFetched id)
 
         FetchBuildResources id ->
             Api.get
@@ -309,7 +309,7 @@ runEffect effect key csrfToken =
             Api.get (Endpoints.BasePipeline |> Endpoints.Pipeline id)
                 |> Api.expectJson Concourse.decodePipeline
                 |> Api.request
-                |> Task.attempt PipelineFetched
+                |> Task.attempt (PipelineFetched id)
 
         FetchPipelines team ->
             Api.get (Endpoints.TeamPipelinesList |> Endpoints.Team team)

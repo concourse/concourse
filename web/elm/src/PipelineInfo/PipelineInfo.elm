@@ -88,7 +88,7 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        PipelineFetched (Ok pipeline) ->
+        PipelineFetched _ (Ok pipeline) ->
             ( { model
                 | pipeline = RemoteData.Success pipeline
                 , pipelineLocator = Concourse.toPipelineId pipeline
@@ -96,7 +96,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        PipelineFetched (Err err) ->
+        PipelineFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
