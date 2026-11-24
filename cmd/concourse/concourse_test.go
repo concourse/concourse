@@ -99,7 +99,7 @@ var _ = Describe("Web Command", func() {
 		})
 
 		It("prints an error and exits", func() {
-			Eventually(concourseRunner.Err()).Should(gbytes.Say("'InvalidAction' is not a valid action"))
+			Eventually(concourseRunner.Err(), "5s").Should(gbytes.Say("'InvalidAction' is not a valid action"))
 		})
 	})
 
@@ -142,7 +142,7 @@ var _ = Describe("Web Command", func() {
 
 				It("errors", func() {
 					Eventually(concourseRunner.Err(), 5*time.Second).Should(
-						gbytes.Say("at least one systemClaimValue must be equal to tsa-client-id"),
+						gbytes.Say("at least one systemClaimValue must be equal to --tsa-client-id"),
 					)
 				})
 			})
