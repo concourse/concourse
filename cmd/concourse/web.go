@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/hkdf"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
+	"crypto/sha512"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/url"
@@ -108,11 +110,21 @@ func (cmd *WebCommand) populateSharedFlags() error {
 	}
 
 	if cmd.TSACommand.ClientSecret == "" {
-		cmd.TSACommand.ClientSecret = derivedCredential(signingKey, cmd.TSACommand.ClientID)
+		tsaClientSecret, err := deriveCredentialFromKey(signingKey, "TSA client for API access")
+		if err != nil {
+			return fmt.Errorf("error generating client secret for TSA: %w", err)
+		}
+
+		cmd.TSACommand.ClientSecret = tsaClientSecret
 	}
 
 	if cmd.RunCommand.Server.ClientSecret == "" {
-		cmd.RunCommand.Server.ClientSecret = derivedCredential(signingKey, cmd.RunCommand.Server.ClientID)
+		webClientSecret, err := deriveCredentialFromKey(signingKey, "Web client for API access")
+		if err != nil {
+			return fmt.Errorf("error generating client secret for web: %w", err)
+		}
+
+		cmd.RunCommand.Server.ClientSecret = webClientSecret
 	}
 
 	cmd.RunCommand.Auth.AuthFlags.Clients[cmd.TSACommand.ClientID] = cmd.TSACommand.ClientSecret
@@ -152,12 +164,22 @@ func (cmd *WebCommand) validateSystemClaimValues() error {
 	}
 
 	if !found {
-		return errors.New("at least one systemClaimValue must be equal to tsa-client-id")
+		return errors.New("at least one systemClaimValue must be equal to --tsa-client-id")
 	}
 
 	return nil
 }
 
-func derivedCredential(key *rsa.PrivateKey, clientID string) string {
-	return fmt.Sprintf("%x", sha256.Sum256(key.N.Append([]byte(clientID), 10)))
+func deriveCredentialFromKey(key *rsa.PrivateKey, purpose string) (string, error) {
+	marshaledKey, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return "", err
+	}
+
+	newKey, err := hkdf.Key(sha512.New, marshaledKey, nil, purpose, 64)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%x", sha512.Sum512(newKey)), nil
 }
