@@ -31,15 +31,14 @@ var _ = Describe("land-worker", func() {
 						}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/worker-1/land"),
-						ghttp.VerifyHeaderKV("Content-Type", "application/json"),
-						ghttp.VerifyJSONRepresenting(atc.Worker{Team: "team-a"}),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/worker-1/land", "team_name=team-a"),
+						ghttp.VerifyBody(nil),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)
 			})
 
-			It("lands the worker and forwards its team in the request body", func() {
+			It("lands the worker and forwards its team in the query", func() {
 				sess, err := gexec.Start(flyCmd, GinkgoWriter, GinkgoWriter)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -61,8 +60,8 @@ var _ = Describe("land-worker", func() {
 						}),
 					),
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("PUT", "/api/v1/workers/worker-1/land"),
-						ghttp.VerifyJSONRepresenting(atc.Worker{Team: ""}),
+						ghttp.VerifyRequest("PUT", "/api/v1/workers/worker-1/land", ""),
+						ghttp.VerifyBody(nil),
 						ghttp.RespondWith(http.StatusOK, nil),
 					),
 				)

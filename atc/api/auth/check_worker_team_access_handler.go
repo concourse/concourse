@@ -8,7 +8,7 @@ import (
 )
 
 type CheckWorkerTeamAccessHandlerFactory interface {
-	HandlerFor(pipelineScopedHandler http.Handler, rejector Rejector) http.Handler
+	HandlerFor(delegateHandler http.Handler, rejector Rejector) http.Handler
 }
 
 type checkWorkerTeamAccessHandlerFactory struct {
@@ -47,12 +47,15 @@ func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if acc.IsSystem() || acc.IsAdmin() {
-		h.delegateHandler.ServeHTTP(w, r)
-		return
+	workerName := r.FormValue(":worker_name")
+	if workerName == "" {
+		workerName = r.URL.Query().Get("worker_name")
 	}
 
-	workerName := r.FormValue(":worker_name")
+	if workerName == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	worker, found, err := h.workerFactory.GetWorker(workerName)
 	if err != nil {
@@ -62,6 +65,17 @@ func (h checkWorkerTeamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 
 	if !found {
 		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	teamName := r.URL.Query().Get("team_name")
+	if teamName != worker.TeamName() {
+		h.rejector.Forbidden(w, r)
+		return
+	}
+
+	if acc.IsSystem() || acc.IsAdmin() {
+		h.delegateHandler.ServeHTTP(w, r)
 		return
 	}
 

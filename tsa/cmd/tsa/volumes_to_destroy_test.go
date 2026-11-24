@@ -95,7 +95,7 @@ var _ = Describe("VolumesToDestroy", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying", "worker_name=some-worker"),
+						ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying", "worker_name=some-worker&team_name=some-team"),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})
@@ -119,7 +119,7 @@ var _ = Describe("VolumesToDestroy", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying", "worker_name=some-worker"),
+						ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying", "worker_name=some-worker&team_name=some-team"),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})
@@ -139,7 +139,7 @@ var _ = Describe("VolumesToDestroy", func() {
 			Context("when the ATC is working", func() {
 				BeforeEach(func() {
 					atcServer.AppendHandlers(ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying", "worker_name=some-worker"),
+						ghttp.VerifyRequest("GET", "/api/v1/volumes/destroying", "worker_name=some-worker&team_name=some-team"),
 						ghttp.RespondWithJSONEncoded(200, []string{"a", "b"}),
 					))
 				})

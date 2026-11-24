@@ -1,24 +1,16 @@
 package workerserver
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/concourse/concourse/v8/atc"
 )
 
 func (s *Server) LandWorker(w http.ResponseWriter, r *http.Request) {
 	logger := s.logger.Session("landing-worker")
 	workerName := r.FormValue(":worker_name")
 
-	var givenWorker atc.Worker
-	err := json.NewDecoder(r.Body).Decode(&givenWorker)
-	if err != nil {
-		logger.Error("failed-to-decode-body", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	givenTeam := r.URL.Query().Get("team_name")
 
 	worker, found, err := s.dbWorkerFactory.GetWorker(workerName)
 	if err != nil {
@@ -33,10 +25,10 @@ func (s *Server) LandWorker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if worker.TeamName() != givenWorker.Team {
+	if worker.TeamName() != givenTeam {
 		logger.Error("worker-belongs-to-different-team", nil, lager.Data{
 			"workers_team": worker.TeamName(),
-			"given_team":   givenWorker.Team,
+			"given_team":   givenTeam,
 		})
 		w.WriteHeader(http.StatusBadRequest)
 		return

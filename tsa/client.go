@@ -10,6 +10,7 @@ import (
 	"io"
 	"math/rand/v2"
 	"net"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -539,4 +540,15 @@ func handleForwardedConn(ctx context.Context, remoteConn net.Conn, network strin
 	go pipe(remoteConn, localConn)
 
 	wg.Wait()
+}
+
+func setWorkerQuery(request *http.Request, workerName, teamName string) {
+	query := request.URL.Query()
+	if workerName != "" {
+		query.Set("worker_name", workerName)
+	}
+	if teamName != "" {
+		query.Set("team_name", teamName)
+	}
+	request.URL.RawQuery = query.Encode()
 }

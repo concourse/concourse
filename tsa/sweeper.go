@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 
 	"net/http/httputil"
 
@@ -57,9 +56,7 @@ func (l *Sweeper) Sweep(ctx context.Context, worker atc.Worker, resourceAction s
 		return containerBytes, fmt.Errorf("empty-worker-name")
 	}
 
-	request.URL.RawQuery = url.Values{
-		"worker_name": []string{worker.Name},
-	}.Encode()
+	setWorkerQuery(request, worker.Name, worker.Team)
 
 	response, err := l.HTTPClient.Do(request)
 	if err != nil {

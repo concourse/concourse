@@ -54,9 +54,9 @@ var _ = Describe("Retirer", func() {
 
 		It("tells the ATC to retire the worker", func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", "team_name=some-team"),
 				ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
-				ghttp.VerifyJSONRepresenting(worker),
+				ghttp.VerifyBody(nil),
 				ghttp.RespondWith(200, nil, nil),
 			))
 
@@ -69,9 +69,9 @@ var _ = Describe("Retirer", func() {
 
 	It("tells the ATC to retire the worker", func() {
 		fakeATC.AppendHandlers(ghttp.CombineHandlers(
-			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+			ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", ""),
 			ghttp.VerifyHeaderKV("Authorization", "Bearer yo"),
-			ghttp.VerifyJSONRepresenting(worker),
+			ghttp.VerifyBody(nil),
 			ghttp.RespondWith(200, nil, nil),
 		))
 
@@ -84,7 +84,7 @@ var _ = Describe("Retirer", func() {
 	Context("when the ATC responds with a 403", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", ""),
 				ghttp.RespondWith(403, nil, nil),
 			))
 		})
@@ -101,7 +101,7 @@ var _ = Describe("Retirer", func() {
 	Context("when the ATC responds with a 404", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", ""),
 				ghttp.RespondWith(404, nil, nil),
 			))
 		})
@@ -117,7 +117,7 @@ var _ = Describe("Retirer", func() {
 	Context("when the ATC does not respond to retire the worker", func() {
 		BeforeEach(func() {
 			fakeATC.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire"),
+				ghttp.VerifyRequest("PUT", "/api/v1/workers/some-worker/retire", ""),
 				ghttp.RespondWith(500, nil, nil),
 			))
 		})

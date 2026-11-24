@@ -970,6 +970,7 @@ var _ = Describe("Containers API", func() {
 
 	Describe("GET /api/v1/containers/destroying", func() {
 		BeforeEach(func() {
+			dbWorkerFactory.GetWorkerReturns(new(dbfakes.FakeWorker), true, nil)
 			var err error
 			req, err = http.NewRequest("GET", server.URL+"/api/v1/containers/destroying", nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -1094,6 +1095,7 @@ var _ = Describe("Containers API", func() {
 		var err error
 
 		BeforeEach(func() {
+			dbWorkerFactory.GetWorkerReturns(new(dbfakes.FakeWorker), true, nil)
 			body = bytes.NewBufferString(`
 				[
 					"handle1",
@@ -1127,21 +1129,11 @@ var _ = Describe("Containers API", func() {
 			})
 
 			Context("with no params", func() {
-				It("returns 404", func() {
+				It("returns 400", func() {
 					response, err = client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(fakeDestroyer.DestroyContainersCallCount()).To(Equal(0))
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-				})
-
-				It("returns Content-Type application/json", func() {
-					response, err = client.Do(req)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(response.StatusCode).To(Equal(http.StatusNotFound))
-					expectedHeaderEntries := map[string]string{
-						"Content-Type": "application/json",
-					}
-					Expect(response).Should(IncludeHeaderEntries(expectedHeaderEntries))
+					Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 				})
 			})
 
