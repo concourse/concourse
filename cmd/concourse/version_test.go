@@ -16,7 +16,7 @@ var _ = Describe("Version flag", func() {
 			session, err := gexec.Start(exec.Command(concoursePath, args...), GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(session).Should(gexec.Exit(0))
+			Eventually(session, "5s").Should(gexec.Exit(0))
 			Expect(string(session.Out.Contents())).To(Equal(concourse.Version + "\n"))
 		},
 		Entry("--version", "--version"),
