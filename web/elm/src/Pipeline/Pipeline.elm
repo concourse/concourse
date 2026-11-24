@@ -176,6 +176,41 @@ getUpdateMessage model =
 
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
+    if isForAnotherPipeline model callback then
+        ( model, effects )
+
+    else
+        handleCurrentPipelineCallback callback ( model, effects )
+
+
+{-| Responses requested for a pipeline we have since navigated away from must be
+dropped. Otherwise a late response for the previous pipeline overwrites the
+current one: the previous pipeline is rendered (and polled) while the URL still
+points at the new one.
+
+The comparison is against the identifier the request was made with rather than
+the one in the response body, because the API normalises names (e.g. a route
+for `%3C` returns a pipeline named `<`).
+
+-}
+isForAnotherPipeline : Model -> Callback -> Bool
+isForAnotherPipeline model callback =
+    case callback of
+        PipelineFetched requested _ ->
+            requested /= model.pipelineLocator
+
+        JobsFetched requested _ ->
+            requested /= model.pipelineLocator
+
+        ResourcesFetched requested _ ->
+            requested /= model.pipelineLocator
+
+        _ ->
+            False
+
+
+handleCurrentPipelineCallback : Callback -> ET Model
+handleCurrentPipelineCallback callback ( model, effects ) =
     let
         redirectToLoginIfUnauthenticated status =
             if status.code == 401 then
@@ -190,7 +225,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        PipelineFetched (Ok pipeline) ->
+        PipelineFetched _ (Ok pipeline) ->
             let
                 locator =
                     Concourse.toPipelineId pipeline
@@ -205,7 +240,7 @@ handleCallback callback ( model, effects ) =
                    ]
             )
 
-        PipelineFetched (Err err) ->
+        PipelineFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
@@ -238,7 +273,7 @@ handleCallback callback ( model, effects ) =
         PipelineToggled _ (Err _) ->
             ( { model | isToggleLoading = False }, effects )
 
-        JobsFetched (Ok fetchedJobs) ->
+        JobsFetched _ (Ok fetchedJobs) ->
             renderIfNeeded
                 ( { model
                     | fetchedJobs = Just fetchedJobs
@@ -247,7 +282,7 @@ handleCallback callback ( model, effects ) =
                 , effects
                 )
 
-        JobsFetched (Err err) ->
+        JobsFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )
@@ -261,7 +296,7 @@ handleCallback callback ( model, effects ) =
                         , effects
                         )
 
-        ResourcesFetched (Ok fetchedResources) ->
+        ResourcesFetched _ (Ok fetchedResources) ->
             renderIfNeeded
                 ( { model
                     | fetchedResources = Just fetchedResources
@@ -270,7 +305,7 @@ handleCallback callback ( model, effects ) =
                 , effects
                 )
 
-        ResourcesFetched (Err err) ->
+        ResourcesFetched _ (Err err) ->
             case err of
                 Http.BadStatus { status } ->
                     ( model, effects ++ redirectToLoginIfUnauthenticated status )

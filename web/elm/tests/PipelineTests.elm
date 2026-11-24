@@ -56,7 +56,7 @@ it desc expectationFunc model =
 
 
 pipelineFetched pipeline =
-    Application.handleCallback (Callback.PipelineFetched (Ok <| pipeline))
+    Application.handleCallback (Callback.PipelineFetched Data.pipelineId (Ok <| pipeline))
         >> Tuple.first
         >> Application.handleCallback (Callback.AllPipelinesFetched (Ok <| [ pipeline ]))
         >> Tuple.first
@@ -89,7 +89,7 @@ all =
                         }
                         |> Tuple.first
                         |> Application.handleCallback
-                            (Callback.PipelineFetched
+                            (Callback.PipelineFetched Data.pipelineId
                                 (Ok <|
                                     (Data.pipeline "team" 0
                                         |> Data.withName "pipeline"
@@ -310,7 +310,7 @@ all =
                             }
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Callback.PipelineFetched
+                                (Callback.PipelineFetched Data.pipelineId
                                     (Ok <|
                                         (Data.pipeline "team" 0
                                             |> Data.withName "pipeline"
@@ -320,7 +320,7 @@ all =
                                 )
                             |> Tuple.first
                             |> Application.handleCallback
-                                (Callback.JobsFetched (Ok jobs))
+                                (Callback.JobsFetched Data.pipelineId (Ok jobs))
                             |> Tuple.first
 
                     findGroupByIndex idx =
@@ -442,7 +442,7 @@ all =
             \_ ->
                 Common.init "/teams/team/pipelines/pipeline"
                     |> Application.handleCallback
-                        (Callback.PipelineFetched
+                        (Callback.PipelineFetched Data.pipelineId
                             (Ok <|
                                 (Data.pipeline "team" 1
                                     |> Data.withName "pipeline"
@@ -685,7 +685,7 @@ all =
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
                         |> Application.handleCallback
-                            (Callback.PipelineFetched
+                            (Callback.PipelineFetched Data.pipelineId
                                 (Ok <|
                                     (Data.pipeline "team" 0
                                         |> Data.withName "pipeline"
@@ -701,7 +701,7 @@ all =
                 \_ ->
                     Common.init "/teams/team/pipelines/pipeline"
                         |> Application.handleCallback
-                            (Callback.PipelineFetched
+                            (Callback.PipelineFetched Data.pipelineId
                                 (Ok <|
                                     (Data.pipeline "team" 0
                                         |> Data.withName "pipeline"
@@ -756,7 +756,7 @@ all =
                     givenFavoritedPipelinesFetched =
                         Common.init "/teams/t/pipelines/p"
                             |> Application.handleCallback
-                                (Callback.PipelineFetched
+                                (Callback.PipelineFetched Data.shortPipelineId
                                     (Ok <|
                                         Data.pipeline "team" 0
                                     )
@@ -980,7 +980,7 @@ csrfToken =
 givenPinnedResource : Application.Model -> Application.Model
 givenPinnedResource =
     Application.handleCallback
-        (Callback.ResourcesFetched <|
+        (Callback.ResourcesFetched Data.pipelineId <|
             Ok
                 [ Data.resource (Just "v1") ]
         )
@@ -990,7 +990,7 @@ givenPinnedResource =
 givenMultiplePinnedResources : Application.Model -> Application.Model
 givenMultiplePinnedResources =
     Application.handleCallback
-        (Callback.ResourcesFetched <|
+        (Callback.ResourcesFetched Data.pipelineId <|
             Ok
                 [ Data.resource (Just "v1")
                 , Data.resource (Just "v2")

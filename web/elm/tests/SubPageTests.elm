@@ -72,7 +72,7 @@ all =
             , test "Pipeline not found" <|
                 init "/teams/t/pipelines/p"
                     >> Application.handleCallback
-                        (PipelineFetched Data.httpNotFound)
+                        (PipelineFetched Data.shortPipelineId Data.httpNotFound)
                     >> Tuple.first
                     >> .subModel
                     >> Expect.equal

@@ -300,7 +300,7 @@ all =
                         ]
             , context "when pipeline is paused"
                 (Application.handleCallback
-                    (Callback.PipelineFetched <|
+                    (Callback.PipelineFetched Data.pipelineId <|
                         Ok <|
                             (Data.pipeline "t" 0
                                 |> Data.withName "p"
@@ -318,7 +318,7 @@ all =
                 ]
             , context "when pipeline is archived"
                 (Application.handleCallback
-                    (Callback.PipelineFetched <|
+                    (Callback.PipelineFetched Data.pipelineId <|
                         Ok <|
                             (Data.pipeline "t" 0
                                 |> Data.withName "p"
@@ -344,7 +344,7 @@ all =
               <|
                 [ it "shows tooltip with last updated time" <|
                     Application.handleCallback
-                        (Callback.PipelineFetched <|
+                        (Callback.PipelineFetched Data.pipelineId <|
                             Ok
                                 (Data.pipeline "t" 0
                                     |> Data.withName "p"
@@ -361,7 +361,7 @@ all =
                 let
                     testWithPinnedVersion version tooltipText =
                         Application.handleCallback
-                            (Callback.ResourcesFetched <|
+                            (Callback.ResourcesFetched Data.pipelineId <|
                                 Ok
                                     [ Data.resource version ]
                             )
@@ -388,7 +388,7 @@ all =
                             )
                             >> Tuple.first
                             >> Application.handleCallback
-                                (Callback.PipelineFetched <|
+                                (Callback.PipelineFetched Data.pipelineId <|
                                     Ok <|
                                         (Data.pipeline "t" 0 |> Data.withName "p")
                                 )
@@ -410,7 +410,7 @@ all =
                 let
                     testWithPaused paused tooltipText =
                         Application.handleCallback
-                            (PipelineFetched <|
+                            (PipelineFetched Data.pipelineId <|
                                 Ok
                                     (Data.pipeline "t" 0
                                         |> Data.withName "p"
@@ -918,7 +918,7 @@ all =
                 givenPipelinePaused =
                     Common.init "/teams/t/pipelines/p"
                         |> Application.handleCallback
-                            (Callback.PipelineFetched <|
+                            (Callback.PipelineFetched Data.shortPipelineId <|
                                 Ok
                                     (Data.pipeline "t" 0
                                         |> Data.withName "p"

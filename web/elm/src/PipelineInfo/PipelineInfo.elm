@@ -88,7 +88,23 @@ getUpdateMessage model =
 handleCallback : Callback -> ET Model
 handleCallback callback ( model, effects ) =
     case callback of
-        PipelineFetched (Ok pipeline) ->
+        PipelineFetched requested result ->
+            if requested /= model.pipelineLocator then
+                -- a late response for a pipeline we have since navigated away
+                -- from; see Pipeline.isForAnotherPipeline
+                ( model, effects )
+
+            else
+                handlePipelineFetched result ( model, effects )
+
+        _ ->
+            ( model, effects )
+
+
+handlePipelineFetched : Result Http.Error Concourse.Pipeline -> ET Model
+handlePipelineFetched result ( model, effects ) =
+    case result of
+        Ok pipeline ->
             ( { model
                 | pipeline = RemoteData.Success pipeline
                 , pipelineLocator = Concourse.toPipelineId pipeline
@@ -96,7 +112,7 @@ handleCallback callback ( model, effects ) =
             , effects
             )
 
-        PipelineFetched (Err err) ->
+        Err err ->
             case err of
                 Http.BadStatus { status } ->
                     if status.code == 404 then
@@ -110,9 +126,6 @@ handleCallback callback ( model, effects ) =
 
                 _ ->
                     ( model, effects )
-
-        _ ->
-            ( model, effects )
 
 
 handleDelivery : Delivery -> ET Model
