@@ -1,11 +1,11 @@
 package jobserver
 
 import (
-	"bytes"
 	"fmt"
 	"html"
 	"net/http"
 	"net/url"
+	"strings"
 	"text/template"
 
 	"github.com/concourse/concourse/v8/atc/db"
@@ -74,11 +74,11 @@ func (b *Badge) String() string {
 		panic(err)
 	}
 
-	buffer := &bytes.Buffer{}
+	builder := &strings.Builder{}
 
-	_ = tmpl.Execute(buffer, &b)
+	_ = tmpl.Execute(builder, &b)
 
-	return buffer.String()
+	return builder.String()
 }
 
 func (b *Badge) EnrichFromQuery(params url.Values) {
