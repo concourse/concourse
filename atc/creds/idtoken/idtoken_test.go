@@ -141,12 +141,7 @@ var _ = Describe("IDToken Secret", func() {
 
 	It("errors when params is empty", func() {
 		params = creds.SecretLookupParams{}
-		lookups := secrets.NewSecretLookupPaths(params, false)
-		Expect(lookups).To(HaveLen(1))
-		secretPath, err := lookups[0].VariableToSecretPath("token")
-		Expect(err).ToNot(HaveOccurred())
-
-		token, expiresIn, found, err := secrets.Get(secretPath, params)
+		token, expiresIn, found, err := secrets.Get("token", params)
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError("idtoken credential provider was called with empty params"))
 		Expect(token).To(BeNil())

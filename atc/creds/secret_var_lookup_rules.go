@@ -1,9 +1,11 @@
 package creds
 
 import (
-	"bytes"
 	"errors"
+	"fmt"
 	"io"
+	"path"
+	"strings"
 	"text/template"
 	"text/template/parse"
 )
@@ -24,8 +26,14 @@ func NewSecretLookupWithPrefix(prefix string) SecretLookupPath {
 	}
 }
 
-func (sl SecretLookupWithPrefix) VariableToSecretPath(path string) (string, error) {
-	return sl.Prefix + path, nil
+func (sl SecretLookupWithPrefix) VariableToSecretPath(secret string) (string, error) {
+	p := path.Clean(sl.Prefix + secret)
+
+	if !strings.HasPrefix(p, sl.Prefix) {
+		return "", fmt.Errorf("'%s' tries to escape the lookup path", secret)
+	}
+
+	return p, nil
 }
 
 // SecretLookupWithTemplate uses the given template to construct a lookup path specific
@@ -80,8 +88,8 @@ func NewSecretLookupWithTemplate(pathTemplate *SecretTemplate, teamName string, 
 	}
 }
 
-func (sl SecretLookupWithTemplate) VariableToSecretPath(path string) (string, error) {
-	var buf bytes.Buffer
+func (sl SecretLookupWithTemplate) VariableToSecretPath(secret string) (string, error) {
+	var builder strings.Builder
 	data := struct {
 		Team     string
 		Pipeline string
@@ -89,9 +97,15 @@ func (sl SecretLookupWithTemplate) VariableToSecretPath(path string) (string, er
 	}{
 		sl.TeamName,
 		sl.PipelineName,
-		path,
+		secret,
 	}
 
-	err := sl.PathTemplate.Execute(&buf, &data)
-	return buf.String(), err
+	err := sl.PathTemplate.Execute(&builder, &data)
+	p := builder.String()
+
+	if path.Clean(p) != p {
+		return "", fmt.Errorf("'%s' tries to escape the lookup path", secret)
+	}
+
+	return p, err
 }
