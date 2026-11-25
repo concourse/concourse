@@ -58,11 +58,7 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// requester is system, admin team, or worker owning team
 		case atc.PruneWorker,
 			atc.LandWorker,
-			atc.RetireWorker,
-			atc.ListDestroyingVolumes,
-			atc.ListDestroyingContainers,
-			atc.ReportWorkerContainers,
-			atc.ReportWorkerVolumes:
+			atc.RetireWorker:
 			newHandler = wrappa.checkWorkerTeamAccessHandlerFactory.HandlerFor(handler, rejector)
 
 		// pipeline is public or authorized
@@ -88,7 +84,11 @@ func (wrappa *APIAuthWrappa) Wrap(handlers rata.Handlers) rata.Handlers {
 		// system only access, usually through TSA
 		case atc.RegisterWorker,
 			atc.HeartbeatWorker,
-			atc.DeleteWorker:
+			atc.DeleteWorker,
+			atc.ListDestroyingVolumes,
+			atc.ListDestroyingContainers,
+			atc.ReportWorkerContainers,
+			atc.ReportWorkerVolumes:
 			newHandler = auth.CheckSystemAccessHandler(handler, rejector)
 
 		// authenticated and has a role on at least one team

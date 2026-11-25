@@ -101,6 +101,7 @@ func NewHandler(
 	pipelineHandlerFactory := pipelineserver.NewScopedHandlerFactory(dbTeamFactory)
 	buildHandlerFactory := buildserver.NewScopedHandlerFactory(logger)
 	teamHandlerFactory := NewTeamScopedHandlerFactory(logger, dbTeamFactory)
+	workerHandlerFactory := NewWorkerScopedHandlerFactory(logger, dbWorkerFactory)
 
 	buildServer := buildserver.NewServer(logger, externalURL, dbTeamFactory, dbBuildFactory, eventHandlerFactory)
 	jobServer := jobserver.NewServer(logger, externalURL, secretManager, dbJobFactory)
@@ -228,12 +229,12 @@ func NewHandler(
 		atc.ListContainers:           teamHandlerFactory.HandlerFor(containerServer.ListContainers),
 		atc.GetContainer:             teamHandlerFactory.HandlerFor(containerServer.GetContainer),
 		atc.HijackContainer:          teamHandlerFactory.HandlerFor(containerServer.HijackContainer),
-		atc.ListDestroyingContainers: http.HandlerFunc(containerServer.ListDestroyingContainers),
-		atc.ReportWorkerContainers:   http.HandlerFunc(containerServer.ReportWorkerContainers),
+		atc.ListDestroyingContainers: workerHandlerFactory.HandlerFor(containerServer.ListDestroyingContainers),
+		atc.ReportWorkerContainers:   workerHandlerFactory.HandlerFor(containerServer.ReportWorkerContainers),
 
 		atc.ListVolumes:           teamHandlerFactory.HandlerFor(volumesServer.ListVolumes),
-		atc.ListDestroyingVolumes: http.HandlerFunc(volumesServer.ListDestroyingVolumes),
-		atc.ReportWorkerVolumes:   http.HandlerFunc(volumesServer.ReportWorkerVolumes),
+		atc.ListDestroyingVolumes: workerHandlerFactory.HandlerFor(volumesServer.ListDestroyingVolumes),
+		atc.ReportWorkerVolumes:   workerHandlerFactory.HandlerFor(volumesServer.ReportWorkerVolumes),
 
 		atc.ListTeams:      http.HandlerFunc(teamServer.ListTeams),
 		atc.GetTeam:        teamHandlerFactory.HandlerFor(teamServer.GetTeam),
