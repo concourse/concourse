@@ -1016,6 +1016,10 @@ var _ = Describe("Containers API", func() {
 					req.URL.RawQuery = url.Values{
 						"worker_name": []string{"some-worker-name"},
 					}.Encode()
+
+					fakeWorker := new(dbfakes.FakeWorker)
+					fakeWorker.NameReturns("some-worker-name")
+					dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 				})
 
 				Context("when there is an error", func() {
@@ -1076,7 +1080,7 @@ var _ = Describe("Containers API", func() {
 					})
 				})
 
-				It("queries with it in the worker name", func() {
+				It("uses the db.Worker", func() {
 					_, err := client.Do(req)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -1142,6 +1146,10 @@ var _ = Describe("Containers API", func() {
 					req.URL.RawQuery = url.Values{
 						"worker_name": []string{"some-worker-name"},
 					}.Encode()
+
+					fakeWorker := new(dbfakes.FakeWorker)
+					fakeWorker.NameReturns("some-worker-name")
+					dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 				})
 
 				Context("with invalid json", func() {

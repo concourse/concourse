@@ -344,6 +344,10 @@ var _ = Describe("Volumes API", func() {
 					req.URL.RawQuery = url.Values{
 						"worker_name": []string{"some-worker-name"},
 					}.Encode()
+
+					fakeWorker := new(dbfakes.FakeWorker)
+					fakeWorker.NameReturns("some-worker-name")
+					dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 				})
 
 				It("asks the factory for the detroying volumes", func() {
@@ -463,6 +467,10 @@ var _ = Describe("Volumes API", func() {
 					req.URL.RawQuery = url.Values{
 						"worker_name": []string{"some-worker-name"},
 					}.Encode()
+
+					fakeWorker := new(dbfakes.FakeWorker)
+					fakeWorker.NameReturns("some-worker-name")
+					dbWorkerFactory.GetWorkerReturns(fakeWorker, true, nil)
 				})
 
 				Context("with invalid json", func() {
