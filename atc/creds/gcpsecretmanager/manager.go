@@ -1,13 +1,13 @@
 package gcpsecretmanager
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/auth"
@@ -280,8 +280,8 @@ func (manager *Manager) authCredentials() (*auth.Credentials, error) {
 // validateTemplate expands a template with placeholders so its literal parts
 // can be checked against the secret ID character set.
 func validateTemplate(tmpl *creds.SecretTemplate) (string, error) {
-	var buf bytes.Buffer
-	err := tmpl.Execute(&buf, struct {
+	var builder strings.Builder
+	err := tmpl.Execute(&builder, struct {
 		Team     string
 		Pipeline string
 		Secret   string
@@ -289,7 +289,7 @@ func validateTemplate(tmpl *creds.SecretTemplate) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+	return builder.String(), nil
 }
 
 func (manager *Manager) requestTimeoutOrDefault() time.Duration {

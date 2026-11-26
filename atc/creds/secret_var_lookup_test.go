@@ -45,3 +45,41 @@ var _ = Describe("VariableLookupFromSecrets", func() {
 		})
 	})
 })
+
+var _ = Describe("SecretLookupWithPrefix", func() {
+	It("adds the prefix", func() {
+		sl := creds.NewSecretLookupWithPrefix("some/prefix/")
+		p, err := sl.VariableToSecretPath("my/secret")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(p).To(Equal("some/prefix/my/secret"))
+	})
+
+	It("errors if the secret escapes the prefix", func() {
+		sl := creds.NewSecretLookupWithPrefix("some/prefix/")
+		p, err := sl.VariableToSecretPath("../../my/secret")
+		Expect(err).To(MatchError("'../../my/secret' tries to escape the lookup path"))
+		Expect(p).To(BeEmpty())
+	})
+})
+
+var _ = Describe("SecretLookupWithTemplate", func() {
+	It("renders the template", func() {
+		t, err := creds.BuildSecretTemplate("name", "{{.Team}}/{{.Pipeline}}/{{.Secret}}")
+		Expect(err).ToNot(HaveOccurred())
+
+		sl := creds.NewSecretLookupWithTemplate(t, "some-team", "some-pipeline")
+		p, err := sl.VariableToSecretPath("my/secret")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(p).To(Equal("some-team/some-pipeline/my/secret"))
+	})
+
+	It("errors if the secret escapes the template", func() {
+		t, err := creds.BuildSecretTemplate("name", "{{.Team}}/{{.Pipeline}}/{{.Secret}}")
+		Expect(err).ToNot(HaveOccurred())
+
+		sl := creds.NewSecretLookupWithTemplate(t, "some-team", "some-pipeline")
+		p, err := sl.VariableToSecretPath("../../my/secret")
+		Expect(err).To(MatchError("'../../my/secret' tries to escape the lookup path"))
+		Expect(p).To(BeEmpty())
+	})
+})

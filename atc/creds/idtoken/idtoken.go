@@ -21,6 +21,10 @@ func (secrets *IDToken) NewSecretLookupPaths(params creds.SecretLookupParams, _ 
 }
 
 func (secrets *IDToken) Get(secretPath string, params creds.SecretLookupParams) (any, *time.Time, bool, error) {
+	if params.IsEmpty() {
+		return nil, nil, false, fmt.Errorf("idtoken credential provider was called with empty params")
+	}
+
 	secretPath, found := strings.CutPrefix(secretPath, generateSubject(SubjectScopeJob, params)+"/")
 	if !found {
 		return nil, nil, false, fmt.Errorf("idtoken credential provider was called with different secret params")
@@ -28,10 +32,6 @@ func (secrets *IDToken) Get(secretPath string, params creds.SecretLookupParams) 
 
 	if secretPath != "token" {
 		return nil, nil, false, fmt.Errorf("idtoken credential provider only supports the field 'token'")
-	}
-
-	if params.IsEmpty() {
-		return nil, nil, false, fmt.Errorf("idtoken credential provider was called with empty params")
 	}
 
 	token, validUntil, err := secrets.TokenGenerator.GenerateToken(params)
