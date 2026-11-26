@@ -15,7 +15,7 @@ type CreatedVolumeNotFoundError struct {
 }
 
 func (e CreatedVolumeNotFoundError) Error() string {
-	return fmt.Sprintf("volume '%s' disappeared from worker '%s'", e.Handle, e.WorkerName)
+	return fmt.Sprintf("volume '%s' disappeared from worker '%s'. Wait a minute for Concourse to sync with the worker's state.", e.Handle, e.WorkerName)
 }
 
 type MalformedMetadataError struct {
