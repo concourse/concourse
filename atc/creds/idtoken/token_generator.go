@@ -2,6 +2,7 @@ package idtoken
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"time"
 
@@ -129,11 +130,11 @@ func generateSubject(scope SubjectScope, params creds.SecretLookupParams) string
 		// default to SubjectScopePipeline
 		fallthrough
 	case SubjectScopePipeline:
-		return fmt.Sprintf("%s/%s", team, pipeline)
+		return path.Clean(fmt.Sprintf("%s/%s", team, pipeline))
 	case SubjectScopeInstance:
-		return fmt.Sprintf("%s/%s/%s", team, pipeline, ivars)
+		return path.Clean(fmt.Sprintf("%s/%s/%s", team, pipeline, ivars))
 	case SubjectScopeJob:
-		return fmt.Sprintf("%s/%s/%s/%s", team, pipeline, ivars, job)
+		return path.Clean(fmt.Sprintf("%s/%s/%s/%s", team, pipeline, ivars, job))
 	}
 }
 

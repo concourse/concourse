@@ -207,6 +207,27 @@ var _ = Describe("IDToken TokenGenerator", func() {
 		Expect(parsed.Headers[0].Algorithm).To(Equal("ES256"))
 	})
 
+	Context("when there are no instance vars", func() {
+		BeforeEach(func() {
+			params.InstanceVars = nil
+		})
+
+		It("cleans the Subject path", func() {
+			tokenGenerator.SubjectScope = idtoken.SubjectScopeJob
+			token, _, err := tokenGenerator.GenerateToken(params)
+			Expect(err).ToNot(HaveOccurred())
+
+			parsed, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{idtoken.DefaultAlgorithm})
+			Expect(err).ToNot(HaveOccurred())
+
+			claims := jwt.Claims{}
+			err = parsed.Claims(rsaVerificationKey, &claims)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(claims.Subject).To(Equal(params.Team + "/" + params.Pipeline + "/" + params.Job))
+		})
+	})
+
 	Context("Generated Token", func() {
 		type claimStruct struct {
 			jwt.Claims
