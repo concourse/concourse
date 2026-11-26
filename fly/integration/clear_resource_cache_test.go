@@ -17,6 +17,7 @@ import (
 
 var _ = Describe("clear-resource-cache", func() {
 	var (
+		initialRequests     int
 		expectedQueryParams []string
 		expectedURL         = "/api/v1/teams/main/pipelines/some-pipeline/resources/some-resource/cache"
 		stdin               io.Writer
@@ -31,6 +32,7 @@ var _ = Describe("clear-resource-cache", func() {
 
 	JustBeforeEach(func() {
 		var err error
+		initialRequests = len(atcServer.ReceivedRequests())
 
 		flyCmd := exec.Command(flyPath, append([]string{"-t", targetName, "clear-resource-cache"}, args...)...)
 		stdin, err = flyCmd.StdinPipe()
@@ -50,10 +52,129 @@ var _ = Describe("clear-resource-cache", func() {
 		fmt.Fprintf(stdin, "n\r")
 	}
 
-	Context("when a resource is not specified", func() {
-		It("asks the user to specify a resource", func() {
-			Eventually(sess).Should(gexec.Exit(1))
-			Expect(sess.Err).To(gbytes.Say("error: the required flag `" + osFlag("r", "resource") + "' was not specified"))
+	DescribeTableSubtree("rejects invalid selector combinations",
+		func(flags []string, message string) {
+			BeforeEach(func() { args = flags })
+			It("rejects the flags before making API requests", func() {
+				Eventually(sess).Should(gexec.Exit(1))
+				Expect(sess.Err).To(gbytes.Say(message))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(initialRequests))
+			})
+		},
+		Entry("missing selectors", []string{}, "must specify either --pipeline or --resource"),
+		Entry("both selectors", []string{"--pipeline", "some-pipeline", "--resource", "some-pipeline/some-resource"}, "cannot specify both --pipeline and --resource"),
+		Entry("pipeline and version", []string{"--pipeline", "some-pipeline", "--version", "ref:fake-ref"}, "--version requires --resource"),
+	)
+
+	Context("when a pipeline is specified", func() {
+		const resourcesURL = "/api/v1/teams/main/pipelines/some-pipeline/resources"
+
+		listResources := func(url, query string, resources []atc.Resource) http.HandlerFunc {
+			return ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", url, query),
+				ghttp.RespondWithJSONEncoded(http.StatusOK, resources),
+			)
+		}
+
+		deleteCache := func(url, query string, removed int64) http.HandlerFunc {
+			return ghttp.CombineHandlers(
+				ghttp.VerifyRequest("DELETE", url, query),
+				ghttp.VerifyJSON(`{"version":null}`),
+				ghttp.RespondWithJSONEncoded(http.StatusOK, atc.ClearResourceCacheResponse{CachesRemoved: removed}),
+			)
+		}
+
+		BeforeEach(func() {
+			args = []string{"--pipeline", "some-pipeline"}
+		})
+
+		Context("when an instanced pipeline and team are selected", func() {
+			BeforeEach(func() {
+				args = []string{"-p", "some-pipeline/branch:main", "--team", "custom-team"}
+				const url = "/api/v1/teams/custom-team/pipelines/some-pipeline/resources"
+				const query = "vars.branch=%22main%22"
+				atcServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/api/v1/teams/custom-team"),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, atc.Team{Name: "custom-team"}),
+					),
+					listResources(url, query, []atc.Resource{{Name: "first"}, {Name: "second"}}),
+					deleteCache(url+"/first/cache", query, 2),
+					deleteCache(url+"/second/cache", query, 3),
+				)
+			})
+
+			It("clears every resource in an instanced pipeline on the selected team", func() {
+				yes()
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Out).To(gbytes.Say("5 caches removed"))
+				Expect(strings.Count(string(sess.Out.Contents()), "are you sure?")).To(Equal(1))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(initialRequests + 5))
+			})
+
+		})
+
+		Context("when confirmation is declined", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(listResources(resourcesURL, "", []atc.Resource{{Name: "first"}}))
+			})
+
+			It("exits without deleting any caches", func() {
+				no()
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Out).To(gbytes.Say("bailing out"))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(initialRequests + 2))
+			})
+		})
+
+		Context("when the pipeline is empty", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(listResources(resourcesURL, "", []atc.Resource{}))
+			})
+
+			It("reports that there are no resources without prompting", func() {
+				Eventually(sess).Should(gexec.Exit(0))
+				Expect(sess.Out).To(gbytes.Say("no resources found"))
+				Expect(sess.Out).NotTo(gbytes.Say("are you sure"))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(initialRequests + 2))
+			})
+		})
+
+		Context("when listing resources fails", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", resourcesURL),
+					ghttp.RespondWith(http.StatusInternalServerError, ""),
+				))
+			})
+
+			It("returns the listing error without prompting", func() {
+				Eventually(sess).Should(gexec.Exit(1))
+				Expect(sess.Err).To(gbytes.Say("Unexpected Response"))
+				Expect(sess.Out).NotTo(gbytes.Say("are you sure"))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(initialRequests + 2))
+			})
+		})
+
+		Context("when one deletion fails", func() {
+			BeforeEach(func() {
+				atcServer.AppendHandlers(
+					listResources(resourcesURL, "", []atc.Resource{{Name: "first"}, {Name: "second"}}),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("DELETE", resourcesURL+"/first/cache"),
+						ghttp.RespondWith(http.StatusInternalServerError, ""),
+					),
+					deleteCache(resourcesURL+"/second/cache", "", 2),
+				)
+			})
+
+			It("clears the remaining resource and reports the failure", func() {
+				yes()
+				Eventually(sess).Should(gexec.Exit(1))
+				Expect(sess.Err).To(gbytes.Say("error clearing cache for 'first'"))
+				Expect(sess.Out).To(gbytes.Say("2 caches removed"))
+				Expect(atcServer.ReceivedRequests()).To(HaveLen(initialRequests + 4))
+			})
 		})
 	})
 
