@@ -75,6 +75,7 @@ func (factory *coreStepFactory) GetStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
+	pinWorker bool,
 	delegateFactory DelegateFactory,
 ) exec.Step {
 	containerMetadata.WorkingDirectory = resource.ResourcesDir("get")
@@ -87,6 +88,7 @@ func (factory *coreStepFactory) GetStep(
 		factory.lockFactory,
 		factory.resourceCacheFactory,
 		factory.noInputStrategy,
+		pinWorker,
 		delegateFactory,
 		factory.pool,
 		factory.defaultGetTimeout,
@@ -103,6 +105,7 @@ func (factory *coreStepFactory) PutStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
+	pinWorker bool,
 	delegateFactory DelegateFactory,
 ) exec.Step {
 	containerMetadata.WorkingDirectory = resource.ResourcesDir("put")
@@ -113,6 +116,7 @@ func (factory *coreStepFactory) PutStep(
 		stepMetadata,
 		containerMetadata,
 		factory.strategy,
+		pinWorker,
 		factory.pool,
 		delegateFactory,
 		factory.defaultPutTimeout,
@@ -129,6 +133,7 @@ func (factory *coreStepFactory) CheckStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
+	pinWorker bool,
 	delegateFactory DelegateFactory,
 ) exec.Step {
 	containerMetadata.WorkingDirectory = resource.ResourcesDir("check")
@@ -141,6 +146,7 @@ func (factory *coreStepFactory) CheckStep(
 		containerMetadata,
 		factory.noInputStrategy,
 		factory.checkStrategy,
+		pinWorker,
 		factory.pool,
 		delegateFactory,
 		factory.defaultCheckTimeout,
@@ -178,6 +184,7 @@ func (factory *coreStepFactory) TaskStep(
 	plan atc.Plan,
 	stepMetadata exec.StepMetadata,
 	containerMetadata db.ContainerMetadata,
+	pinWorker bool,
 	delegateFactory DelegateFactory,
 ) exec.Step {
 	sum := sha256.Sum256([]byte(plan.Task.Name))
@@ -190,6 +197,7 @@ func (factory *coreStepFactory) TaskStep(
 		stepMetadata,
 		containerMetadata,
 		factory.strategy,
+		pinWorker,
 		factory.pool,
 		factory.streamer,
 		delegateFactory,
