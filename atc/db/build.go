@@ -192,6 +192,10 @@ type Build interface {
 
 	Start(atc.Plan) (bool, error)
 	Finish(BuildStatus) error
+	// ArchivedPipelines is only populated after build.Finish() is run. Run
+	// build.Finish() first and then call build.ArchivedPipelines() to get a
+	// list of pipelines that were archived because of this build.
+	ArchivedPipelines() []Pipeline
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
@@ -281,7 +285,8 @@ type build struct {
 
 	spanContext SpanContext
 
-	eventIdSeq util.SequenceGenerator
+	eventIdSeq        util.SequenceGenerator
+	pipelinesArchived []Pipeline
 }
 
 func newEmptyBuild(conn DbConn, lockFactory lock.LockFactory) *build {
@@ -404,6 +409,7 @@ func (b *build) RerunOf() int                     { return b.rerunOf }
 func (b *build) RerunOfName() string              { return b.rerunOfName }
 func (b *build) RerunNumber() int                 { return b.rerunNumber }
 func (b *build) CreatedBy() *string               { return b.createdBy }
+func (b *build) ArchivedPipelines() []Pipeline    { return b.pipelinesArchived }
 
 func (b *build) isNewerThanLastCheckOf(input Resource) bool {
 	return b.createTime.After(input.LastCheckEndTime())
@@ -791,13 +797,13 @@ func (b *build) Finish(status BuildStatus) error {
 		pipelineRows, err := pipelinesQuery.
 			Prefix(`
 WITH RECURSIVE pipelines_to_archive AS (
-	SELECT id from pipelines where archived = false AND parent_job_id = $1 AND parent_build_id < $2
+	SELECT id from pipelines where parent_job_id = $1 AND parent_build_id < $2
 	UNION
 	SELECT p.id from pipelines p join jobs j on p.parent_job_id = j.id join pipelines_to_archive on j.pipeline_id = pipelines_to_archive.id
 )`,
 				b.jobID, b.id,
 			).
-			Where("EXISTS(SELECT 1 FROM pipelines_to_archive pa WHERE pa.id = p.id)").
+			Where("EXISTS(SELECT 1 FROM pipelines_to_archive pa WHERE pa.id = p.id AND archived = false)").
 			RunWith(tx).
 			Query()
 
@@ -806,9 +812,13 @@ WITH RECURSIVE pipelines_to_archive AS (
 		}
 		defer pipelineRows.Close()
 
-		err = archivePipelines(tx, b.conn, b.lockFactory, pipelineRows)
+		archived, err := archivePipelines(tx, b.conn, b.lockFactory, pipelineRows)
 		if err != nil {
 			return err
+		}
+
+		for _, p := range archived {
+			b.pipelinesArchived = append(b.pipelinesArchived, &p)
 		}
 	}
 

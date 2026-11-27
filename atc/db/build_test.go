@@ -872,6 +872,78 @@ var _ = Describe("Build", func() {
 					childPipeline.Reload()
 					Expect(childPipeline.Archived()).To(BeFalse())
 				})
+
+				It("returns no archived pipelines", func() {
+					build2, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
+					build2.Finish(db.BuildStatusFailed)
+
+					Expect(build2.ArchivedPipelines()).To(BeEmpty())
+				})
+			})
+
+			It("populates ArchivedPipelines after archiving", func() {
+				build2, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
+				build2.Finish(db.BuildStatusSucceeded)
+
+				archived := build2.ArchivedPipelines()
+				Expect(archived).To(HaveLen(1))
+				Expect(archived[0].Name()).To(Equal("child1-pipeline"))
+				Expect(archived[0].TeamName()).To(Equal(defaultTeam.Name()))
+			})
+
+			It("populates ArchivedPipelines for chain of pipelines", func() {
+				childPipelines := []db.Pipeline{childPipeline}
+
+				for i := range 5 {
+					job, _, _ := childPipeline.Job("some-job")
+					build, _ := job.CreateBuild(defaultBuildCreatedBy)
+					childPipeline, _, _ = build.SavePipeline(atc.PipelineRef{Name: "child-pipeline-" + strconv.Itoa(i)}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+					build.Finish(db.BuildStatusSucceeded)
+					childPipelines = append(childPipelines, childPipeline)
+				}
+
+				build, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
+				build.Finish(db.BuildStatusSucceeded)
+
+				archived := build.ArchivedPipelines()
+				Expect(archived).To(HaveLen(len(childPipelines)))
+			})
+
+			It("reports only newly archived pipelines when a descendant is already archived", func() {
+				saveChildPipeline := func(parent db.Pipeline, name string) db.Pipeline {
+					job, found, err := parent.Job("some-job")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(found).To(BeTrue())
+					build, err := job.CreateBuild(defaultBuildCreatedBy)
+					Expect(err).NotTo(HaveOccurred())
+					pipeline, _, err := build.SavePipeline(atc.PipelineRef{Name: name}, defaultTeam.ID(), defaultPipelineConfig, db.ConfigVersion(0), false)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+					return pipeline
+				}
+
+				archivedDescendant := saveChildPipeline(childPipeline, "already-archived")
+				activeDescendant := saveChildPipeline(archivedDescendant, "active-descendant")
+				Expect(archivedDescendant.Archive()).To(Succeed())
+
+				build, err := defaultJob.CreateBuild(defaultBuildCreatedBy)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(build.Finish(db.BuildStatusSucceeded)).To(Succeed())
+
+				var archivedNames []string
+				for _, pipeline := range build.ArchivedPipelines() {
+					archivedNames = append(archivedNames, pipeline.Name())
+				}
+				Expect(archivedNames).To(ConsistOf(childPipeline.Name(), activeDescendant.Name()))
+			})
+
+			It("returns empty ArchivedPipelines when no pipelines are archived", func() {
+				build2, _ := defaultJob.CreateBuild(defaultBuildCreatedBy)
+				_, _, err := build2.SavePipeline(atc.PipelineRef{Name: "child1-pipeline"}, defaultTeam.ID(), defaultPipelineConfig, childPipeline.ConfigVersion(), false)
+				Expect(err).ToNot(HaveOccurred())
+				build2.Finish(db.BuildStatusSucceeded)
+
+				Expect(build2.ArchivedPipelines()).To(BeEmpty())
 			})
 		})
 	})
