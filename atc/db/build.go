@@ -797,13 +797,13 @@ func (b *build) Finish(status BuildStatus) error {
 		pipelineRows, err := pipelinesQuery.
 			Prefix(`
 WITH RECURSIVE pipelines_to_archive AS (
-	SELECT id from pipelines where archived = false AND parent_job_id = $1 AND parent_build_id < $2
+	SELECT id from pipelines where parent_job_id = $1 AND parent_build_id < $2
 	UNION
 	SELECT p.id from pipelines p join jobs j on p.parent_job_id = j.id join pipelines_to_archive on j.pipeline_id = pipelines_to_archive.id
 )`,
 				b.jobID, b.id,
 			).
-			Where("EXISTS(SELECT 1 FROM pipelines_to_archive pa WHERE pa.id = p.id)").
+			Where("EXISTS(SELECT 1 FROM pipelines_to_archive pa WHERE pa.id = p.id AND archived = false)").
 			RunWith(tx).
 			Query()
 
