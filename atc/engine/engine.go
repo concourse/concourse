@@ -291,8 +291,9 @@ func (b *engineBuild) saveStatus(logger lager.Logger, status atc.BuildStatus) {
 
 	for _, p := range b.build.ArchivedPipelines() {
 		b.auditor.AuditInternal(atc.ArchivePipeline, map[string][]string{
-			":pipeline_name":         {p.Name},
-			":team_name":             {p.TeamName},
+			":pipeline_name":         {p.Name()},
+			":team_name":             {p.TeamName()},
+			":instance_vars":         {p.InstanceVars().String()},
 			":triggered_by_pipeline": {b.build.PipelineName()},
 			":triggered_by_job":      {b.build.JobName()},
 			":triggered_by_build_id": {strconv.Itoa(b.build.ID())},

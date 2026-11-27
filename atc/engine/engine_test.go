@@ -275,9 +275,11 @@ var _ = Describe("Engine", func() {
 
 									Context("when the build archived pipelines", func() {
 										BeforeEach(func() {
-											fakeBuild.ArchivedPipelinesReturns([]db.ArchivedPipelineInfo{
-												{Name: "child-pipeline", TeamName: "main"},
-											})
+											fakePipeline := new(dbfakes.FakePipeline)
+											fakePipeline.NameReturns("child-pipeline")
+											fakePipeline.TeamNameReturns("main")
+											fakePipeline.InstanceVarsReturns(atc.InstanceVars{"foo": "bar"})
+											fakeBuild.ArchivedPipelinesReturns([]db.Pipeline{fakePipeline})
 											fakeBuild.PipelineNameReturns("parent-pipeline")
 											fakeBuild.JobNameReturns("some-job")
 										})
@@ -289,6 +291,7 @@ var _ = Describe("Engine", func() {
 											Expect(action).To(Equal(atc.ArchivePipeline))
 											Expect(params[":pipeline_name"]).To(Equal([]string{"child-pipeline"}))
 											Expect(params[":team_name"]).To(Equal([]string{"main"}))
+											Expect(params[":instance_vars"]).To(Equal([]string{"foo:bar"}))
 											Expect(params[":triggered_by_pipeline"]).To(Equal([]string{"parent-pipeline"}))
 											Expect(params[":triggered_by_job"]).To(Equal([]string{"some-job"}))
 											Expect(params[":triggered_by_build_id"]).To(Equal([]string{"128"}))

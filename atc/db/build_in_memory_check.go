@@ -309,10 +309,10 @@ func (b *inMemoryCheckBuild) RunStateID() string {
 	return fmt.Sprintf("in-memory-check-build:%v", b.preId)
 }
 
-func (b *inMemoryCheckBuild) IsRunning() bool           { return b.endTime.IsZero() }
-func (b *inMemoryCheckBuild) IsManuallyTriggered() bool { return false }
-func (b *inMemoryCheckBuild) CreateTime() time.Time     { return b.createTime }
-func (b *inMemoryCheckBuild) ArchivedPipelines() []ArchivedPipelineInfo { return nil }
+func (b *inMemoryCheckBuild) IsRunning() bool               { return b.endTime.IsZero() }
+func (b *inMemoryCheckBuild) IsManuallyTriggered() bool     { return false }
+func (b *inMemoryCheckBuild) CreateTime() time.Time         { return b.createTime }
+func (b *inMemoryCheckBuild) ArchivedPipelines() []Pipeline { return nil }
 
 func (b *inMemoryCheckBuild) SpanContext() propagation.TextMapCarrier { return b.spanContext }
 

@@ -887,8 +887,8 @@ var _ = Describe("Build", func() {
 
 				archived := build2.ArchivedPipelines()
 				Expect(archived).To(HaveLen(1))
-				Expect(archived[0].Name).To(Equal("child1-pipeline"))
-				Expect(archived[0].TeamName).To(Equal(defaultTeam.Name()))
+				Expect(archived[0].Name()).To(Equal("child1-pipeline"))
+				Expect(archived[0].TeamName()).To(Equal(defaultTeam.Name()))
 			})
 
 			It("populates ArchivedPipelines for chain of pipelines", func() {

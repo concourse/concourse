@@ -103,7 +103,7 @@ func (pl *pipelineLifecycle) ArchiveAbandonedPipelines() error {
 			":triggered_by":  {"abandoned-pipeline-gc"},
 		}
 		if len(p.instanceVars) > 0 {
-			params["vars"] = []string{p.instanceVars.String()}
+			params["instance_vars"] = []string{p.instanceVars.String()}
 		}
 		pl.auditor.AuditInternal(atc.ArchivePipeline, params)
 	}

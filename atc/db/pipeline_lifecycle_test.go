@@ -14,9 +14,9 @@ import (
 
 var _ = Describe("PipelineLifecycle", func() {
 	var (
-		pl           db.PipelineLifecycle
-		err          error
-		fakeAuditor  *auditorfakes.FakeAuditor
+		pl          db.PipelineLifecycle
+		err         error
+		fakeAuditor *auditorfakes.FakeAuditor
 	)
 
 	BeforeEach(func() {
@@ -99,7 +99,7 @@ var _ = Describe("PipelineLifecycle", func() {
 				It("should include instance vars in the audit log", func() {
 					Expect(fakeAuditor.AuditInternalCallCount()).To(Equal(1))
 					_, params := fakeAuditor.AuditInternalArgsForCall(0)
-					Expect(params["vars"]).To(Equal([]string{"branch:main"}))
+					Expect(params["instance_vars"]).To(Equal([]string{"branch:main"}))
 				})
 			})
 

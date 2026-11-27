@@ -34,14 +34,6 @@ const schema = "exec.v2"
 var ErrAdoptRerunBuildHasNoInputs = errors.New("inputs not ready for build to rerun")
 var ErrSetByNewerBuild = errors.New("pipeline set by a newer build")
 
-// ArchivedPipelineInfo holds metadata about a pipeline that was automatically
-// archived during a build's completion.
-type ArchivedPipelineInfo struct {
-	Name         string
-	TeamName     string
-	InstanceVars atc.InstanceVars
-}
-
 type BuildInput struct {
 	Name       string
 	Version    atc.Version
@@ -200,7 +192,10 @@ type Build interface {
 
 	Start(atc.Plan) (bool, error)
 	Finish(BuildStatus) error
-	ArchivedPipelines() []ArchivedPipelineInfo
+	// ArchivedPipelines is only populated after build.Finish() is run. Run
+	// build.Finish() first and then call build.ArchivedPipelines() to get a
+	// list of pipelines that were archived because of this build.
+	ArchivedPipelines() []Pipeline
 
 	Variables(lager.Logger, creds.Secrets, creds.VarSourcePool) (vars.Variables, error)
 
@@ -290,8 +285,8 @@ type build struct {
 
 	spanContext SpanContext
 
-	eventIdSeq       util.SequenceGenerator
-	archivedChildren []ArchivedPipelineInfo
+	eventIdSeq        util.SequenceGenerator
+	pipelinesArchived []Pipeline
 }
 
 func newEmptyBuild(conn DbConn, lockFactory lock.LockFactory) *build {
@@ -414,7 +409,7 @@ func (b *build) RerunOf() int                     { return b.rerunOf }
 func (b *build) RerunOfName() string              { return b.rerunOfName }
 func (b *build) RerunNumber() int                 { return b.rerunNumber }
 func (b *build) CreatedBy() *string               { return b.createdBy }
-func (b *build) ArchivedPipelines() []ArchivedPipelineInfo { return b.archivedChildren }
+func (b *build) ArchivedPipelines() []Pipeline    { return b.pipelinesArchived }
 
 func (b *build) isNewerThanLastCheckOf(input Resource) bool {
 	return b.createTime.After(input.LastCheckEndTime())
@@ -823,11 +818,7 @@ WITH RECURSIVE pipelines_to_archive AS (
 		}
 
 		for _, p := range archived {
-			b.archivedChildren = append(b.archivedChildren, ArchivedPipelineInfo{
-				Name:         p.name,
-				TeamName:     p.teamName,
-				InstanceVars: p.instanceVars,
-			})
+			b.pipelinesArchived = append(b.pipelinesArchived, &p)
 		}
 	}
 

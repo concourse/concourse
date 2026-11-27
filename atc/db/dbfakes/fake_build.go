@@ -84,15 +84,15 @@ type FakeBuild struct {
 	allAssociatedTeamNamesReturnsOnCall map[int]struct {
 		result1 []string
 	}
-	ArchivedPipelinesStub        func() []db.ArchivedPipelineInfo
+	ArchivedPipelinesStub        func() []db.Pipeline
 	archivedPipelinesMutex       sync.RWMutex
 	archivedPipelinesArgsForCall []struct {
 	}
 	archivedPipelinesReturns struct {
-		result1 []db.ArchivedPipelineInfo
+		result1 []db.Pipeline
 	}
 	archivedPipelinesReturnsOnCall map[int]struct {
-		result1 []db.ArchivedPipelineInfo
+		result1 []db.Pipeline
 	}
 	ArtifactStub        func(int) (db.WorkerArtifact, error)
 	artifactMutex       sync.RWMutex
@@ -1109,7 +1109,7 @@ func (fake *FakeBuild) AllAssociatedTeamNamesReturnsOnCall(i int, result1 []stri
 	}{result1}
 }
 
-func (fake *FakeBuild) ArchivedPipelines() []db.ArchivedPipelineInfo {
+func (fake *FakeBuild) ArchivedPipelines() []db.Pipeline {
 	fake.archivedPipelinesMutex.Lock()
 	ret, specificReturn := fake.archivedPipelinesReturnsOnCall[len(fake.archivedPipelinesArgsForCall)]
 	fake.archivedPipelinesArgsForCall = append(fake.archivedPipelinesArgsForCall, struct {
@@ -1133,32 +1133,32 @@ func (fake *FakeBuild) ArchivedPipelinesCallCount() int {
 	return len(fake.archivedPipelinesArgsForCall)
 }
 
-func (fake *FakeBuild) ArchivedPipelinesCalls(stub func() []db.ArchivedPipelineInfo) {
+func (fake *FakeBuild) ArchivedPipelinesCalls(stub func() []db.Pipeline) {
 	fake.archivedPipelinesMutex.Lock()
 	defer fake.archivedPipelinesMutex.Unlock()
 	fake.ArchivedPipelinesStub = stub
 }
 
-func (fake *FakeBuild) ArchivedPipelinesReturns(result1 []db.ArchivedPipelineInfo) {
+func (fake *FakeBuild) ArchivedPipelinesReturns(result1 []db.Pipeline) {
 	fake.archivedPipelinesMutex.Lock()
 	defer fake.archivedPipelinesMutex.Unlock()
 	fake.ArchivedPipelinesStub = nil
 	fake.archivedPipelinesReturns = struct {
-		result1 []db.ArchivedPipelineInfo
+		result1 []db.Pipeline
 	}{result1}
 }
 
-func (fake *FakeBuild) ArchivedPipelinesReturnsOnCall(i int, result1 []db.ArchivedPipelineInfo) {
+func (fake *FakeBuild) ArchivedPipelinesReturnsOnCall(i int, result1 []db.Pipeline) {
 	fake.archivedPipelinesMutex.Lock()
 	defer fake.archivedPipelinesMutex.Unlock()
 	fake.ArchivedPipelinesStub = nil
 	if fake.archivedPipelinesReturnsOnCall == nil {
 		fake.archivedPipelinesReturnsOnCall = make(map[int]struct {
-			result1 []db.ArchivedPipelineInfo
+			result1 []db.Pipeline
 		})
 	}
 	fake.archivedPipelinesReturnsOnCall[i] = struct {
-		result1 []db.ArchivedPipelineInfo
+		result1 []db.Pipeline
 	}{result1}
 }
 
