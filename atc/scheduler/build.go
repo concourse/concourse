@@ -57,9 +57,18 @@ var _ Build = (*schedulerBuild)(nil)
 
 type schedulerBuild struct {
 	db.Build
+
+	// alwaysCheckInputs makes an automatically triggered build wait for every
+	// input to be checked, like a manually triggered build, instead of only
+	// the non-triggering ones.
+	alwaysCheckInputs bool
 }
 
 func (s *schedulerBuild) IsReadyToDetermineInputs(logger lager.Logger) (bool, error) {
+	if s.alwaysCheckInputs {
+		return s.ResourcesChecked()
+	}
+
 	return s.NonTriggeringResourcesChecked()
 }
 
